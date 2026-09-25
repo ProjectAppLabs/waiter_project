@@ -88,9 +88,10 @@ class _Parser(HTMLParser):
         self.stack.pop()
 
     def handle_data(self, data):
+        # Se colapsan los espacios como en HTML; se conserva uno en los bordes para no pegar el texto a un <dato> vecino.
         text = re.sub(r'\s+', ' ', data)
         if text.strip():
-            self.stack[-1]['hijos'].append({'tipo': 'texto', 'texto': text.strip()})
+            self.stack[-1]['hijos'].append({'tipo': 'texto', 'texto': text})
 
     def handle_comment(self, data):
         raise InvalidTemplate('no se admiten comentarios.')

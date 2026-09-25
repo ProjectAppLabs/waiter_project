@@ -133,4 +133,14 @@ Cada fase se fusiona por separado, sobre J5.
   `{version, html}`, guardado `{version, arbol}`); un guardado obsoleto vuelve a fábrica sin tumbar el tema.
 - Los borradores de J4 ya la preparan, previsualizan, confirman y restablecen; `vista_previa` la resume. El contrato
   público y `leer_design_system` exponen `plantillas`.
-- Pendiente para K2: el renderizador en el comensal y la tarjeta de plato dibujada desde el árbol.
+**K2 hecho (2026-09-25)**, misma rama.
+
+- `Renderizador.tsx` dibuja el árbol con React (elementos, texto, datos con formato, ranuras simples y de envoltorio,
+  `si`, `cada`, decoraciones) y cae al componente de fábrica si algo no se puede convertir. `lib/domain/plantillas.ts`
+  filtra versión, forma, etiquetas y clases antes de dibujar.
+- La tarjeta de plato acepta plantilla propia: sus datos (`dishTemplateData`, iguales al contrato) y sus ranuras
+  (favorito, ficha, foto, valoración, precio, detalles, tiempo, agotado, agregar) siguen siendo del código.
+- Pruebas: la plantilla de fábrica dibujada desde el árbol produce el mismo HTML que la tarjeta actual; una plantilla
+  distinta conserva enlace, favorito y agregar; plantillas obsoletas o dañadas vuelven a fábrica. Verificación en Edge con
+  un borrador real en la carta y en la página viva.
+- Pendiente para K3: `leer_componente`, `preparar_componente` y `verificar_borrador` en el MCP.

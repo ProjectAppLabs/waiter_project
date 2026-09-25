@@ -1,0 +1,16 @@
+/* Plan K · Decoraciones de las plantillas: imágenes de la galería con un catálogo cerrado de movimientos.
+ * No reciben toques ni lectores de pantalla, tienen tamaño acotado y se quedan quietas si la persona lo pide. */
+.smart-menu .ds-decoracion { display: block; width: min(96px, 30%); height: auto; max-height: 96px; object-fit: contain; pointer-events: none; user-select: none; }
+.smart-menu .ds-decoracion[class*="ds-esquina-"] { width: min(64px, 24%); }
+
+@keyframes ds-flotar { from { transform: translateY(0); } to { transform: translateY(-6px); } }
+@keyframes ds-latir { from { transform: scale(1); } to { transform: scale(1.06); } }
+@keyframes ds-girar { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes ds-deslizar { from { transform: translateX(-4px); } to { transform: translateX(4px); } }
+.smart-menu .ds-mov-flotar { animation: ds-flotar 2.4s ease-in-out infinite alternate; }
+.smart-menu .ds-mov-latir { animation: ds-latir 1.8s ease-in-out infinite alternate; }
+.smart-menu .ds-mov-girar { animation: ds-girar 12s linear infinite; }
+.smart-menu .ds-mov-deslizar { animation: ds-deslizar 3s ease-in-out infinite alternate; }
+@media (prefers-reduced-motion: reduce) {
+  .smart-menu .ds-decoracion { animation: none; }
+}

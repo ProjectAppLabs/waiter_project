@@ -228,7 +228,15 @@ y el [plan K](../../../docs/planes/2026-09-25-plan-K-plantillas-por-componente.m
 - `GET /api/v1/diseno/` y `leer_design_system` devuelven `plantillas`: componentes con su contrato y plantilla de fábrica
   (HTML y árbol), utilidades y decoraciones.
 
-El dibujo del árbol en el comensal (renderizador y respaldo) llega en K2; hasta entonces la capa se guarda y se sirve pero no cambia la carta.
+**Dibujo en el comensal (K2).** `diner/components/plantillas/Renderizador.tsx` convierte el árbol en React con la
+lista cerrada de etiquetas; los datos y las ranuras los aporta el componente real, que sigue siendo dueño de las
+acciones (`FoodCard` conserva `add`, favorito y el enlace a la ficha; la plantilla solo los coloca). Sin `innerHTML`.
+`lib/domain/plantillas.ts` comprueba versión del contrato, forma del árbol, etiquetas y clases antes de dibujar; ante
+cualquier duda, o si algo falla al convertir, se muestra el componente de fábrica. La plantilla se dibuja **dentro** de
+la raíz real (`article.sm-food-card`), así la variante de tarjeta y la distribución de la carta siguen mandando. La tarjeta
+con plantilla propia lleva `data-plantilla="propia"` y la página viva la marca. Las decoraciones se dibujan como `<img>`
+del paquete de fábrica con las clases de movimiento de `smart-decoraciones.css` (quietas con `prefers-reduced-motion`).
+Una prueba dibuja la plantilla de fábrica desde el árbol y exige el mismo HTML que el JSX de fábrica.
 
 `diner/scripts/design-system/verificar-pagina.cjs` abre la página en Edge/Chromium a 375 y 1024 px, con el tema publicado y,
 si se pasa `DRAFT_TOKEN`, con un borrador. Comprueba componentes y opciones, atributos e inercia de cada muestra, el estilo

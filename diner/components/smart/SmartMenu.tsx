@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { pathFor, type Route, type Screen } from '@/lib/domain/route'
+import { templateFor, type TemplateData, type TemplateSlots } from '@/lib/domain/plantillas'
+import { Plantilla } from '@/components/plantillas/Renderizador'
 import { formatCop } from '@/lib/domain/cart'
 import { useDinerStore } from '@/lib/stores/dinerStore'
 import type { Dish, Entry } from '@/lib/types'
@@ -37,6 +39,7 @@ import './smart-motion.css'
 import './smart-accessibility.css'
 import './smart-variants.css'
 import './smart-utilities.css'
+import './smart-decoraciones.css'
 
 export type SmartProps = {
   entry: Entry
@@ -282,26 +285,55 @@ export function PrepTime({ dish }: { dish: Dish }) {
   if (!minutes) return null
   return <span className="sm-food-time"><Icon name="clock" />{minutes} min</span>
 }
+// Datos que una plantilla de la tarjeta puede enlazar (contrato «plato» de experience/diseno/componentes.json).
+export function dishTemplateData(dish: Dish): TemplateData {
+  const deal = dealFor(dish)
+  return {
+    'plato.nombre': dish.nombre, 'plato.precio': dish.precio, 'plato.descripcion': dish.descripcion ?? null,
+    'plato.tiempo': dish.atributos?.tiempoPreparacion ?? null, 'plato.agotado': !!dish.agotado,
+    'plato.valoracion': !!dish.valoracion?.cantidad, 'plato.valoracion.promedio': dish.valoracion?.cantidad ? Number(dish.valoracion.promedio.toFixed(1)) : null,
+    'plato.valoracion.cantidad': dish.valoracion?.cantidad ?? null,
+    'plato.rebaja': !!deal, 'plato.rebaja.porcentaje': deal?.porcentaje ?? null, 'plato.precioAntes': deal?.antes ?? null,
+  }
+}
 // Exportada para la página viva del sistema de diseño (J5), que la muestra con cada variante.
+// Con una plantilla propia (Plan K2) la tarjeta real sigue siendo la dueña de las acciones: la plantilla solo las coloca.
 export function FoodCard({ dish }: { dish: Dish }) {
   const { href } = useSmartRoute()
   const {add,busy} = useDinerStore()
+  const arbol = useDinerStore((s) => templateFor(s.template.tema, 'plato'))
   const [quickAdded,setQuickAdded] = useState(false)
   const adding = useRef(false)
+  const quickAdd = <button className="sm-quick-add" aria-label={`${quickAdded?'Añadido':'Agregar'}: ${dish.nombre}`} disabled={busy||dish.agotado} onClick={async()=>{if(adding.current)return;adding.current=true;try{await add(dish.id,1,'');setQuickAdded(!useDinerStore.getState().error)}finally{adding.current=false}}}><Icon name={quickAdded?'check':'plus'}/></button>
+  const soldOut = dish.agotado ? <span className="sm-sold-out">Agotado</span> : null
+  const factory = <>
+    <Heart dish={dish} />
+    <Link href={href('plato', dish.id)} className="sm-food-link">
+      <FoodPhoto dish={dish} />
+      <DishRating dish={dish}/>
+      <PriceBlock dish={dish} />
+      <h3>{dish.nombre}</h3>
+      <div className="sm-food-bottom">
+        <PrepTime dish={dish} />
+        {soldOut}
+      </div>
+    </Link>
+    {quickAdd}
+  </>
+  const ranuras: TemplateSlots = {
+    favorito: <Heart dish={dish} />,
+    ficha: (children) => <Link href={href('plato', dish.id)} className="sm-food-link">{children}</Link>,
+    foto: <FoodPhoto dish={dish} />,
+    valoracion: <DishRating dish={dish}/>,
+    precio: <PriceBlock dish={dish} />,
+    detalles: <div className="sm-food-bottom"><PrepTime dish={dish} />{soldOut}</div>,
+    tiempo: <PrepTime dish={dish} />,
+    agotado: soldOut,
+    agregar: quickAdd,
+  }
   return (
-    <article className="sm-food-card">
-      <Heart dish={dish} />
-      <Link href={href('plato', dish.id)} className="sm-food-link">
-        <FoodPhoto dish={dish} />
-        <DishRating dish={dish}/>
-        <PriceBlock dish={dish} />
-        <h3>{dish.nombre}</h3>
-        <div className="sm-food-bottom">
-          <PrepTime dish={dish} />
-          {dish.agotado && <span className="sm-sold-out">Agotado</span>}
-        </div>
-      </Link>
-      <button className="sm-quick-add" aria-label={`${quickAdded?'Añadido':'Agregar'}: ${dish.nombre}`} disabled={busy||dish.agotado} onClick={async()=>{if(adding.current)return;adding.current=true;try{await add(dish.id,1,'');setQuickAdded(!useDinerStore.getState().error)}finally{adding.current=false}}}><Icon name={quickAdded?'check':'plus'}/></button>
+    <article className="sm-food-card" data-plantilla={arbol ? 'propia' : undefined}>
+      {arbol ? <Plantilla arbol={arbol} datos={dishTemplateData(dish)} ranuras={ranuras} fallback={factory} /> : factory}
     </article>
   )
 }

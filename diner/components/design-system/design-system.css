@@ -43,6 +43,7 @@
 .ds-meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
 .ds-meta li { background: var(--t-acento-suave); color: var(--t-tinta); border-radius: 999px; padding: 4px 12px; font-size: 14px; }
 .ds-meta li code { color: inherit; }
+.ds-meta .ds-meta-plantilla { background: var(--t-acento); color: var(--t-acento-tinta); }
 .ds-elsewhere { margin: 12px 0 0; color: var(--sm-readable-muted); }
 .ds-option { margin: 0; display: grid; gap: 8px; align-content: start; min-width: 0; }
 .ds-option figcaption { font-size: 14px; line-height: 1.5; color: var(--sm-readable-muted); }

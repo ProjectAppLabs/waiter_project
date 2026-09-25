@@ -45,7 +45,7 @@ def test_parse_builds_a_normalized_tree():
         {'tipo': 'ranura', 'nombre': 'ficha', 'hijos': [
             {'tipo': 'ranura', 'nombre': 'foto', 'hijos': []},
             {'tipo': 'elemento', 'etiqueta': 'h3', 'clases': ['ds-texto-titulo'], 'hijos': [
-                {'tipo': 'texto', 'texto': 'Hoy:'}, {'tipo': 'dato', 'nombre': 'plato.nombre'}]},
+                {'tipo': 'texto', 'texto': 'Hoy: '}, {'tipo': 'dato', 'nombre': 'plato.nombre'}]},
             {'tipo': 'si', 'dato': 'plato.rebaja', 'hijos': [
                 {'tipo': 'elemento', 'etiqueta': 'span', 'clases': ['ds-insignia'], 'hijos': [
                     {'tipo': 'texto', 'texto': '-'}, {'tipo': 'dato', 'nombre': 'plato.rebaja.porcentaje', 'formato': 'numero'}, {'tipo': 'texto', 'texto': '%'}]}]},
