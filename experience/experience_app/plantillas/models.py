@@ -28,6 +28,7 @@ class VenueMenuSettings(models.Model):
     template = models.ForeignKey(MenuTemplate, on_delete=models.PROTECT, related_name='venues')
     palette = models.JSONField(default=dict)  # {"acento": "#RRGGBB", ...} solo tokens de spec.personalizable.colores
     typography = models.JSONField(default=dict)  # {"display": "Fraunces"}
+    theme = models.JSONField(default=dict)  # Tema v2; {} conserva la compatibilidad con los ajustes anteriores.
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

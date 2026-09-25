@@ -52,6 +52,9 @@
   --t-cuerpo: 'Mulish', system-ui, sans-serif; --t-mono: 'Mulish', ui-monospace, monospace;
   --t-radio-tarjeta: 16px; --t-radio-boton: 16px; --t-radio-chip: 16px;
   --sm-highlight-ink: #1A1815;
+  --sm-highlight-text: #8F6310;
+  --sm-accent-text: #6755A0;
+  --sm-readable-muted: #666687;
 }
 html { font-family: var(--font-ui); background: var(--t-fondo); color: var(--t-tinta); -webkit-font-smoothing: antialiased; }
 .tabular { font-variant-numeric: tabular-nums; }

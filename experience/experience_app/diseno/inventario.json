@@ -1,0 +1,379 @@
+{
+  "version": 2,
+  "fundamentos": {
+    "fundamentos.densidad": [
+      "--ds-densidad"
+    ],
+    "fundamentos.texto": [
+      "--ds-texto"
+    ],
+    "fundamentos.titulo": [
+      "--ds-titulo"
+    ],
+    "fundamentos.forma.tarjeta": [
+      "--ds-forma-tarjeta"
+    ],
+    "fundamentos.forma.boton": [
+      "--ds-forma-boton"
+    ],
+    "fundamentos.forma.chip": [
+      "--ds-forma-chip"
+    ],
+    "fundamentos.forma.campo": [
+      "--ds-forma-campo"
+    ],
+    "fundamentos.forma.imagen": [
+      "--ds-forma-imagen"
+    ],
+    "fundamentos.forma.hoja": [
+      "--ds-forma-hoja"
+    ],
+    "fundamentos.colores.fondo": [
+      "--t-fondo"
+    ],
+    "fundamentos.colores.superficie": [
+      "--t-superficie"
+    ],
+    "fundamentos.colores.tinta": [
+      "--t-tinta"
+    ],
+    "fundamentos.colores.tintaSuave": [
+      "--t-tinta-suave"
+    ],
+    "fundamentos.colores.tintaTerciaria": [
+      "--t-tinta-terciaria"
+    ],
+    "fundamentos.colores.borde": [
+      "--t-borde"
+    ],
+    "fundamentos.colores.acento": [
+      "--t-acento"
+    ],
+    "fundamentos.colores.acentoTinta": [
+      "--t-acento-tinta"
+    ],
+    "fundamentos.colores.acentoSuave": [
+      "--t-acento-suave"
+    ],
+    "fundamentos.tipografia.display": [
+      "--t-display"
+    ],
+    "fundamentos.tipografia.cuerpo": [
+      "--t-cuerpo",
+      "--t-mono"
+    ]
+  },
+  "derivadas": {
+    "--ds-espacio-2": "fundamentos.densidad",
+    "--ds-espacio-4": "fundamentos.densidad",
+    "--ds-espacio-6": "fundamentos.densidad",
+    "--ds-espacio-8": "fundamentos.densidad",
+    "--ds-espacio-10": "fundamentos.densidad",
+    "--ds-espacio-12": "fundamentos.densidad",
+    "--ds-espacio-14": "fundamentos.densidad",
+    "--ds-espacio-16": "fundamentos.densidad",
+    "--ds-espacio-18": "fundamentos.densidad",
+    "--ds-espacio-20": "fundamentos.densidad",
+    "--ds-espacio-22": "fundamentos.densidad",
+    "--ds-espacio-24": "fundamentos.densidad",
+    "--ds-espacio-26": "fundamentos.densidad",
+    "--ds-espacio-28": "fundamentos.densidad",
+    "--ds-espacio-30": "fundamentos.densidad",
+    "--ds-espacio-32": "fundamentos.densidad",
+    "--ds-espacio-34": "fundamentos.densidad",
+    "--ds-espacio-36": "fundamentos.densidad",
+    "--ds-espacio-38": "fundamentos.densidad",
+    "--ds-espacio-40": "fundamentos.densidad",
+    "--ds-espacio-42": "fundamentos.densidad",
+    "--ds-espacio-44": "fundamentos.densidad",
+    "--ds-espacio-46": "fundamentos.densidad",
+    "--ds-espacio-48": "fundamentos.densidad",
+    "--ds-espacio-50": "fundamentos.densidad",
+    "--ds-espacio-52": "fundamentos.densidad",
+    "--ds-espacio-54": "fundamentos.densidad",
+    "--ds-espacio-56": "fundamentos.densidad",
+    "--ds-espacio-58": "fundamentos.densidad",
+    "--ds-espacio-60": "fundamentos.densidad",
+    "--ds-espacio-62": "fundamentos.densidad",
+    "--ds-espacio-64": "fundamentos.densidad",
+    "--sm-highlight-ink": "fundamentos.colores.tintaTerciaria",
+    "--sm-highlight-text": "fundamentos.colores.tintaTerciaria",
+    "--sm-accent-text": "fundamentos.colores.acento",
+    "--sm-readable-muted": "fundamentos.colores.tintaSuave"
+  },
+  "componentes": [
+    {
+      "id": "cabecera",
+      "nombre": "Cabecera y saludo",
+      "selectores": [
+        ".sm-location-header",
+        ".sm-greeting"
+      ],
+      "fundamentos": [
+        "fundamentos.texto",
+        "fundamentos.titulo",
+        "fundamentos.densidad",
+        "fundamentos.tipografia.display",
+        "fundamentos.colores.tinta"
+      ],
+      "variantes": []
+    },
+    {
+      "id": "banners",
+      "nombre": "Banners del restaurante",
+      "selectores": [
+        ".sm-promo-banner"
+      ],
+      "fundamentos": [
+        "fundamentos.texto",
+        "fundamentos.densidad",
+        "fundamentos.forma.tarjeta"
+      ],
+      "variantes": []
+    },
+    {
+      "id": "categorias",
+      "nombre": "Navegación de categorías",
+      "selectores": [
+        ".sm-categories"
+      ],
+      "fundamentos": [
+        "fundamentos.texto",
+        "fundamentos.densidad",
+        "fundamentos.forma.chip",
+        "fundamentos.colores.tintaTerciaria"
+      ],
+      "variantes": []
+    },
+    {
+      "id": "plato",
+      "nombre": "Tarjeta de plato",
+      "selectores": [
+        ".sm-food-card"
+      ],
+      "fundamentos": [
+        "fundamentos.texto",
+        "fundamentos.densidad",
+        "fundamentos.forma.tarjeta",
+        "fundamentos.forma.imagen",
+        "fundamentos.colores.superficie"
+      ],
+      "variantes": []
+    },
+    {
+      "id": "boton",
+      "nombre": "Acción principal",
+      "selectores": [
+        ".sm-primary"
+      ],
+      "fundamentos": [
+        "fundamentos.texto",
+        "fundamentos.densidad",
+        "fundamentos.forma.boton",
+        "fundamentos.colores.acento",
+        "fundamentos.colores.acentoTinta"
+      ],
+      "variantes": []
+    },
+    {
+      "id": "campo",
+      "nombre": "Campo de formulario",
+      "selectores": [
+        ".sm-field"
+      ],
+      "fundamentos": [
+        "fundamentos.texto",
+        "fundamentos.densidad",
+        "fundamentos.forma.campo",
+        "fundamentos.colores.tinta",
+        "fundamentos.colores.borde"
+      ],
+      "variantes": []
+    },
+    {
+      "id": "hoja",
+      "nombre": "Diálogo y hoja inferior",
+      "selectores": [
+        ".sm-wallet-dialog"
+      ],
+      "fundamentos": [
+        "fundamentos.texto",
+        "fundamentos.titulo",
+        "fundamentos.densidad",
+        "fundamentos.forma.hoja",
+        "fundamentos.colores.superficie"
+      ],
+      "variantes": []
+    },
+    {
+      "id": "texto",
+      "nombre": "Texto del menú",
+      "selectores": [
+        ".smart-menu"
+      ],
+      "fundamentos": [
+        "fundamentos.texto",
+        "fundamentos.tipografia.cuerpo",
+        "fundamentos.colores.tinta",
+        "fundamentos.colores.tintaSuave",
+        "fundamentos.colores.fondo"
+      ],
+      "variantes": []
+    },
+    {
+      "id": "imagen",
+      "nombre": "Imagen de perfil",
+      "selectores": [
+        ".sm-avatar-large"
+      ],
+      "fundamentos": [
+        "fundamentos.forma.imagen"
+      ],
+      "variantes": []
+    },
+    {
+      "id": "pedido",
+      "nombre": "Barra y resumen del pedido",
+      "selectores": [
+        ".sm-action-dock"
+      ],
+      "fundamentos": [
+        "fundamentos.texto",
+        "fundamentos.densidad",
+        "fundamentos.forma.tarjeta",
+        "fundamentos.colores.acento"
+      ],
+      "variantes": []
+    }
+  ],
+  "pantallas": {
+    "carta": [
+      "cabecera",
+      "banners",
+      "categorias",
+      "plato",
+      "pedido"
+    ],
+    "plato": [
+      "cabecera",
+      "imagen",
+      "texto",
+      "boton"
+    ],
+    "pedido": [
+      "cabecera",
+      "plato",
+      "pedido",
+      "boton"
+    ],
+    "pago": [
+      "cabecera",
+      "campo",
+      "hoja",
+      "boton"
+    ],
+    "cuenta": [
+      "cabecera",
+      "texto",
+      "boton"
+    ],
+    "cuenta/registro": [
+      "cabecera",
+      "campo",
+      "boton"
+    ],
+    "cuenta/codigo": [
+      "cabecera",
+      "campo",
+      "boton"
+    ],
+    "cuenta/tarjetas": [
+      "cabecera",
+      "hoja",
+      "boton"
+    ],
+    "historial": [
+      "cabecera",
+      "plato"
+    ],
+    "favoritos": [
+      "cabecera",
+      "plato"
+    ],
+    "estado": [
+      "cabecera",
+      "texto",
+      "boton"
+    ],
+    "la-cuenta": [
+      "cabecera",
+      "pedido",
+      "boton"
+    ],
+    "reserva": [
+      "texto",
+      "boton"
+    ],
+    "opinion": [
+      "cabecera",
+      "texto",
+      "boton"
+    ],
+    "cuenta/correo": [
+      "cabecera",
+      "campo",
+      "boton"
+    ],
+    "cuenta/canal": [
+      "cabecera",
+      "texto",
+      "boton"
+    ],
+    "cuenta/lista": [
+      "cabecera",
+      "texto",
+      "boton"
+    ],
+    "cuenta/informacion": [
+      "cabecera",
+      "campo",
+      "boton"
+    ],
+    "cuenta/entrar": [
+      "cabecera",
+      "campo",
+      "boton"
+    ],
+    "cuenta/clave": [
+      "cabecera",
+      "campo",
+      "boton"
+    ],
+    "cuenta/recuperar": [
+      "cabecera",
+      "campo",
+      "boton"
+    ],
+    "cuenta/restablecer": [
+      "cabecera",
+      "campo",
+      "boton"
+    ],
+    "recibo": [
+      "cabecera",
+      "texto",
+      "pedido"
+    ],
+    "ubicacion": [
+      "cabecera",
+      "campo",
+      "texto",
+      "boton"
+    ],
+    "recompensas": [
+      "cabecera",
+      "texto",
+      "boton"
+    ]
+  }
+}

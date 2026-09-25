@@ -119,7 +119,7 @@ Los errores de validación dicen qué valor falló y por qué, para que la IA co
 | Fase | Entrega | Cómo se verifica |
 |---|---|---|
 | **J1. Fundamentos** | Auditoría del CSS; escalas de espaciado, tipografía y radio; CSS por variables | Capturas antes/después idénticas con el tema por defecto |
-| **J2. Tema v2** | Esquema e inventario en experience, validación, resolución, migración de los ajustes actuales, `templateVars` extendido | Pruebas del esquema y de las reglas; la carta actual no cambia |
+| **J2. Tema v2** | Esquema e inventario en experience, validación, resolución, migración de los ajustes actuales, `templateVars` extendido | Pruebas del esquema y de las reglas; conservar el diseño salvo los mínimos de accesibilidad aceptados en el cierre |
 | **J3. Variantes** | Botón, tarjeta, navegación de categorías, precio, imagen, cabecera; distribución de la carta y de la ficha del plato | Una captura por variante; pruebas inventario ↔ CSS |
 | **J4. MCP y borradores** | Las 4 herramientas nuevas, el enlace `?borrador=`, y el POS pasado al mismo mecanismo | Prueba de punta a punta: la IA lee, prepara, se ve el borrador y se confirma |
 | **J5. Página viva** | `/<rest>/<sede>/design-system`: todos los componentes y variantes con el tema de la sede | Captura y revisión visual |
@@ -141,6 +141,28 @@ J1 es la base de todo y no cambia nada visible. Cada fase se fusiona por separad
     texto cambió.
   - 8 difieren igual entre dos capturas con el mismo CSS (animaciones): son ruido.
 - `components/smart/__tests__/designTokens.test.ts` falla si vuelve una medida fija.
+
+**J2 cerrado (2026-09-24), incluida la accesibilidad heredada.**
+
+- Esquema e inventario en `experience/experience_app/diseno/`: densidad, texto, títulos, seis formas por rol,
+  nueve colores (dos derivados) y fuentes independientes de títulos/cuerpo. Rangos, tipos, campos y contraste validados.
+- `VenueMenuSettings.theme` y migración `0025`: conserva los ajustes de S1 y el contrato anterior del POS/MCP.
+  La entrada entrega `plantilla.tema` y mantiene `tokens`; guardar invalida la caché por sede.
+- `templateVars` emite los factores `--ds-*`. Se corrige el cálculo del espaciado en `.smart-menu` y se evita que
+  el factor de títulos modifique el cuerpo base. Compactar no reduce el relleno original de los controles.
+- Un tema guardado inválido usa S1 predeterminado; una respuesta sin tema sigue funcionando en el comensal.
+- Cierre solicitado por el usuario: todos los textos parten de 14 px y las áreas interactivas de 44 × 44 px.
+  Las tintas decorativas se derivan con contraste ≥ 4,5:1; se corrigieron campos inválidos, pagos, estado y carrito
+  deslizado en temas oscuros. Etiquetas y distribución se ajustan al texto ampliado. Estos cambios visuales reemplazan
+  la excepción inicial de conservar los controles pequeños de J1.
+- Se actualizaron las pruebas del catálogo retirado para verificar S1; las suites de comensal y experience pasan.
+  TypeScript, ESLint, Ruff y la comprobación de migraciones pasan. Migración aplicada localmente.
+- Auditoría de componentes reales en temas predeterminado, compacto, oscuro y con escalas máximas; incluye formularios
+  de pago, reservas y chat. El runner falla ante controles/textos pequeños, contraste insuficiente o desbordamiento.
+
+Contrato y reproducción de pruebas: [README del tema v2](../../experience/experience_app/diseno/README.md).
+Capturas, resultados y límites de la comprobación: [revisión de J2](../revisiones/2026-09-24-plan-j2.md).
+Las variantes, herramientas nuevas del MCP, borradores y página viva continúan en J3–J5.
 
 ## Fuera de alcance
 

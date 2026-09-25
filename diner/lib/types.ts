@@ -22,8 +22,18 @@ export interface TemplateTokens {
 export interface TemplateLayouts { menu: string; carrito: string; pago: string; registro: SignupPattern; codigo: CodePattern; historial: HistoryPattern }
 export interface TemplatePhotos { requiere: PhotoRequirement; recorte: PhotoCrop }
 export interface TemplateDiscount { porcentaje: number; activo: boolean }
+// Tema v2 resuelto por experience; opcional para seguir leyendo respuestas anteriores a J2.
+export interface MenuTheme {
+  version: 2
+  fundamentos: {
+    densidad: number; texto: number; titulo: number
+    forma: Record<'tarjeta' | 'boton' | 'chip' | 'campo' | 'imagen' | 'hoja', number>
+    colores: Pick<TemplateTokens, 'fondo' | 'superficie' | 'tinta' | 'tintaSuave' | 'tintaTerciaria' | 'borde' | 'acento' | 'acentoTinta' | 'acentoSuave'>
+    tipografia: { display: string; cuerpo: string }
+  }
+}
 // `contexto.plantilla`: la plantilla resuelta (catálogo + paleta y tipografía de la sede + marca). Es lo único que el motor necesita.
-export interface Template { codigo: string; nombre: string; familia: TemplateFamily; tokens: TemplateTokens; layouts: TemplateLayouts; fotos: TemplatePhotos; fuentesGoogle: string[]; descuento: TemplateDiscount }
+export interface Template { codigo: string; nombre: string; familia: TemplateFamily; tokens: TemplateTokens; layouts: TemplateLayouts; fotos: TemplatePhotos; fuentesGoogle: string[]; descuento: TemplateDiscount; tema?: MenuTheme }
 // Una entrada del catálogo público (GET /api/v1/plantillas/): el spec.json sin resúmenes, con miniatura.
 export interface TemplateSpec {
   codigo: string; nombre: string; familia: TemplateFamily; familiaNombre?: string; descripcion?: string

@@ -3,11 +3,11 @@
 .sm-banner-amber { background:#ffb01d; color:#282739; }
 .sm-banner-dark { background:#282739; color:#fff; }
 .sm-banner-copy { min-width:0; flex:1; position:relative; z-index:1; }
-.sm-banner-label { font-size:calc(11px * var(--ds-texto)); text-transform:uppercase; letter-spacing:1px; opacity:.85; }
+.sm-banner-label { font-size:calc(14px * var(--ds-texto)); text-transform:uppercase; letter-spacing:1px; opacity:.85; }
 .sm-banner-copy h2 { font-size:calc(22px * var(--ds-texto)); line-height:1.2; margin:var(--ds-espacio-10) 0; overflow-wrap:anywhere; }
-.sm-banner-copy p { font-size:calc(13px * var(--ds-texto)); line-height:1.5; overflow-wrap:anywhere; }
-.sm-banner-copy strong { display:block; font-size:calc(13px * var(--ds-texto)); margin-top:var(--ds-espacio-12); }
-.sm-banner-cta { display:flex; align-items:center; gap:var(--ds-espacio-8); margin-top:var(--ds-espacio-16); font-size:calc(13px * var(--ds-texto)); }
+.sm-banner-copy p { font-size:calc(14px * var(--ds-texto)); line-height:1.5; overflow-wrap:anywhere; }
+.sm-banner-copy strong { display:block; font-size:calc(14px * var(--ds-texto)); margin-top:var(--ds-espacio-12); }
+.sm-banner-cta { display:flex; align-items:center; gap:var(--ds-espacio-8); margin-top:var(--ds-espacio-16); font-size:calc(14px * var(--ds-texto)); }
 .sm-promo-banner .sm-food-photo,.sm-banner-photo { width:36%; flex-shrink:0; aspect-ratio:1; height:auto; object-fit:contain; }
 .sm-promo-banner.sm-banner-image { padding:0; min-height:0; aspect-ratio:2 / 1; }
 .sm-banner-full { width:100%; height:100%; object-fit:contain; }

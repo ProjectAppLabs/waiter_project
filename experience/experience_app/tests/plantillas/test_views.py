@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pytest
 from django.urls import reverse
 
+from experience_app.diseno import services as design
 from experience_app.models import VenueMenuSettings
 from experience_app.tests.conftest import TABLE
 
@@ -14,15 +15,15 @@ PERCENT = 'experience_app.services.discount.percent_for'
 
 @pytest.mark.django_db
 def test_public_catalog_is_cacheable_and_carries_thumbnails(api_client):
-    """Atrapa un catálogo sin caché pública (30 specs por visita del POS) o sin la URL de la miniatura."""
+    # // Falla si el catálogo pierde la caché pública o vuelve a anunciar diseños retirados.
     response = api_client.get(CATALOG)
     assert response.status_code == 200
     assert response['Cache-Control'] == 'public, max-age=3600'
     body = response.json()
-    assert body['familias']['A'] == 'Alta cocina'
-    b1 = next(p for p in body['plantillas'] if p['codigo'] == 'B1')
-    assert b1['miniatura'] == reverse('template-thumbnail', args=['B1'])
-    assert 'resumen' not in b1['pantallas']['carrito']
+    assert body['familias'] == {'B': 'Smart Menu'}
+    assert [spec['codigo'] for spec in body['plantillas']] == ['S1']
+    assert body['plantillas'][0]['miniatura'] is None
+    assert 'resumen' not in body['plantillas'][0]['pantallas']['carrito']
 
 
 def test_thumbnail_is_a_png_with_long_cache_and_404_when_missing(api_client):
@@ -49,39 +50,40 @@ def test_internal_settings_require_the_key(api_client, settings):
 
 @pytest.mark.django_db
 def test_internal_get_returns_raw_settings_and_put_returns_the_resolved_template(api_client, settings, company_brand_stub):
-    """Atrapa un GET que devuelva la plantilla resuelta en vez de lo editable, o un PUT que no devuelva lo que el comensal verá."""
+    # // Falla si GET omite el tema editable o PUT no devuelve el diseño que verá el comensal.
     settings.EXPERIENCE_INTERNAL_KEY = 'k'
     before = api_client.get(SETTINGS, HTTP_X_INTERNAL_KEY='k').json()
-    assert before == {'plantilla': 'B1', 'paleta': {}, 'tipografia': {}, 'actualizado': None, 'porDefecto': True}
-    body = {'plantilla': 'A3', 'paleta': {'acento': '#2f7a4f'}, 'tipografia': {'display': 'Lora'}}
+    assert before == {'plantilla': 'S1', 'paleta': {}, 'tipografia': {}, 'actualizado': None, 'porDefecto': True, 'tema': design.defaults()}
+    body = {'plantilla': 'S1', 'paleta': {'acento': '#2f7a4f'}, 'tipografia': {'display': 'Lora'}}
     with patch('experience_app.plantillas.views.resolve', return_value=TABLE), patch(PERCENT, return_value=7.5):
         response = api_client.put(SETTINGS, body, format='json', HTTP_X_INTERNAL_KEY='k')
     assert response.status_code == 200
     resolved = response.json()['plantilla']
-    assert (resolved['codigo'], resolved['tokens']['acento'], resolved['tokens']['acentoTinta'], resolved['tokens']['displayFont']) == ('A3', '#2F7A4F', '#FFFFFF', 'Lora')
+    assert (resolved['codigo'], resolved['tokens']['acento'], resolved['tokens']['acentoTinta'], resolved['tokens']['displayFont']) == ('S1', '#2F7A4F', '#FFFFFF', 'Lora')
     assert resolved['descuento'] == {'porcentaje': 7.5, 'activo': True}
     after = api_client.get(SETTINGS, HTTP_X_INTERNAL_KEY='k').json()
-    assert (after['plantilla'], after['paleta'], after['tipografia'], after['porDefecto']) == ('A3', {'acento': '#2F7A4F'}, {'display': 'Lora'}, False)
+    assert (after['plantilla'], after['paleta'], after['tipografia'], after['porDefecto']) == ('S1', {'acento': '#2F7A4F'}, {'display': 'Lora'}, False)
 
 
 @pytest.mark.django_db
 def test_internal_put_rejects_what_the_catalog_does_not_allow(api_client, settings):
-    """Atrapa un 500 (o un guardado) ante una plantilla inexistente o un color fuera de contraste."""
+    # // Falla si se guardan diseños retirados o colores sin contraste.
     settings.EXPERIENCE_INTERNAL_KEY = 'k'
     response = api_client.put(SETTINGS, {'plantilla': 'Z9'}, format='json', HTTP_X_INTERNAL_KEY='k')
     assert response.status_code == 400 and 'no está en el catálogo' in response.json()['detail']
-    response = api_client.put(SETTINGS, {'plantilla': 'B1', 'paleta': {'acento': '#808080'}}, format='json', HTTP_X_INTERNAL_KEY='k')
+    response = api_client.put(SETTINGS, {'plantilla': 'S1', 'paleta': {'acento': '#808080'}}, format='json', HTTP_X_INTERNAL_KEY='k')
     assert response.status_code == 400 and 'no contrasta' in response.json()['detail']
     assert VenueMenuSettings.objects.count() == 0
 
 
 @pytest.mark.django_db
 def test_entry_context_carries_the_resolved_template(api_client, table_tenant, catalog_stub):
-    """Atrapa una entrada sin `plantilla` (el motor del comensal no sabría qué pintar) o con la marca sin aplicar."""
+    # // Falla si la entrada omite el tema Smart o aplica la marca del catálogo retirado.
     plantilla = api_client.get(reverse('entry-table', args=['burger-house', 'poblado', '8H2KQ7'])).json()['contexto']['plantilla']
-    assert plantilla['codigo'] == 'B1'
-    assert plantilla['layouts']['menu'] == 'B1'
-    assert plantilla['tokens']['acento'] == '#7A2E2A'  # la marca del registro (conftest.BRAND)
+    assert plantilla['codigo'] == 'S1'
+    assert plantilla['tema'] == design.defaults()
+    assert plantilla['layouts']['menu'] == 'S1'
+    assert plantilla['tokens']['acento'] == '#6755A0'
     assert plantilla['descuento'] == {'porcentaje': 5.0, 'activo': True}  # pos.config no lo fijó: el 5 % del diseño
 
 
@@ -93,8 +95,9 @@ def test_non_ascii_internal_key_is_unauthorized_not_server_error(api_client, set
 
 @pytest.mark.django_db
 def test_catalog_for_venue_matches_saved_brand_and_hides_implementation_notes(api_client):
-    from experience_app.plantillas.services import final_tokens
+    # // Falla si el catálogo de sede omite sus tokens resueltos o filtra notas internas.
     from experience_app.models import MenuTemplate
+    from experience_app.plantillas.services import final_tokens
     inputs = {'color': '#000000', 'fuente': 'Lora', 'radio': 24}
     with patch('experience_app.plantillas.views.resolve', return_value=TABLE), patch('experience_app.plantillas.views.brand.brand_inputs', return_value=inputs):
         response = api_client.get(CATALOG, {'restaurante': 'burger-house', 'sede': 'poblado'})

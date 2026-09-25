@@ -1,0 +1,179 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Tema del menú v2",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 2,
+      "default": 2
+    },
+    "fundamentos": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "densidad": {
+          "type": "number",
+          "default": 1,
+          "minimum": 0.75,
+          "maximum": 1.5,
+          "description": "Multiplica el espaciado de J1; el relleno de los controles nunca baja del original."
+        },
+        "texto": {
+          "type": "number",
+          "default": 1,
+          "minimum": 1,
+          "maximum": 1.5,
+          "description": "Multiplica el texto; el cuerpo base nunca baja de 14 px."
+        },
+        "titulo": {
+          "type": "number",
+          "default": 1,
+          "minimum": 1,
+          "maximum": 1.5,
+          "description": "Multiplica la tipografía de títulos de J1 (fuente display), además de la escala de texto."
+        },
+        "forma": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "tarjeta": {
+              "type": "number",
+              "default": 1,
+              "minimum": 0,
+              "maximum": 2,
+              "description": "Multiplica el radio original del componente; 0 deja esquinas rectas."
+            },
+            "boton": {
+              "type": "number",
+              "default": 1,
+              "minimum": 0,
+              "maximum": 2,
+              "description": "Multiplica el radio original del componente; 0 deja esquinas rectas."
+            },
+            "chip": {
+              "type": "number",
+              "default": 1,
+              "minimum": 0,
+              "maximum": 2,
+              "description": "Multiplica el radio original del componente; 0 deja esquinas rectas."
+            },
+            "campo": {
+              "type": "number",
+              "default": 1,
+              "minimum": 0,
+              "maximum": 2,
+              "description": "Multiplica el radio original del componente; 0 deja esquinas rectas."
+            },
+            "imagen": {
+              "type": "number",
+              "default": 1,
+              "minimum": 0,
+              "maximum": 2,
+              "description": "Multiplica el radio original del componente; 0 deja esquinas rectas."
+            },
+            "hoja": {
+              "type": "number",
+              "default": 1,
+              "minimum": 0,
+              "maximum": 2,
+              "description": "Multiplica el radio original del componente; 0 deja esquinas rectas."
+            }
+          }
+        },
+        "colores": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "fondo": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "default": "#F8F8FA"
+            },
+            "superficie": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "default": "#FFFFFF"
+            },
+            "tinta": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "default": "#32324D"
+            },
+            "tintaSuave": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "default": "#666687"
+            },
+            "tintaTerciaria": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "default": "#FFB01D"
+            },
+            "borde": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "default": "#EAEAEF"
+            },
+            "acento": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "default": "#6755A0"
+            },
+            "acentoTinta": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "default": "#FFFFFF",
+              "readOnly": true
+            },
+            "acentoSuave": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "default": "#EEEBF5",
+              "readOnly": true
+            }
+          }
+        },
+        "tipografia": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "display": {
+              "type": "string",
+              "enum": [
+                "Instrument Serif",
+                "Playfair Display",
+                "Fraunces",
+                "DM Serif Display",
+                "Lora",
+                "Cormorant Garamond",
+                "Mulish",
+                "DM Sans",
+                "Nunito Sans",
+                "Lato"
+              ],
+              "default": "DM Sans"
+            },
+            "cuerpo": {
+              "type": "string",
+              "enum": [
+                "Instrument Serif",
+                "Playfair Display",
+                "Fraunces",
+                "DM Serif Display",
+                "Lora",
+                "Cormorant Garamond",
+                "Mulish",
+                "DM Sans",
+                "Nunito Sans",
+                "Lato"
+              ],
+              "default": "Mulish"
+            }
+          }
+        }
+      }
+    }
+  }
+}

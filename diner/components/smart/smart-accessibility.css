@@ -1,0 +1,57 @@
+/* Mínimos de J2. Son invariantes: una regla local o un tema no puede encoger una zona táctil. */
+.smart-menu :is(button, a, summary, select, textarea, input:not([type='checkbox']):not([type='radio']):not([type='hidden']), [role='button']) {
+  min-width: 44px !important;
+  min-height: 44px !important;
+}
+:where(.smart-menu a) { display: inline-flex; align-items: center; }
+.smart-menu :is(label:has(input[type='checkbox']), label:has(input[type='radio'])) {
+  min-width: 44px;
+  min-height: 44px;
+}
+.smart-menu :is(small, sup, sub) { font-size: calc(14px * var(--ds-texto)); line-height: 1.5; }
+.smart-menu input::placeholder, .smart-menu textarea::placeholder { color: var(--sm-muted); opacity: 1; }
+
+/* Un fondo sólido permite que los pares validados conserven el contraste también en temas oscuros. */
+.smart-menu { background: var(--t-fondo); --sm-muted: var(--sm-readable-muted); }
+.smart-menu .sm-profile-head { background-image: none; }
+.smart-menu .sm-bank-card { background: #282739; }
+.smart-menu :is(.sm-error, .sm-chat-error) { color: var(--sm-ink); }
+.smart-menu :is(.sm-count, .sm-chat-launch) { color: var(--sm-highlight-ink); }
+.smart-menu .sm-chat-launch:hover { filter: none; }
+.smart-menu .sm-note { background: var(--sm-surface); color: var(--sm-muted); }
+.smart-menu :is(.sm-featured, .sm-reward-banner, .sm-reward-hero, .sm-home-active, .sm-reservation-ticket) {
+  --sm-highlight-text: #FFD893;
+  --sm-accent-text: #FFFFFF;
+}
+
+/* Las etiquetas crecen con el texto sin superponerse al contenido del campo. */
+.smart-menu .sm-auth-form .sm-field { gap: var(--ds-espacio-8); }
+.smart-menu .sm-auth-form .sm-field > :is(span, label) { position: static; }
+.smart-menu .sm-auth-form :is(.sm-field > input, .sm-password-field input) {
+  height: auto;
+  padding-top: var(--ds-espacio-14);
+  padding-bottom: var(--ds-espacio-14);
+}
+.smart-menu .sm-auth-form .sm-field::after { display: none; }
+.smart-menu .sm-password-field > button { top: 0; bottom: 0; }
+.smart-menu .sm-slide-dots button { background: transparent; display: grid; place-items: center; }
+.smart-menu .sm-slide-dots button::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--sm-muted); }
+.smart-menu .sm-slide-dots button[aria-current]::before { width: 24px; background: var(--sm-accent); }
+.smart-menu .sm-stepper { flex-shrink: 0; }
+.smart-menu .sm-rating-scale { flex-wrap: wrap; gap: var(--ds-espacio-8); }
+
+/* Los textos largos se ajustan al ancho disponible incluso con ambas escalas al máximo. */
+.smart-menu { overflow-wrap: anywhere; }
+.smart-menu .sm-title > div { min-width: 0; }
+.smart-menu :is(.sm-history-top, .sm-history-actions) { flex-wrap: wrap; }
+
+/* Al deslizar se conserva la lectura del plato y se distingue la acción de eliminar. */
+.smart-menu .sm-cart-line[data-swiped=true] { background: var(--sm-surface); }
+.smart-menu .sm-cart-line[data-swiped=true] > :is(.sm-food-photo, .sm-cart-line-info) { opacity: 1; }
+.smart-menu .sm-swipe-delete { color: var(--sm-highlight-ink); }
+.smart-menu .sm-timeline li:not([data-done=true]) > span { background: var(--sm-surface); }
+.smart-menu .sm-pay-method-grid > button { color: var(--sm-ink); background: var(--sm-surface); border-color: var(--sm-border); }
+.smart-menu .sm-pay-method-grid > button[aria-pressed=true] { background: var(--t-acento-suave); border-color: var(--sm-accent); }
+.smart-menu .sm-pay-method-grid small { color: var(--sm-muted); }
+.smart-menu .sm-pay-method-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(130px * var(--ds-texto))), 1fr)); }
+.smart-menu .sm-answer-chips > button[aria-pressed=true] { color: var(--sm-highlight-ink); }

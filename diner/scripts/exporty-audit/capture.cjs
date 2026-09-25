@@ -3,12 +3,16 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
+const { auditAccessibility } = require('../design-system/auditar-accesibilidad.cjs');
 const root = path.resolve(__dirname, '../../..');
 const source = process.env.EXPORTY_SOURCE || '/tmp/smart-export';
 const output = process.env.EXPORTY_OUTPUT || '/tmp/exporty-audit/current';
 const base = process.env.DINER_URL || 'http://192.168.56.10:3001';
 const spec = require(path.join(root, 'experience/experience_app/plantillas/catalogo/S1.json'));
-const template = { ...spec, layouts: {menu:'S1',carrito:'smart',pago:'smart',registro:'banner5',codigo:'casillas',historial:'tarjetas'}, descuento:{activo:true,porcentaje:5} };
+// AUDIT_TEMPLATE permite capturar la respuesta real del resolvedor de temas, además del contrato antiguo.
+const template = process.env.AUDIT_TEMPLATE ? require(path.resolve(process.env.AUDIT_TEMPLATE)) : { ...spec, layouts: {menu:'S1',carrito:'smart',pago:'smart',registro:'banner5',codigo:'casillas',historial:'tarjetas'}, descuento:{activo:true,porcentaje:5} };
+// Escenarios vigentes para cerrar J2: no usa los recorridos históricos retirados.
+const j2Cases = ["dish-detailed","dish-extras-selected","email-entry","location-choose","reward-detail","login","password-recover","password-reset","feedback-invite","feedback-1","feedback-5","feedback-comment","feedback-dishes","wallet-empty","wallet-add","wallet-card","menu","category","search","dish-added","cart","cart-empty","paid-order","failed-order","navigation","profile","profile-edit","receipt","guest-profile","favorites","signup","signup-filled","code-filled","bill","rewards","checkout-empty","online-CARD","online-NEQUI","online-BANCOLOMBIA_TRANSFER","online-BANCOLOMBIA_QR","reservation","chat","chat-recommendation","first-visit","received","ready","history","signup-invalid","cart-swiped","status-expanded"];
 const photos = ['food-picture-a051cfd4.png','avocado-sandwich-1d234106.png','avocado-sandwich-38f1d095.png','avocado-sandwich-a21bc7fe.png','food-picture-d86e4360.png','avocado-sandwich-73cbe1c7.png'];
 const dishes = ['Avocado and Egg Toast','Power Bowl','Curry Salmon','Vegetable Salad','Chicken Salad','Yogurt and Fruits'].map((nombre,i)=>({id:i+1,nombre,precio:[10400,14100,14900,11800,12500,9500][i],categorias:[i<3?1:2],foto:`${base}/audit-assets/${photos[i]}`,agotado:false,valoracion:{promedio:i===0?5:4.9,cantidad:120},favorito:i===0||i===4,descripcion:i===0?'You won’t skip the most important meal of the day with this avocado toast recipe. Crispy eggs and creamy avocado top hot buttered toast.':undefined}));
 const account = {id:'visual-account',nombre:'Robert Fox',correo:'robert.fox@example.invalid',celular:'5555551234',verificada:true,tieneClave:true};
@@ -22,7 +26,7 @@ const history=[{id:'42',restaurante:'audit',sede:'demo',fecha:'2026-09-12T12:00:
  for(let y=0;y<300;y++)for(let x=0;x<300;x++)if(qr.get(x,y))svg+=`<rect x="${x}" y="${y}" width="1" height="1"/>`;
  const qrFile=path.join(output,'qr-test.svg');await fs.writeFile(qrFile,svg+'</svg>');
  // CDP_URL: usa un navegador ya abierto (p. ej. Edge de Windows desde WSL, donde Chrome de Linux no tiene sus bibliotecas).
- const browser=process.env.CDP_URL?await chromium.connectOverCDP(process.env.CDP_URL):await chromium.launch({executablePath:process.env.CHROME_PATH||'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']}); const only=process.env.AUDIT_CASES?.split(','); const evidence=only?JSON.parse(await fs.readFile(path.join(output,'evidence.json'),'utf8')):[];
+ const browser=process.env.CDP_URL?await chromium.connectOverCDP(process.env.CDP_URL):await chromium.launch({executablePath:process.env.CHROME_PATH||'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']}); const only=process.env.AUDIT_CASES==='j2'?j2Cases:process.env.AUDIT_CASES?.split(','); const evidence=only?JSON.parse(await fs.readFile(path.join(output,'evidence.json'),'utf8').catch(e=>{if(e.code==='ENOENT')return '[]';throw e})):[];
  // AUDIT_CONTINUE=1: un escenario que falla (p. ej. un paso que ya no existe en la interfaz) se anota y se sigue con el
  // siguiente, en vez de cortar la corrida. Sirve para comparar capturas antes/después con los mismos escenarios.
  const failures=[];
@@ -33,6 +37,8 @@ const history=[{id:'42',restaurante:'audit',sede:'demo',fecha:'2026-09-12T12:00:
   if(options.menuDish)entryData.carta.categorias[0].productos[0].atributos={ingredientes:['Huevo','Aguacate','Espinaca'],nutricion:{calorias:400,peso:510,proteina:30,carbohidratos:56,grasa:24},acompanamientos:[3,5,6]};
   const previous=evidence.findIndex(e=>e.name===name);if(previous>=0)evidence.splice(previous,1);
   const context=await browser.newContext({viewport:options.viewport||{width:375,height:812},deviceScaleFactor:1});const page=await context.newPage();if(process.env.AUDIT_TIMEOUT)page.setDefaultTimeout(Number(process.env.AUDIT_TIMEOUT));const errors=[];const unhandled=[];let state={filled:!!options.cart,authenticated:!!options.account,coupon:false};if(options.clock)await page.clock.install();
+  try {
+  if(process.env.AUDIT_ACCESSIBILITY&&!options.intro)await context.addCookies([{name:'waiter_intro_audit_v1',value:'1',url:base}]);
   page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/audit-assets/*',async r=>{const f=path.basename(new URL(r.request().url()).pathname);await r.fulfill({contentType:'image/png',body:await fs.readFile(path.join(source,'assets/images',f))})});
   await page.route('**/api/v1/**',async r=>{const u=new URL(r.request().url()).pathname;const method=r.request().method();let data;
@@ -45,10 +51,12 @@ const history=[{id:'42',restaurante:'audit',sede:'demo',fecha:'2026-09-12T12:00:
    else if(u==='/api/v1/audit/demo/') data=entryData;
    else if(u==='/api/v1/sesiones/') data={sesion:{id:'visual-session',estado:'abierta',mesa:null},comensal:{id:'visual-diner'}};
    else if(u.endsWith('/carrito/')) data=cart;
+   else if(u.endsWith('/pagos/')) data={available:!!options.online,attempt:null,other_payment_pending:false,amount_in_cents:total*100,environment:'test',methods:['BANCOLOMBIA_TRANSFER','BANCOLOMBIA_QR','NEQUI','CARD'],acceptance:{token:'prueba',url:'https://example.invalid/terminos'},personal_data:{token:'prueba',url:'https://example.invalid/datos'},...(options.reservation?{reservation:{code:'R-123',customer:'Robert Fox',date:'2026-09-24',time_label:'7:30 p. m.',people:4,table_number:3,state:'confirmed',deposit_state:'pending',amount_in_cents:total*100}}:{})};
    else if(u.endsWith('/confirmar/')) {state.filled=false;data={pedido:'42',estado:'enviado',total,cuenta:{ok:true,total,mio:total,porComensal:[],partes:1,porParte:total}}}
    else if(u==='/api/v1/cuenta/') data={cuenta:state.authenticated?account:null,pedidos:state.authenticated?history:[]};
    else if(u==='/api/v1/cuenta/registro/') data={id:'visual-account',codigoDemo:true};
    else if(u==='/api/v1/cuenta/verificar/') {state.authenticated=true;data={ok:true,cuenta:account}}
+   else if(u.endsWith('/asistente/')) data={disponible:true,selecciones:[],mensajes:options.chatHistory?[{id:'prueba',mensaje:'Quiero algo ligero',respuesta:'Puedes elegir este plato. ¿Te apetece?',accion:'recomendar',opciones:['Algo diferente'],lineas:[{producto:1,cantidad:1,nombre:dishes[0].nombre}]}]:[]};
    else if(u.endsWith('/favoritos/')) data={favoritos:[1,4]};
    else if(u.endsWith('/opinion/')) data={feedback:method==='PUT'?r.request().postDataJSON():null,items:lines.map(l=>({product_id:l.producto_id,name:l.nombre,qty:l.cantidad}))};
    else if(u==='/api/v1/cuenta/clave/') data={cuenta:account};
@@ -64,13 +72,17 @@ const history=[{id:'42',restaurante:'audit',sede:'demo',fecha:'2026-09-12T12:00:
   });
   await page.goto(`${base}/audit/demo/${route}`,{waitUntil:'domcontentloaded'});await page.locator('.smart-menu').waitFor({timeout:60000});
   if(action)await action(page);
+  if(process.env.AUDIT_ACCESSIBILITY)await page.waitForLoadState('networkidle');
+  if(process.env.AUDIT_ACCESSIBILITY)await page.addStyleTag({content:'*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}'});
   await page.evaluate(async()=>{await Promise.race([document.fonts.ready,new Promise(r=>setTimeout(r,8000))]);await Promise.all([...document.images].map(i=>{i.loading='eager';return i.decode().catch(()=>{})}))});
   await page.screenshot({path:path.join(output,`${name}.png`),fullPage:!(await page.locator('dialog[open]').count())});
   // AUDIT_BOXES=1: anota la caja (y, alto, relleno) de cada elemento, para ubicar qué regla movió algo entre dos capturas.
   const boxes=process.env.AUDIT_BOXES?await page.evaluate(()=>[...document.querySelectorAll('.smart-menu *')].slice(0,600).map(e=>{const r=e.getBoundingClientRect(),c=getComputedStyle(e);return {tag:e.tagName.toLowerCase(),cls:String(e.className&&e.className.baseVal!==undefined?e.className.baseVal:e.className).slice(0,60),y:Math.round(r.top*10)/10,h:Math.round(r.height*10)/10,pad:c.padding,mar:c.margin,fs:c.fontSize,lh:c.lineHeight}})):undefined;
-  evidence.push({name,route,boxes,mode:'real-components/intercepted-api',viewport:options.viewport||{width:375,height:812},errors,unhandled,...await page.evaluate(()=>({overflow:document.documentElement.scrollWidth>innerWidth,fonts:{display:document.fonts.check('500 22px "DM Sans"'),body:document.fonts.check('400 14px Mulish')}}))});
+  const accessibility=process.env.AUDIT_ACCESSIBILITY?await page.evaluate(auditAccessibility):undefined;
+  evidence.push({name,route,boxes,accessibility,mode:'real-components/intercepted-api',viewport:options.viewport||{width:375,height:812},errors,unhandled,...await page.evaluate(()=>({overflow:document.documentElement.scrollWidth>innerWidth,fonts:{display:document.fonts.check('500 22px "DM Sans"'),body:document.fonts.check('400 14px Mulish')}}))});
  
- await fs.writeFile(path.join(output,'evidence.json'),JSON.stringify(evidence,null,2));console.log(name,errors.length,unhandled.length);await context.close();
+ await fs.writeFile(path.join(output,'evidence.json'),JSON.stringify(evidence,null,2));console.log(name,errors.length,unhandled.length);
+  } finally { await context.close(); }
  }
  await scenario('dish-menu','plato/1',{menuDish:true});
  await scenario('dish-detailed','plato/1',{detailed:true});
@@ -106,6 +118,12 @@ const history=[{id:'42',restaurante:'audit',sede:'demo',fecha:'2026-09-12T12:00:
  await scenario('feedback-comment','opinion/42',{},async p=>{await p.getByRole('button',{name:'Valorar mi experiencia'}).click();await p.getByRole('button',{name:'1: Muy mala'}).click();await p.getByRole('button',{name:'Continuar',exact:true}).click()});
  await scenario('feedback-dishes','opinion/42',{},async p=>{await p.getByRole('button',{name:'Valorar mi experiencia'}).click();await p.getByRole('button',{name:'Continuar',exact:true}).click();await p.getByRole('button',{name:'Continuar',exact:true}).click();await p.getByRole('group',{name:'Valorar Avocado and Egg Toast'}).getByRole('button',{name:'4: Buena'}).click();await p.getByRole('group',{name:'Valorar Power Bowl'}).getByRole('button',{name:'5: Excelente'}).click()});
  await scenario('checkout-empty','pago',{cart:true,account:true});
+ // Falla si los formularios reales de pago, reservas o chat incumplen los mínimos del tema.
+ for(const method of ['CARD','NEQUI','BANCOLOMBIA_TRANSFER','BANCOLOMBIA_QR'])await scenario(`online-${method}`,'pago',{cart:true,account:true,online:true},async p=>{await p.locator(`.sm-pay-icon-${method}`).click();await p.getByLabel('Correo para el pago').waitFor()});
+ await scenario('reservation','reserva/prueba',{online:true,reservation:true},p=>p.getByRole('region',{name:'Tu reserva'}).waitFor());
+ await scenario('chat','carta',{},async p=>{await p.getByRole('button',{name:'Mi mesero',exact:true}).click();await p.getByRole('dialog',{name:'Tu mesero virtual'}).waitFor()});
+ await scenario('chat-recommendation','carta',{chatHistory:true},async p=>{await p.getByRole('button',{name:'Mi mesero',exact:true}).click();await p.getByRole('button',{name:'Añadir a mi pedido',exact:true}).waitFor()});
+ await scenario('first-visit','carta',{intro:true});
  await scenario('checkout-add','pago',{cart:true,account:true},p=>p.getByRole('button',{name:'Añadir tarjeta de prueba'}).click());
  await scenario('checkout-card','pago',{cart:true,account:true},async p=>{await p.getByRole('button',{name:'Añadir tarjeta de prueba'}).click();await p.getByLabel('Nombre del titular').fill('Robert Fox');await p.getByRole('button',{name:'Guardar tarjeta de prueba'}).click();await p.locator('.sm-wallet-dialog').waitFor({state:'hidden'})});
  await scenario('checkout-multiple','pago',{cart:true,account:true},async p=>{for(let i=0;i<3;i++){await p.getByRole('button',{name:'Añadir tarjeta de prueba'}).click();await p.getByLabel('Nombre del titular').fill('Robert Fox');await p.getByRole('button',{name:'Guardar tarjeta de prueba'}).click();await p.locator('.sm-wallet-dialog').waitFor({state:'hidden'})}await p.getByRole('button',{name:'Tarjeta 2 de 3'}).click()});
@@ -156,5 +174,6 @@ const history=[{id:'42',restaurante:'audit',sede:'demo',fecha:'2026-09-12T12:00:
  await scenario('status-expanded','estado/42',{order:'en_cocina'},p=>p.locator('.sm-status-details summary').click());
  await scenario('recommendation-detail','asistente',{detailed:true},async p=>{await p.getByRole('button',{name:'Empezar',exact:true}).click();for(let i=0;i<7;i++)await p.getByRole('button',{name:'Continuar',exact:true}).click();await p.getByRole('button',{name:'Ver mi selección'}).click();await p.locator('.sm-recommendations .sm-food-link').first().click()});
  await scenario('bill','la-cuenta',{cart:true},p=>p.locator('.sm-total').first().waitFor());
- await fs.writeFile(path.join(output,'evidence.json'),JSON.stringify(evidence,null,2));if(failures.length)console.log('ESCENARIOS FALLIDOS',failures.length,failures.join(','));await browser.close();if(evidence.some(e=>e.errors.length||e.unhandled.length||e.overflow))process.exitCode=1;
+ await fs.writeFile(path.join(output,'evidence.json'),JSON.stringify(evidence,null,2));if(failures.length)console.log('ESCENARIOS FALLIDOS',failures.length,failures.join(','));await browser.close();// Falla si falta un escenario o se pierde legibilidad, área táctil o ajuste horizontal.
+ if(failures.length||evidence.some(e=>e.errors.length||e.unhandled.length||e.overflow||e.accessibility&&['controls','smallText','contrast','gradients'].some(k=>e.accessibility[k].length)))process.exitCode=1;
 })().catch(e=>{console.error(e);process.exit(1)});

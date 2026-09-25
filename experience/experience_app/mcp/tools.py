@@ -92,7 +92,7 @@ def preparar_diseno_menu(key: McpKey, args: dict) -> dict:
         typography = {'display': font} if font else {}
     body = {'plantilla': DEFAULT_CODE, 'paleta': palette, 'tipografia': typography}
     try:
-        _, palette, typography = templates.validate(body)
+        _, palette, typography, _ = templates.prepare(key.restaurant_slug, key.venue_slug, body)
     except templates.InvalidSettings as exc:
         raise ToolError(str(exc)) from exc
     payload = {'plantilla': DEFAULT_CODE, 'paleta': palette, 'tipografia': typography}

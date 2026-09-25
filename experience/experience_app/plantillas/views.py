@@ -52,9 +52,12 @@ def venue_settings(request, restaurant, venue):
     # Orden: validar (400 sin tocar nada) → resolver la sede en el registro (si no responde, no se persiste nada y el
     # POS recibe el 404/503 sin ajustes a medias) → guardar. La plantilla resuelta necesita la marca (Odoo) y el descuento.
     try:
-        services.validate(request.data)
+        services.prepare(restaurant, venue, request.data)
     except services.InvalidSettings as exc:
         return Response({'detail': str(exc)}, status=400)
     tenant = resolve(restaurant, venue)
-    services.save(restaurant, venue, request.data)
+    try:
+        services.save(restaurant, venue, request.data)
+    except services.InvalidSettings as exc:
+        return Response({'detail': str(exc)}, status=400)
     return Response({'plantilla': services.resolve_template(tenant)})

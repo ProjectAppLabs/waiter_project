@@ -5,6 +5,7 @@ from unittest.mock import patch
 import pytest
 from django.urls import reverse
 
+from experience_app.diseno import services as design
 from experience_app.models import MenuTemplate, VenueMenuSettings
 from experience_app.plantillas import services
 from experience_app.plantillas.defaults import FALLBACK_SPEC
@@ -87,40 +88,41 @@ def test_build_has_the_contract_3_shape(b1):
 
 
 @pytest.mark.django_db
-def test_without_venue_settings_b1_resolves_with_the_brand_applied(stubs):
-    """Atrapa una sede sin ajustes que reciba otra plantilla, o la marca del Plan G ignorada por la plantilla."""
+def test_without_venue_settings_s1_preserves_the_smart_design(stubs):
+    # // Falla si una sede sin ajustes pierde el diseño Smart o hereda la marca antigua.
     resolved = services.resolve_template(TABLE)
-    assert resolved['codigo'] == 'B1'
-    assert (resolved['tokens']['acento'], resolved['tokens']['acentoTinta'], resolved['tokens']['acentoSuave']) == ('#7A2E2A', '#FFFFFF', '#F2EAEA')
-    assert resolved['tokens']['displayFont'] == 'Fraunces'
+    assert resolved['codigo'] == 'S1'
+    assert resolved['tokens'] == FALLBACK_SPEC['tokens']
+    assert resolved['tema'] == design.defaults()
+    assert resolved['tokens']['displayFont'] == 'DM Sans'
     services.invalidate('burger-house', 'poblado')  # misma sede: la caché es por sede, no por mesa
-    assert services.resolve_template(DELIVERY)['tokens']['acento'] == '#C1873A'  # sin marca: el diseño
+    assert services.resolve_template(DELIVERY)['tokens'] == FALLBACK_SPEC['tokens']
 
 
 @pytest.mark.django_db
-def test_without_b1_the_first_template_resolves_and_without_catalog_the_embedded_spec(stubs):
-    """Atrapa un comensal sin tokens porque el catálogo está a medias o vacío."""
-    MenuTemplate.objects.filter(code='B1').delete()
-    assert services.resolve_template(DELIVERY)['codigo'] == MenuTemplate.objects.order_by('sort', 'code').first().code
+def test_without_s1_the_embedded_smart_spec_resolves(stubs):
+    # // Falla si un catálogo incompleto o vacío reactiva una plantilla antigua.
+    MenuTemplate.objects.filter(code='S1').delete()
+    assert services.resolve_template(DELIVERY)['codigo'] == 'S1'
     services.invalidate('burger-house', 'poblado')
     MenuTemplate.objects.all().delete()
     resolved = services.resolve_template(DELIVERY)
     assert resolved['codigo'] == FALLBACK_SPEC['codigo']
     assert resolved['tokens'] == FALLBACK_SPEC['tokens']
-    assert services.settings_view('burger-house', 'poblado')['plantilla'] == 'B1'
+    assert services.settings_view('burger-house', 'poblado')['plantilla'] == 'S1'
 
 
 @pytest.mark.django_db
 def test_resolved_template_is_cached_until_saved_or_invalidated(stubs, api_client, settings):
-    """Atrapa una plantilla que golpea la base y la marca en cada comensal, o un guardado que el comensal no ve."""
+    # // Falla si el guardado no invalida la caché o cada lectura vuelve a resolver la plantilla.
     with patch('experience_app.plantillas.services.build', wraps=services.build) as build, \
             patch('experience_app.plantillas.services.cache.set', wraps=services.cache.set) as cache_set:
         services.resolve_template(TABLE)
         services.resolve_template(TABLE)
         assert build.call_count == 1
         assert cache_set.call_args.args[2] == settings.TEMPLATE_CACHE_SECONDS
-        services.save('burger-house', 'poblado', {'plantilla': 'A1'})
-        assert services.resolve_template(TABLE)['codigo'] == 'A1'
+        services.save('burger-house', 'poblado', {'plantilla': 'S1', 'paleta': {'acento': '#2F7A4F'}})
+        assert services.resolve_template(TABLE)['tokens']['acento'] == '#2F7A4F'
         assert build.call_count == 2
         settings.EXPERIENCE_INTERNAL_KEY = 'k'
         api_client.post(reverse('invalidate-menu', args=['burger-house', 'poblado']), HTTP_X_INTERNAL_KEY='k')
@@ -130,53 +132,52 @@ def test_resolved_template_is_cached_until_saved_or_invalidated(stubs, api_clien
 
 @pytest.mark.django_db
 def test_save_validates_against_the_catalog():
-    """Atrapa un PUT que acepte una plantilla inexistente, un color no cedido, un hex roto, una fuente fuera de la lista
-    o un acento que no contrasta con su texto."""
+    # // Falla si se guardan valores ajenos al catálogo o colores ilegibles.
     def rejected(body):
         with pytest.raises(services.InvalidSettings) as exc:
             services.save('burger-house', 'poblado', body)
         return str(exc.value)
 
     assert 'no está en el catálogo' in rejected({'plantilla': 'Z9'})
-    assert 'no se puede personalizar' in rejected({'plantilla': 'B1', 'paleta': {'borde': '#000000'}})
-    assert '#RRGGBB' in rejected({'plantilla': 'B1', 'paleta': {'acento': '7A2E2A'}})
-    assert 'no está en la lista' in rejected({'plantilla': 'B1', 'tipografia': {'display': 'Comic Sans'}})
+    assert 'no se puede personalizar' in rejected({'plantilla': 'S1', 'paleta': {'borde': '#000000'}})
+    assert '#RRGGBB' in rejected({'plantilla': 'S1', 'paleta': {'acento': '7A2E2A'}})
+    assert 'no está en la lista' in rejected({'plantilla': 'S1', 'tipografia': {'display': 'Comic Sans'}})
     # Gris medio: ni el blanco ni la tinta llegan a 4.5:1 sobre él (un acento claro sí pasa, con tinta oscura).
-    assert 'no contrasta' in rejected({'plantilla': 'B1', 'paleta': {'acento': '#808080'}})
-    assert 'no se lee sobre el fondo' in rejected({'plantilla': 'B1', 'paleta': {'tinta': '#EEEEEE'}})
-    assert 'solo admite' in rejected({'plantilla': 'B1', 'tipografia': {'cuerpo': 'Lora'}})
+    assert 'no contrasta' in rejected({'plantilla': 'S1', 'paleta': {'acento': '#808080'}})
+    assert 'no se lee sobre el fondo' in rejected({'plantilla': 'S1', 'paleta': {'tinta': '#EEEEEE'}})
+    assert 'solo admite' in rejected({'plantilla': 'S1', 'tipografia': {'cuerpo': 'Lora'}})
     assert VenueMenuSettings.objects.count() == 0
 
 
 @pytest.mark.django_db
 def test_save_rejects_a_display_font_when_the_template_does_not_cede_it():
-    """Atrapa una tipografía guardada para una plantilla cuyo diseño no la cede (personalizable.tipografiaDisplay = false)."""
-    locked = MenuTemplate.objects.get(code='A2')
+    # // Falla si se guarda una fuente que la plantilla no permite personalizar.
+    locked = MenuTemplate.objects.get(code='S1')
     locked.spec = {**locked.spec, 'personalizable': {**locked.spec['personalizable'], 'tipografiaDisplay': False}}
     locked.save()
     with pytest.raises(services.InvalidSettings, match='no permite cambiar la tipografía'):
-        services.save('burger-house', 'poblado', {'plantilla': 'A2', 'tipografia': {'display': 'Lora'}})
+        services.save('burger-house', 'poblado', {'plantilla': 'S1', 'tipografia': {'display': 'Lora'}})
 
 
 @pytest.mark.django_db
 def test_save_normalizes_and_accepts_the_template_own_font():
-    """Atrapa un hex guardado en minúsculas (dos claves para el mismo color) o la fuente del propio diseño rechazada."""
-    chosen = services.save('burger-house', 'poblado', {'plantilla': 'B1', 'paleta': {'acento': '#7a2e2a'}, 'tipografia': {'display': 'Ubuntu'}})
-    assert (chosen.template_id, chosen.palette, chosen.typography) == ('B1', {'acento': '#7A2E2A'}, {'display': 'Ubuntu'})
-    again = services.save('burger-house', 'poblado', {'plantilla': 'A1'})
+    # // Falla si no se normalizan colores o un reinicio conserva ajustes anteriores.
+    chosen = services.save('burger-house', 'poblado', {'plantilla': 'S1', 'paleta': {'acento': '#7a2e2a'}, 'tipografia': {'display': 'DM Sans'}})
+    assert (chosen.template_id, chosen.palette, chosen.typography) == ('S1', {'acento': '#7A2E2A'}, {'display': 'DM Sans'})
+    again = services.save('burger-house', 'poblado', {'plantilla': 'S1'})
     assert again.id == chosen.id and (again.palette, again.typography) == ({}, {})
     assert services.settings_view('burger-house', 'poblado') == {
-        'plantilla': 'A1', 'paleta': {}, 'tipografia': {}, 'actualizado': again.updated_at.isoformat(), 'porDefecto': False}
+        'plantilla': 'S1', 'paleta': {}, 'tipografia': {}, 'actualizado': again.updated_at.isoformat(), 'porDefecto': False, 'tema': design.defaults()}
 
 
 @pytest.mark.django_db
 def test_public_catalog_strips_implementation_notes_and_adds_thumbnails():
-    """Atrapa un catálogo público con las notas de implementación (KB de más por plantilla) o sin miniatura."""
+    # // Falla si el catálogo publica diseños retirados o notas internas.
     view = services.catalog_view()
-    assert view['familias']['B'] == 'Casual de barrio' and set(view['familias']) == set('ABCDEF')
-    b1 = next(p for p in view['plantillas'] if p['codigo'] == 'B1')
-    assert b1['miniatura'] == '/api/v1/plantillas/B1/miniatura/'
-    assert 'resumen' not in b1['pantallas']['menu'] and 'estructura' not in b1['pantallas']['menu']
-    assert b1['pantallas']['menu']['layout'] == 'B1' and b1['pantallas']['carrito']['descuento5'] == 'linea'
-    assert b1['tokens'] == MenuTemplate.objects.get(code='B1').spec['tokens']
-    assert [p['codigo'] for p in view['plantillas']] == sorted(p['codigo'] for p in view['plantillas'])
+    assert view['familias'] == {'B': 'Smart Menu'}
+    assert [spec['codigo'] for spec in view['plantillas']] == ['S1']
+    smart = view['plantillas'][0]
+    assert smart['miniatura'] is None
+    assert all(not {'resumen', 'estructura'}.intersection(screen) for screen in smart['pantallas'].values())
+    assert smart['pantallas']['menu']['layout'] == 'S1'
+    assert smart['tokens'] == MenuTemplate.objects.get(code='S1').spec['tokens']
