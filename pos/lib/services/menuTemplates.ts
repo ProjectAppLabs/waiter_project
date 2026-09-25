@@ -46,14 +46,16 @@ export interface MenuSettings { plantilla: string; paleta: Partial<Record<ColorT
 export interface MenuSettingsContext { restaurante: string; sede: string; experienceUrl: string; dinerUrl: string; ajustes: MenuSettings }
 // Lo que devuelve 'set': la plantilla resuelta (código + tokens finales) tal como la verá el comensal.
 export interface ResolvedTemplate { codigo: string; nombre: string; familia: Family; tokens: TemplateTokens }
+export interface MenuDraft { borrador: string; caduca: string; url: string; vista_previa: { campo: string; antes: unknown; despues: unknown }[] }
 
 export const DEFAULT_TEMPLATE = 'S1'
 const GATEWAY_PATH = '/waiter/admin/menu_settings'
 
 export function gateway(action: 'get'): Promise<MenuSettingsContext>
 export function gateway(action: 'set', payload: MenuSettings): Promise<ResolvedTemplate>
-export function gateway(action: 'get' | 'set', payload: Partial<MenuSettings> = {}): Promise<MenuSettingsContext | ResolvedTemplate> {
-  return jsonRpc<MenuSettingsContext | ResolvedTemplate>(GATEWAY_PATH, { action, ...payload })
+export function gateway(action: 'preview', payload: MenuSettings): Promise<MenuDraft>
+export function gateway(action: 'get' | 'set' | 'preview', payload: Partial<MenuSettings> = {}): Promise<MenuSettingsContext | ResolvedTemplate | MenuDraft> {
+  return jsonRpc<MenuSettingsContext | ResolvedTemplate | MenuDraft>(GATEWAY_PATH, { action, ...payload })
 }
 
 const trimSlash = (url: string) => url.replace(/\/+$/, '')
@@ -65,14 +67,7 @@ export async function listTemplates(experienceUrl: string, restaurante?: string,
   return (await res.json()) as TemplateCatalog
 }
 
-// base64url (sin relleno) de un texto UTF-8: apto para la query string sin escapar nada.
-export function base64url(text: string): string {
-  const bytes = encodeURIComponent(text).replace(/%([0-9A-F]{2})/g, (_, hex: string) => String.fromCharCode(parseInt(hex, 16)))
-  return btoa(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-}
-
-// Vista previa sin guardar: el comensal reemplaza la plantilla del contexto por la codificada en la URL.
-export function previewUrl(dinerUrl: string, restaurante: string, sede: string, ajustes: MenuSettings): string {
-  // La vista previa abre la carta (no la portada): es la pantalla donde la plantilla se ve de verdad.
-  return `${trimSlash(dinerUrl)}/${restaurante}/${sede}/carta/?vista_previa=${base64url(JSON.stringify(ajustes))}`
+// Solo viaja el token de lectura; el tema validado se obtiene de experience al abrir el enlace.
+export function previewUrl(dinerUrl: string, restaurante: string, sede: string, token: string): string {
+  return `${trimSlash(dinerUrl)}/${encodeURIComponent(restaurante)}/${encodeURIComponent(sede)}/carta?borrador=${encodeURIComponent(token)}`
 }

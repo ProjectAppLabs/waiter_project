@@ -83,7 +83,7 @@ def test_protocol_handshake_auth_and_url_key(client, key):
     assert init['protocolVersion'] == '2025-06-18' and init['capabilities'] == {'tools': {'listChanged': False}}
     assert rpc(client, key, 'notifications/initialized', msg_id=None).status_code == 202
     names = [t['name'] for t in rpc(client, None, 'tools/list', url=f'/mcp/{key}/').json()['result']['tools']]
-    assert names == ['leer_diseno_menu', 'preparar_diseno_menu', 'leer_banners', 'preparar_banners', 'listar_catalogo', 'confirmar_cambio']
+    assert names == ['leer_design_system', 'describir_pantalla', 'preparar_tema', 'restablecer_tema', 'leer_diseno_menu', 'preparar_diseno_menu', 'leer_banners', 'preparar_banners', 'listar_catalogo', 'confirmar_cambio']
     assert client.get('/mcp/').status_code == 405
     assert rpc(client, key, 'metodo/raro').json()['error']['code'] == -32601
 

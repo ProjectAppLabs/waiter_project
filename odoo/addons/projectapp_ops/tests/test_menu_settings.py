@@ -51,6 +51,34 @@ class TestMenuSettingsGateway(HttpCase):
         self.assertIn("error", body)
         self.assertEqual(body["error"]["data"]["name"], "odoo.exceptions.AccessError")
 
+    # // Falla si el mesero puede preparar borradores o el navegador puede elegir una sede distinta.
+    def test_preview_authorization_and_scope(self):
+        self.authenticate("mesero_plantillas", "Waiter-2026-mesero")
+        body = self._rpc({"action": "preview", "plantilla": "S1"})
+        self.assertEqual(body["error"]["data"]["name"], "odoo.exceptions.AccessError")
+        self.authenticate("admin_plantillas", "Waiter-2026-admin")
+        with patch("odoo.addons.projectapp_ops.controllers.admin.requests.request") as req:
+            body = self._rpc({"action": "preview", "plantilla": "S1", "sede": "ajena"})
+            self.assertEqual(body["error"]["data"]["name"], "odoo.exceptions.UserError")
+            req.assert_not_called()
+
+    # // Falla si previsualizar publica por PUT, pierde el tema v2 o devuelve secretos al POS.
+    def test_preview_posts_to_draft_endpoint_with_internal_key(self):
+        self.authenticate("admin_plantillas", "Waiter-2026-admin")
+        theme = {"variantes": {"boton": "contorno"}}
+        with patch("odoo.addons.projectapp_ops.controllers.admin.requests.request") as req:
+            req.return_value.status_code = 201
+            req.return_value.json.return_value = {"borrador": "lectura", "caduca": "2026-09-25T01:00:00Z"}
+            result = self._rpc({"action": "preview", "plantilla": "S1", "tema": theme})["result"]
+            self.assertEqual(result["borrador"], "lectura")
+            self.assertNotIn("internal_key", result)
+            args, kwargs = req.call_args
+            self.assertEqual(args, ("POST", "http://experience.test/internal/v1/burger-house/poblado/menu/borradores/"))
+            self.assertEqual(kwargs["headers"], {"X-Internal-Key": "k"})
+            self.assertEqual(kwargs["json"], {"plantilla": "S1", "tema": theme})
+            self._rpc({"action": "preview", "plantilla": "S1", "paleta": {"acento": "#234567"}})
+            self.assertEqual(req.call_args.kwargs["json"], {"plantilla": "S1", "paleta": {"acento": "#234567"}, "tipografia": {}})
+
     def test_get_forwards_with_the_internal_key_and_returns_the_venue(self):
         """Atrapa una pasarela que no mande la clave interna, que apunte a otra ruta, o que no devuelva las URLs que el POS necesita."""
         self.authenticate("admin_plantillas", "Waiter-2026-admin")

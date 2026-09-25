@@ -9,6 +9,7 @@ from pathlib import Path
 from experience_app.utils.brand import contrast, ink_for
 
 SCHEMA = json.loads(Path(__file__).with_name('esquema.json').read_text(encoding='utf-8'))
+INVENTORY = json.loads(Path(__file__).with_name('inventario.json').read_text(encoding='utf-8'))
 logger = logging.getLogger(__name__)
 
 

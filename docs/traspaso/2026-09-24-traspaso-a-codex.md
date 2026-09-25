@@ -11,11 +11,15 @@ El contrato, variantes y comandos están en
 [`experience_app/diseno/README.md`](../../experience/experience_app/diseno/README.md).
 La evidencia local está en `test-reports/j2/`, `test-reports/j2-cierre/` y `test-reports/j3/` (ignorados por Git).
 Ver [cierre de J2](../revisiones/2026-09-24-plan-j2.md) y [cierre de J3](../revisiones/2026-09-24-plan-j3.md).
-El siguiente trabajo es **J4: herramientas MCP y borradores**.
+**Actualización del 25 de septiembre:** J4 está implementado en `feat/24092026-plan-j4-borradores`, sobre J3.
+Incluye las herramientas MCP, cambios parciales, borradores y vista previa compartida con POS. La migración `0026`
+está aplicada localmente. **Los cambios de J4 siguen sin commit; el usuario pidió entregar el cierre a Claude.**
+Consultar el [traspaso de J4](2026-09-25-j4-estado-y-cierre.md) para el cierre exacto,
+las pruebas, los pendientes y el estado del commit. El siguiente desarrollo es **J5: página viva del sistema**.
 
 ## 1. Ramas y orden de fusión
 
-Hay cinco ramas encadenadas, todas sin fusionar en `main`:
+Hay seis ramas encadenadas, todas sin fusionar en `main`:
 
 ```
 main (e5cdd63)
@@ -24,12 +28,13 @@ main (e5cdd63)
          └─ feat/24092026-plan-j1-fundamentos    PR 3 (plan J y fase J1)
              └─ feat/24092026-plan-j2-tema      J2 (solo local)
                  └─ feat/24092026-plan-j3-variantes  J3 (solo local)
+                     └─ feat/24092026-plan-j4-borradores  J4 (solo local)
 ```
 
 1. Fusionar primero el PR 1 en `main`.
 2. Cambiar la base del PR 2 a `main` y fusionarlo.
 3. Hacer lo mismo con el PR 3.
-4. Publicar y fusionar J2 después de J1, y J3 después de J2, manteniendo una fase por PR.
+4. Publicar y fusionar J2 después de J1, J3 después de J2 y J4 después de J3, manteniendo una fase por PR.
 
 En esta máquina no hay `gh` ni credenciales HTTPS: se sube por SSH, con
 `git push git@github.com:gustavop-dev/waiter_project.git <rama>`, y el PR se abre en la web.
@@ -94,21 +99,16 @@ En esta máquina no hay `gh` ni credenciales HTTPS: se sube por SSH, con
 
 ## 2. Lo que falta
 
-### Plan J, fases J4 a J5 (el trabajo principal)
+### Plan J, fase J5 (el desarrollo pendiente)
 
 Detalle en el plan. Resumen accionable:
 
-- **J4: herramientas del MCP** `leer_design_system`, `describir_pantalla`, `preparar_tema` y `restablecer_tema`
-  (el patrón de `mcp/tools.py`).
-  - Borrador visible en `<diner>/<rest>/<sede>/carta?borrador=<token>`, leído desde un endpoint público de solo lectura
-    por token.
-  - Pasar la vista previa del POS a ese mismo mecanismo; hoy `previewUrl` manda la paleta por la URL.
 - **J5**: página viva `/<rest>/<sede>/design-system` con todos los componentes y variantes.
 
 **Cómo verificar cada fase sin romper el menú.** Se hace con capturas antes/después (ver la sección 4). Con el tema por
 defecto, el menú debe conservar el cierre de J2, incluidos sus mínimos de accesibilidad aceptados.
-J3 ya proporciona las 13 dimensiones de variantes/distribución y el inventario que deben exponer las herramientas de J4.
-El PUT de tema actual reemplaza las capas; el cambio parcial y los borradores siguen siendo trabajo de J4.
+J3 proporciona las 13 dimensiones de variantes/distribución; J4 ya las expone por MCP con borradores compartidos con POS.
+El PUT de tema completo reemplaza las capas; `preparar_tema` mezcla solo los campos enviados y requiere confirmar.
 
 ### Tareas pendientes del dueño
 

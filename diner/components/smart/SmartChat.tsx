@@ -48,7 +48,8 @@ export function SmartChat({ entry, rest, venue, token }: { entry: Entry; rest: s
   const ensureSession = useDinerStore(s => s.ensureSession)
   const categories = new Map(entry.carta.categorias.map(c => [c.id, c.nombre]))
   const dishes = new Map(entry.carta.categorias.flatMap(c => c.productos).map(p => [p.id, p]))
-  const dishHref = (id: number) => pathFor(rest, venue, token, 'plato', id)
+  const previewDraft = useDinerStore(s => s.draftToken)
+  const dishHref = (id: number) => pathFor(rest, venue, token, 'plato', id, previewDraft)
 
   useEffect(() => {
     if (!open || preview) return
@@ -172,7 +173,7 @@ export function SmartChat({ entry, rest, venue, token }: { entry: Entry; rest: s
                 <Link className="sm-chat-dish" href={dishHref(dish.id)} onClick={close}>
                   {dish.foto && <img src={dish.foto} alt=""/>}<span><strong>{dish.nombre}</strong><small>{formatCop(dish.precio)} · {dish.agotado ? 'Agotado por ahora' : 'Ver detalles'}</small></span><span aria-hidden="true">↗</span>
                 </Link>
-                {selected ? <div className="sm-chat-added" role="status">✓ Añadido a tu pedido<Link href={pathFor(rest, venue, token, 'pedido')} onClick={close}>Ver mi pedido →</Link></div> : <>
+                {selected ? <div className="sm-chat-added" role="status">✓ Añadido a tu pedido<Link href={pathFor(rest, venue, token, 'pedido', undefined, previewDraft)} onClick={close}>Ver mi pedido →</Link></div> : <>
                   <div className="sm-chat-quantity"><span>Cantidad</span><button type="button" aria-label={`Menos ${dish.nombre}`} disabled={qty <= 1 || !!adding} onClick={() => setQuantities(q => ({...q, [key]: qty - 1}))}>−</button><output aria-label={`Cantidad de ${dish.nombre}`}>{qty}</output><button type="button" aria-label={`Más ${dish.nombre}`} disabled={qty >= 50 || !!adding} onClick={() => setQuantities(q => ({...q, [key]: qty + 1}))}>+</button></div>
                   <input className="sm-chat-note" aria-label={`Indicaciones para ${dish.nombre}`} placeholder="¿Alguna indicación? (opcional)" maxLength={200} value={notes[key] ?? line.nota ?? ''} disabled={!!adding} onChange={e => setNotes(n => ({...n, [key]: e.target.value}))}/>
                   <button className="sm-chat-add" disabled={dish.agotado || !!adding || resetting || !!preview} onClick={() => void addSelection(turn, dish.id, qty, notes[key] ?? line.nota ?? '')}>{adding === key ? 'Añadiendo…' : 'Añadir a mi pedido'}</button>
@@ -180,7 +181,7 @@ export function SmartChat({ entry, rest, venue, token }: { entry: Entry; rest: s
               </article>
             })}</ChatCarousel>)}
             {!!turn.opciones?.length && <div className="sm-chat-choices" aria-label="Respuestas sugeridas">{turn.opciones.map(option => <button type="button" key={option} disabled={busy || loading || resetting || !available || !!preview} onClick={() => void send(option)}>{option}</button>)}<button type="button" disabled={busy || loading || resetting || !available || !!preview} onClick={() => { setText(''); input.current?.focus() }}>Otro · Escribir mi respuesta</button></div>}
-            {turn.accion === 'humano' && <Link className="sm-chat-help" onClick={close} href={pathFor(rest, venue, token, 'ayuda')}>Ver opciones de ayuda →</Link>}
+            {turn.accion === 'humano' && <Link className="sm-chat-help" onClick={close} href={pathFor(rest, venue, token, 'ayuda', undefined, previewDraft)}>Ver opciones de ayuda →</Link>}
             </ChatReply>
           </div>
         </div>)}

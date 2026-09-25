@@ -180,7 +180,20 @@ Capturas, resultados y límites de la comprobación: [revisión de J2](../revisi
 
 Contrato, valores y reproducción: [README del tema v2](../../experience/experience_app/diseno/README.md).
 Resultados y límites: [revisión de J3](../revisiones/2026-09-24-plan-j3.md).
-Las herramientas nuevas del MCP, borradores y página viva continúan en **J4–J5**.
+**J4 implementado y validado (2026-09-25); cierre entregado a Claude, sin commit todavía.**
+
+- Las cuatro herramientas nuevas sirven el esquema/inventario reales, describen pantallas, mezclan cambios parciales y
+  preparan restablecimientos por capa o completos.
+- Borradores de 30 minutos sobre `McpPendingChange` (migración `0026`), con token público distinto del de confirmación,
+  endpoint de lectura sin caché y comprobaciones de sede, revocación y caducidad. Confirmación transaccional de un uso,
+  con rechazo de temas que cambiaron desde la preparación.
+- Vista previa del POS por la acción `preview` de Odoo; iframe y enlace del comensal usan `?borrador=`. El comensal conserva
+  el token al navegar, maneja caducidad/salida y bloquea escrituras. Las llamadas antiguas del MCP siguen disponibles.
+- Pruebas de backend, componentes y pasarela; recorrido completo en navegador con base aislada, tanto en desarrollo
+  como en producción. Ver [revisión de J4](../revisiones/2026-09-25-plan-j4.md) y
+  [estado del cierre local](../traspaso/2026-09-25-j4-estado-y-cierre.md).
+
+La página viva del sistema de diseño continúa en **J5**.
 
 ## Fuera de alcance
 

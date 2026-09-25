@@ -1,4 +1,4 @@
-"""Claves MCP por sede y cambios preparados por la IA pendientes de confirmar."""
+"""Claves MCP por sede y borradores compartidos entre IA y vista previa del POS."""
 import uuid
 
 from django.db import models
@@ -30,8 +30,13 @@ class McpPendingChange(models.Model):
     y además solo lo acepta la misma clave que lo preparó. Caduca y se usa una sola vez."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    key = models.ForeignKey(McpKey, on_delete=models.CASCADE, related_name='changes')
-    kind = models.CharField(max_length=20)  # 'design' | 'banners'
+    key = models.ForeignKey(McpKey, on_delete=models.CASCADE, related_name='changes', null=True, blank=True)
+    kind = models.CharField(max_length=20)  # 'design' | 'banners' | 'theme' | 'preview'
     payload = models.JSONField()
+    # J4: el enlace público no sirve para confirmar. Las vistas del POS no necesitan una clave MCP ficticia.
+    preview_token = models.UUIDField(null=True, blank=True, unique=True, editable=False)
+    restaurant_slug = models.SlugField(max_length=60, blank=True, default='')
+    venue_slug = models.SlugField(max_length=60, blank=True, default='')
+    preview = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     applied_at = models.DateTimeField(null=True, blank=True)
