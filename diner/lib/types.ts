@@ -1,3 +1,5 @@
+import type { MenuVariants, MenuLayouts } from './domain/designVariants'
+
 // Contrato con experience/ (bloque 3). Nada aquí sabe de Odoo ni del registro.
 export interface Brand { nombre: string; lema: string; logo: string | null; saludo: string; mesero: string; bienvenida: string; color: string; colorTexto: string; colorSuave: string; fuente: string; radio: number }
 
@@ -25,6 +27,8 @@ export interface TemplateDiscount { porcentaje: number; activo: boolean }
 // Tema v2 resuelto por experience; opcional para seguir leyendo respuestas anteriores a J2.
 export interface MenuTheme {
   version: 2
+  variantes?: MenuVariants
+  distribucion?: MenuLayouts
   fundamentos: {
     densidad: number; texto: number; titulo: number
     forma: Record<'tarjeta' | 'boton' | 'chip' | 'campo' | 'imagen' | 'hoja', number>

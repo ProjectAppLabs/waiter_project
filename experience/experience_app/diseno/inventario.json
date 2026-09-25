@@ -116,7 +116,10 @@
         "fundamentos.tipografia.display",
         "fundamentos.colores.tinta"
       ],
-      "variantes": []
+      "variantes": [
+        "cabecera",
+        "saludo"
+      ]
     },
     {
       "id": "banners",
@@ -143,7 +146,9 @@
         "fundamentos.forma.chip",
         "fundamentos.colores.tintaTerciaria"
       ],
-      "variantes": []
+      "variantes": [
+        "categorias"
+      ]
     },
     {
       "id": "plato",
@@ -158,7 +163,13 @@
         "fundamentos.forma.imagen",
         "fundamentos.colores.superficie"
       ],
-      "variantes": []
+      "variantes": [
+        "tarjeta",
+        "precio",
+        "imagen",
+        "formaImagen",
+        "insignia"
+      ]
     },
     {
       "id": "boton",
@@ -173,7 +184,10 @@
         "fundamentos.colores.acento",
         "fundamentos.colores.acentoTinta"
       ],
-      "variantes": []
+      "variantes": [
+        "boton",
+        "formaBoton"
+      ]
     },
     {
       "id": "campo",
@@ -222,14 +236,17 @@
     },
     {
       "id": "imagen",
-      "nombre": "Imagen de perfil",
+      "nombre": "Fotografía del plato",
       "selectores": [
-        ".sm-avatar-large"
+        ".sm-food-photo"
       ],
       "fundamentos": [
         "fundamentos.forma.imagen"
       ],
-      "variantes": []
+      "variantes": [
+        "imagen",
+        "formaImagen"
+      ]
     },
     {
       "id": "pedido",
@@ -244,6 +261,89 @@
         "fundamentos.colores.acento"
       ],
       "variantes": []
+    },
+    {
+      "id": "precio",
+      "nombre": "Precio del plato",
+      "selectores": [
+        ".sm-food-price",
+        ".sm-price"
+      ],
+      "fundamentos": [
+        "fundamentos.texto",
+        "fundamentos.colores.tintaTerciaria",
+        "fundamentos.colores.tinta",
+        "fundamentos.colores.acentoSuave"
+      ],
+      "variantes": [
+        "precio"
+      ]
+    },
+    {
+      "id": "insignia",
+      "nombre": "Valoración, rebaja y estado",
+      "selectores": [
+        ".sm-rating-pill",
+        ".sm-food-deal",
+        ".sm-status-chip"
+      ],
+      "fundamentos": [
+        "fundamentos.texto",
+        "fundamentos.forma.chip",
+        "fundamentos.colores.tintaTerciaria"
+      ],
+      "variantes": [
+        "insignia"
+      ]
+    },
+    {
+      "id": "carta",
+      "nombre": "Distribución de los platos",
+      "selectores": [
+        ".sm-food-rail",
+        ".sm-food-grid",
+        ".sm-food-list"
+      ],
+      "fundamentos": [
+        "fundamentos.densidad",
+        "fundamentos.texto"
+      ],
+      "variantes": [
+        "carta"
+      ]
+    },
+    {
+      "id": "ficha",
+      "nombre": "Ficha del plato",
+      "selectores": [
+        ".sm-dish-layout",
+        ".sm-dish-hero",
+        ".sm-dish-info"
+      ],
+      "fundamentos": [
+        "fundamentos.densidad",
+        "fundamentos.texto",
+        "fundamentos.titulo"
+      ],
+      "variantes": [
+        "ficha"
+      ]
+    },
+    {
+      "id": "carrito",
+      "nombre": "Líneas del pedido",
+      "selectores": [
+        ".sm-cart-lines",
+        ".sm-cart-line"
+      ],
+      "fundamentos": [
+        "fundamentos.densidad",
+        "fundamentos.texto",
+        "fundamentos.forma.tarjeta"
+      ],
+      "variantes": [
+        "carrito"
+      ]
     }
   ],
   "pantallas": {
@@ -251,18 +351,22 @@
       "cabecera",
       "banners",
       "categorias",
+      "carta",
       "plato",
       "pedido"
     ],
     "plato": [
       "cabecera",
+      "ficha",
       "imagen",
+      "precio",
+      "insignia",
       "texto",
       "boton"
     ],
     "pedido": [
       "cabecera",
-      "plato",
+      "carrito",
       "pedido",
       "boton"
     ],
@@ -298,6 +402,7 @@
     ],
     "favoritos": [
       "cabecera",
+      "carta",
       "plato"
     ],
     "estado": [
@@ -375,5 +480,278 @@
       "texto",
       "boton"
     ]
+  },
+  "variantes": {
+    "boton": {
+      "ruta": "variantes.boton",
+      "atributo": "data-ds-boton",
+      "predeterminada": "relleno",
+      "opciones": [
+        {
+          "valor": "relleno",
+          "descripcion": "Fondo de acento y tinta contrastada, como en J2.",
+          "selector": ".sm-primary"
+        },
+        {
+          "valor": "contorno",
+          "descripcion": "Superficie del tema con borde y texto de acento legible.",
+          "selector": "[data-ds-boton=\"contorno\"]"
+        },
+        {
+          "valor": "suave",
+          "descripcion": "Fondo de acento suave con texto contrastado.",
+          "selector": "[data-ds-boton=\"suave\"]"
+        }
+      ]
+    },
+    "formaBoton": {
+      "ruta": "variantes.formaBoton",
+      "atributo": "data-ds-forma-boton",
+      "predeterminada": "tema",
+      "opciones": [
+        {
+          "valor": "tema",
+          "descripcion": "Esquinas redondeadas según el fundamento forma.boton.",
+          "selector": ".sm-primary"
+        },
+        {
+          "valor": "pildora",
+          "descripcion": "Extremos completamente redondeados.",
+          "selector": "[data-ds-forma-boton=\"pildora\"]"
+        },
+        {
+          "valor": "recta",
+          "descripcion": "Esquinas rectas sin alterar el área táctil.",
+          "selector": "[data-ds-forma-boton=\"recta\"]"
+        }
+      ]
+    },
+    "tarjeta": {
+      "ruta": "variantes.tarjeta",
+      "atributo": "data-ds-tarjeta",
+      "predeterminada": "plana",
+      "opciones": [
+        {
+          "valor": "plana",
+          "descripcion": "Superficie sin sombra ni borde, como en J2.",
+          "selector": ".sm-food-card"
+        },
+        {
+          "valor": "sombra",
+          "descripcion": "Sombra suave alrededor de la tarjeta.",
+          "selector": "[data-ds-tarjeta=\"sombra\"]"
+        },
+        {
+          "valor": "borde",
+          "descripcion": "Borde visible de separación, sin sombra.",
+          "selector": "[data-ds-tarjeta=\"borde\"]"
+        }
+      ]
+    },
+    "categorias": {
+      "ruta": "variantes.categorias",
+      "atributo": "data-ds-categorias",
+      "predeterminada": "chips",
+      "opciones": [
+        {
+          "valor": "chips",
+          "descripcion": "Categoría elegida en una pastilla de color destacado.",
+          "selector": ".sm-categories"
+        },
+        {
+          "valor": "pestanas",
+          "descripcion": "Pestañas con fondo suave y esquinas superiores redondeadas.",
+          "selector": "[data-ds-categorias=\"pestanas\"]"
+        },
+        {
+          "valor": "subrayado",
+          "descripcion": "Texto sobre fondo transparente con línea bajo la categoría elegida.",
+          "selector": "[data-ds-categorias=\"subrayado\"]"
+        }
+      ]
+    },
+    "precio": {
+      "ruta": "variantes.precio",
+      "atributo": "data-ds-precio",
+      "predeterminada": "destacado",
+      "opciones": [
+        {
+          "valor": "destacado",
+          "descripcion": "Precio en la tinta destacada actual.",
+          "selector": ".sm-food-price"
+        },
+        {
+          "valor": "normal",
+          "descripcion": "Precio en la tinta principal del tema.",
+          "selector": "[data-ds-precio=\"normal\"]"
+        },
+        {
+          "valor": "pildora",
+          "descripcion": "Precio dentro de una pastilla de fondo suave.",
+          "selector": "[data-ds-precio=\"pildora\"]"
+        }
+      ]
+    },
+    "imagen": {
+      "ruta": "variantes.imagen",
+      "atributo": "data-ds-imagen",
+      "predeterminada": "actual",
+      "opciones": [
+        {
+          "valor": "actual",
+          "descripcion": "Conserva las proporciones de cada componente de J2.",
+          "selector": ".sm-food-photo"
+        },
+        {
+          "valor": "cuadrada",
+          "descripcion": "Fotografías con proporción 1:1.",
+          "selector": "[data-ds-imagen=\"cuadrada\"]"
+        },
+        {
+          "valor": "4:3",
+          "descripcion": "Fotografías horizontales con proporción 4:3.",
+          "selector": "[data-ds-imagen=\"4:3\"]"
+        }
+      ]
+    },
+    "formaImagen": {
+      "ruta": "variantes.formaImagen",
+      "atributo": "data-ds-forma-imagen",
+      "predeterminada": "actual",
+      "opciones": [
+        {
+          "valor": "actual",
+          "descripcion": "Conserva la forma de cada fotografía de J2.",
+          "selector": ".sm-food-photo"
+        },
+        {
+          "valor": "tema",
+          "descripcion": "Esquinas según el fundamento forma.imagen.",
+          "selector": "[data-ds-forma-imagen=\"tema\"]"
+        },
+        {
+          "valor": "circular",
+          "descripcion": "Fotografía circular; usa proporción cuadrada incluso si se eligió 4:3.",
+          "selector": "[data-ds-forma-imagen=\"circular\"]"
+        }
+      ]
+    },
+    "cabecera": {
+      "ruta": "variantes.cabecera",
+      "atributo": "data-ds-cabecera",
+      "predeterminada": "izquierda",
+      "opciones": [
+        {
+          "valor": "izquierda",
+          "descripcion": "Logo, saludo y sede alineados a la izquierda.",
+          "selector": ".sm-location-header"
+        },
+        {
+          "valor": "centrada",
+          "descripcion": "Logo, saludo y sede centrados; la navegación sigue disponible a la derecha.",
+          "selector": "[data-ds-cabecera=\"centrada\"]"
+        }
+      ]
+    },
+    "saludo": {
+      "ruta": "variantes.saludo",
+      "atributo": "data-ds-saludo",
+      "predeterminada": "visible",
+      "opciones": [
+        {
+          "valor": "visible",
+          "descripcion": "Muestra el saludo del restaurante o el saludo personalizado.",
+          "selector": ".sm-greeting-line"
+        },
+        {
+          "valor": "oculto",
+          "descripcion": "Oculta solo el saludo; conserva restaurante, sede, mesa y navegación.",
+          "selector": "[data-ds-saludo=\"oculto\"]"
+        }
+      ]
+    },
+    "insignia": {
+      "ruta": "variantes.insignia",
+      "atributo": "data-ds-insignia",
+      "predeterminada": "rellena",
+      "opciones": [
+        {
+          "valor": "rellena",
+          "descripcion": "Conserva el fondo de valoraciones, descuentos y estados.",
+          "selector": ".sm-rating-pill"
+        },
+        {
+          "valor": "contorno",
+          "descripcion": "Usa la superficie del tema y un contorno con tinta legible.",
+          "selector": "[data-ds-insignia=\"contorno\"]"
+        }
+      ]
+    },
+    "carta": {
+      "ruta": "distribucion.carta",
+      "atributo": "data-ds-carta",
+      "predeterminada": "actual",
+      "opciones": [
+        {
+          "valor": "actual",
+          "descripcion": "Carruseles por categoría, lista al filtrar y cuadrícula de favoritos, como en J2.",
+          "selector": ".sm-food-rail"
+        },
+        {
+          "valor": "cuadricula",
+          "descripcion": "Dos columnas de platos; una cuando el texto ampliado necesita más ancho.",
+          "selector": "[data-ds-carta=\"cuadricula\"]"
+        },
+        {
+          "valor": "lista",
+          "descripcion": "Una columna con foto a la izquierda y contenido a la derecha.",
+          "selector": "[data-ds-carta=\"lista\"]"
+        },
+        {
+          "valor": "foto-grande",
+          "descripcion": "Una columna con fotografía amplia sobre la información.",
+          "selector": "[data-ds-carta=\"foto-grande\"]"
+        }
+      ]
+    },
+    "ficha": {
+      "ruta": "distribucion.ficha",
+      "atributo": "data-ds-ficha",
+      "predeterminada": "actual",
+      "opciones": [
+        {
+          "valor": "actual",
+          "descripcion": "Conserva la ficha adaptable de J2.",
+          "selector": ".sm-dish-layout"
+        },
+        {
+          "valor": "heroe",
+          "descripcion": "Fotografía amplia y encabezado encima del detalle del plato.",
+          "selector": "[data-ds-ficha=\"heroe\"]"
+        },
+        {
+          "valor": "dividida",
+          "descripcion": "Fotografía y encabezado en una columna; detalles al lado cuando hay espacio.",
+          "selector": "[data-ds-ficha=\"dividida\"]"
+        }
+      ]
+    },
+    "carrito": {
+      "ruta": "distribucion.carrito",
+      "atributo": "data-ds-carrito",
+      "predeterminada": "tarjetas",
+      "opciones": [
+        {
+          "valor": "tarjetas",
+          "descripcion": "Tarjetas separadas, como en J2.",
+          "selector": ".sm-cart-lines"
+        },
+        {
+          "valor": "compacta",
+          "descripcion": "Filas con separadores y fotografías pequeñas; mantiene cantidades, notas y acciones.",
+          "selector": "[data-ds-carrito=\"compacta\"]"
+        }
+      ]
+    }
   }
 }

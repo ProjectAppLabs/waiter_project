@@ -1,9 +1,10 @@
-# Tema del menú v2 (Plan J2)
+# Tema del menú v2 (Plan J2–J3)
 
 `esquema.json` es el contrato cerrado y versionado. `services.validate` completa los valores omitidos, normaliza colores,
 calcula los derivados y rechaza campos, versiones, tipos, fuentes o rangos desconocidos. No admite HTML ni CSS.
 `inventario.json` relaciona fundamentos, variables CSS y los componentes compartidos de las pantallas actuales.
-Las variantes permanecen vacías hasta J3; las herramientas nuevas del MCP y los borradores pertenecen a J4.
+J3 añade variantes de componente y distribución mediante atributos `data-ds-*` en `<main>` y selectores CSS.
+Las herramientas nuevas del MCP y los borradores pertenecen a J4.
 
 ## Contrato
 
@@ -19,13 +20,15 @@ Las variantes permanecen vacías hasta J3; las herramientas nuevas del MCP y los
       "forma": {"tarjeta": 0, "boton": 1.5},
       "colores": {"acento": "#234567"},
       "tipografia": {"display": "DM Sans", "cuerpo": "Lato"}
-    }
+    },
+    "variantes": {"boton": "contorno", "categorias": "subrayado", "formaImagen": "tema"},
+    "distribucion": {"carta": "lista", "ficha": "heroe", "carrito": "compacta"}
   }
 }
 ```
 
 Se guarda con el PUT interno ya existente: `/internal/v1/<rest>/<sede>/menu/`, con `X-Internal-Key`.
-Es un reemplazo: los fundamentos omitidos vuelven al valor por defecto. No se mezclan `tema` y `paleta`/`tipografia`
+Es un reemplazo: los fundamentos, variantes y distribuciones omitidos vuelven al valor por defecto. No se mezclan `tema` y `paleta`/`tipografia`
 en la misma petición. El GET interno devuelve el tema y los campos anteriores; la entrada pública lo entrega en
 `contexto.plantilla.tema`, junto a `tokens` y `fuentesGoogle` resueltos para mantener compatibilidad.
 
@@ -38,9 +41,42 @@ en la misma petición. El GET interno devuelve el tema y los campos anteriores; 
 | Colores | 9 colores `#RRGGBB`; `acentoTinta` y `acentoSuave` calculados, de solo lectura | S1 |
 | Fuentes de títulos y cuerpo | Lista cerrada del esquema; independientes | DM Sans / Mulish |
 
-Los radios circulares de J1 (`50%`, `999px`) conservan su forma. No se convierten en cuadrados al poner un factor cero;
-las variantes de imagen corresponden a J3. Los tokens `--t-radio-*` antiguos siguen presentes por compatibilidad;
+Con las variantes predeterminadas, los radios circulares de J1 (`50%`, `999px`) conservan su forma. No se convierten en cuadrados al poner un factor cero.
+Los tokens `--t-radio-*` antiguos siguen presentes por compatibilidad;
 los componentes smart usan los factores `--ds-forma-*`.
+
+## Variantes y distribución
+
+El catálogo tiene 13 campos y 36 valores, incluidos los 13 predeterminados. Cada opción tiene descripción y selector
+en `inventario.json`; los componentes y pantallas declaran qué campos consumen. El servidor rechaza opciones,
+campos y tipos desconocidos. El comensal solo emite atributos del catálogo cerrado de `designVariants.ts`.
+
+| Capa y campo | Valores (predeterminado en negrita) |
+|---|---|
+| `variantes.boton` | **`relleno`**, `contorno`, `suave` |
+| `variantes.formaBoton` | **`tema`**, `pildora`, `recta` |
+| `variantes.tarjeta` | **`plana`**, `sombra`, `borde` |
+| `variantes.categorias` | **`chips`**, `pestanas`, `subrayado` |
+| `variantes.precio` | **`destacado`**, `normal`, `pildora` |
+| `variantes.imagen` | **`actual`**, `cuadrada`, `4:3` |
+| `variantes.formaImagen` | **`actual`**, `tema`, `circular` |
+| `variantes.cabecera` | **`izquierda`**, `centrada` |
+| `variantes.saludo` | **`visible`**, `oculto` |
+| `variantes.insignia` | **`rellena`**, `contorno` |
+| `distribucion.carta` | **`actual`**, `cuadricula`, `lista`, `foto-grande` |
+| `distribucion.ficha` | **`actual`**, `heroe`, `dividida` |
+| `distribucion.carrito` | **`tarjetas`**, `compacta` |
+
+- `actual` conserva la presentación de J2: carruseles de carta, lista filtrada, favoritos y ficha con su geometría
+  original. Las reglas de `smart-variants.css` solo se activan al elegir una opción diferente de la predeterminada.
+- La forma de botón `tema` conserva el factor `fundamentos.forma.boton`; `pildora` y `recta` lo sustituyen en las
+  acciones principales y secundarias. La variante de relleno afecta las acciones principales, incluido añadir desde el chat.
+- Imagen `actual` conserva el recorte de cada componente/distribución. El recorte explícito se aplica a las fotos de
+  plato; `circular` prevalece sobre `4:3`. Forma `tema` usa 16 px × `fundamentos.forma.imagen`, incluido cero.
+- La cuadrícula tiene hasta dos columnas y pasa a una cuando el ancho o el texto ampliado lo requieren. Lista y foto
+  grande mantienen filtros, favoritos y añadir. La ficha dividida muestra dos columnas desde 760 px y se apila en móvil.
+- Ocultar el saludo conserva logo, sede y navegación. El carrito compacto conserva precios, cantidades y eliminación.
+  Los diálogos heredan el mismo tema, sin duplicar componentes ni introducir condiciones de JavaScript por variante.
 
 ## Legibilidad
 
@@ -64,7 +100,9 @@ inicial. Las pruebas miden estos mínimos en componentes reales; no constituyen 
 - `VenueMenuSettings.theme` guarda el tema de cada sede. La migración `0025` copia colores y tipografía de S1 con
   factores en 1; conserva `palette` y `typography`. Las plantillas retiradas no se reactivan.
 - El PUT anterior del POS/MCP sigue reemplazando su paleta y su tipografía. Conserva densidad, escalas, formas,
-  colores exclusivos de v2 y una fuente de cuerpo elegida independientemente. Se valida el resultado combinado.
+  colores exclusivos de v2, una fuente de cuerpo elegida independientemente y las dos capas de J3. Se valida el resultado combinado.
+- No hay migración adicional en J3: al leer un tema v2 anterior, el resolvedor completa las capas omitidas con sus
+  valores predeterminados sin modificar la fila guardada. El número de versión sigue siendo 2.
 - La preparación antigua del MCP usa la misma validación para no producir un borrador que falle al confirmar.
 - La caché está separada por restaurante/sede y versión; se invalida al guardar y al confirmar la transacción.
 - Sin tema se adaptan los ajustes anteriores. Un tema guardado inválido se registra en el log y se sustituye por S1
@@ -98,3 +136,20 @@ guarda capturas y `fundamentos-navegador.json`. Admite `DINER_URL` y `CDP_URL` i
 texto, contraste (incluye placeholders), fondos y desbordamiento. Falla ante infracciones o escenarios fallidos.
 Los controles deshabilitados se miden, pero su contraste se excluye; con un modal abierto se evalúa su contenido.
 Las capturas incluyen los cuatro medios de pago, reservas y chat, con API interceptada y sin pagos reales.
+
+Para reproducir J3 desde la raíz, con el comensal y el navegador disponibles:
+
+```bash
+experience/venv/bin/python diner/scripts/design-system/exportar-variantes.py
+EXPORTY_SOURCE=/ruta/exporty CDP_URL=http://127.0.0.1:9333 DINER_URL=http://localhost:3001 \
+  node diner/scripts/design-system/verificar-variantes.cjs
+```
+
+El exportador usa el resolvedor real sin escribir datos: genera 27 temas en `test-reports/j3/temas/`. El verificador
+captura 138 escenarios: cada una de las 23 opciones nuevas, el predeterminado, 50 recorridos en cada combinación
+clara/oscura con texto máximo y nueve a 320 px. Comprueba atributos, estilos calculados, geometría y mínimos de J2.
+Los resultados se guardan en `variantes-resumen.json` y `variantes/<tema>/`. Admite `VARIANT_EVIDENCE` para otra raíz
+(el exportador recibe como argumento su subcarpeta `temas`), `VARIANT_CASES=mixto-claro` para seleccionar temas,
+`VARIANT_SCENARIOS=cart,cart-swiped` para repetir recorridos conservando la evidencia anterior y `VARIANT_VERIFY_ONLY=1`
+para reevaluar los JSON sin abrir el navegador. La última opción no reemplaza una captura después de cambiar CSS.
+Ver [resultado y límites de J3](../../../docs/revisiones/2026-09-24-plan-j3.md).

@@ -66,7 +66,7 @@ it('cruza el inventario de fundamentos y componentes con los estilos reales', ()
   for (const component of inventory.componentes) {
     for (const selector of component.selectores) expect(css).toContain(selector)
     for (const foundation of component.fundamentos) expect(inventory.fundamentos).toHaveProperty([foundation])
-    expect(component.variantes).toEqual([])
+    for (const variant of component.variantes) expect(inventory.variantes).toHaveProperty(variant)
   }
   const ids = inventory.componentes.map((component: { id: string }) => component.id)
   for (const components of Object.values(inventory.pantallas) as string[][]) {
