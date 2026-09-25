@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { isPreviewReadOnly, PREVIEW_MESSAGE } from '@/lib/domain/preview'
 
-import type { Account, AccountSummary, Bill, Cart, Entry, OrderStatus, PayMethod, PayScope, PayResult, RegisterForm, Session, Template, TemplateCatalog } from '@/lib/types'
+import type { Account, AccountSummary, Bill, Cart, DesignContract, Entry, OrderStatus, PayMethod, PayScope, PayResult, RegisterForm, Session, Template, TemplateCatalog } from '@/lib/types'
 
 // Único punto de I/O del comensal: la API pública del bloque 3, por el proxy same-origin (/api → experience).
 export const http = axios.create({ baseURL: '', withCredentials: true, timeout: 15_000 })
@@ -31,6 +31,10 @@ export async function getEntry(rest: string, venue: string, token: string | null
 }
 export async function getThemeDraft(rest: string, venue: string, token: string): Promise<{plantilla: Template; caduca: string}> {
   return (await http.get(`/api/v1/${encodeURIComponent(rest)}/${encodeURIComponent(venue)}/borradores/${encodeURIComponent(token)}/`)).data
+}
+// Esquema e inventario del sistema de diseño (J5): describe cada componente y opción de la página viva.
+export async function getDesignContract(): Promise<DesignContract> {
+  return (await http.get<DesignContract>('/api/v1/diseno/')).data
 }
 export async function openSession(rest: string, venue: string, token: string | null): Promise<{ sesion: Session; comensal: { id: string } }> {
   return (await http.post('/api/v1/sesiones/', { restaurante: rest, sede: venue, token: token ?? undefined })).data

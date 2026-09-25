@@ -180,7 +180,7 @@ Capturas, resultados y límites de la comprobación: [revisión de J2](../revisi
 
 Contrato, valores y reproducción: [README del tema v2](../../experience/experience_app/diseno/README.md).
 Resultados y límites: [revisión de J3](../revisiones/2026-09-24-plan-j3.md).
-**J4 implementado y validado (2026-09-25); cierre entregado a Claude, sin commit todavía.**
+**J4 cerrado (2026-09-25, `74972fa`).**
 
 - Las cuatro herramientas nuevas sirven el esquema/inventario reales, describen pantallas, mezclan cambios parciales y
   preparan restablecimientos por capa o completos.
@@ -193,7 +193,18 @@ Resultados y límites: [revisión de J3](../revisiones/2026-09-24-plan-j3.md).
   como en producción. Ver [revisión de J4](../revisiones/2026-09-25-plan-j4.md) y
   [estado del cierre local](../traspaso/2026-09-25-j4-estado-y-cierre.md).
 
-La página viva del sistema de diseño continúa en **J5**.
+**J5 hecho (2026-09-25), en `feat/25092026-plan-j5-pagina-viva`.**
+
+- `/<rest>/<sede>/design-system`: fundamentos, los 15 componentes del inventario con los componentes reales de la carta y
+  las 36 opciones de las 13 variantes y distribuciones, con la elegida enmarcada; al final, las 25 pantallas con sus
+  componentes en orden. Con `?borrador=` muestra un borrador del MCP o del POS en todos los componentes.
+- Cada muestra lleva sus propios atributos `data-ds-*` y es `inert`: la página no abre sesiones ni escribe.
+- `GET /api/v1/diseno/` sirve esquema e inventario sin clave; `leer_design_system` devuelve `pagina` y los borradores
+  `url_design_system`. El POS enlaza la página junto al borrador.
+- La revisión visual destapó y corrigió un defecto del menú publicado: los chips de categorías se encogían y superponían
+  con más de cuatro categorías a 375 px.
+- Pruebas de comensal, experience y POS; verificación en Edge real a 375 y 1024 px con tema publicado y con borrador.
+  Ver [revisión de J5](../revisiones/2026-09-25-plan-j5.md).
 
 ## Fuera de alcance
 

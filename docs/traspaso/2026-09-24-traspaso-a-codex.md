@@ -15,7 +15,10 @@ Ver [cierre de J2](../revisiones/2026-09-24-plan-j2.md) y [cierre de J3](../revi
 Incluye las herramientas MCP, cambios parciales, borradores y vista previa compartida con POS. La migración `0026`
 está aplicada localmente. **Los cambios de J4 siguen sin commit; el usuario pidió entregar el cierre a Claude.**
 Consultar el [traspaso de J4](2026-09-25-j4-estado-y-cierre.md) para el cierre exacto,
-las pruebas, los pendientes y el estado del commit. El siguiente desarrollo es **J5: página viva del sistema**.
+las pruebas, los pendientes y el estado del commit.
+**Actualización de Claude del 25 de septiembre:** J4 quedó guardado en `74972fa`. J5 (página viva
+`/<rest>/<sede>/design-system`) está hecho en `feat/25092026-plan-j5-pagina-viva`, sobre J4; ver la
+[revisión de J5](../revisiones/2026-09-25-plan-j5.md). Con eso el Plan J queda completo. La evidencia está en `test-reports/j5/`.
 
 ## 1. Ramas y orden de fusión
 
@@ -28,13 +31,14 @@ main (e5cdd63)
          └─ feat/24092026-plan-j1-fundamentos    PR 3 (plan J y fase J1)
              └─ feat/24092026-plan-j2-tema      J2 (solo local)
                  └─ feat/24092026-plan-j3-variantes  J3 (solo local)
-                     └─ feat/24092026-plan-j4-borradores  J4 (solo local)
+                     └─ feat/24092026-plan-j4-borradores  J4 (solo local, 74972fa)
+                         └─ feat/25092026-plan-j5-pagina-viva  J5 (solo local)
 ```
 
 1. Fusionar primero el PR 1 en `main`.
 2. Cambiar la base del PR 2 a `main` y fusionarlo.
 3. Hacer lo mismo con el PR 3.
-4. Publicar y fusionar J2 después de J1, J3 después de J2 y J4 después de J3, manteniendo una fase por PR.
+4. Publicar y fusionar J2 después de J1, J3 después de J2, J4 después de J3 y J5 después de J4, manteniendo una fase por PR.
 
 En esta máquina no hay `gh` ni credenciales HTTPS: se sube por SSH, con
 `git push git@github.com:gustavop-dev/waiter_project.git <rama>`, y el PR se abre en la web.
@@ -99,11 +103,11 @@ En esta máquina no hay `gh` ni credenciales HTTPS: se sube por SSH, con
 
 ## 2. Lo que falta
 
-### Plan J, fase J5 (el desarrollo pendiente)
+### Plan J: completo
 
-Detalle en el plan. Resumen accionable:
-
-- **J5**: página viva `/<rest>/<sede>/design-system` con todos los componentes y variantes.
+J1 a J5 están hechos (detalle y estado en el plan). J5 añadió la página viva `/<rest>/<sede>/design-system`, el contrato
+público `GET /api/v1/diseno/` y los enlaces `pagina`/`url_design_system` del MCP y del POS. Durante J5 se corrigió en el
+menú publicado el encogimiento de los chips de categorías a 375 px (`.sm-categories button { flex: 0 0 auto }`).
 
 **Cómo verificar cada fase sin romper el menú.** Se hace con capturas antes/después (ver la sección 4). Con el tema por
 defecto, el menú debe conservar el cierre de J2, incluidos sus mínimos de accesibilidad aceptados.
@@ -118,6 +122,9 @@ El PUT de tema completo reemplaza las capas; `preparar_tema` mezcla solo los cam
   `New-NetFirewallHyperVRule -Name WSL-Waiter -DisplayName "WSL Waiter dev" -Direction Inbound -VMCreatorId '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -Protocol TCP -LocalPorts 3000,3001,8001,8002,8069 -Action Allow`
 - Para usar el MCP desde claude.ai, publicar `experience` `/mcp/` por HTTPS. Hoy solo está en la LAN,
   `http://192.168.1.13:8001/mcp/`.
+- Levantar el entorno en la red host-only (`192.168.56.10`): esta máquina no tiene esa interfaz y no hay sudo para crearla
+  (`sudo ip addr add 192.168.56.10/24 dev eth1`). Con la interfaz presente, `scripts/dev.sh up` la elige sola; también sirve
+  `HOST=192.168.56.10 scripts/dev.sh up`. Sin ella, `check_host` se detiene.
 
 ### Decisiones abiertas
 
@@ -171,6 +178,8 @@ El PUT de tema completo reemplaza las capas; `preparar_tema` mezcla solo los cam
 - **experience**:
   `venv/bin/python -m pytest -q --ignore=experience_app/tests/contract --ignore=experience_app/tests/addon`.
 - **Odoo**: `sg docker -c "scripts/odoo-test.sh projectapp_ops [Clase]"`. Corre sobre una copia desechable de la base.
+- **Página viva del sistema de diseño (J5)**: `diner/scripts/design-system/verificar-pagina.cjs` con `CDP_URL`,
+  `DINER_URL` y, opcionalmente, `DRAFT_TOKEN`; solo lee. Ver la [revisión de J5](../revisiones/2026-09-25-plan-j5.md).
 - **Capturas del comensal (antes/después)**: `diner/scripts/exporty-audit/capture.cjs`; ver su `README.md`, sección
   «Comparar capturas».
   - Chrome de Linux no arranca en WSL (le faltan bibliotecas y no hay sudo). Se usa **Edge de Windows por CDP**:

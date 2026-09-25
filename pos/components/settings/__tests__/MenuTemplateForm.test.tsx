@@ -31,6 +31,7 @@ it('shows one design, previews changes without saving and persists only the chos
     expect(url).toBe('http://diner/burger-house/poblado/carta?borrador=borrador-pos')
     expect(gateway).toHaveBeenCalledWith('preview', { plantilla: 'S1', paleta: { acento: '#145A52' }, tipografia: { display: 'DM Sans' } })
   })
+  expect(screen.getByRole('link', { name: 'Sistema de diseño ↗' })).toHaveAttribute('href', 'http://diner/burger-house/poblado/design-system?borrador=borrador-pos')
   expect(gateway).not.toHaveBeenCalledWith('set', expect.anything())
   fireEvent.click(screen.getByRole('button', { name: /^Guardar$/ }))
   await waitFor(() => expect(gateway).toHaveBeenCalledWith('set', { plantilla: 'S1', paleta: { acento: '#145A52' }, tipografia: { display: 'DM Sans' } }))

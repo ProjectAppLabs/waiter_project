@@ -63,9 +63,11 @@ def leer_design_system(key: McpKey, args: dict) -> dict:
     _arguments(args, ())
     return {'esquema': deepcopy(design.SCHEMA), 'inventario': deepcopy(design.INVENTORY),
             'tema': templates.settings_view(key.restaurant_slug, key.venue_slug)['tema'],
+            'pagina': borradores.design_system_url(key.restaurant_slug, key.venue_slug),
             'reglas': ['Cambia solo los campos del esquema. Los colores derivados son de solo lectura.',
                        'preparar_tema mezcla los campos enviados con el tema guardado; restablecer_tema prepara los valores por defecto.',
-                       'El borrador caduca a los 30 minutos. Revisa el enlace antes de confirmar_cambio.']}
+                       'El borrador caduca a los 30 minutos. Revisa el enlace antes de confirmar_cambio.',
+                       'pagina muestra todos los componentes y variantes con el tema publicado; url_design_system de un borrador los muestra con ese borrador.']}
 
 
 def describir_pantalla(key: McpKey, args: dict) -> dict:
@@ -91,7 +93,7 @@ def _prepare_theme(key, theme, current):
     except design.InvalidTheme as exc:
         raise ToolError(str(exc)) from exc
     return {**borradores.result(change), 'token': str(change.id),
-            'siguiente': 'Muestra el enlace y los cambios a la persona. Solo tras su aprobación llama confirmar_cambio con token.'}
+            'siguiente': 'Muestra el enlace y los cambios a la persona (url abre la carta; url_design_system, todos los componentes). Solo tras su aprobación llama confirmar_cambio con token.'}
 
 
 def preparar_tema(key: McpKey, args: dict) -> dict:

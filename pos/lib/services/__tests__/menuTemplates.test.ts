@@ -1,4 +1,4 @@
-import { gateway, listTemplates, previewUrl, type MenuSettings } from '@/lib/services/menuTemplates'
+import { designSystemUrl, gateway, listTemplates, previewUrl, type MenuSettings } from '@/lib/services/menuTemplates'
 import { jsonRpc } from '@/lib/services/odoo'
 
 jest.mock('@/lib/services/odoo', () => ({ jsonRpc: jest.fn() }))
@@ -42,4 +42,10 @@ it('prepara el borrador en la pasarela y construye un enlace solo con el token',
   expect(url).toBe('http://diner.test/burger-house/poblado/carta?borrador=token-lectura')
   expect(url).not.toContain('paleta')
   expect(url).not.toContain('vista_previa')
+})
+
+// Falla si el enlace al sistema de diseño pierde el borrador o codifica ajustes en la URL.
+it('enlaza la página viva del sistema de diseño con o sin borrador', () => {
+  expect(designSystemUrl('http://diner.test/', 'burger-house', 'poblado')).toBe('http://diner.test/burger-house/poblado/design-system')
+  expect(designSystemUrl('http://diner.test', 'burger-house', 'poblado', 'tok en')).toBe('http://diner.test/burger-house/poblado/design-system?borrador=tok%20en')
 })

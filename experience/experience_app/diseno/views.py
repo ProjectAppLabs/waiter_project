@@ -1,9 +1,12 @@
-"""Borradores de solo lectura; el POS los prepara por su pasarela interna autorizada."""
+"""Borradores de solo lectura y contrato público del sistema de diseño; el POS prepara por su pasarela interna."""
+from copy import deepcopy
+
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from experience_app.adapters.registry.client import resolve
 from experience_app.diseno import borradores
+from experience_app.diseno import services as design
 from experience_app.plantillas import services as templates
 from experience_app.views.internal import INVALID_KEY, key_is_valid
 
@@ -12,6 +15,16 @@ def no_store(data, status=200):
     response = Response(data, status=status)
     response['Cache-Control'] = 'no-store'
     response['Referrer-Policy'] = 'no-referrer'
+    return response
+
+
+# J5: la página viva del comensal lee el esquema y el inventario para describir cada componente y opción.
+# No depende de la sede ni de una clave: es el mismo contrato versionado que sirve el MCP.
+@api_view(['GET'])
+def contract(request):
+    response = Response({'version': design.SCHEMA['properties']['version']['const'],
+                         'esquema': deepcopy(design.SCHEMA), 'inventario': deepcopy(design.INVENTORY)})
+    response['Cache-Control'] = 'public, max-age=3600'
     return response
 
 

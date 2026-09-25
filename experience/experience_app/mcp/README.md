@@ -31,9 +31,9 @@ y GET y DELETE responden 405. Versiones: 2025-06-18, 2025-03-26 y 2024-11-05.
 
 | Herramienta | Qué hace |
 |---|---|
-| `leer_design_system` | Esquema versionado, inventario de componentes/pantallas, tema actual y reglas |
+| `leer_design_system` | Esquema versionado, inventario de componentes/pantallas, tema actual, reglas y `pagina` (la página viva del sistema de diseño) |
 | `describir_pantalla` | Secciones en orden, fundamentos, variantes disponibles y tema actual de una pantalla del inventario |
-| `preparar_tema` | Mezcla los campos de `tema` enviados con lo guardado, valida y devuelve borrador, enlace y token de confirmación |
+| `preparar_tema` | Mezcla los campos de `tema` enviados con lo guardado, valida y devuelve borrador, enlaces (`url` a la carta, `url_design_system` a la página viva) y token de confirmación |
 | `restablecer_tema` | Prepara volver `todo` o una `capa` (`fundamentos`, `variantes`, `distribucion`) a sus valores por defecto |
 | `leer_diseno_menu` | Colores editables (con su uso), tipografía y las permitidas, saludo, logo y reglas de contraste |
 | `preparar_diseno_menu` | Valida un cambio (colores, tipografía, saludo) y devuelve una vista previa y un token. **No guarda.** |
@@ -51,7 +51,8 @@ POS. Un banner puede conservar su imagen con `imagen_de_banner`.
 1. Leer `leer_design_system`; consultar `describir_pantalla({"pantalla":"carta"})` si hace falta.
 2. Preparar, por ejemplo:
    `preparar_tema({"tema":{"variantes":{"boton":"contorno"},"distribucion":{"carta":"lista"}}})`.
-3. Mostrar `vista_previa` y abrir `url` (`/<rest>/<sede>/carta?borrador=<token-de-lectura>`).
+3. Mostrar `vista_previa` y abrir `url` (`/<rest>/<sede>/carta?borrador=<token-de-lectura>`) o `url_design_system`
+   (`/<rest>/<sede>/design-system?borrador=<token-de-lectura>`, todos los componentes y variantes con el borrador).
 4. Tras la aprobación de la persona, llamar `confirmar_cambio({"token":"<token-de-confirmación>"})`.
 
 Los dos tokens son distintos. El público solo permite leer la instantánea validada durante 30 minutos; nunca devuelve

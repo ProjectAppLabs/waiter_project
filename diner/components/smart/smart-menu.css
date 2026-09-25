@@ -1467,7 +1467,8 @@
 .sm-featured .sm-food-photo { width:130px; height:130px; min-width:130px; box-shadow:0 0 0 12px #ffffff08,0 0 0 28px #ffffff05; }
 .sm-featured-action { display:none !important; }
 .sm-categories { gap:var(--ds-espacio-8); margin:0 calc(-1 * var(--ds-espacio-24)) var(--ds-espacio-24); padding:0 var(--ds-espacio-24); scrollbar-width:none; }
-.sm-categories button { border:0; background:transparent; padding:var(--ds-espacio-10) var(--ds-espacio-14); color:var(--sm-muted); font-size:calc(16px * var(--ds-texto)); font-weight:500; min-height:44px; border-radius:calc(16px * var(--ds-forma-chip)); }
+/* flex 0 0 auto: el mínimo de 44 px de J2 volvía encogibles los chips y los nombres se superponían con muchas categorías; la barra se desplaza. */
+.sm-categories button { flex:0 0 auto; border:0; background:transparent; padding:var(--ds-espacio-10) var(--ds-espacio-14); color:var(--sm-muted); font-size:calc(16px * var(--ds-texto)); font-weight:500; min-height:44px; border-radius:calc(16px * var(--ds-forma-chip)); }
 .sm-categories button[aria-pressed=true] { background:var(--sm-highlight); color:var(--sm-highlight-ink,#32324d); }
 .sm-section-heading { margin:0 0 var(--ds-espacio-16); }
 .sm-section-heading h2 { font-size:calc(16px * var(--ds-texto)); color:var(--sm-muted); }

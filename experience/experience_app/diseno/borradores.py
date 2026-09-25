@@ -62,9 +62,16 @@ def create(tenant, theme, *, key=None, before=None):
         payload={'plantilla': 'S1', 'tema': theme, 'base': current})
 
 
+def design_system_url(restaurant, venue, token=None):
+    """Página viva del sistema de diseño (J5): todos los componentes y variantes con el tema de la sede o de un borrador."""
+    url = f'{settings.DINER_PUBLIC_URL}/{quote(restaurant)}/{quote(venue)}/design-system'
+    return f'{url}?borrador={token}' if token else url
+
+
 def result(change):
     return {'borrador': str(change.preview_token), 'caduca': (change.created_at + TTL).isoformat(),
             'url': f'{settings.DINER_PUBLIC_URL}/{quote(change.restaurant_slug)}/{quote(change.venue_slug)}/carta?borrador={change.preview_token}',
+            'url_design_system': design_system_url(change.restaurant_slug, change.venue_slug, change.preview_token),
             'vista_previa': differences(change.payload['base'], change.payload['tema'])}
 
 
