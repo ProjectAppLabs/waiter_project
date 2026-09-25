@@ -36,6 +36,7 @@ import './smart-checkout.css'
 import './smart-motion.css'
 import './smart-accessibility.css'
 import './smart-variants.css'
+import './smart-utilities.css'
 
 export type SmartProps = {
   entry: Entry

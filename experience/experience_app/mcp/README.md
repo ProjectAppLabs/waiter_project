@@ -31,10 +31,10 @@ y GET y DELETE responden 405. Versiones: 2025-06-18, 2025-03-26 y 2024-11-05.
 
 | Herramienta | Qué hace |
 |---|---|
-| `leer_design_system` | Esquema versionado, inventario de componentes/pantallas, tema actual, reglas y `pagina` (la página viva del sistema de diseño) |
+| `leer_design_system` | Esquema versionado, inventario de componentes/pantallas, tema actual, reglas, `pagina` (la página viva) y `plantillas` (contratos, plantillas de fábrica, utilidades `ds-*` y decoraciones del Plan K) |
 | `describir_pantalla` | Secciones en orden, fundamentos, variantes disponibles y tema actual de una pantalla del inventario |
-| `preparar_tema` | Mezcla los campos de `tema` enviados con lo guardado, valida y devuelve borrador, enlaces (`url` a la carta, `url_design_system` a la página viva) y token de confirmación |
-| `restablecer_tema` | Prepara volver `todo` o una `capa` (`fundamentos`, `variantes`, `distribucion`) a sus valores por defecto |
+| `preparar_tema` | Mezcla los campos de `tema` enviados con lo guardado (incluida la capa `componentes` con plantillas HTML restringidas, Plan K), valida y devuelve borrador, enlaces (`url` a la carta, `url_design_system` a la página viva) y token de confirmación |
+| `restablecer_tema` | Prepara volver `todo` o una `capa` (`fundamentos`, `variantes`, `distribucion`, `componentes`) a sus valores por defecto |
 | `leer_diseno_menu` | Colores editables (con su uso), tipografía y las permitidas, saludo, logo y reglas de contraste |
 | `preparar_diseno_menu` | Valida un cambio (colores, tipografía, saludo) y devuelve una vista previa y un token. **No guarda.** |
 | `leer_banners` | Banners actuales, valores permitidos y límites de texto |

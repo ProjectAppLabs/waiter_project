@@ -1,0 +1,48 @@
+{
+  "version": 3,
+  "limites": {
+    "nodos": 150,
+    "profundidad": 8,
+    "texto": 120,
+    "decoraciones": 3
+  },
+  "etiquetas": ["div", "span", "p", "h1", "h2", "h3", "strong", "em", "small", "ul", "ol", "li", "figure", "figcaption"],
+  "formatos": ["texto", "precio", "numero"],
+  "componentes": {
+    "plato": {
+      "version": 1,
+      "nombre": "Tarjeta de plato",
+      "selector": ".sm-food-card",
+      "pantallas": ["carta", "favoritos"],
+      "descripcion": "Cada plato de la carta y de favoritos. La plantilla se dibuja dentro de la tarjeta real, que conserva la variante de tarjeta y la distribución de la carta.",
+      "datos": {
+        "plato.nombre": {"tipo": "texto", "obligatorio": true, "descripcion": "Nombre del plato."},
+        "plato.precio": {"tipo": "precio", "descripcion": "Precio con impuestos. Úsalo con formato=\"precio\"."},
+        "plato.descripcion": {"tipo": "texto", "descripcion": "Descripción corta; puede faltar."},
+        "plato.tiempo": {"tipo": "numero", "descripcion": "Minutos de preparación; puede faltar."},
+        "plato.agotado": {"tipo": "booleano", "descripcion": "Verdadero cuando no hay existencias."},
+        "plato.valoracion": {"tipo": "booleano", "descripcion": "Verdadero si el plato tiene valoraciones."},
+        "plato.valoracion.promedio": {"tipo": "numero", "descripcion": "Promedio de 1 a 5, con un decimal."},
+        "plato.valoracion.cantidad": {"tipo": "numero", "descripcion": "Número de opiniones."},
+        "plato.rebaja": {"tipo": "booleano", "descripcion": "Verdadero si el precio anterior es mayor que el actual."},
+        "plato.rebaja.porcentaje": {"tipo": "numero", "descripcion": "Porcentaje de rebaja, entero."},
+        "plato.precioAntes": {"tipo": "precio", "descripcion": "Precio anterior, solo si hay rebaja."}
+      },
+      "ranuras": {
+        "ficha": {"obligatoria": true, "envoltorio": true, "descripcion": "Enlace a la ficha del plato. Envuelve todo lo que deba abrirla al tocarlo."},
+        "foto": {"obligatoria": true, "descripcion": "Fotografía del plato o su reemplazo, con el recorte y la forma del tema."},
+        "agregar": {"obligatoria": true, "descripcion": "Botón de agregar rápido. Se desactiva si el plato está agotado."},
+        "favorito": {"descripcion": "Corazón de favoritos; sin cuenta lleva al registro."},
+        "precio": {"descripcion": "Precio y rebaja con la variante de precio del tema."},
+        "valoracion": {"descripcion": "Insignia con la valoración, solo si el plato la tiene."},
+        "detalles": {"descripcion": "Tiempo de preparación y etiqueta de agotado, como en la carta actual."},
+        "tiempo": {"descripcion": "Tiempo de preparación con su icono, solo si existe."},
+        "agotado": {"descripcion": "Etiqueta «Agotado», solo cuando no hay existencias."}
+      },
+      "requisitos": [
+        {"cualquiera": ["dato:plato.precio", "ranura:precio"], "mensaje": "el precio del plato (dato plato.precio o ranura precio)"}
+      ],
+      "plantilla_fabrica": "<ranura nombre=\"favorito\"/>\n<ranura nombre=\"ficha\">\n  <ranura nombre=\"foto\"/>\n  <ranura nombre=\"valoracion\"/>\n  <ranura nombre=\"precio\"/>\n  <h3><dato nombre=\"plato.nombre\"/></h3>\n  <ranura nombre=\"detalles\"/>\n</ranura>\n<ranura nombre=\"agregar\"/>"
+    }
+  }
+}

@@ -14,7 +14,7 @@ from experience_app.plantillas import services as templates
 from experience_app.plantillas.models import VenueMenuSettings
 
 TTL = timedelta(minutes=30)
-LAYERS = ('fundamentos', 'variantes', 'distribucion')
+LAYERS = ('fundamentos', 'variantes', 'distribucion', 'componentes')
 
 
 class InvalidDraft(ValueError):
@@ -38,14 +38,19 @@ def merge(current, patch, schema=design.SCHEMA, path='tema'):
     return result
 
 
+def _describe(value):
+    # Las plantillas de componente se resumen: el árbol completo no ayuda a la persona que revisa.
+    return f'plantilla propia (v{value["version"]})' if isinstance(value, dict) and 'arbol' in value else 'de fábrica' if value is None else value
+
+
 def differences(before, after, prefix=''):
     rows = []
     for key, value in after.items():
         path = f'{prefix}.{key}' if prefix else key
-        if isinstance(value, dict):
+        if isinstance(value, dict) and 'arbol' not in value and isinstance(before.get(key), dict) and 'arbol' not in before[key]:
             rows.extend(differences(before[key], value, path))
-        elif before[key] != value:
-            rows.append({'campo': path, 'antes': before[key], 'despues': value})
+        elif before.get(key) != value:
+            rows.append({'campo': path, 'antes': _describe(before.get(key)), 'despues': _describe(value)})
     return rows
 
 

@@ -54,7 +54,8 @@ def test_public_contract_matches_mcp_and_is_read_only(client):
     response = client.get('/api/v1/diseno/')
     assert response.status_code == 200 and response['Cache-Control'] == 'public, max-age=3600'
     data = response.json()
-    assert data == {'version': 2, 'esquema': design.SCHEMA, 'inventario': design.INVENTORY}
+    assert set(data) == {'version', 'esquema', 'inventario', 'plantillas'}
+    assert data['version'] == 2 and data['esquema'] == design.SCHEMA and data['inventario'] == design.INVENTORY
     for method in (client.post, client.put, client.delete):
         assert method('/api/v1/diseno/', {}, content_type='application/json').status_code == 405
 

@@ -6,6 +6,7 @@ import re
 from copy import deepcopy
 from pathlib import Path
 
+from experience_app.diseno import plantillas
 from experience_app.utils.brand import contrast, ink_for
 
 SCHEMA = json.loads(Path(__file__).with_name('esquema.json').read_text(encoding='utf-8'))
@@ -19,6 +20,12 @@ class InvalidTheme(ValueError):
 
 def _normalize(value, schema, path='tema'):
     kind = schema['type']
+    if kind == 'plantilla':
+        # Plan K: la plantilla de un componente se valida con su contrato y se guarda como árbol.
+        try:
+            return plantillas.normalize(schema['componente'], value, path)
+        except plantillas.InvalidTemplate as exc:
+            raise InvalidTheme(str(exc)) from None
     if kind == 'object':
         if not isinstance(value, dict):
             raise InvalidTheme(f'{path} debe ser un objeto.')

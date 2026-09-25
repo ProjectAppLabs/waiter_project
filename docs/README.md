@@ -51,5 +51,7 @@ servicios ya implementados. El contrato ejecutado de H prevalece para sus flujos
 - [J4: herramientas MCP, borradores y verificaciones](revisiones/2026-09-25-plan-j4.md)
 - [J5: página viva del sistema de diseño, contrato público y verificación en navegador](revisiones/2026-09-25-plan-j5.md)
 - [Inventario de pantallas y componentes del menú del comensal: base del Plan K](inventario/2026-09-25-inventario-menu-comensal.md)
+- [Plan K: plantillas HTML por componente con datos y design system siempre enlazados](planes/2026-09-25-plan-K-plantillas-por-componente.md)
+- [Decisión: plantillas HTML restringidas por componente](decisiones/2026-09-25-plantillas-html-restringidas-por-componente.md)
 - [Traspaso de J4: estado y cierre local](traspaso/2026-09-25-j4-estado-y-cierre.md)
 - [Traspaso a Codex (2026-09-24): estado, ramas, pendientes y entorno](traspaso/2026-09-24-traspaso-a-codex.md)

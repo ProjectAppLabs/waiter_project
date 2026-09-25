@@ -109,7 +109,10 @@ El dueño quiere rediseñar cada componente con una plantilla HTML propia por re
 datos y las variables del design system, con validación de datos y de márgenes, y una galería de decoraciones PNG.
 Su base es el [inventario de pantallas y componentes](../inventario/2026-09-25-inventario-menu-comensal.md)
 (rama `docs/25092026-inventario-menu`, sobre J5): 25 pantallas reales, ≈70 componentes y piezas con datos y ranuras,
-y las incongruencias del inventario v2 que K debe corregir. El plan K todavía no está escrito.
+y las incongruencias del inventario v2 que K debe corregir. El [plan K](../planes/2026-09-25-plan-K-plantillas-por-componente.md)
+y su [decisión](../decisiones/2026-09-25-plantillas-html-restringidas-por-componente.md) están escritos; **K1 (contrato,
+utilidades, validador y capa `componentes` del tema) está hecho** en `feat/25092026-plan-k1-contrato-plantillas`.
+Sigue K2: el renderizador seguro en el comensal y la tarjeta de plato dibujada desde el árbol.
 
 ### Plan J: completo
 

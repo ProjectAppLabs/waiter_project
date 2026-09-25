@@ -25,10 +25,22 @@ export interface TemplateLayouts { menu: string; carrito: string; pago: string; 
 export interface TemplatePhotos { requiere: PhotoRequirement; recorte: PhotoCrop }
 export interface TemplateDiscount { porcentaje: number; activo: boolean }
 // Tema v2 resuelto por experience; opcional para seguir leyendo respuestas anteriores a J2.
+// Plan K: árbol validado de una plantilla de componente (experience/diseno/plantillas.py); el comensal lo dibuja sin HTML crudo.
+export type TemplateNode =
+  | { tipo: 'elemento'; etiqueta: string; clases: string[]; hijos: TemplateNode[] }
+  | { tipo: 'texto'; texto: string }
+  | { tipo: 'dato'; nombre: string; formato?: 'texto' | 'precio' | 'numero' }
+  | { tipo: 'ranura'; nombre: string; hijos: TemplateNode[] }
+  | { tipo: 'si'; dato: string; hijos: TemplateNode[] }
+  | { tipo: 'cada'; dato: string; como: string; hijos: TemplateNode[] }
+  | { tipo: 'decoracion'; id: string; movimiento: string; posicion: string }
+export interface ComponentTemplate { version: number; arbol: TemplateNode[] }
 export interface MenuTheme {
   version: 2
   variantes?: MenuVariants
   distribucion?: MenuLayouts
+  // null = plantilla de fábrica del componente.
+  componentes?: Record<string, ComponentTemplate | null>
   fundamentos: {
     densidad: number; texto: number; titulo: number
     forma: Record<'tarjeta' | 'boton' | 'chip' | 'campo' | 'imagen' | 'hoja', number>

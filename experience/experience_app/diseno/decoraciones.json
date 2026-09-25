@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "nota": "Paquete de fábrica: las ilustraciones que ya trae el comensal en /smart-menu/. En K4 se suman las decoraciones que suba cada restaurante desde el POS.",
+  "movimientos": ["ninguno", "flotar", "latir", "girar", "deslizar"],
+  "posiciones": ["libre", "arriba-izquierda", "arriba-derecha", "abajo-izquierda", "abajo-derecha"],
+  "fabrica": [
+    {"id": "assistant", "nombre": "Asistente", "archivo": "/smart-menu/assistant.png"},
+    {"id": "location", "nombre": "Ubicación", "archivo": "/smart-menu/location.png"},
+    {"id": "menu", "nombre": "Menú", "archivo": "/smart-menu/menu.png"},
+    {"id": "password", "nombre": "Candado", "archivo": "/smart-menu/password.png"},
+    {"id": "payment", "nombre": "Pago", "archivo": "/smart-menu/payment.png"},
+    {"id": "points", "nombre": "Puntos", "archivo": "/smart-menu/points.png"},
+    {"id": "preparing", "nombre": "En preparación", "archivo": "/smart-menu/preparing.png"},
+    {"id": "qr", "nombre": "Código QR", "archivo": "/smart-menu/qr.png"},
+    {"id": "ready", "nombre": "Listo", "archivo": "/smart-menu/ready.png"},
+    {"id": "reward", "nombre": "Recompensa", "archivo": "/smart-menu/reward.png"},
+    {"id": "robot", "nombre": "Robot", "archivo": "/smart-menu/robot.png"},
+    {"id": "robot-left", "nombre": "Robot mirando a la izquierda", "archivo": "/smart-menu/robot-left.png"},
+    {"id": "served", "nombre": "Servido", "archivo": "/smart-menu/served.png"},
+    {"id": "stars", "nombre": "Estrellas", "archivo": "/smart-menu/stars.png"},
+    {"id": "trophy", "nombre": "Trofeo", "archivo": "/smart-menu/trophy.png"},
+    {"id": "wallet", "nombre": "Cartera", "archivo": "/smart-menu/wallet.png"}
+  ]
+}

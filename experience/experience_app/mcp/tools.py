@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from experience_app.adapters.odoo.client import OdooClient, OdooError
 from experience_app.adapters.registry.client import Tenant, resolve
-from experience_app.diseno import borradores
+from experience_app.diseno import borradores, plantillas
 from experience_app.diseno import services as design
 from experience_app.mcp.models import McpKey, McpPendingChange
 from experience_app.plantillas import services as templates
@@ -64,10 +64,12 @@ def leer_design_system(key: McpKey, args: dict) -> dict:
     return {'esquema': deepcopy(design.SCHEMA), 'inventario': deepcopy(design.INVENTORY),
             'tema': templates.settings_view(key.restaurant_slug, key.venue_slug)['tema'],
             'pagina': borradores.design_system_url(key.restaurant_slug, key.venue_slug),
+            'plantillas': plantillas.contract(),
             'reglas': ['Cambia solo los campos del esquema. Los colores derivados son de solo lectura.',
                        'preparar_tema mezcla los campos enviados con el tema guardado; restablecer_tema prepara los valores por defecto.',
                        'El borrador caduca a los 30 minutos. Revisa el enlace antes de confirmar_cambio.',
-                       'pagina muestra todos los componentes y variantes con el tema publicado; url_design_system de un borrador los muestra con ese borrador.']}
+                       'pagina muestra todos los componentes y variantes con el tema publicado; url_design_system de un borrador los muestra con ese borrador.',
+                       'plantillas: cada componente plantillable tiene datos, ranuras y una plantilla de fábrica. Para rediseñarlo envía tema.componentes.<id> = {"version": N, "html": "…"} a preparar_tema; null vuelve a la de fábrica. Solo etiquetas y clases ds-* del catálogo; los datos obligatorios y las ranuras obligatorias deben estar.']}
 
 
 def describir_pantalla(key: McpKey, args: dict) -> dict:

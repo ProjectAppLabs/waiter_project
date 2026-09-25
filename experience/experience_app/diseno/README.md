@@ -1,4 +1,4 @@
-# Tema del menú v2 (Plan J2–J5)
+# Tema del menú v2 (Plan J2–J5 y K1)
 
 `esquema.json` es el contrato cerrado y versionado. `services.validate` completa los valores omitidos, normaliza colores,
 calcula los derivados y rechaza campos, versiones, tipos, fuentes o rangos desconocidos. No admite HTML ni CSS.
@@ -6,6 +6,7 @@ calcula los derivados y rechaza campos, versiones, tipos, fuentes o rangos desco
 J3 añade variantes de componente y distribución mediante atributos `data-ds-*` en `<main>` y selectores CSS.
 J4 expone el contrato por MCP y comparte los borradores con la vista previa del POS.
 J5 añade la página viva del comensal, que muestra todos los componentes y variantes con el tema de la sede o de un borrador.
+K1 añade la capa `componentes`: una plantilla HTML restringida por componente, validada contra su contrato.
 
 ## Contrato
 
@@ -200,6 +201,34 @@ enlaza la carta con el borrador y el tema publicado.
   y `.sm-page` reales; el `<main>` no lleva atributos para que una opción no alcance a la vecina. Las muestras son `inert`:
   la página no abre sesiones ni escribe. La copia local de la lista de componentes (`components/design-system/samples.tsx`)
   tiene una prueba de paridad con `inventario.json`.
+
+## Plantillas por componente (Plan K)
+
+Cuarta capa del tema, `componentes`: por cada componente plantillable, `null` (plantilla de fábrica) o una plantilla
+propia. Se prepara con `{"version": N, "html": "…"}` y se guarda como `{"version": N, "arbol": [...]}`, un árbol JSON
+validado que el comensal dibuja sin HTML crudo. La [decisión](../../../docs/decisiones/2026-09-25-plantillas-html-restringidas-por-componente.md)
+y el [plan K](../../../docs/planes/2026-09-25-plan-K-plantillas-por-componente.md) explican el porqué.
+
+- `componentes.json` es el contrato: por componente, `version`, `datos` (con tipo; `obligatorio` cuando la plantilla
+  debe enlazarlo), `ranuras` (`obligatoria`; `envoltorio` si admite contenido), `requisitos` (alternativas, p. ej.
+  el precio como dato o como ranura) y `plantilla_fabrica`, escrita en el mismo lenguaje. Hoy solo `plato` (tarjeta de plato).
+- `utilidades.json` es el catálogo de clases `ds-*` que admite una plantilla; `diner/components/smart/smart-utilities.css`
+  las implementa desde los tokens y una prueba de paridad las mantiene iguales.
+- `decoraciones.json` lista el paquete de fábrica (las ilustraciones de `/smart-menu/`), los movimientos y las posiciones.
+- `plantillas.py` parsea y valida: etiquetas `div span p h1 h2 h3 strong em small ul ol li figure figcaption`, solo el
+  atributo `class` con utilidades; `<dato nombre="plato.nombre"/>` (con `formato="precio|numero|texto"`),
+  `<ranura nombre="agregar"/>` (las obligatorias exactamente una vez; las de envoltorio admiten hijos),
+  `<si dato="…">`, `<cada dato="…" como="alias">` y `<decoracion id="…" movimiento="…" posicion="…"/>`. Límites:
+  150 nodos, profundidad 8, textos fijos de 120 caracteres, 3 decoraciones, sin direcciones web.
+- Cada error dice qué falló y dónde («<div>: clase desconocida «rojo»…», «falta el dato obligatorio «plato.nombre»»).
+- Un HTML inválido se rechaza al preparar. Un árbol guardado que ya no cumple su contrato (otra versión, un dato retirado)
+  vuelve a fábrica y se registra; nunca impide cargar la carta.
+- Se prepara con las herramientas de J4: `preparar_tema({"tema":{"componentes":{"plato":{"version":1,"html":"…"}}}})`
+  y `restablecer_tema({"capa":"componentes"})`. `vista_previa` resume «de fábrica» / «plantilla propia (vN)».
+- `GET /api/v1/diseno/` y `leer_design_system` devuelven `plantillas`: componentes con su contrato y plantilla de fábrica
+  (HTML y árbol), utilidades y decoraciones.
+
+El dibujo del árbol en el comensal (renderizador y respaldo) llega en K2; hasta entonces la capa se guarda y se sirve pero no cambia la carta.
 
 `diner/scripts/design-system/verificar-pagina.cjs` abre la página en Edge/Chromium a 375 y 1024 px, con el tema publicado y,
 si se pasa `DRAFT_TOKEN`, con un borrador. Comprueba componentes y opciones, atributos e inercia de cada muestra, el estilo
