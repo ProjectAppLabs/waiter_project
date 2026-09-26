@@ -61,8 +61,8 @@ Criterio: `verificar_borrador` por MCP devuelve `ok`/`problemas` sin intervenci�
 **Estado de B (2026-09-26).** Hecho: `scripts/verificador/puente.js` y la unidad `scripts/verificador/waiter-puente.service`
 (instalación en su cabecera: copiar a `~/.config/systemd/user/` y `systemctl --user enable --now waiter-puente`); la tarea
 de Windows «WSL Waiter Edge» registrada (Programador de tareas, al iniciar sesión, estado Ready); `DESIGN_VERIFIER_CMD`,
-`CDP_URL`, `DINER_URL` y `DESIGN_EVIDENCE` en `experience/.env`. Quedan para el dueño, porque el asistente no puede
-persistir fuera del repositorio: instalar la unidad con esos dos comandos, y `hostAddressLoopback=true` bajo `[wsl2]` en
+`CDP_URL`, `DINER_URL` y `DESIGN_EVIDENCE` en `experience/.env`. La unidad está instalada y activa (`systemctl --user status waiter-puente`; systemd
+no carga nvm, por eso lleva la ruta absoluta de node). Queda para el dueño `hostAddressLoopback=true` bajo `[wsl2]` en
 `%USERPROFILE%\.wslconfig` seguido de `wsl --shutdown` (cierra todas las sesiones de WSL; hacerlo con calma).
 
 Ojo con la IP: los `.env` locales (`experience/.env`, `registry/.env`, `diner/.env.local`, `pos/.env.local`) fijan la IP de la
