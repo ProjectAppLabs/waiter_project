@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "nombre": "Resumen del pedido",
+  "selector": ".sm-summary",
+  "pantallas": [
+    "pedido"
+  ],
+  "descripcion": "La tarjeta con el cupón, los totales de la mesa y del comensal, el descuento, el total estimado, la nota y las acciones de confirmar y ver el pago. El cupón y las acciones son del código.",
+  "datos": {
+    "pedido.subtotal": {
+      "tipo": "precio",
+      "descripcion": "Subtotal de toda la mesa."
+    },
+    "pedido.consumo": {
+      "tipo": "precio",
+      "descripcion": "Lo que ha pedido esta persona."
+    },
+    "pedido.descuento": {
+      "tipo": "booleano",
+      "descripcion": "Verdadero si hay descuento aplicado."
+    },
+    "pedido.descuento.porcentaje": {
+      "tipo": "numero",
+      "descripcion": "Porcentaje del descuento; 0 si no hay."
+    },
+    "pedido.descuento.monto": {
+      "tipo": "precio",
+      "descripcion": "Importe descontado; 0 si no hay."
+    },
+    "pedido.total": {
+      "tipo": "precio",
+      "descripcion": "Total estimado tras el descuento."
+    }
+  },
+  "ranuras": {
+    "cupon": {
+      "obligatoria": true,
+      "descripcion": "El campo del cupón (componente cupon)."
+    },
+    "titulo": {
+      "descripcion": "Título de fábrica."
+    },
+    "filas": {
+      "descripcion": "Filas de fábrica: subtotal, consumo y descuento."
+    },
+    "total": {
+      "descripcion": "Fila del total estimado de fábrica."
+    },
+    "nota": {
+      "descripcion": "Nota sobre disponibilidad y envío conjunto."
+    },
+    "confirmar": {
+      "obligatoria": true,
+      "descripcion": "Acción de confirmar el pedido (en pantallas estrechas va al muelle inferior)."
+    },
+    "pago": {
+      "obligatoria": true,
+      "descripcion": "Enlace a las opciones de pago."
+    }
+  },
+  "requisitos": [
+    {
+      "cualquiera": [
+        "dato:pedido.total",
+        "ranura:total"
+      ],
+      "mensaje": "el total estimado (dato pedido.total o ranura total)"
+    }
+  ],
+  "limites": {
+    "ancho_minimo": 272
+  },
+  "plantilla_fabrica": "<ranura nombre=\"cupon\"/>\n<ranura nombre=\"titulo\"/>\n<ranura nombre=\"filas\"/>\n<ranura nombre=\"total\"/>\n<ranura nombre=\"nota\"/>\n<ranura nombre=\"confirmar\"/>\n<ranura nombre=\"pago\"/>"
+}

@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "nombre": "Encabezado de sección",
+  "selector": ".sm-section-heading",
+  "pantallas": [
+    "carta",
+    "favoritos"
+  ],
+  "descripcion": "El título de cada bloque de platos (una categoría, «Resultados», «Tus platos guardados») con, a veces, el contador de platos.",
+  "datos": {
+    "seccion.titulo": {
+      "tipo": "texto",
+      "descripcion": "Título de la sección."
+    },
+    "seccion.cantidad": {
+      "tipo": "numero",
+      "descripcion": "Cuántos platos muestra; 0 cuando la sección no lo dice."
+    },
+    "seccion.etiqueta": {
+      "tipo": "texto",
+      "descripcion": "El contador ya escrito: «3 platos», «1 plato»; vacío si no lo hay."
+    }
+  },
+  "ranuras": {
+    "titulo": {
+      "descripcion": "Título de fábrica (h2)."
+    },
+    "contador": {
+      "descripcion": "Contador de fábrica; vacío en las secciones sin él."
+    }
+  },
+  "requisitos": [
+    {
+      "cualquiera": [
+        "dato:seccion.titulo",
+        "ranura:titulo"
+      ],
+      "mensaje": "el título de la sección (dato seccion.titulo o ranura titulo)"
+    }
+  ],
+  "limites": {
+    "ancho_minimo": 272
+  },
+  "plantilla_fabrica": "<ranura nombre=\"titulo\"/>\n<ranura nombre=\"contador\"/>"
+}

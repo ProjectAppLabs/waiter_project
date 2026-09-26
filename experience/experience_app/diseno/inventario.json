@@ -413,6 +413,107 @@
         "fundamentos.colores.acento"
       ],
       "variantes": []
+    },
+    {
+      "id": "buscador",
+      "nombre": "Buscador",
+      "selectores": [
+        ".sm-search"
+      ],
+      "fundamentos": [
+        "fundamentos.texto",
+        "fundamentos.forma.campo",
+        "fundamentos.colores.superficie"
+      ],
+      "variantes": []
+    },
+    {
+      "id": "seccion",
+      "nombre": "Encabezado de sección",
+      "selectores": [
+        ".sm-section-heading"
+      ],
+      "fundamentos": [
+        "fundamentos.texto",
+        "fundamentos.titulo",
+        "fundamentos.densidad"
+      ],
+      "variantes": []
+    },
+    {
+      "id": "resumen",
+      "nombre": "Resumen del pedido",
+      "selectores": [
+        ".sm-summary",
+        ".sm-total"
+      ],
+      "fundamentos": [
+        "fundamentos.texto",
+        "fundamentos.densidad",
+        "fundamentos.forma.tarjeta",
+        "fundamentos.colores.superficie"
+      ],
+      "variantes": []
+    },
+    {
+      "id": "cupon",
+      "nombre": "Cupón de descuento",
+      "selectores": [
+        ".sm-coupon",
+        ".sm-coupon-input"
+      ],
+      "fundamentos": [
+        "fundamentos.texto",
+        "fundamentos.forma.campo",
+        "fundamentos.colores.acento"
+      ],
+      "variantes": []
+    },
+    {
+      "id": "perfil",
+      "nombre": "Perfil de la cuenta",
+      "selectores": [
+        ".sm-profile",
+        ".sm-profile-head",
+        ".sm-profile-stats",
+        ".sm-avatar-large"
+      ],
+      "fundamentos": [
+        "fundamentos.texto",
+        "fundamentos.titulo",
+        "fundamentos.forma.imagen",
+        "fundamentos.forma.tarjeta",
+        "fundamentos.colores.acento"
+      ],
+      "variantes": []
+    },
+    {
+      "id": "saldo-puntos",
+      "nombre": "Saldo de puntos",
+      "selectores": [
+        ".sm-points-balance",
+        ".sm-member-code"
+      ],
+      "fundamentos": [
+        "fundamentos.texto",
+        "fundamentos.forma.tarjeta",
+        "fundamentos.colores.superficie",
+        "fundamentos.colores.acento"
+      ],
+      "variantes": []
+    },
+    {
+      "id": "banner-recompensa",
+      "nombre": "Banner de recompensa",
+      "selectores": [
+        ".sm-reward-banner"
+      ],
+      "fundamentos": [
+        "fundamentos.texto",
+        "fundamentos.titulo",
+        "fundamentos.colores.acento"
+      ],
+      "variantes": []
     }
   ],
   "pantallas": {
@@ -423,7 +524,9 @@
       "carta",
       "plato",
       "pedido",
-      "recorrido"
+      "recorrido",
+      "buscador",
+      "seccion"
     ],
     "plato": [
       "cabecera",
@@ -438,7 +541,9 @@
       "cabecera",
       "carrito",
       "pedido",
-      "boton"
+      "boton",
+      "resumen",
+      "cupon"
     ],
     "pago": [
       "cabecera",
@@ -449,7 +554,8 @@
     "cuenta": [
       "cabecera",
       "texto",
-      "boton"
+      "boton",
+      "perfil"
     ],
     "cuenta/registro": [
       "cabecera",
@@ -473,7 +579,10 @@
     "favoritos": [
       "cabecera",
       "carta",
-      "plato"
+      "plato",
+      "buscador",
+      "categorias",
+      "seccion"
     ],
     "estado": [
       "cabecera",
@@ -555,7 +664,9 @@
     "recompensas": [
       "cabecera",
       "texto",
-      "boton"
+      "boton",
+      "saldo-puntos",
+      "banner-recompensa"
     ]
   },
   "variantes": {

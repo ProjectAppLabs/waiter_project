@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "nombre": "Cupón de descuento",
+  "selector": ".sm-coupon",
+  "pantallas": [
+    "pedido"
+  ],
+  "descripcion": "El campo para aplicar o quitar un código de descuento, con su error y su nota. El formulario es del código.",
+  "datos": {
+    "cupon.codigo": {
+      "tipo": "texto",
+      "descripcion": "Código aplicado; vacío si no hay."
+    },
+    "cupon.aplicado": {
+      "tipo": "booleano",
+      "descripcion": "Verdadero cuando hay un cupón aplicado sin error."
+    },
+    "cupon.error": {
+      "tipo": "texto",
+      "descripcion": "Mensaje de error del cupón; vacío si no hay."
+    }
+  },
+  "ranuras": {
+    "formulario": {
+      "obligatoria": true,
+      "descripcion": "El formulario real: campo, aplicar o quitar."
+    },
+    "error": {
+      "descripcion": "Mensaje de error de fábrica; vacío si no hay."
+    },
+    "nota": {
+      "descripcion": "Nota de fábrica cuando hay cupón aplicado."
+    }
+  },
+  "requisitos": [],
+  "limites": {
+    "ancho_minimo": 272
+  },
+  "plantilla_fabrica": "<ranura nombre=\"formulario\"/>\n<ranura nombre=\"error\"/>\n<ranura nombre=\"nota\"/>"
+}

@@ -409,24 +409,7 @@ export function SmartBrowse({
         </Empty>
       ) : (
         <>
-          <div className="sm-search">
-            <Icon name="search" />
-            <input
-              type="search"
-              aria-label="Buscar en el menú"
-              placeholder="Busca tu próximo favorito"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            {query && (
-              <button
-                aria-label="Limpiar búsqueda"
-                onClick={() => setQuery('')}
-              >
-                <Icon name="close" />
-              </button>
-            )}
-          </div>
+          <SearchBox query={query} onChange={setQuery} />
           {!favoritesOnly&&!query&&entry.banners!=null&&<MenuBanners banners={entry.banners} dishes={dishes} onCategory={id=>{setCategory(id);document.querySelector('.sm-categories')?.scrollIntoView({behavior:'smooth',block:'start'})}}/>}
           {!favoritesOnly && !query && entry.banners==null && featuredDishes.length > 0 && (
             <div className="sm-featured-rail" aria-label="Platos destacados">{featuredDishes.map(featured => <Link key={featured.id} href={href('plato', featured.id)} className="sm-featured">
@@ -441,34 +424,18 @@ export function SmartBrowse({
               <FoodPhoto dish={featured} />
             </Link>)}</div>
           )}
-          {!query && <nav className="sm-categories" aria-label="Categorías del menú">
-            <button
-              aria-pressed={category === null}
-              onClick={() => setCategory(null)}
-            >
-              Todos los platos
-            </button>
-            {entry.carta.categorias.map((c) => (
-              <button
-                key={c.id}
-                aria-pressed={category === c.id}
-                onClick={() => setCategory(c.id)}
-              >
-                {c.nombre}
-              </button>
-            ))}
-          </nav>}
+          {!query && <CategoryNav categories={entry.carta.categorias} selected={category} onSelect={setCategory} />}
           {shown.length ? (
             !query && !favoritesOnly && category === null ? (
               <div className="sm-menu-sections">
                 {entry.carta.categorias.map((section) => (
                   <section key={section.id}>
-                    <div className="sm-section-heading"><h2>{section.nombre}</h2></div>
+                    <SectionHeading title={section.nombre} />
                     <div className="sm-food-rail">{section.productos.map((dish) => <FoodCard key={dish.id} dish={dish} />)}</div>
                   </section>
                 ))}
               </div>
-            ) : <section><div className="sm-section-heading"><h2>{favoritesOnly ? 'Tus platos guardados' : query ? 'Resultados' : entry.carta.categorias.find(c => c.id === category)?.nombre}</h2><span>{shown.length} {shown.length === 1 ? 'plato' : 'platos'}</span></div><div className={favoritesOnly ? "sm-food-grid" : "sm-food-list"}>{shown.map(dish => <FoodCard key={dish.id} dish={dish} />)}</div></section>
+            ) : <section><SectionHeading title={favoritesOnly ? 'Tus platos guardados' : query ? 'Resultados' : entry.carta.categorias.find(c => c.id === category)?.nombre} count={shown.length} /><div className={favoritesOnly ? "sm-food-grid" : "sm-food-list"}>{shown.map(dish => <FoodCard key={dish.id} dish={dish} />)}</div></section>
           ) : (
             <Empty
               icon={favoritesOnly ? 'heart' : 'search'}
@@ -719,4 +686,40 @@ export function SmartExperience({
 
     </div>
   )
+}
+
+// Plan K, paquete D: piezas de la carta con plantilla propia (contratos «buscador», «categorias» y «seccion»). El campo, los
+// botones y sus acciones siguen siendo del código; la plantilla decide la estructura alrededor.
+export function SearchBox({ query, onChange }: { query: string; onChange: (query: string) => void }) {
+  const { arbol, marker } = usePlantilla('buscador')
+  const icono = <Icon name="search" />
+  const campo = <input type="search" aria-label="Buscar en el menú" placeholder="Busca tu próximo favorito" value={query} onChange={(e) => onChange(e.target.value)} />
+  const limpiar = query ? <button aria-label="Limpiar búsqueda" onClick={() => onChange('')}><Icon name="close" /></button> : undefined
+  const factory = <>{icono}{campo}{limpiar}</>
+  return <div className="sm-search" {...marker}>
+    {arbol ? <Plantilla arbol={arbol} datos={{ 'busqueda.texto': query, 'busqueda.activa': !!query }} ranuras={{ icono, campo, limpiar }} fallback={factory} /> : factory}
+  </div>
+}
+
+export function CategoryNav({ categories, selected, onSelect }: { categories: { id: number; nombre: string }[]; selected: number | null; onSelect: (id: number | null) => void }) {
+  const { arbol, marker } = usePlantilla('categorias')
+  const opciones = <>
+    <button aria-pressed={selected === null} onClick={() => onSelect(null)}>Todos los platos</button>
+    {categories.map((c) => <button key={c.id} aria-pressed={selected === c.id} onClick={() => onSelect(c.id)}>{c.nombre}</button>)}
+  </>
+  const datos = { 'categorias.total': categories.length, 'categorias.elegida': categories.find((c) => c.id === selected)?.nombre ?? 'Todos los platos' }
+  return <nav className="sm-categories" aria-label="Categorías del menú" {...marker}>
+    {arbol ? <Plantilla arbol={arbol} datos={datos} ranuras={{ opciones }} fallback={opciones} /> : opciones}
+  </nav>
+}
+
+export function SectionHeading({ title, count }: { title?: string; count?: number }) {
+  const { arbol, marker } = usePlantilla('seccion')
+  const etiqueta = count === undefined ? undefined : `${count} ${count === 1 ? 'plato' : 'platos'}`
+  const titulo = <h2>{title}</h2>
+  const contador = etiqueta === undefined ? undefined : <span>{etiqueta}</span>
+  const factory = <>{titulo}{contador}</>
+  return <div className="sm-section-heading" {...marker}>
+    {arbol ? <Plantilla arbol={arbol} datos={{ 'seccion.titulo': title ?? '', 'seccion.cantidad': count ?? 0, 'seccion.etiqueta': etiqueta ?? '' }} ranuras={{ titulo, contador }} fallback={factory} /> : factory}
+  </div>
 }

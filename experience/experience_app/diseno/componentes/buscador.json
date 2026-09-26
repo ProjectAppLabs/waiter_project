@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "nombre": "Buscador",
+  "selector": ".sm-search",
+  "pantallas": [
+    "carta",
+    "favoritos"
+  ],
+  "descripcion": "La caja de búsqueda de la carta: icono, campo de texto y botón de limpiar cuando hay texto. El campo y el botón son del código (buscan de verdad); la plantilla decide el orden y el adorno.",
+  "datos": {
+    "busqueda.texto": {
+      "tipo": "texto",
+      "descripcion": "Lo que la persona ha escrito; vacío si nada."
+    },
+    "busqueda.activa": {
+      "tipo": "booleano",
+      "descripcion": "Verdadero mientras hay texto en el campo."
+    }
+  },
+  "ranuras": {
+    "icono": {
+      "descripcion": "Icono de la lupa."
+    },
+    "campo": {
+      "obligatoria": true,
+      "descripcion": "El campo de búsqueda real."
+    },
+    "limpiar": {
+      "obligatoria": true,
+      "descripcion": "Botón para borrar la búsqueda; vacío cuando no hay texto."
+    }
+  },
+  "requisitos": [],
+  "limites": {
+    "ancho_minimo": 272
+  },
+  "plantilla_fabrica": "<ranura nombre=\"icono\"/>\n<ranura nombre=\"campo\"/>\n<ranura nombre=\"limpiar\"/>"
+}

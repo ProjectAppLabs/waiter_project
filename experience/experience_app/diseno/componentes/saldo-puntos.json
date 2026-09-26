@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "nombre": "Saldo de puntos",
+  "selector": ".sm-points-balance",
+  "pantallas": [
+    "recompensas"
+  ],
+  "descripcion": "La tarjeta de puntos de Mis recompensas: imagen, título, saldo, programa, equivalencia, código de socio y nota. Mientras carga, si falla o si no hay programa, la ranura estado lleva el mensaje.",
+  "datos": {
+    "puntos.activo": {
+      "tipo": "booleano",
+      "descripcion": "Verdadero cuando hay programa y saldo cargado."
+    },
+    "puntos.saldo": {
+      "tipo": "numero",
+      "descripcion": "Puntos disponibles."
+    },
+    "puntos.programa": {
+      "tipo": "texto",
+      "descripcion": "Nombre del programa."
+    },
+    "puntos.valor": {
+      "tipo": "precio",
+      "descripcion": "A cuánto descuento equivalen los puntos."
+    },
+    "puntos.minimo": {
+      "tipo": "numero",
+      "descripcion": "Puntos mínimos para canjear."
+    },
+    "puntos.codigo": {
+      "tipo": "texto",
+      "descripcion": "Código de socio para el POS."
+    }
+  },
+  "ranuras": {
+    "imagen": {
+      "descripcion": "Ilustración de los puntos."
+    },
+    "titulo": {
+      "descripcion": "Título de fábrica."
+    },
+    "estado": {
+      "obligatoria": true,
+      "descripcion": "Mensaje de carga, error con reintentar, o programa inactivo; vacío cuando hay saldo."
+    },
+    "saldo": {
+      "descripcion": "Saldo, programa y equivalencia de fábrica."
+    },
+    "codigo": {
+      "descripcion": "Código de socio de fábrica."
+    },
+    "nota": {
+      "descripcion": "Nota de fábrica sobre acreditación."
+    }
+  },
+  "requisitos": [],
+  "limites": {
+    "ancho_minimo": 272
+  },
+  "plantilla_fabrica": "<ranura nombre=\"imagen\"/>\n<ranura nombre=\"titulo\"/>\n<ranura nombre=\"estado\"/>\n<ranura nombre=\"saldo\"/>\n<ranura nombre=\"codigo\"/>\n<ranura nombre=\"nota\"/>"
+}

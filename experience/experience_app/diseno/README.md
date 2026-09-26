@@ -265,9 +265,10 @@ resolver, leer y preparar el tema y a toda herramienta MCP) y guarda en el nodo 
 acepta si es una ruta del propio origen. Borrar una decoración invalida la caché y las plantillas que la usaban vuelven a
 fábrica al releerse. `leer_componente` lista `decoraciones.sede` junto a las de fábrica.
 
-**Componentes plantillables (K5 y cierre C).** Nueve contratos en `componentes/`: `plato` (tarjeta de plato), `banners`,
-`cabecera`, `ficha-heroe` (cabecera de la ficha), `linea-pedido`, `tarjeta-historial`, `tarjeta-estado`, `recibo-papel` y
-`recorrido` (la pantalla ilustrada de paso a paso: introducción, ubicación, cuenta lista, correo, canal, éxito al restablecer,
+**Componentes plantillables (K5 y cierre C y D).** Diecisiete contratos en `componentes/`: `plato` (tarjeta de plato), `banners`,
+`cabecera`, `ficha-heroe` (cabecera de la ficha), `linea-pedido`, `tarjeta-historial`, `tarjeta-estado`, `recibo-papel`,
+`buscador`, `categorias`, `seccion` (encabezado de sección), `resumen` (totales del pedido), `cupon`, `perfil`, `saldo-puntos`,
+`banner-recompensa` y `recorrido` (la pantalla ilustrada de paso a paso: introducción, ubicación, cuenta lista, correo, canal, éxito al restablecer,
 éxito de la opinión y celebración del pago; nueve pantallas con un solo componente `Recorrido` en el comensal, cuyo
 envoltorio `.sm-recorrido` es la raíz de la plantilla y cuya sección `.sm-journey` sigue siendo de cada pantalla). En todos,
 la raíz real (enlace, cabecera, artículo…) sigue siendo del código con sus variantes y acciones; la plantilla se dibuja dentro.
@@ -275,7 +276,7 @@ Cada contrato ofrece dos formas de componer: **ranuras de fábrica** (bloques en
 `saludo`, `encabezado`, `info`, `cabecera`, `total`) y **datos sueltos** (`banner.titulo`, `marca.nombre`, `linea.subtotal`,
 `pedido.lineas` con `<cada>`), con las obligaciones expresadas como alternativas en `requisitos` (el título como dato o como
 ranura de fábrica). La plantilla de fábrica de cada uno reproduce el diseño actual exactamente, y una prueba del comensal lo
-exige para los nueve (y otra, pantalla por pantalla, para los nueve recorridos). La página viva muestra los nueve con datos
+exige para los diecisiete (y otra, pantalla por pantalla, para los nueve recorridos). La página viva muestra los diecisiete con datos
 de muestra y marca `data-componente` en cada raíz con plantilla propia; el verificador mide allí todos los componentes (y en
 la carta la tarjeta, los banners y la cabecera). En el recorrido, la ilustración orbital sobresale de la columna a propósito
 y los puntos de diapositiva miden 6 px: el verificador los excluye del desborde y del mínimo de 44 px.

@@ -98,4 +98,8 @@ pruebas: la genérica de plantillas y una por pantalla. Cambio visual mínimo: l
 alto. La medición en Edge de un borrador con plantilla propia del recorrido queda pendiente de que el registro
 apunte a la IP actual de Odoo (ver «Ojo con la IP» en B); el contrato, la muestra y las suites están en verde. A corre con Codex (plugin `openai/codex-plugin-cc`, árbol `../waiter_project-codex-a`, rama
 `feat/26092026-plan-k-a-verificador-obligatorio`) con el [traspaso](../traspaso/2026-09-26-traspaso-codex-plan-k-cierre.md).
-Sigue D.
+**D hecho** (misma rama que C): `buscador`, `categorias`, `seccion`, `resumen`, `cupon`, `perfil`, `saldo-puntos` y
+`banner-recompensa`, cada uno con contrato, componente extraído (`SearchBox`, `CategoryNav`, `SectionHeading`, `OrderSummary`,
+`CouponField`, `ProfileSection`, `PointsBalanceView`, `RewardBanner`), plantilla de fábrica idéntica, muestra en la página viva,
+inventario y caso en la prueba genérica. Con C suman diecisiete componentes plantillables. La medición en Edge queda con la
+misma pendiente que C (IP de Odoo en el registro).

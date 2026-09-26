@@ -1,7 +1,9 @@
 'use client'
 /* eslint-disable @next/next/no-img-element -- Exporty illustrations and restaurant assets. */
 import Link from 'next/link'
-import {useEffect,useRef,useState} from 'react'
+import {useEffect,useRef,useState,type ReactNode} from 'react'
+import {Plantilla} from '@/components/plantillas/Renderizador'
+import {usePlantilla} from '@/components/plantillas/usePlantilla'
 import {useRouter} from 'next/navigation'
 import type {Entry} from '@/lib/types'
 import {SmartHeader} from './SmartHome'
@@ -66,5 +68,18 @@ export function SmartRewards() {
  const {href}=useSmartRoute()
  const dialog=useRef<HTMLDialogElement>(null)
  const reward=template.descuento
- return <><Title title="Mis recompensas"/><section className="sm-rewards"><PointsBalance/><h1>Disfruta tus beneficios</h1>{reward.activo?<article className="sm-reward-banner"><div><small>Primera compra</small><h2>{reward.porcentaje}% de descuento en tu pedido</h2><button onClick={()=>dialog.current?.showModal()}>Ver beneficio</button></div><img src="/smart-menu/reward.png" alt=""/></article>:<p>El restaurante no tiene recompensas activas en este momento.</p>}<h2>Tu próxima experiencia</h2><Link className="sm-profile-link" href={href(account?'pedido':'cuenta/registro')}><span><strong>{!account?'Crea tu cuenta':account.descuentoDisponible?'Tu beneficio está disponible':'Consulta tu pedido'}</strong><small>{!account?'Guarda tus platos y accede a tus beneficios.':account.descuentoDisponible?'Se aplica automáticamente en tu primera compra elegible.':'Revisa los descuentos aplicados a tu consumo.'}</small></span><Icon name="arrow"/></Link><Link className="sm-profile-link" href={href('favoritos')}><span><strong>Vuelve a tus favoritos</strong><small>Esos platos que vale la pena repetir.</small></span><Icon name="arrow"/></Link><Link className="sm-profile-link" href={href('historial')}><span><strong>Recuerda tus visitas</strong><small>Encuentra tus pedidos y valora tu experiencia.</small></span><Icon name="arrow"/></Link></section><dialog ref={dialog} className="sm-filter-dialog sm-reward-dialog"><button className="sm-icon" aria-label="Cerrar beneficio" onClick={()=>dialog.current?.close()}><Icon name="close"/></button><div className="sm-orbit-hero"><img src="/smart-menu/trophy.png" alt=""/></div><h1>{reward.porcentaje}% para tu primera visita</h1><p>Se aplica automáticamente sobre tu consumo elegible al confirmar el pedido. Puedes revisar el importe en el carrito.</p><Link className="sm-primary" href={href(account?'pedido':'cuenta/registro')}>{account?'Ver mi pedido':'Crear mi cuenta'}</Link></dialog></>
+ return <><Title title="Mis recompensas"/><section className="sm-rewards"><PointsBalance/><h1>Disfruta tus beneficios</h1>{reward.activo?<RewardBanner porcentaje={reward.porcentaje} onOpen={()=>dialog.current?.showModal()}/>:<p>El restaurante no tiene recompensas activas en este momento.</p>}<h2>Tu próxima experiencia</h2><Link className="sm-profile-link" href={href(account?'pedido':'cuenta/registro')}><span><strong>{!account?'Crea tu cuenta':account.descuentoDisponible?'Tu beneficio está disponible':'Consulta tu pedido'}</strong><small>{!account?'Guarda tus platos y accede a tus beneficios.':account.descuentoDisponible?'Se aplica automáticamente en tu primera compra elegible.':'Revisa los descuentos aplicados a tu consumo.'}</small></span><Icon name="arrow"/></Link><Link className="sm-profile-link" href={href('favoritos')}><span><strong>Vuelve a tus favoritos</strong><small>Esos platos que vale la pena repetir.</small></span><Icon name="arrow"/></Link><Link className="sm-profile-link" href={href('historial')}><span><strong>Recuerda tus visitas</strong><small>Encuentra tus pedidos y valora tu experiencia.</small></span><Icon name="arrow"/></Link></section><dialog ref={dialog} className="sm-filter-dialog sm-reward-dialog"><button className="sm-icon" aria-label="Cerrar beneficio" onClick={()=>dialog.current?.close()}><Icon name="close"/></button><div className="sm-orbit-hero"><img src="/smart-menu/trophy.png" alt=""/></div><h1>{reward.porcentaje}% para tu primera visita</h1><p>Se aplica automáticamente sobre tu consumo elegible al confirmar el pedido. Puedes revisar el importe en el carrito.</p><Link className="sm-primary" href={href(account?'pedido':'cuenta/registro')}>{account?'Ver mi pedido':'Crear mi cuenta'}</Link></dialog></>
+}
+
+// Plan K, paquete D: el banner de la primera compra (contrato «banner-recompensa»). El botón que abre el detalle es del código;
+// «copia» es una ranura de envoltorio: la plantilla puede meter dentro la etiqueta, el título y la acción.
+export function RewardBanner({porcentaje,onOpen}:{porcentaje:number;onOpen:()=>void}) {
+ const {arbol,marker}=usePlantilla('banner-recompensa')
+ const etiqueta=<small>Primera compra</small>
+ const titulo=<h2>{porcentaje}% de descuento en tu pedido</h2>
+ const accion=<button onClick={onOpen}>Ver beneficio</button>
+ const imagen=<img src="/smart-menu/reward.png" alt=""/>
+ const copia=(children:ReactNode)=><div>{children}</div>
+ const factory=<>{copia(<>{etiqueta}{titulo}{accion}</>)}{imagen}</>
+ return <article className="sm-reward-banner" {...marker}>{arbol?<Plantilla arbol={arbol} datos={{'recompensa.porcentaje':porcentaje,'recompensa.titulo':`${porcentaje}% de descuento en tu pedido`,'recompensa.etiqueta':'Primera compra'}} ranuras={{copia,etiqueta,titulo,accion,imagen}} fallback={factory}/>:factory}</article>
 }

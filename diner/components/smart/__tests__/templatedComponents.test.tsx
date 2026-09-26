@@ -2,13 +2,15 @@ import { render } from '@testing-library/react'
 import { contracts, factoryTree, parseTemplate } from '@/components/plantillas/__tests__/helpers'
 import { MenuBanners } from '../MenuBanners'
 import { SmartHeader } from '../SmartHome'
-import { DishHero } from '../SmartMenu'
-import { CartLineItem, StatusCard } from '../SmartOrder'
-import { HistoryCard, PaperReceipt } from '../SmartAccount'
+import { CategoryNav, DishHero, SearchBox, SectionHeading } from '../SmartMenu'
+import { CartLineItem, OrderSummary, StatusCard } from '../SmartOrder'
+import { HistoryCard, PaperReceipt, ProfileSection } from '../SmartAccount'
+import { CouponField, PointsBalanceView } from '../SmartBenefits'
+import { RewardBanner } from '../SmartEntry'
 import { Recorrido } from '../Recorrido'
 import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
 import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { AccountOrder, CartLine, Dish, Entry, MenuBanner, MenuTheme, OrderStatus } from '@/lib/types'
+import type { Account, AccountOrder, Cart, CartLine, Dish, Entry, MenuBanner, MenuTheme, OrderStatus } from '@/lib/types'
 
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
 const dish: Dish = { id: 7, nombre: 'Bandeja paisa', precio: 32000, agotado: false, categorias: [1], foto: '/b.png', descripcion: 'Con frijol.', valoracion: { promedio: 4.75, cantidad: 12 }, atributos: { tiempoPreparacion: 15, precioAntes: 40000, combo: [{ producto: 1, cantidad: 1, nombre: 'Jugo' }] } }
@@ -20,6 +22,8 @@ const line: CartLine = { id: 3, comensal: 'abcdef12', mio: true, producto_id: 7,
 const order: OrderStatus = { id: 'a1b2c3d4e5', sesion: 's', estado: 'en_cocina', total: 64000, impuestos: 5000, intentos: 1 }
 const past: AccountOrder = { id: 'a1b2c3d4e5f6', fecha: '2026-09-20T18:30:00Z', local: 'Casa Demo', mesa: 8, items: 2, total: 64000, estado: 'pagado', descuento: 3200, lineas: [{ producto_id: 7, nombre: 'Bandeja paisa', cantidad: 2, precio: 32000 }] }
 const noop = async () => undefined
+const cart = { sesion: 's', lineas: [line], total: 64000, mio: 64000, por_comensal: [], descuento: { codigo: 'FOOD10', porcentaje: 10, monto: 6400 } } as unknown as Cart
+const account: Account = { id: 'a', nombre: 'Ana Pérez', correo: 'ana@example.invalid', verificada: true }
 
 // Cada componente plantillable con sus datos de muestra, su selector raíz y una plantilla propia que enlaza un dato.
 const CASES: { id: string; selector: string; render: () => React.ReactElement; custom: string; expect: string }[] = [
@@ -30,7 +34,7 @@ const CASES: { id: string; selector: string; render: () => React.ReactElement; c
   { id: 'ficha-heroe', selector: '.sm-dish-hero', render: () => <DishHero dish={dish} />,
     custom: '<ranura nombre="foto"/><h1 class="ds-texto-grande"><dato nombre="plato.nombre"/></h1><p><dato nombre="plato.descripcion"/></p><ranura nombre="precio"/>', expect: 'Bandeja paisaCon frijol.$ 32.000' },
   { id: 'linea-pedido', selector: '.sm-cart-line', render: () => <CartLineItem line={line} dish={dish} swiped={false} onSwipe={() => undefined} busy={false} setQty={noop} remove={noop} />,
-    custom: '<div class="ds-pila"><strong><dato nombre="linea.nombre"/></strong><small><dato nombre="linea.cantidad" formato="numero"/> × <dato nombre="linea.precio" formato="precio"/></small><si dato="linea.nota"><em><dato nombre="linea.nota"/></em></si><ranura nombre="controles"/></div>', expect: 'Bandeja paisa2 × $ 32.000sin arepa' },
+    custom: '<div class="ds-pila"><strong><dato nombre="linea.nombre"/></strong><small><dato nombre="linea.cantidad" formato="numero"/> × <dato nombre="linea.precio" formato="precio"/></small><si dato="linea.nota"><em><dato nombre="linea.nota"/></em></si><strong><dato nombre="linea.subtotal" formato="precio"/></strong><ranura nombre="controles"/></div>', expect: 'Bandeja paisa2 × $ 32.000sin arepa$ 64.000' },
   { id: 'tarjeta-estado', selector: '.sm-status-card', render: () => <StatusCard order={order} current={1} />,
     custom: '<ranura nombre="arte"/><h2 class="ds-texto-titulo"><dato nombre="estado.titulo"/></h2><small><dato nombre="estado.codigo"/></small>', expect: 'en_cocina' },
   { id: 'tarjeta-historial', selector: '.sm-history-card', render: () => <HistoryCard order={past} busy={false} reordering={null} reorder={noop} />,
@@ -39,6 +43,22 @@ const CASES: { id: string; selector: string; render: () => React.ReactElement; c
     custom: '<h1><dato nombre="pedido.local"/></h1><si dato="pedido.descuento"><p>Descuento <dato nombre="pedido.descuento.monto" formato="precio"/></p></si><ranura nombre="total"/>', expect: 'Casa DemoDescuento $ 3.200' },
   { id: 'recorrido', selector: '.sm-recorrido', render: () => <section className="sm-journey sm-intro"><Recorrido ilustracion="/smart-menu/stars.png" diapositivas={{ actual: 1, total: 4, ir: () => undefined }} titulo="Conoce tu menú" texto="Pide desde tu mesa." cuerpo={<p className="sm-note">Nota de la pantalla</p>} acciones={<button type="button" className="sm-primary">Continuar</button>} /></section>,
     custom: '<ranura nombre="ilustracion"/><h1 class="ds-texto-grande"><dato nombre="recorrido.titulo"/></h1><small>Paso <dato nombre="recorrido.paso" formato="numero"/> de <dato nombre="recorrido.pasos" formato="numero"/></small><si dato="recorrido.texto"><p><dato nombre="recorrido.texto"/></p></si><ranura nombre="cuerpo"/><ranura nombre="acciones"/>', expect: 'Conoce tu menúPaso 2 de 4Pide desde tu mesa.Nota de la pantallaContinuar' },
+  { id: 'buscador', selector: '.sm-search', render: () => <SearchBox query="arepa" onChange={() => undefined} />,
+    custom: '<div class="ds-fila ds-espacio-8"><ranura nombre="icono"/><ranura nombre="campo"/><si dato="busqueda.activa"><small>Buscas «<dato nombre="busqueda.texto"/>»</small></si><ranura nombre="limpiar"/></div>', expect: 'Buscas «arepa»' },
+  { id: 'categorias', selector: '.sm-categories', render: () => <CategoryNav categories={entry.carta.categorias} selected={1} onSelect={() => undefined} />,
+    custom: '<small class="ds-texto-pequeno"><dato nombre="categorias.elegida"/> · <dato nombre="categorias.total" formato="numero"/></small><ranura nombre="opciones"/>', expect: 'Fuertes · 1Todos los platosFuertes' },
+  { id: 'seccion', selector: '.sm-section-heading', render: () => <SectionHeading title="Fuertes" count={3} />,
+    custom: '<h2 class="ds-texto-subtitulo"><dato nombre="seccion.titulo"/> (<dato nombre="seccion.cantidad" formato="numero"/>)</h2>', expect: 'Fuertes (3)' },
+  { id: 'resumen', selector: '.sm-summary', render: () => <OrderSummary cart={cart} confirmar={<button type="button">Continuar</button>} pago={<button type="button">Pagar</button>} />,
+    custom: '<ranura nombre="cupon"/><div class="ds-fila ds-extremos"><span>Total</span><strong><dato nombre="pedido.total" formato="precio"/></strong></div><si dato="pedido.descuento"><small>Ahorras <dato nombre="pedido.descuento.monto" formato="precio"/> (<dato nombre="pedido.descuento.porcentaje" formato="numero"/>%)</small></si><ranura nombre="confirmar"/><ranura nombre="pago"/>', expect: 'Total$ 57.600Ahorras $ 6.400 (10%)ContinuarPagar' },
+  { id: 'cupon', selector: '.sm-coupon', render: () => { useDinerStore.setState({ cart }); return <CouponField /> },
+    custom: '<ranura nombre="formulario"/><si dato="cupon.aplicado"><small>Cupón <dato nombre="cupon.codigo"/> aplicado</small></si><ranura nombre="error"/><ranura nombre="nota"/>', expect: 'Cupón FOOD10 aplicado' },
+  { id: 'perfil', selector: '.sm-profile', render: () => <ProfileSection account={account} pedidos={3} favoritos={2} enlaces={<h2>General</h2>} notificaciones={<h2>Notificaciones</h2>} salir={<button type="button">Salir</button>} />,
+    custom: '<div class="ds-fila ds-espacio-12"><ranura nombre="avatar"/><div class="ds-pila"><strong><dato nombre="cuenta.nombre"/></strong><small><dato nombre="cuenta.correo"/></small></div></div><p><dato nombre="cuenta.pedidos" formato="numero"/> pedidos · <dato nombre="cuenta.favoritos" formato="numero"/> favoritos</p><ranura nombre="enlaces"/><ranura nombre="notificaciones"/><ranura nombre="salir"/>', expect: 'APAna Pérezana@example.invalid3 pedidos · 2 favoritosGeneralNotificacionesSalir' },
+  { id: 'saldo-puntos', selector: '.sm-points-balance', render: () => <PointsBalanceView data={{ tarjeta: 1, codigo: 'ABC-123', puntos: 1250, ganados: 0, programa: 'Puntos Demo', valorPunto: 10, minimoCanje: 500 }} />,
+    custom: '<ranura nombre="titulo"/><si dato="puntos.activo"><strong class="ds-texto-grande"><dato nombre="puntos.saldo" formato="numero"/></strong><p>Vale <dato nombre="puntos.valor" formato="precio"/> · canje desde <dato nombre="puntos.minimo" formato="numero"/></p><ranura nombre="codigo"/></si><ranura nombre="estado"/>', expect: 'Tus puntos1.250Vale $ 12.500 · canje desde 500Presenta este código al pagar en el POSABC-123' },
+  { id: 'banner-recompensa', selector: '.sm-reward-banner', render: () => <RewardBanner porcentaje={15} onOpen={() => undefined} />,
+    custom: '<ranura nombre="copia"><span class="ds-insignia"><dato nombre="recompensa.etiqueta"/></span><h2 class="ds-texto-titulo"><dato nombre="recompensa.porcentaje" formato="numero"/>% para ti</h2><ranura nombre="accion"/></ranura><ranura nombre="imagen"/>', expect: 'Primera compra15% para tiVer beneficio' },
 ]
 const withTemplate = (id: string, arbol: unknown) => useDinerStore.setState({ template: { ...DEFAULT_TEMPLATE, tema: { version: 2, componentes: { [id]: { version: 1, arbol } } } as unknown as MenuTheme } })
 const html = (container: HTMLElement, selector: string) => container.querySelector(selector)!.innerHTML

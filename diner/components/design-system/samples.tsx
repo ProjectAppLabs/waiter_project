@@ -5,13 +5,15 @@
 import type { ReactNode } from 'react'
 import { COMPONENT_VARIANTS, SCREEN_LAYOUTS, designSystemAttributes } from '@/lib/domain/designVariants'
 import type { Dish, Entry, MenuBanner, Template } from '@/lib/types'
-import { DishHero, DishRating, FoodCard, FoodPhoto, Icon, PriceBlock, money } from '@/components/smart/SmartMenu'
+import { CategoryNav, DishHero, DishRating, FoodCard, FoodPhoto, Icon, PriceBlock, SearchBox, SectionHeading, money } from '@/components/smart/SmartMenu'
 import { SmartHeader } from '@/components/smart/SmartHome'
 import { MenuBanners } from '@/components/smart/MenuBanners'
-import { CartLineItem, StatusCard } from '@/components/smart/SmartOrder'
-import { HistoryCard, PaperReceipt } from '@/components/smart/SmartAccount'
+import { CartLineItem, OrderSummary, StatusCard } from '@/components/smart/SmartOrder'
+import { HistoryCard, PaperReceipt, ProfileSection } from '@/components/smart/SmartAccount'
+import { CouponField, PointsBalanceView } from '@/components/smart/SmartBenefits'
+import { RewardBanner } from '@/components/smart/SmartEntry'
 import { Recorrido } from '@/components/smart/Recorrido'
-import type { AccountOrder, CartLine, OrderStatus } from '@/lib/types'
+import type { AccountOrder, Cart, CartLine, OrderStatus } from '@/lib/types'
 
 // Copia del inventario de experience (id, nombre y variantes que consume) para dibujar la página aunque el contrato
 // público no responda; la prueba de paridad falla si diverge de inventario.json.
@@ -35,6 +37,13 @@ export const COMPONENTS = [
   { id: 'tarjeta-estado', nombre: 'Tarjeta de estado del pedido', variantes: [] },
   { id: 'recibo', nombre: 'Recibo', variantes: ['insignia'] },
   { id: 'recorrido', nombre: 'Recorrido con ilustración', variantes: [] },
+  { id: 'buscador', nombre: 'Buscador', variantes: [] },
+  { id: 'seccion', nombre: 'Encabezado de sección', variantes: [] },
+  { id: 'resumen', nombre: 'Resumen del pedido', variantes: [] },
+  { id: 'cupon', nombre: 'Cupón de descuento', variantes: [] },
+  { id: 'perfil', nombre: 'Perfil de la cuenta', variantes: [] },
+  { id: 'saldo-puntos', nombre: 'Saldo de puntos', variantes: [] },
+  { id: 'banner-recompensa', nombre: 'Banner de recompensa', variantes: [] },
 ] as const
 export type ComponentId = (typeof COMPONENTS)[number]['id']
 export type VariantField = keyof typeof COMPONENT_VARIANTS | keyof typeof SCREEN_LAYOUTS
@@ -104,10 +113,7 @@ const noop = () => undefined
 export const SAMPLES: Record<ComponentId, (context: SampleContext) => ReactNode> = {
   cabecera: ({ entry }) => <><SmartHeader entry={entry} current="carta" /><div className="sm-greeting"><h1>Elige el mejor plato para ti</h1></div></>,
   banners: ({ entry, dishes }) => <MenuBanners banners={sampleBanners(entry, dishes[0])} dishes={dishes} onCategory={noop} />,
-  categorias: ({ entry }) => <nav className="sm-categories" aria-label="Categorías de muestra">
-    <button type="button" aria-pressed="true">Todos los platos</button>
-    {(entry.carta.categorias.length ? entry.carta.categorias.map((c) => c.nombre) : ['Entradas', 'Fuertes', 'Bebidas']).slice(0, 4).map((name) => <button type="button" key={name} aria-pressed="false">{name}</button>)}
-  </nav>,
+  categorias: ({ entry }) => <CategoryNav categories={(entry.carta.categorias.length ? entry.carta.categorias : ['Entradas', 'Fuertes', 'Bebidas'].map((nombre, id) => ({ id, nombre }))).slice(0, 4)} selected={null} onSelect={noop} />,
   plato: ({ dishes }) => <div className="sm-food-rail">{dishes.slice(0, 2).map((dish) => <FoodCard key={dish.id} dish={showcase(dish)} />)}</div>,
   boton: ({ dishes }) => <div className="ds-stack">
     <button type="button" className="sm-primary">Agregar a mi pedido <span>{money(dishes[0].precio)}</span></button>
@@ -171,4 +177,16 @@ export const SAMPLES: Record<ComponentId, (context: SampleContext) => ReactNode>
   // La introducción de la primera visita: ilustración, puntos de diapositiva, título, frase y pie con dos acciones.
   recorrido: ({ entry }) => <section className="sm-journey sm-intro"><Recorrido ilustracion="/smart-menu/onboarding-menu.png" diapositivas={{ actual: 0, total: 4, ir: noop }} titulo="El menú, a tu manera" texto={`Explora los platos de ${entry.contexto.marca.nombre} y encuentra algo que te encante.`}
     acciones={<><button type="button" className="sm-primary">Continuar<Icon name="arrow" /></button><button type="button" className="sm-text-button">Omitir introducción</button></>} /></section>,
+  buscador: () => <SearchBox query="Hamburguesa" onChange={noop} />,
+  seccion: ({ entry, dishes }) => <SectionHeading title={entry.carta.categorias[0]?.nombre ?? 'Platos'} count={dishes.length} />,
+  // Totales de muestra con un descuento aplicado; el cupón lee el pedido real (vacío en la página viva).
+  resumen: ({ dishes }) => { const total = sampleOrder(dishes).total; return <OrderSummary cart={{ sesion: 'muestra', lineas: [], por_comensal: [], total, mio: total, descuento: { codigo: 'MUESTRA10', porcentaje: 10, monto: Math.round(total / 10) } } as unknown as Cart}
+    confirmar={<div className="sm-cart-submit"><button type="button" className="sm-primary">Continuar al pago<Icon name="arrow" /></button></div>} pago={<button type="button" className="sm-text-button">Ver opciones de pago</button>} /> },
+  cupon: () => <CouponField />,
+  perfil: () => <ProfileSection account={{ id: 'muestra', nombre: 'Camila Ruiz', correo: 'camila@ejemplo.com', celular: '300 123 4567', verificada: true }} pedidos={3} favoritos={2}
+    enlaces={<><h2>General</h2><a className="sm-profile-link" href="#historial" onClick={(e) => e.preventDefault()}><span className="sm-empty-icon"><Icon name="bag" /></span><span><strong>Mis pedidos</strong><small>Recuerda y vuelve a pedir</small></span><Icon name="arrow" /></a></>}
+    notificaciones={<><h2>Notificaciones</h2><label className="sm-profile-notification"><span><strong>Novedades y promociones</strong><small>Recibe novedades del restaurante</small></span><input type="checkbox" role="switch" aria-label="Novedades y promociones" readOnly checked /></label></>}
+    salir={<button type="button" className="sm-secondary"><Icon name="logout" />Cerrar sesión</button>} />,
+  'saldo-puntos': () => <PointsBalanceView data={{ tarjeta: 1, codigo: 'MUESTRA-1234', puntos: 1250, ganados: 0, programa: 'Programa de puntos de muestra', valorPunto: 10, minimoCanje: 500 }} />,
+  'banner-recompensa': () => <section className="sm-rewards"><RewardBanner porcentaje={15} onOpen={noop} /></section>,
 }
