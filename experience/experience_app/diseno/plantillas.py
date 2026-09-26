@@ -5,6 +5,7 @@ desde el árbol, nunca desde HTML crudo. Reglas: solo las etiquetas de `componen
 `utilidades.json`, datos y ranuras del contrato del componente (con las obligatorias presentes), decoraciones del
 catálogo y límites de tamaño. Cada error dice qué falló y dónde, para que la IA lo corrija sola.
 """
+import html as html_module
 import json
 import logging
 import re
@@ -13,6 +14,9 @@ from pathlib import Path
 
 _HERE = Path(__file__).parent
 COMPONENTS = json.loads((_HERE / 'componentes.json').read_text(encoding='utf-8'))
+# Un contrato por archivo (componentes/<id>.json): cada componente plantillable se añade sin tocar los demás.
+COMPONENTS['componentes'] = {path.stem: json.loads(path.read_text(encoding='utf-8'))
+                             for path in sorted((_HERE / 'componentes').glob('*.json'))}
 UTILITIES = json.loads((_HERE / 'utilidades.json').read_text(encoding='utf-8'))
 DECORATIONS = json.loads((_HERE / 'decoraciones.json').read_text(encoding='utf-8'))
 UTILITY_CLASSES = {u['clase'] for group in UTILITIES['grupos'] for u in group['utilidades']}
@@ -99,6 +103,10 @@ class _Parser(HTMLParser):
     def handle_decl(self, decl):
         raise InvalidTemplate('no se admiten declaraciones.')
 
+    def unknown_decl(self, data):
+        # <![CDATA[…]]> y similares: sin esto, HTMLParser los traga en silencio y parte de la plantilla desaparecería.
+        raise InvalidTemplate('no se admiten declaraciones.')
+
     def handle_pi(self, data):
         raise InvalidTemplate('no se admiten instrucciones de proceso.')
 
@@ -130,7 +138,16 @@ def parse(html: str) -> list:
 
 
 # ---- validación del árbol -----------------------------------------------------------------------------------------
+_KEYS = {'elemento': {'etiqueta', 'clases', 'hijos'}, 'texto': {'texto'}, 'dato': {'nombre', 'formato'}, 'ranura': {'nombre', 'hijos'},
+         'si': {'dato', 'hijos'}, 'cada': {'dato', 'como', 'hijos'}, 'decoracion': {'id', 'movimiento', 'posicion'}}
+
+
 class _Checker:
+    """Comprueba un árbol contra el contrato y devuelve uno canónico: solo las claves de cada tipo de nodo.
+
+    Así un `arbol` enviado por un cliente en vez de `html` no puede colar claves ocultas ni hijos que no se recorren.
+    """
+
     def __init__(self, contract, decorations):
         self.contract, self.decorations = contract, decorations
         self.datos, self.ranuras = contract['datos'], contract['ranuras']
@@ -143,13 +160,18 @@ class _Checker:
             raise InvalidTemplate(f'{where}: supera la profundidad máxima de {LIMITS["profundidad"]} niveles.')
         if not isinstance(nodes, list):
             raise InvalidTemplate(f'{where}: los hijos deben ser una lista.')
+        clean = []
         for node in nodes:
             self.nodes += 1
             if self.nodes > LIMITS['nodos']:
                 raise InvalidTemplate(f'la plantilla supera los {LIMITS["nodos"]} nodos.')
-            if not isinstance(node, dict) or node.get('tipo') not in ('elemento', 'texto', 'dato', 'ranura', 'si', 'cada', 'decoracion'):
+            if not isinstance(node, dict) or node.get('tipo') not in _KEYS:
                 raise InvalidTemplate(f'{where}: nodo desconocido.')
-            getattr(self, node['tipo'])(node, depth, scope, where)
+            unexpected = set(node) - {'tipo'} - _KEYS[node['tipo']]
+            if unexpected:
+                raise InvalidTemplate(f'{where}: campo inesperado «{sorted(unexpected)[0]}» en un nodo {node["tipo"]}.')
+            clean.append(getattr(self, node['tipo'])(node, depth, scope, where))
+        return clean
 
     def elemento(self, node, depth, scope, where):
         tag = node.get('etiqueta')
@@ -161,9 +183,8 @@ class _Checker:
         unknown = [c for c in classes if c not in UTILITY_CLASSES]
         if unknown:
             raise InvalidTemplate(f'<{tag}>: clase desconocida «{unknown[0]}»; usa solo las utilidades ds-* del catálogo.')
-        if set(node) - {'tipo', 'etiqueta', 'clases', 'hijos'}:
-            raise InvalidTemplate(f'<{tag}>: campo inesperado en el árbol.')
-        self.walk(node.get('hijos', []), depth + 1, scope, f'<{tag}>')
+        return {'tipo': 'elemento', 'etiqueta': tag, 'clases': list(dict.fromkeys(classes)),
+                'hijos': self.walk(node.get('hijos', []), depth + 1, scope, f'<{tag}>')}
 
     def texto(self, node, depth, scope, where):
         text = node.get('texto')
@@ -173,6 +194,7 @@ class _Checker:
             raise InvalidTemplate(f'{where}: un texto fijo supera los {LIMITS["texto"]} caracteres; los datos largos van con <dato>.')
         if re.search(r'://|www\.', text, re.I):
             raise InvalidTemplate(f'{where}: no se admiten direcciones web en el texto.')
+        return {'tipo': 'texto', 'texto': re.sub(r'\s+', ' ', text)}
 
     def _resolve(self, name, scope, where):
         if not isinstance(name, str):
@@ -196,6 +218,7 @@ class _Checker:
         if fmt == 'precio' and rule['tipo'] != 'precio':
             raise InvalidTemplate(f'{where}: «{name}» no es un precio; quita formato="precio".')
         self.used_datos.add(name)
+        return {'tipo': 'dato', 'nombre': node['nombre'], **({'formato': fmt} if fmt != 'texto' else {})}
 
     def ranura(self, node, depth, scope, where):
         name = node.get('nombre')
@@ -208,14 +231,14 @@ class _Checker:
         if scope:
             raise InvalidTemplate(f'{where}: las ranuras no van dentro de <cada>.')
         self.used_ranuras.append(name)
-        self.walk(children, depth + 1, scope, f'<ranura nombre="{name}">')
+        return {'tipo': 'ranura', 'nombre': name, 'hijos': self.walk(children, depth + 1, scope, f'<ranura nombre="{name}">')}
 
     def si(self, node, depth, scope, where):
         name = self._resolve(node.get('dato'), scope, where)
         if name not in self.datos:
             raise InvalidTemplate(f'<si>: dato desconocido «{node.get("dato")}».')
         self.used_datos.add(name)
-        self.walk(node.get('hijos', []), depth + 1, scope, f'<si dato="{name}">')
+        return {'tipo': 'si', 'dato': node['dato'], 'hijos': self.walk(node.get('hijos', []), depth + 1, scope, f'<si dato="{name}">')}
 
     def cada(self, node, depth, scope, where):
         name = self._resolve(node.get('dato'), scope, where)
@@ -226,7 +249,8 @@ class _Checker:
         if not isinstance(alias, str) or not re.fullmatch(r'[a-z][a-z0-9]*', alias) or alias in scope:
             raise InvalidTemplate('<cada>: «como» debe ser un nombre simple en minúsculas y distinto de los ya usados.')
         self.used_datos.add(name)
-        self.walk(node.get('hijos', []), depth + 1, {**scope, alias: name}, f'<cada dato="{name}">')
+        return {'tipo': 'cada', 'dato': node['dato'], 'como': alias,
+                'hijos': self.walk(node.get('hijos', []), depth + 1, {**scope, alias: name}, f'<cada dato="{name}">')}
 
     def decoracion(self, node, depth, scope, where):
         self.decoration_count += 1
@@ -240,7 +264,7 @@ class _Checker:
         position = node.get('posicion', 'libre')
         if position not in DECORATIONS['posiciones']:
             raise InvalidTemplate(f'{where}: posición desconocida «{position}»; admitidas: {", ".join(DECORATIONS["posiciones"])}.')
-        node['movimiento'], node['posicion'] = movement, position
+        return {'tipo': 'decoracion', 'id': node['id'], 'movimiento': movement, 'posicion': position}
 
     def finish(self):
         for name, rule in self.ranuras.items():
@@ -262,12 +286,12 @@ class _Checker:
 
 
 def validate(component_id: str, tree: list, *, decorations=()) -> list:
-    """Comprueba el árbol contra el contrato del componente y lo devuelve normalizado."""
+    """Comprueba el árbol contra el contrato del componente y devuelve su forma canónica."""
     contract = component(component_id)
     checker = _Checker(contract, decoration_ids(decorations))
-    checker.walk(tree)
+    clean = checker.walk(tree)
     checker.finish()
-    return tree
+    return clean
 
 
 def compile_html(component_id: str, html: str, *, decorations=()) -> list:
@@ -276,6 +300,99 @@ def compile_html(component_id: str, html: str, *, decorations=()) -> list:
 
 def factory(component_id: str) -> list:
     return compile_html(component_id, component(component_id)['plantilla_fabrica'])
+
+
+def _tags(node):
+    kind = node['tipo']
+    if kind == 'elemento':
+        return node['etiqueta'] + (f' class="{" ".join(node["clases"])}"' if node.get('clases') else ''), node['etiqueta']
+    if kind == 'ranura':
+        return f'ranura nombre="{node["nombre"]}"', 'ranura'
+    if kind == 'si':
+        return f'si dato="{node["dato"]}"', 'si'
+    return f'cada dato="{node["dato"]}" como="{node["como"]}"', 'cada'
+
+
+def _void(node):
+    kind = node['tipo']
+    if kind == 'texto':
+        return html_module.escape(node['texto'], quote=False)
+    if kind == 'dato':
+        return f'<dato nombre="{node["nombre"]}"' + (f' formato="{node["formato"]}"' if node.get('formato') else '') + '/>'
+    if kind == 'decoracion':
+        return f'<decoracion id="{node["id"]}" movimiento="{node["movimiento"]}" posicion="{node["posicion"]}"/>'
+    if kind == 'ranura' and not node.get('hijos'):
+        return f'<ranura nombre="{node["nombre"]}"/>'
+    return None
+
+
+def _inline(nodes) -> str:
+    parts = []
+    for node in nodes:
+        text = _void(node)
+        if text is None:
+            opening, closing = _tags(node)
+            text = f'<{opening}>{_inline(node.get("hijos", []))}</{closing}>'
+        parts.append(text)
+    return ''.join(parts)
+
+
+def to_html(tree: list, indent: int = 0) -> str:
+    """Árbol → HTML del lenguaje, para que la IA lea y edite la plantilla actual sin conocer el JSON.
+
+    Los bloques van en líneas con sangría; en cuanto hay texto suelto, ese nivel se escribe en una sola línea para
+    conservar los espacios exactos (« min» junto a un <dato>). Recompilar el resultado devuelve el mismo árbol.
+    """
+    pad, lines = '  ' * indent, []
+    if any(node['tipo'] == 'texto' for node in tree):
+        # Con texto suelto en este nivel no puede haber saltos de línea: se pegarían al texto como espacios.
+        return pad + _inline(tree)
+    for node in tree:
+        text = _void(node)
+        if text is not None:
+            lines.append(pad + text)
+            continue
+        opening, closing = _tags(node)
+        children = node.get('hijos', [])
+        if not children:
+            lines.append(pad + f'<{opening}></{closing}>')
+        elif any(child['tipo'] == 'texto' for child in children):
+            lines.append(pad + f'<{opening}>{_inline(children)}</{closing}>')
+        else:
+            lines.append(pad + f'<{opening}>')
+            lines.append(to_html(children, indent + 1))
+            lines.append(pad + f'</{closing}>')
+    return '\n'.join(lines)
+
+
+# Criterios de medidas que se pueden juzgar sin navegador. Son avisos: la IA los ve al preparar y decide;
+# la comprobación definitiva de desbordes y solapes la hace verificar_borrador con el borrador abierto.
+def warnings(component_id: str, tree: list) -> list:
+    contract = component(component_id)
+    narrow = contract.get('limites', {}).get('ancho_minimo', 10_000)
+    found, classes, decorations = [], [], 0
+
+    def walk(nodes, inside_row=False):
+        nonlocal decorations
+        for node in nodes:
+            if node['tipo'] == 'elemento':
+                classes.extend(node.get('clases', []))
+                if inside_row and 'ds-foto-grande' in node.get('clases', []):
+                    found.append('ds-foto-grande dentro de una fila (ds-fila) no deja sitio al resto; úsala en una pila.')
+                walk(node.get('hijos', []), inside_row or 'ds-fila' in node.get('clases', []))
+            elif node['tipo'] == 'decoracion':
+                decorations += 1
+            elif node.get('hijos'):
+                walk(node['hijos'], inside_row)
+
+    walk(tree)
+    if narrow < 200 and any(c in classes for c in ('ds-texto-grande', 'ds-texto-titulo')):
+        found.append(f'ds-texto-titulo o ds-texto-grande en un componente de {narrow} px de ancho mínimo: los nombres largos se parten en sílabas. Usa ds-texto-subtitulo o ds-texto-cuerpo.')
+    if narrow < 200 and 'ds-rejilla-2' in classes:
+        found.append(f'ds-rejilla-2 en un componente de {narrow} px: las dos columnas no caben; quedará en una.')
+    if decorations > 1 and narrow < 200:
+        found.append(f'{decorations} decoraciones en un componente de {narrow} px se solapan con el contenido; deja una.')
+    return list(dict.fromkeys(found))
 
 
 # ---- integración con el tema v2 -------------------------------------------------------------------------------------

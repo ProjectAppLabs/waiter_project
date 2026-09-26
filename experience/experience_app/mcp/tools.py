@@ -98,6 +98,71 @@ def _prepare_theme(key, theme, current):
             'siguiente': 'Muestra el enlace y los cambios a la persona (url abre la carta; url_design_system, todos los componentes). Solo tras su aprobación llama confirmar_cambio con token.'}
 
 
+def _component_id(args) -> str:
+    component_id = args['componente']
+    if not isinstance(component_id, str):
+        raise ToolError('componente debe ser texto.')
+    try:
+        plantillas.component(component_id)
+    except plantillas.InvalidTemplate as exc:
+        raise ToolError(str(exc)) from exc
+    return component_id
+
+
+def leer_componente(key: McpKey, args: dict) -> dict:
+    _arguments(args, ('componente',), ('componente',))
+    component_id = _component_id(args)
+    data = plantillas.contract()
+    contract = data['componentes'][component_id]
+    saved = templates.settings_view(key.restaurant_slug, key.venue_slug)['tema'].get('componentes', {}).get(component_id)
+    current = ({'origen': 'propia', 'version': saved['version'], 'html': plantillas.to_html(saved['arbol'])} if saved
+               else {'origen': 'fabrica', 'version': contract['version'], 'html': contract['plantilla_fabrica']['html']})
+    return {'componente': component_id, 'contrato': contract, 'plantilla_actual': current,
+            'utilidades': data['utilidades'], 'decoraciones': data['decoraciones'], 'limites': data['limites'],
+            'reglas': ['Solo las etiquetas y clases del catálogo; nada de style, script, enlaces ni imágenes propias.',
+                       'Los datos obligatorios y las ranuras obligatorias deben aparecer; las ranuras son las acciones y medios reales.',
+                       'Parte de plantilla_actual.html, cambia la estructura y envíala a preparar_componente. html null vuelve a la de fábrica.',
+                       'Después de preparar, llama verificar_borrador con el token borrador antes de confirmar_cambio.']}
+
+
+def preparar_componente(key: McpKey, args: dict) -> dict:
+    _arguments(args, ('componente', 'html'), ('componente', 'html'))
+    component_id, html = _component_id(args), args['html']
+    contract = plantillas.component(component_id)
+    if html is not None and not isinstance(html, str):
+        raise ToolError('html debe ser texto con la plantilla, o null para volver a la de fábrica.')
+    current = templates.settings_view(key.restaurant_slug, key.venue_slug)['tema']
+    patch = {'componentes': {component_id: None if html is None else {'version': contract['version'], 'html': html}}}
+    try:
+        theme = borradores.merge(current, patch)
+    except design.InvalidTheme as exc:
+        raise ToolError(str(exc)) from exc
+    result = _prepare_theme(key, theme, current)
+    saved = theme['componentes'][component_id]
+    result['advertencias'] = plantillas.warnings(component_id, saved['arbol']) if saved else []
+    result['siguiente'] = ('Abre url y url_design_system, llama verificar_borrador con borrador para medir desbordes y solapes, '
+                           'corrige lo que salga y solo con la aprobación de la persona llama confirmar_cambio con token.'
+                           if saved else 'Vuelve a la plantilla de fábrica: no hay nada que medir. Con la aprobación de la persona llama confirmar_cambio con token.')
+    return result
+
+
+def verificar_borrador(key: McpKey, args: dict) -> dict:
+    _arguments(args, ('borrador',), ('borrador',))
+    token = args['borrador']
+    change = McpPendingChange.objects.filter(key=key, preview_token=token, applied_at__isnull=True).first() if isinstance(token, str) and _is_uuid(token) else None
+    if change is None:
+        raise ToolError('No hay un borrador vigente con ese token para esta clave.')
+    try:
+        result = borradores.verify(change)
+    except borradores.InvalidDraft as exc:
+        raise ToolError(str(exc)) from exc
+    following = {'ok': 'Muestra el resultado a la persona; con su aprobación, confirmar_cambio con el token de confirmación.',
+                 'problemas': 'Corrige los problemas y prepara de nuevo.',
+                 'error': 'La verificación no pudo medir: no es culpa de la plantilla. Avísale a la persona y vuelve a intentarlo más tarde.',
+                 'no_disponible': 'Revisa el borrador a ojo con la persona en url y url_design_system.'}
+    return {**result, 'borrador': token, 'siguiente': following[result['estado']]}
+
+
 def preparar_tema(key: McpKey, args: dict) -> dict:
     _arguments(args, ('tema',), ('tema',))
     patch = args['tema']
@@ -115,7 +180,7 @@ def restablecer_tema(key: McpKey, args: dict) -> dict:
     _arguments(args, ('capa',))
     layer = args.get('capa', 'todo')
     if layer not in ('todo', *borradores.LAYERS):
-        raise ToolError('capa debe ser todo, fundamentos, variantes o distribucion.')
+        raise ToolError('capa debe ser todo, fundamentos, variantes, distribucion o componentes.')
     current = templates.settings_view(key.restaurant_slug, key.venue_slug)['tema']
     theme = design.defaults() if layer == 'todo' else {**current, layer: design.defaults()[layer]}
     return _prepare_theme(key, theme, current)
@@ -290,11 +355,23 @@ TOOLS = [
     {'name': 'preparar_tema', 'handler': preparar_tema,
      'description': 'Mezcla cambios parciales del tema con lo guardado, valida y prepara un borrador de 30 minutos. Devuelve cambios, enlace y token; NO publica.',
      'inputSchema': {'type': 'object', 'additionalProperties': False, 'required': ['tema'],
-                     'properties': {'tema': design.SCHEMA}}},
+                     'properties': {'tema': design.public_schema()}}},
     {'name': 'restablecer_tema', 'handler': restablecer_tema,
      'description': 'Prepara volver todo el tema o una capa a sus valores predeterminados. Devuelve un borrador; NO publica hasta confirmar_cambio.',
      'inputSchema': {'type': 'object', 'additionalProperties': False,
                      'properties': {'capa': {'type': 'string', 'enum': ['todo', *borradores.LAYERS], 'default': 'todo'}}}},
+    {'name': 'leer_componente', 'handler': leer_componente, 'annotations': {'readOnlyHint': True},
+     'description': 'Lee el contrato de un componente plantillable (datos, ranuras, límites), su plantilla actual en HTML, las utilidades ds-* y las decoraciones. Empieza aquí antes de rediseñarlo.',
+     'inputSchema': {'type': 'object', 'additionalProperties': False, 'required': ['componente'],
+                     'properties': {'componente': {'type': 'string', 'enum': list(plantillas.COMPONENTS['componentes'])}}}},
+    {'name': 'preparar_componente', 'handler': preparar_componente,
+     'description': 'Prepara una plantilla HTML restringida para un componente (html; null para volver a la de fábrica): valida, avisa de medidas y deja un borrador de 30 minutos. NO publica.',
+     'inputSchema': {'type': 'object', 'additionalProperties': False, 'required': ['componente', 'html'],
+                     'properties': {'componente': {'type': 'string', 'enum': list(plantillas.COMPONENTS['componentes'])},
+                                    'html': {'type': ['string', 'null'], 'maxLength': 20000}}}},
+    {'name': 'verificar_borrador', 'handler': verificar_borrador,
+     'description': 'Abre la carta con el borrador en un navegador a 320, 375 y 1024 px y mide en las tarjetas con plantilla propia (hasta 12) desbordes, solapes, palabras partidas, textos < 14 px y controles < 44 px. Devuelve problemas concretos; una plantilla propia solo se confirma con la última verificación en verde.',
+     'inputSchema': {'type': 'object', 'additionalProperties': False, 'required': ['borrador'], 'properties': {'borrador': {'type': 'string'}}}},
     {'name': 'leer_diseno_menu', 'handler': leer_diseno_menu, 'annotations': {'readOnlyHint': True},
      'description': 'Lee el diseño del menú del restaurante: colores editables (con su uso), tipografía y las permitidas, saludo, logo y reglas de contraste.',
      'inputSchema': {'type': 'object', 'properties': {}, 'additionalProperties': False}},

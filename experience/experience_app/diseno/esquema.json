@@ -317,15 +317,8 @@
     "componentes": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Plan K: plantilla propia por componente. null = plantilla de fábrica; al preparar se envía {version, html} y se guarda {version, arbol}.",
-      "properties": {
-        "plato": {
-          "type": "plantilla",
-          "componente": "plato",
-          "default": null,
-          "description": "Tarjeta de plato (contrato v1)."
-        }
-      }
+      "description": "Plan K: plantilla propia por componente. null = plantilla de fábrica; al preparar se envía {version, html} y se guarda {version, arbol}. Las propiedades se completan al cargar con los contratos de componentes/<id>.json.",
+      "properties": {}
     }
   }
 }

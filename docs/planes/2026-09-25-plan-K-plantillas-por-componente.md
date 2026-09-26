@@ -143,4 +143,20 @@ Cada fase se fusiona por separado, sobre J5.
 - Pruebas: la plantilla de fábrica dibujada desde el árbol produce el mismo HTML que la tarjeta actual; una plantilla
   distinta conserva enlace, favorito y agregar; plantillas obsoletas o dañadas vuelven a fábrica. Verificación en Edge con
   un borrador real en la carta y en la página viva.
-- Pendiente para K3: `leer_componente`, `preparar_componente` y `verificar_borrador` en el MCP.
+**K3 hecho (2026-09-25)**, misma rama.
+
+- `leer_componente` (contrato, plantilla actual regenerada en HTML, utilidades, decoraciones), `preparar_componente`
+  (valida, `advertencias` de medidas sin navegador, borrador) y `verificar_borrador` (abre el borrador a 320, 375 y 1024 px
+  y devuelve problemas concretos agrupados por tarjeta; `error` si el navegador no pudo medir). Con `DESIGN_VERIFIER_CMD`
+  configurado, `confirmar_cambio` exige la última verificación en verde para cualquier borrador que introduzca o cambie una
+  plantilla propia (volver a fábrica no la exige); con la variable vacía dice `no_disponible`. Una verificación a la vez por sede.
+- `diner/scripts/design-system/verificar-borrador.cjs`: desbordes de página y tarjeta, elementos que sobresalen, palabras
+  que no caben medidas con la fuente real, textos < 14 px, controles < 44 px, solapes, errores JS y escrituras. Alcance
+  actual: la carta y la tarjeta de plato, hasta 12 tarjetas, a 320, 375 y 1024 px.
+- Revisión adversaria (4 dimensiones, 2 escépticos por hallazgo): 24 hallazgos confirmados y corregidos, entre ellos la
+  puerta que impedía volver a fábrica, solapes falsos con la insignia de valoración, palabras partidas sin detectar en
+  elementos inline, una regla CSS que pisaba las variantes de carta, `to_html` no inversa del parseo y árboles enviados por
+  el cliente con claves ocultas.
+- Contratos en `componentes/<id>.json`; la capa `componentes` del esquema se genera al cargar. Hallazgo del ensayo: la
+  foto de 110 px fijos sobresalía en plantillas con relleno; ahora se adapta al ancho dentro de una plantilla propia.
+- Pendiente para K4: galería de decoraciones por sede (subida desde el POS) y su validación por sede.

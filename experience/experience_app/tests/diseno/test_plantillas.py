@@ -1,12 +1,17 @@
 """K1: lenguaje de plantilla restringido, contrato por componente y su integración con el tema v2 y los borradores."""
 import json
+import sys
+import uuid
+from datetime import timedelta
 from pathlib import Path
 
 import pytest
+from django.utils import timezone
 
 from experience_app.diseno import borradores, plantillas
 from experience_app.diseno import services as design
 from experience_app.mcp import keys
+from experience_app.mcp.models import McpPendingChange
 from experience_app.plantillas import services as templates
 from experience_app.tests.conftest import TABLE
 from experience_app.tests.mcp.test_mcp import call
@@ -65,6 +70,8 @@ def test_parse_builds_a_normalized_tree():
     ('<div onclick="x()">x</div>' + MINIMAL, 'atributo no admitido «onclick»'),
     ('<div class="text-red-500">x</div>' + MINIMAL, 'clase desconocida «text-red-500»'),
     ('<!-- hola -->' + MINIMAL, 'comentarios'),
+    ('<![CDATA[x]]>' + MINIMAL, 'declaraciones'),
+    ('<!DOCTYPE html>' + MINIMAL, 'declaraciones'),
     ('<div>' + MINIMAL, 'falta cerrar <div>'),
     ('</div>' + MINIMAL, 'sin apertura'),
     ('<div><span></div></span>' + MINIMAL, 'se esperaba </span>'),
@@ -75,7 +82,7 @@ def test_parse_builds_a_normalized_tree():
     ('<dato nombre="plato.nombre" formato="precio"/>' + MINIMAL, 'no es un precio'),
     ('<ranura nombre="pagar"/>' + MINIMAL, 'ranura desconocida «pagar»'),
     ('<ranura nombre="foto">x</ranura>' + MINIMAL.replace('<ranura nombre="foto"/>', ''), 'no admite contenido'),
-    ('<ranura nombre="foto"/>' + MINIMAL, 'obligatoria «foto» debe aparecer exactamente una vez \(aparece 2\)'),
+    ('<ranura nombre="foto"/>' + MINIMAL, r'obligatoria «foto» debe aparecer exactamente una vez \(aparece 2\)'),
     ('<ranura nombre="precio"/><ranura nombre="precio"/>' + MINIMAL, 'aparece 2 veces'),
     ('<ranura nombre="ficha"><ranura nombre="foto"/></ranura><ranura nombre="agregar"/>', 'dato obligatorio «plato.nombre»'),
     ('<ranura nombre="ficha"><ranura nombre="foto"/><dato nombre="plato.nombre"/></ranura><ranura nombre="agregar"/>', 'falta el precio del plato'),
@@ -153,13 +160,13 @@ def test_mcp_prepares_previews_and_confirms_a_component_template(client, owner):
     draft = call(client, raw, 'preparar_tema', {'tema': {'componentes': {'plato': {'version': 1, 'html': MINIMAL}}}})
     assert not draft['isError'], draft
     content = draft['structuredContent']
-    assert content['vista_previa'] == [{'campo': 'componentes.plato', 'antes': 'de fábrica', 'despues': 'plantilla propia (v1)'}]
+    assert content['vista_previa'] == [{'campo': 'componentes.plato', 'antes': 'de fábrica', 'despues': 'plantilla propia (v1, 6 nodos)'}]
     preview = client.get(f'/api/v1/burger-house/poblado/borradores/{content["borrador"]}/').json()['plantilla']['tema']
     assert preview['componentes']['plato']['arbol'] == plantillas.compile_html('plato', MINIMAL)
     assert not call(client, raw, 'confirmar_cambio', {'token': content['token']})['isError']
     assert templates.resolve_template(TABLE)['tema']['componentes']['plato']['version'] == 1
     reset = call(client, raw, 'restablecer_tema', {'capa': 'componentes'})['structuredContent']
-    assert reset['vista_previa'] == [{'campo': 'componentes.plato', 'antes': 'plantilla propia (v1)', 'despues': 'de fábrica'}]
+    assert reset['vista_previa'] == [{'campo': 'componentes.plato', 'antes': 'plantilla propia (v1, 6 nodos)', 'despues': 'de fábrica'}]
     assert not call(client, raw, 'confirmar_cambio', {'token': reset['token']})['isError']
     assert templates.resolve_template(TABLE)['tema']['componentes'] == {'plato': None}
 
@@ -177,3 +184,210 @@ def test_public_contract_exposes_templates_utilities_and_decorations(client):
     for utility in (u['clase'] for g in data['utilidades']['grupos'] for u in g['utilidades']):
         assert f'.{utility}' in css, utility
     assert borradores.LAYERS[-1] == 'componentes'
+
+
+# // Falla si el HTML regenerado de un árbol no vuelve al mismo árbol: la IA no podría partir de la plantilla actual.
+def test_to_html_round_trips_every_node_type():
+    html = '<div class="ds-pila"><ranura nombre="ficha"><ranura nombre="foto"/>Hola <dato nombre="plato.nombre"/><si dato="plato.rebaja"><span class="ds-insignia">-<dato nombre="plato.rebaja.porcentaje" formato="numero"/>%</span></si><dato nombre="plato.precio" formato="precio"/></ranura><ranura nombre="agregar"/><decoracion id="stars" movimiento="latir" posicion="arriba-derecha"/></div>'
+    tree = compile(html)
+    regenerated = plantillas.to_html(tree)
+    assert '<ranura nombre="foto"/>' in regenerated and 'formato="precio"' in regenerated and 'movimiento="latir"' in regenerated
+    assert compile(regenerated) == tree
+    for component_id in plantillas.COMPONENTS['componentes']:
+        assert compile(plantillas.to_html(plantillas.factory(component_id))) == plantillas.factory(component_id)
+    for html in ['<p>Texto fijo</p>' + MINIMAL, '<h3>Hola<dato nombre="plato.nombre"/></h3>' + MINIMAL,
+                 '<div class="ds-pila"><span class="ds-insignia">Nuevo</span><p>Otro</p></div>' + MINIMAL,
+                 '<div class="ds-pila"><p>Texto</p><div class="ds-fila"><ranura nombre="precio"/></div>Suelto</div>' + MINIMAL,
+                 '<div class="ds-pila"></div>' + MINIMAL, '<p>Menos de 5 &amp; más &lt;3 &gt;</p>' + MINIMAL,
+                 '<si dato="plato.tiempo"><small><dato nombre="plato.tiempo" formato="numero"/> min</small></si>' + MINIMAL]:
+        tree = compile(html)
+        assert compile(plantillas.to_html(tree)) == tree, html
+    assert compile('<p>&lt;b&gt;</p>' + MINIMAL)[0]['hijos'][0]['texto'] == '<b>'
+
+
+# // Falla si los criterios de medidas dejan pasar en silencio títulos grandes, rejillas o varias decoraciones en una tarjeta estrecha.
+def test_static_measure_warnings_for_narrow_components():
+    assert plantillas.warnings('plato', plantillas.factory('plato')) == []
+    noisy = compile('<div class="ds-rejilla-2"><h3 class="ds-texto-grande"><dato nombre="plato.nombre"/></h3><div class="ds-fila"><span class="ds-foto-grande">x</span></div>'
+                    + MINIMAL + '<decoracion id="stars"/><decoracion id="qr"/></div>')
+    found = plantillas.warnings('plato', noisy)
+    assert len(found) == 4
+    assert any('142 px' in w and 'ds-texto-subtitulo' in w for w in found)
+    assert any('ds-rejilla-2' in w for w in found) and any('ds-foto-grande' in w for w in found) and any('2 decoraciones' in w for w in found)
+
+
+def verifier(tmp_path, ok, problems=()):
+    script = tmp_path / 'verificador.py'
+    script.write_text('import json, os, sys\nassert os.environ["DRAFT_TOKEN"] and os.environ["REST"] == "burger-house" and os.environ["SEDE"] == "poblado"\n'
+                      f'sys.stdout.write(json.dumps({{"ok": {ok}, "problemas": {list(problems)!r}, "medidas": {{"375px": {{"tarjetas": 3}}}}}}))\n', encoding='utf-8')
+    return f'{sys.executable} {script}'
+
+
+
+# // Falla si la IA no puede leer la plantilla actual como HTML, preparar una propia con avisos, verificarla y confirmarla solo en verde.
+def test_component_tools_read_prepare_verify_and_gate_confirmation(client, owner, settings, tmp_path):
+    record, raw = owner
+    read = call(client, raw, 'leer_componente', {'componente': 'plato'})['structuredContent']
+    assert read['plantilla_actual'] == {'origen': 'fabrica', 'version': 1, 'html': FACTORY}
+    assert read['contrato']['ranuras']['ficha']['obligatoria'] and read['contrato']['limites']['ancho_minimo'] == 142
+    assert {u['clase'] for g in read['utilidades']['grupos'] for u in g['utilidades']} == plantillas.UTILITY_CLASSES
+    assert call(client, raw, 'leer_componente', {'componente': 'cabecera'})['isError']
+    bad = call(client, raw, 'preparar_componente', {'componente': 'plato', 'html': '<div class="rojo">x</div>'})
+    assert bad['isError'] and 'clase desconocida «rojo»' in json.dumps(bad, ensure_ascii=False)
+    loud = '<h3 class="ds-texto-grande"><dato nombre="plato.nombre"/></h3>' + MINIMAL
+    draft = call(client, raw, 'preparar_componente', {'componente': 'plato', 'html': loud})['structuredContent']
+    assert draft['vista_previa'] == [{'campo': 'componentes.plato', 'antes': 'de fábrica', 'despues': 'plantilla propia (v1, 8 nodos)'}]
+    assert any('ds-texto-grande' in w for w in draft['advertencias']) and 'verificar_borrador' in draft['siguiente']
+    # Sin verificador configurado se dice, y confirmar sigue permitido (no se inventa un resultado).
+    settings.DESIGN_VERIFIER_CMD = ''
+    unavailable = call(client, raw, 'verificar_borrador', {'borrador': draft['borrador']})['structuredContent']
+    assert unavailable['estado'] == 'no_disponible' and unavailable['ok'] is None
+    assert call(client, raw, 'verificar_borrador', {'borrador': str(uuid.uuid4())})['isError']
+    # Con verificador, un resultado con problemas bloquea la confirmación; en verde la permite.
+    settings.DESIGN_VERIFIER_CMD = verifier(tmp_path, 'False', ['375 px: tarjeta 1: la palabra «Hamburguesa» no cabe'])
+    failed = call(client, raw, 'verificar_borrador', {'borrador': draft['borrador']})['structuredContent']
+    assert failed['estado'] == 'problemas' and failed['problemas'] == ['375 px: tarjeta 1: la palabra «Hamburguesa» no cabe']
+    blocked = call(client, raw, 'confirmar_cambio', {'token': draft['token']})
+    assert blocked['isError'] and 'verificar_borrador' in json.dumps(blocked, ensure_ascii=False)
+    assert McpPendingChange.objects.get(pk=draft['token']).applied_at is None
+    settings.DESIGN_VERIFIER_CMD = verifier(tmp_path, 'True')
+    passed = call(client, raw, 'verificar_borrador', {'borrador': draft['borrador']})['structuredContent']
+    assert passed['estado'] == 'ok' and passed['medidas'] == {'375px': {'tarjetas': 3}}
+    assert McpPendingChange.objects.get(pk=draft['token']).payload['verificacion']['ok'] is True
+    assert not call(client, raw, 'confirmar_cambio', {'token': draft['token']})['isError']
+    current = call(client, raw, 'leer_componente', {'componente': 'plato'})['structuredContent']['plantilla_actual']
+    assert current['origen'] == 'propia' and compile(current['html']) == compile(loud)
+    # Volver a fábrica no introduce ninguna plantilla: se confirma sin verificación aunque el verificador esté en rojo.
+    reset = call(client, raw, 'preparar_componente', {'componente': 'plato', 'html': None})['structuredContent']
+    assert reset['advertencias'] == [] and reset['vista_previa'][0]['despues'] == 'de fábrica' and 'nada que medir' in reset['siguiente']
+    settings.DESIGN_VERIFIER_CMD = verifier(tmp_path, 'False', ['x'])
+    assert not call(client, raw, 'confirmar_cambio', {'token': reset['token']})['isError']
+    assert templates.resolve_template(TABLE)['tema']['componentes'] == {'plato': None}
+    # Sin html explícito la herramienta no adivina: hay que enviar la plantilla o null.
+    assert call(client, raw, 'preparar_componente', {'componente': 'plato'})['isError']
+    assert call(client, raw, 'preparar_componente', {'componente': ['plato'], 'html': None})['isError']
+    assert call(client, raw, 'leer_componente', {'componente': {'x': 1}})['isError']
+
+
+# // Falla si un fallo del verificador (comando roto, sin JSON, JSON que no es objeto, tiempo agotado, salida ok null) se
+# // confunde con una plantilla con problemas, tumba la petición o filtra rutas del servidor.
+@pytest.mark.parametrize('script, expected', [
+    ("import sys; sys.stdout.write('null')", 'no pudo ejecutarse'),
+    ("import sys; sys.stdout.write('[]')", 'no pudo ejecutarse'),
+    ("import sys; sys.stderr.write('se cayó el navegador'); sys.exit(2)", 'no pudo ejecutarse'),
+    ("import time; time.sleep(3)", 'tiempo máximo'),
+    ("import json, sys; sys.stdout.write(json.dumps({'ok': None, 'problemas': ['la verificación falló: CDP caído']})); sys.exit(1)", 'no pudo medir'),
+])
+def test_verifier_infrastructure_failures_are_reported_as_errors(client, owner, settings, tmp_path, script, expected):
+    _, raw = owner
+    draft = call(client, raw, 'preparar_componente', {'componente': 'plato', 'html': MINIMAL})['structuredContent']
+    path = tmp_path / 'verificador.py'
+    path.write_text(script + '\n', encoding='utf-8')
+    settings.DESIGN_VERIFIER_CMD = f'{sys.executable} {path}'
+    settings.DESIGN_VERIFIER_TIMEOUT = 1
+    result = call(client, raw, 'verificar_borrador', {'borrador': draft['borrador']})
+    assert not result['isError'], result
+    content = result['structuredContent']
+    assert content['estado'] == 'error' and content['ok'] is None and expected in content['mensaje']
+    assert str(tmp_path) not in json.dumps(content) and 'no es culpa de la plantilla' in content['siguiente']
+    assert McpPendingChange.objects.get(pk=draft['token']).payload['verificacion']['estado'] == 'error'
+    assert call(client, raw, 'confirmar_cambio', {'token': draft['token']})['isError']
+
+
+# // Falla si un verificador con JSON válido pero salida 1, o con «problemas» que no es lista, se interpreta mal.
+def test_verifier_output_shapes(client, owner, settings, tmp_path):
+    _, raw = owner
+    draft = call(client, raw, 'preparar_componente', {'componente': 'plato', 'html': MINIMAL})['structuredContent']
+    path = tmp_path / 'v.py'
+    path.write_text("import json, sys; sys.stdout.write(json.dumps({'ok': False, 'problemas': 'abc', 'capturas': ['/srv/evidencia/borrador-375.png'], 'medidas': 'x'})); sys.exit(1)\n", encoding='utf-8')
+    settings.DESIGN_VERIFIER_CMD = f'{sys.executable} {path}'
+    content = call(client, raw, 'verificar_borrador', {'borrador': draft['borrador']})['structuredContent']
+    assert content == {**content, 'estado': 'problemas', 'ok': False, 'problemas': [], 'medidas': {}, 'capturas': ['borrador-375.png']}
+    settings.DESIGN_VERIFIER_CMD = '   '
+    assert call(client, raw, 'verificar_borrador', {'borrador': draft['borrador']})['structuredContent']['estado'] == 'no_disponible'
+
+
+# // Falla si un borrador que no toca plantillas exige verificación, o si la última verificación deja de mandar (verde → rojo).
+def test_gate_applies_only_to_new_templates_and_uses_the_latest_verification(client, owner, settings, tmp_path):
+    _, raw = owner
+    settings.DESIGN_VERIFIER_CMD = verifier(tmp_path, 'False', ['nunca debería ejecutarse'])
+    variants = call(client, raw, 'preparar_tema', {'tema': {'variantes': {'boton': 'contorno'}}})['structuredContent']
+    assert not call(client, raw, 'confirmar_cambio', {'token': variants['token']})['isError']
+    assert 'verificacion' not in McpPendingChange.objects.get(pk=variants['token']).payload
+    draft = call(client, raw, 'preparar_componente', {'componente': 'plato', 'html': MINIMAL})['structuredContent']
+    settings.DESIGN_VERIFIER_CMD = verifier(tmp_path, 'True')
+    first = call(client, raw, 'verificar_borrador', {'borrador': draft['borrador']})['structuredContent']
+    settings.DESIGN_VERIFIER_CMD = verifier(tmp_path, 'False', ['se solapa'])
+    second = call(client, raw, 'verificar_borrador', {'borrador': draft['borrador']})['structuredContent']
+    assert first['ok'] is True and second['ok'] is False
+    saved = McpPendingChange.objects.get(pk=draft['token']).payload['verificacion']
+    assert saved['ok'] is False and saved['fecha'] >= first_date(first, draft)
+    assert call(client, raw, 'confirmar_cambio', {'token': draft['token']})['isError']
+    settings.DESIGN_VERIFIER_CMD = verifier(tmp_path, 'True')
+    call(client, raw, 'verificar_borrador', {'borrador': draft['borrador']})
+    assert not call(client, raw, 'confirmar_cambio', {'token': draft['token']})['isError']
+    # Con una plantilla propia guardada, restablecer otra capa no toca componentes y tampoco exige verificación.
+    settings.DESIGN_VERIFIER_CMD = verifier(tmp_path, 'False', ['x'])
+    other = call(client, raw, 'restablecer_tema', {'capa': 'variantes'})['structuredContent']
+    assert not call(client, raw, 'confirmar_cambio', {'token': other['token']})['isError']
+
+
+def first_date(result, draft):
+    return McpPendingChange.objects.get(pk=draft['token']).payload['verificacion']['fecha'] if result else ''
+
+
+# // Falla si verificar_borrador acepta borradores de otra clave, del POS, caducados, aplicados o el token de confirmación.
+@pytest.mark.parametrize('case', ['otra-clave', 'pos', 'caducado', 'aplicado', 'token-de-confirmacion'])
+def test_verify_scope(api_client, client, owner, settings, tmp_path, case):
+    _, raw = owner
+    marker = tmp_path / 'ejecutado'
+    path = tmp_path / 'v.py'
+    path.write_text(f"import json, sys, pathlib; pathlib.Path({str(marker)!r}).write_text('x'); sys.stdout.write(json.dumps({{'ok': True, 'problemas': []}}))\n", encoding='utf-8')
+    settings.DESIGN_VERIFIER_CMD = f'{sys.executable} {path}'
+    if case == 'pos':
+        settings.EXPERIENCE_INTERNAL_KEY = 'interna'
+        body = {'plantilla': 'S1', 'tema': {'componentes': {'plato': {'version': 1, 'html': MINIMAL}}}}
+        token = api_client.post('/internal/v1/burger-house/poblado/menu/borradores/', body, format='json', HTTP_X_INTERNAL_KEY='interna').json()['borrador']
+    else:
+        draft = call(client, raw, 'preparar_componente', {'componente': 'plato', 'html': MINIMAL})['structuredContent']
+        token = draft['borrador']
+        if case == 'otra-clave':
+            _, raw = keys.create('burger-house', 'poblado', 'Otra clave')
+        elif case == 'caducado':
+            McpPendingChange.objects.filter(pk=draft['token']).update(created_at=timezone.now() - timedelta(minutes=31))
+        elif case == 'aplicado':
+            call(client, raw, 'verificar_borrador', {'borrador': token})
+            assert not call(client, raw, 'confirmar_cambio', {'token': draft['token']})['isError']
+            marker.unlink()
+        elif case == 'token-de-confirmacion':
+            token = draft['token']
+    assert call(client, raw, 'verificar_borrador', {'borrador': token})['isError']
+    assert not marker.exists()
+
+
+# // Falla si los avisos de medidas dependen de que el contrato tenga límites, o si avisan de ancho en componentes anchos.
+def test_warnings_without_limits_or_in_wide_components(monkeypatch):
+    plato = plantillas.COMPONENTS['componentes']['plato']
+    noisy = compile('<div class="ds-rejilla-2"><h3 class="ds-texto-grande"><dato nombre="plato.nombre"/></h3><div class="ds-fila"><span class="ds-foto-grande">x</span></div>' + MINIMAL + '<decoracion id="stars"/><decoracion id="qr"/></div>')
+    monkeypatch.setitem(plantillas.COMPONENTS['componentes'], 'ancho', {**plato, 'limites': {'ancho_minimo': 360}})
+    monkeypatch.setitem(plantillas.COMPONENTS['componentes'], 'sinlimites', {k: v for k, v in plato.items() if k != 'limites'})
+    for component_id in ('ancho', 'sinlimites'):
+        assert plantillas.warnings(component_id, noisy) == ['ds-foto-grande dentro de una fila (ds-fila) no deja sitio al resto; úsala en una pila.']
+
+
+# // Falla si un árbol enviado directamente (en vez de html) puede colar claves ocultas, hijos sin recorrer o texto sin colapsar.
+def test_trees_sent_by_clients_are_canonicalized():
+    tree = compile(MINIMAL)
+    smuggled = json.loads(json.dumps(tree))
+    smuggled[0]['hijos'][0]['hijos'] = []
+    smuggled[0]['hijos'][1]['hijos'][0]['onclick'] = 'alert(1)'
+    with pytest.raises(plantillas.InvalidTemplate, match='campo inesperado «onclick»'):
+        plantillas.validate('plato', smuggled)
+    hidden = json.loads(json.dumps(tree))
+    hidden[0]['hijos'][2]['hijos'] = [{'tipo': 'elemento', 'etiqueta': 'script', 'clases': [], 'hijos': []}]
+    with pytest.raises(plantillas.InvalidTemplate, match='campo inesperado «hijos»'):
+        plantillas.validate('plato', hidden)
+    spaced = json.loads(json.dumps(tree))
+    spaced[0]['hijos'][1]['hijos'].append({'tipo': 'texto', 'texto': 'muy   largo\n\n espacio'})
+    assert plantillas.validate('plato', spaced)[0]['hijos'][1]['hijos'][-1] == {'tipo': 'texto', 'texto': 'muy largo espacio'}
+    assert design.validate({'componentes': {'plato': {'version': 1, 'arbol': tree}}})['componentes']['plato']['arbol'] == tree

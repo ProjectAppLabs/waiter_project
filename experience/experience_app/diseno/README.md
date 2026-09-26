@@ -238,6 +238,23 @@ con plantilla propia lleva `data-plantilla="propia"` y la página viva la marca.
 del paquete de fábrica con las clases de movimiento de `smart-decoraciones.css` (quietas con `prefers-reduced-motion`).
 Una prueba dibuja la plantilla de fábrica desde el árbol y exige el mismo HTML que el JSX de fábrica.
 
+**Herramientas y verificación (K3).** `leer_componente`, `preparar_componente` y `verificar_borrador` (ver el
+[README del MCP](../mcp/README.md)). `plantillas.to_html` regenera el HTML de un árbol para que la IA edite la plantilla
+actual; `plantillas.warnings` aplica criterios de medidas sin navegador (`limites.ancho_minimo` del contrato: títulos
+grandes, rejillas o varias decoraciones en un componente estrecho). La verificación dinámica la hace
+`diner/scripts/design-system/verificar-borrador.cjs`: abre la carta con el borrador a 320, 375 y 1024 px y mide en las
+tarjetas con plantilla propia (hasta 12) desbordes de página y tarjeta, elementos que sobresalen, palabras que no caben
+(medidas con la fuente real contra el ancho del bloque), textos < 14 px, controles < 44 px y solapes (las piezas que se
+colocan encima a propósito, como la valoración o el corazón, no cuentan); escribe `{ok, problemas, medidas, capturas}` en
+stdout, con `ok: null` si no pudo medir y una nota cuando el borrador no trae plantillas propias. Hoy solo cubre la carta y
+la tarjeta de plato; cada componente nuevo añade su pantalla y su selector. experience lo lanza con `DESIGN_VERIFIER_CMD`
+(y `DESIGN_VERIFIER_TIMEOUT`) desde `verificar_borrador`, una verificación a la vez por sede, guarda el resultado en el
+cambio pendiente (solo nombres de archivo, nunca rutas) y, con verificador configurado, `confirmar_cambio` exige la última
+verificación en verde para cualquier borrador que introduzca o cambie una plantilla propia; volver a fábrica no la exige.
+Un `arbol` enviado directamente en vez de `html` se valida y canoniza igual: solo sobreviven las claves de cada nodo.
+Los contratos viven en `componentes/<id>.json`; `componentes.json` guarda las reglas comunes y la capa `componentes` del
+esquema se completa al cargar.
+
 `diner/scripts/design-system/verificar-pagina.cjs` abre la página en Edge/Chromium a 375 y 1024 px, con el tema publicado y,
 si se pasa `DRAFT_TOKEN`, con un borrador. Comprueba componentes y opciones, atributos e inercia de cada muestra, el estilo
 calculado que distingue cada opción, ausencia de elementos fijos, desbordamiento, errores JS y escrituras, y guarda capturas

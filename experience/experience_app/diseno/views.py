@@ -23,7 +23,7 @@ def no_store(data, status=200):
 @api_view(['GET'])
 def contract(request):
     response = Response({'version': design.SCHEMA['properties']['version']['const'],
-                         'esquema': deepcopy(design.SCHEMA), 'inventario': deepcopy(design.INVENTORY),
+                         'esquema': design.public_schema(), 'inventario': deepcopy(design.INVENTORY),
                          'plantillas': plantillas.contract()})
     response['Cache-Control'] = 'public, max-age=3600'
     return response

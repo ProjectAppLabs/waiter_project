@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { fireEvent, render } from '@testing-library/react'
 import { FoodCard, dishTemplateData } from '../SmartMenu'
@@ -7,7 +7,10 @@ import { useDinerStore } from '@/lib/stores/dinerStore'
 import type { Dish, MenuTheme, TemplateNode } from '@/lib/types'
 
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
-const contract = JSON.parse(readFileSync(join(__dirname, '../../../../experience/experience_app/diseno/componentes.json'), 'utf8'))
+// Contratos por archivo (experience/diseno/componentes/<id>.json), como los carga plantillas.py.
+const contractsDir = join(__dirname, '../../../../experience/experience_app/diseno/componentes')
+const contract = { ...JSON.parse(readFileSync(join(contractsDir, '../componentes.json'), 'utf8')),
+  componentes: Object.fromEntries(readdirSync(contractsDir).filter((f) => f.endsWith('.json')).map((f) => [f.replace(/\.json$/, ''), JSON.parse(readFileSync(join(contractsDir, f), 'utf8'))])) }
 const dish: Dish = { id: 7, nombre: 'Bandeja paisa', precio: 32000, agotado: false, categorias: [1], foto: '/b.png', valoracion: { promedio: 4.75, cantidad: 12 },
   atributos: { tiempoPreparacion: 15, precioAntes: 40000 } }
 

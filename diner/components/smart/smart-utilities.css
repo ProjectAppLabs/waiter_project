@@ -74,3 +74,7 @@
 
 /* Piezas */
 .smart-menu .ds-insignia { display: inline-flex; align-items: center; gap: var(--ds-espacio-4); padding: var(--ds-espacio-2) var(--ds-espacio-8); border-radius: calc(12px * var(--ds-forma-chip)); background: var(--t-acento-suave); color: var(--sm-accent-text); font-size: calc(14px * var(--ds-texto)); line-height: calc(20px * var(--ds-texto)); font-weight: 700; white-space: nowrap; }
+
+/* Piezas reales dentro de una plantilla propia: la foto no supera el ancho que le deje la plantilla. Solo se acota;
+ * el ancho, la proporción y el margen siguen siendo los de la carta y de sus variantes (cuadrícula, foto grande). */
+.smart-menu .sm-food-card[data-plantilla] .sm-food-photo { max-width: 100%; height: auto; flex: 0 1 auto; min-width: 0; }
