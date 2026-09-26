@@ -180,6 +180,14 @@ Viaja en `load_data` junto a `image_origin`; `experience/` lo parsea con toleran
 objeto JSON válido sale como `{}`) y lo expone en cada plato como `atributos`. Una plantilla del
 comensal pinta el atributo si existe y lo omite si no; nunca inventa datos.
 
+## Pasarela de decoraciones del menú (`/waiter/admin/menu_decorations`)
+
+Plan K4. Misma autorización que la plantilla (`point_of_sale.group_pos_manager`) y la sede sale de los parámetros de
+Odoo, nunca del navegador. `list` devuelve `{decoraciones, fabrica, limites, experienceUrl}`; `add {nombre, imagen}`
+sube un PNG o WebP (base64 o data URL; 300 KB, 1024 px de lado, 30 por sede) a
+`/internal/v1/<rest>/<sede>/decoraciones/` de experience; `remove {decoracion_id}` lo borra. Las imágenes las sirve
+experience por id; el POS solo muestra miniaturas.
+
 ## Pasarela de la plantilla del menú (`/waiter/admin/menu_settings`)
 
 Plan H. Controller JSON-RPC (`controllers/admin.py`), `auth='user'`, solo

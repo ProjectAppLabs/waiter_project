@@ -35,7 +35,7 @@ y GET y DELETE responden 405. Versiones: 2025-06-18, 2025-03-26 y 2024-11-05.
 | `describir_pantalla` | Secciones en orden, fundamentos, variantes disponibles y tema actual de una pantalla del inventario |
 | `preparar_tema` | Mezcla los campos de `tema` enviados con lo guardado (incluida la capa `componentes` con plantillas HTML restringidas, Plan K), valida y devuelve borrador, enlaces (`url` a la carta, `url_design_system` a la página viva) y token de confirmación |
 | `restablecer_tema` | Prepara volver `todo` o una `capa` (`fundamentos`, `variantes`, `distribucion`, `componentes`) a sus valores por defecto |
-| `leer_componente` | Contrato de un componente plantillable (datos, ranuras, límites), su plantilla actual en HTML, utilidades `ds-*` y decoraciones (Plan K3) |
+| `leer_componente` | Contrato de un componente plantillable (datos, ranuras, límites), su plantilla actual en HTML, utilidades `ds-*` y decoraciones de fábrica y de la sede (Plan K3–K4) |
 | `preparar_componente` | Valida una plantilla HTML restringida (`html`; `null` vuelve a la de fábrica), avisa de medidas y deja un borrador. **No publica.** |
 | `verificar_borrador` | Abre la carta con el borrador en un navegador (320, 375 y 1024 px) y mide en las tarjetas con plantilla propia desbordes, solapes, palabras partidas, textos < 14 px y controles < 44 px. Una plantilla propia solo se confirma con la última verificación en verde; volver a fábrica no la necesita |
 | `leer_diseno_menu` | Colores editables (con su uso), tipografía y las permitidas, saludo, logo y reglas de contraste |

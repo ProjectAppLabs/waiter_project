@@ -3,7 +3,7 @@
 /* eslint-disable @next/next/no-img-element -- Las decoraciones son PNG del paquete de fábrica del propio comensal. */
 import { Component, createElement, Fragment, type ReactNode } from 'react'
 import { formatCop } from '@/lib/domain/cart'
-import { TEMPLATE_TAGS, resolveData, truthy, type TemplateData, type TemplateSlots } from '@/lib/domain/plantillas'
+import { TEMPLATE_TAGS, decorationFile, resolveData, truthy, type TemplateData, type TemplateSlots } from '@/lib/domain/plantillas'
 import type { TemplateNode } from '@/lib/types'
 
 // Plan K2: dibuja el árbol validado de una plantilla con React, nunca con HTML crudo. Los datos y las ranuras los aporta
@@ -40,7 +40,7 @@ function render(nodes: TemplateNode[], datos: TemplateData, ranuras: TemplateSlo
         return <Fragment key={key}>{list.map((item, i) => <Fragment key={i}>{render(node.hijos, datos, ranuras, { ...scope, [node.como]: (item ?? {}) as TemplateData }, `${key}.${i}.`)}</Fragment>)}</Fragment>
       }
       case 'decoracion':
-        return <img key={key} src={`/smart-menu/${node.id}.png`} alt="" aria-hidden="true" loading="lazy"
+        return <img key={key} src={decorationFile(node)} alt="" aria-hidden="true" loading="lazy"
           className={`ds-decoracion ds-mov-${node.movimiento}${node.posicion === 'libre' ? '' : ` ds-esquina-${node.posicion}`}`} />
       default: return null
     }

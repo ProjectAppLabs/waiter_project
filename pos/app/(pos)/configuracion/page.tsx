@@ -13,6 +13,7 @@ import { ReservationHoursForm } from '@/components/settings/ReservationHoursForm
 import { PaymentGatewayForm } from '@/components/settings/PaymentGatewayForm'
 import { BenefitsForm } from '@/components/settings/BenefitsForm'
 import { MenuBannersForm } from '@/components/settings/MenuBannersForm'
+import { MenuDecorationsForm } from '@/components/settings/MenuDecorationsForm'
 import { McpKeysForm } from '@/components/settings/McpKeysForm'
 import { MenuTemplateForm } from '@/components/settings/MenuTemplateForm'
 import { ThresholdsForm } from '@/components/settings/SettingsForms'
@@ -63,7 +64,7 @@ function ConfiguracionInner() {
               {section === 'restaurant' && company && <CompanyForm key={company.id} initial={company} />}
               {section === 'benefits' && <BenefitsForm configId={catalog.settings.configId} />}
               {section === 'integrations' && <McpKeysForm />}
-              {section === 'menuTemplate' && <><MenuTemplateForm /><MenuBannersForm configId={catalog.settings.configId}/></>}
+              {section === 'menuTemplate' && <><MenuTemplateForm /><MenuBannersForm configId={catalog.settings.configId}/><MenuDecorationsForm /></>}
               {section === 'floors' && <FloorsForm floors={floors} configId={catalog.settings.configId} onChanged={reloadFloors} />}
               {section === 'reservationHours' && <ReservationHoursForm configId={catalog.settings.configId} />}
               {section === 'payments' && <><PaymentMethodsList methods={methods} /><PaymentGatewayForm methods={methods} /></>}

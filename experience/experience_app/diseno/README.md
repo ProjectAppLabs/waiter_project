@@ -252,6 +252,18 @@ la tarjeta de plato; cada componente nuevo añade su pantalla y su selector. exp
 cambio pendiente (solo nombres de archivo, nunca rutas) y, con verificador configurado, `confirmar_cambio` exige la última
 verificación en verde para cualquier borrador que introduzca o cambie una plantilla propia; volver a fábrica no la exige.
 Un `arbol` enviado directamente en vez de `html` se valida y canoniza igual: solo sobreviven las claves de cada nodo.
+
+**Galería de decoraciones por sede (K4).** `MenuDecoration` (migración `0027`) guarda PNG o WebP pequeños por sede:
+300 KB, entre 16 y 1024 px de lado, 30 por sede, tipo y dimensiones leídos de la cabecera (sin Pillow), id
+`[a-z0-9-]` derivado del nombre y único por sede (los ids de fábrica no se pueden pisar). El POS los sube por
+`POST /internal/v1/<rest>/<sede>/decoraciones/` (`{nombre, imagen}` en base64 o data URL) y los borra por `DELETE
+…/decoraciones/<id>/`, ambos con `X-Internal-Key`, a través de la pasarela `/waiter/admin/menu_decorations` de Odoo. El
+comensal recibe la lista en `GET /api/v1/<rest>/<sede>/decoraciones/` y cada imagen en `…/decoraciones/<id>/?v=<versión>`
+con las mismas cabeceras seguras e inmutables que las fotos y el logo. Una plantilla usa `<decoracion id="…"/>` con
+cualquier id de fábrica o de su propia sede; el validador fija la sede en contexto (`plantillas.for_venue`, aplicado al
+resolver, leer y preparar el tema y a toda herramienta MCP) y guarda en el nodo el `archivo` resuelto, que el comensal solo
+acepta si es una ruta del propio origen. Borrar una decoración invalida la caché y las plantillas que la usaban vuelven a
+fábrica al releerse. `leer_componente` lista `decoraciones.sede` junto a las de fábrica.
 Los contratos viven en `componentes/<id>.json`; `componentes.json` guarda las reglas comunes y la capa `componentes` del
 esquema se completa al cargar.
 

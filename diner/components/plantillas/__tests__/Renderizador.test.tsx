@@ -20,6 +20,7 @@ it('dibuja cada tipo de nodo desde el árbol con los datos y las ranuras del com
       { tipo: 'ranura', nombre: 'agregar', hijos: [] },
       { tipo: 'ranura', nombre: 'inexistente', hijos: [] },
       { tipo: 'decoracion', id: 'stars', movimiento: 'flotar', posicion: 'arriba-derecha' },
+      { tipo: 'decoracion', id: 'hoja', movimiento: 'ninguno', posicion: 'libre', archivo: '/api/v1/demo/salon/decoraciones/hoja/?v=20260925' },
     ]),
   ]
   const { container } = render(<Plantilla arbol={arbol} datos={datos} fallback={<p>fábrica</p>}
@@ -35,6 +36,7 @@ it('dibuja cada tipo de nodo desde el árbol con los datos y las ranuras del com
   expect(decoration).toHaveAttribute('src', '/smart-menu/stars.png')
   expect(decoration).toHaveClass('ds-mov-flotar', 'ds-esquina-arriba-derecha')
   expect(decoration).toHaveAttribute('aria-hidden', 'true')
+  expect(container.querySelectorAll('img.ds-decoracion')[1]).toHaveAttribute('src', '/api/v1/demo/salon/decoraciones/hoja/?v=20260925')
   expect(container.querySelector('script')).toBeNull()
   expect(container.textContent).not.toContain('fábrica')
 })

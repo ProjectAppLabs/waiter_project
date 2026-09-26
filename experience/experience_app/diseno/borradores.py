@@ -14,6 +14,7 @@ from django.core.cache import cache
 from django.db import transaction
 from django.utils import timezone
 
+from experience_app.diseno import plantillas
 from experience_app.diseno import services as design
 from experience_app.mcp.models import McpPendingChange
 from experience_app.plantillas import services as templates
@@ -68,7 +69,9 @@ def differences(before, after, prefix=''):
 
 
 def create(tenant, theme, *, key=None, before=None):
-    theme = design.validate(theme)
+    # La sede en contexto: sus decoraciones deben seguir siendo válidas al volver a validar el tema del borrador.
+    with plantillas.for_venue(tenant.restaurant_slug, tenant.venue_slug):
+        theme = design.validate(theme)
     current = templates.settings_view(tenant.restaurant_slug, tenant.venue_slug)['tema'] if before is None else before
     preview = deepcopy(templates.resolve_template(tenant))
     preview.update(tema=theme, tokens=design.apply_to_tokens(theme, preview['tokens']))

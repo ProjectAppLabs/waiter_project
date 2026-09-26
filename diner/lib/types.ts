@@ -33,7 +33,8 @@ export type TemplateNode =
   | { tipo: 'ranura'; nombre: string; hijos: TemplateNode[] }
   | { tipo: 'si'; dato: string; hijos: TemplateNode[] }
   | { tipo: 'cada'; dato: string; como: string; hijos: TemplateNode[] }
-  | { tipo: 'decoracion'; id: string; movimiento: string; posicion: string }
+  // archivo: ruta que resolvió experience (paquete de fábrica en /smart-menu/ o galería de la sede en /api/v1/…).
+  | { tipo: 'decoracion'; id: string; movimiento: string; posicion: string; archivo?: string }
 export interface ComponentTemplate { version: number; arbol: TemplateNode[] }
 export interface MenuTheme {
   version: 2

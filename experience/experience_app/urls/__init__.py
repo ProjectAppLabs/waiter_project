@@ -21,6 +21,10 @@ from experience_app.views import (
 
 urlpatterns = [
     path('api/v1/diseno/', design.contract, name='design-contract'),
+    path('api/v1/<slug:restaurant>/<slug:venue>/decoraciones/', design.decorations, name='decorations'),
+    path('api/v1/<slug:restaurant>/<slug:venue>/decoraciones/<slug:slug>/', design.decoration, name='decoration'),
+    path('internal/v1/<slug:restaurant>/<slug:venue>/decoraciones/', design.internal_decorations, name='internal-decorations'),
+    path('internal/v1/<slug:restaurant>/<slug:venue>/decoraciones/<slug:slug>/', design.internal_decoration, name='internal-decoration'),
     path('api/v1/<slug:restaurant>/<slug:venue>/borradores/<str:token>/', design.preview, name='theme-preview'),
     path('internal/v1/<slug:restaurant>/<slug:venue>/menu/borradores/', design.prepare, name='theme-prepare'),
     path('mcp/', mcp.endpoint, name='mcp'),

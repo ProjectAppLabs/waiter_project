@@ -1,0 +1,100 @@
+{
+  "version": 1,
+  "nombre": "Cabecera de la ficha",
+  "selector": ".sm-dish-hero",
+  "pantallas": [
+    "plato"
+  ],
+  "descripcion": "La parte alta de la ficha del plato: foto, valoración, nombre, precio, rebaja y tiempo. La plantilla se dibuja dentro de la cabecera real, que conserva la distribución de la ficha.",
+  "datos": {
+    "plato.nombre": {
+      "tipo": "texto",
+      "descripcion": "Nombre del plato."
+    },
+    "plato.precio": {
+      "tipo": "precio",
+      "descripcion": "Precio con impuestos."
+    },
+    "plato.descripcion": {
+      "tipo": "texto",
+      "descripcion": "Descripción; puede faltar."
+    },
+    "plato.tiempo": {
+      "tipo": "numero",
+      "descripcion": "Minutos de preparación; puede faltar."
+    },
+    "plato.agotado": {
+      "tipo": "booleano",
+      "descripcion": "Verdadero cuando no hay existencias."
+    },
+    "plato.valoracion": {
+      "tipo": "booleano",
+      "descripcion": "Verdadero si el plato tiene valoraciones."
+    },
+    "plato.valoracion.promedio": {
+      "tipo": "numero",
+      "descripcion": "Promedio de 1 a 5."
+    },
+    "plato.valoracion.cantidad": {
+      "tipo": "numero",
+      "descripcion": "Número de opiniones."
+    },
+    "plato.rebaja": {
+      "tipo": "booleano",
+      "descripcion": "Verdadero si hay precio anterior mayor."
+    },
+    "plato.rebaja.porcentaje": {
+      "tipo": "numero",
+      "descripcion": "Porcentaje de rebaja."
+    },
+    "plato.precioAntes": {
+      "tipo": "precio",
+      "descripcion": "Precio anterior, solo si hay rebaja."
+    }
+  },
+  "ranuras": {
+    "orbitas": {
+      "descripcion": "El fondo decorativo de fábrica detrás de la foto."
+    },
+    "foto": {
+      "obligatoria": true,
+      "descripcion": "Fotografía grande del plato o su reemplazo."
+    },
+    "valoracion": {
+      "descripcion": "Insignia de valoración, solo si existe."
+    },
+    "encabezado": {
+      "descripcion": "El bloque de fábrica: nombre, precio, rebaja y tiempo."
+    },
+    "precio": {
+      "descripcion": "Precio con la tinta destacada."
+    },
+    "rebaja": {
+      "descripcion": "Porcentaje y precio anterior tachado, solo si hay rebaja."
+    },
+    "tiempo": {
+      "descripcion": "Tiempo de preparación con su icono, solo si existe."
+    }
+  },
+  "requisitos": [
+    {
+      "cualquiera": [
+        "dato:plato.nombre",
+        "ranura:encabezado"
+      ],
+      "mensaje": "el nombre del plato (dato plato.nombre o ranura encabezado)"
+    },
+    {
+      "cualquiera": [
+        "dato:plato.precio",
+        "ranura:precio",
+        "ranura:encabezado"
+      ],
+      "mensaje": "el precio (dato plato.precio, ranura precio o ranura encabezado)"
+    }
+  ],
+  "limites": {
+    "ancho_minimo": 327
+  },
+  "plantilla_fabrica": "<ranura nombre=\"orbitas\"/>\n<ranura nombre=\"foto\"/>\n<ranura nombre=\"valoracion\"/>\n<ranura nombre=\"encabezado\"/>"
+}

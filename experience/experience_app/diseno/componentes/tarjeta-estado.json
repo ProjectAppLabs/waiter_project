@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "nombre": "Tarjeta de estado del pedido",
+  "selector": ".sm-status-card",
+  "pantallas": [
+    "estado"
+  ],
+  "descripcion": "La tarjeta grande que dice cómo va el pedido. La plantilla se dibuja dentro de la tarjeta real.",
+  "datos": {
+    "estado.titulo": {
+      "tipo": "texto",
+      "descripcion": "Estado en una palabra o dos: Recibido, En cocina, Listo…"
+    },
+    "estado.texto": {
+      "tipo": "texto",
+      "descripcion": "Frase de acompañamiento: «En preparación», «Disfruta tu comida»…"
+    },
+    "estado.codigo": {
+      "tipo": "texto",
+      "descripcion": "pendiente_pago, enviado, en_cocina, listo, servido, pagado o fallido."
+    },
+    "estado.fallido": {
+      "tipo": "booleano",
+      "descripcion": "Verdadero si el pedido no pudo enviarse."
+    }
+  },
+  "ranuras": {
+    "titulo": {
+      "descripcion": "Título de fábrica."
+    },
+    "texto": {
+      "descripcion": "Frase de fábrica."
+    },
+    "arte": {
+      "obligatoria": true,
+      "descripcion": "Ilustración del estado (o el icono de fallo)."
+    }
+  },
+  "requisitos": [
+    {
+      "cualquiera": [
+        "dato:estado.titulo",
+        "ranura:titulo"
+      ],
+      "mensaje": "el título del estado (dato estado.titulo o ranura titulo)"
+    }
+  ],
+  "limites": {
+    "ancho_minimo": 327
+  },
+  "plantilla_fabrica": "<ranura nombre=\"titulo\"/>\n<ranura nombre=\"texto\"/>\n<ranura nombre=\"arte\"/>"
+}

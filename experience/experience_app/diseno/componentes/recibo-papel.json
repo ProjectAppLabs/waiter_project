@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "nombre": "Recibo",
+  "selector": ".sm-paper-receipt",
+  "pantallas": [
+    "recibo"
+  ],
+  "descripcion": "El detalle de un pedido pasado con borde dentado. La plantilla se dibuja dentro del recibo real.",
+  "datos": {
+    "pedido.numero": {
+      "tipo": "texto",
+      "descripcion": "Número corto del pedido (#xxxxxxxx)."
+    },
+    "pedido.estado": {
+      "tipo": "texto",
+      "descripcion": "Estado legible."
+    },
+    "pedido.local": {
+      "tipo": "texto",
+      "descripcion": "Nombre del local."
+    },
+    "pedido.fecha": {
+      "tipo": "texto",
+      "descripcion": "Fecha y hora en español."
+    },
+    "pedido.mesa": {
+      "tipo": "booleano",
+      "descripcion": "Verdadero si fue en una mesa."
+    },
+    "pedido.mesa.numero": {
+      "tipo": "numero",
+      "descripcion": "Número de la mesa."
+    },
+    "pedido.descuento": {
+      "tipo": "booleano",
+      "descripcion": "Verdadero si hubo descuento."
+    },
+    "pedido.descuento.monto": {
+      "tipo": "precio",
+      "descripcion": "Descuento aplicado."
+    },
+    "pedido.total": {
+      "tipo": "precio",
+      "descripcion": "Total pagado."
+    },
+    "pedido.lineas": {
+      "tipo": "lista",
+      "descripcion": "Platos: nombre, cantidad, precio y subtotal (úsalo con <cada>)."
+    }
+  },
+  "ranuras": {
+    "cabecera": {
+      "descripcion": "Cabecera de fábrica: icono, local, fecha, número y estado."
+    },
+    "lineas": {
+      "descripcion": "Líneas de fábrica con foto."
+    },
+    "descuento": {
+      "descripcion": "Fila de descuento, solo si hubo."
+    },
+    "total": {
+      "descripcion": "Fila del total."
+    }
+  },
+  "requisitos": [
+    {
+      "cualquiera": [
+        "dato:pedido.local",
+        "ranura:cabecera"
+      ],
+      "mensaje": "el local del pedido (dato pedido.local o ranura cabecera)"
+    },
+    {
+      "cualquiera": [
+        "dato:pedido.total",
+        "ranura:total"
+      ],
+      "mensaje": "el total (dato pedido.total o ranura total)"
+    }
+  ],
+  "limites": {
+    "ancho_minimo": 327
+  },
+  "plantilla_fabrica": "<ranura nombre=\"cabecera\"/>\n<ranura nombre=\"lineas\"/>\n<ranura nombre=\"descuento\"/>\n<ranura nombre=\"total\"/>"
+}

@@ -159,4 +159,16 @@ Cada fase se fusiona por separado, sobre J5.
   el cliente con claves ocultas.
 - Contratos en `componentes/<id>.json`; la capa `componentes` del esquema se genera al cargar. Hallazgo del ensayo: la
   foto de 110 px fijos sobresalía en plantillas con relleno; ahora se adapta al ancho dentro de una plantilla propia.
-- Pendiente para K4: galería de decoraciones por sede (subida desde el POS) y su validación por sede.
+**K4 hecho (2026-09-25)**, misma rama.
+
+- `MenuDecoration` (migración `0027`): PNG o WebP por sede con límites de peso, lado y cantidad, tipo y dimensiones leídos
+  de la cabecera, id único por sede sin pisar los de fábrica. Rutas internas (subir, listar, borrar) y públicas (lista e
+  imagen con caché inmutable y cabeceras seguras).
+- Odoo: acción `/waiter/admin/menu_decorations` (list, add, remove) con la misma autorización de administrador; la sede
+  sale de Odoo. POS: sección «Decoraciones del menú» en Diseño del menú (subir con nombre, miniaturas, id para la IA,
+  eliminar con confirmación, ids de fábrica).
+- Validador con sede en contexto: `<decoracion id="…"/>` acepta fábrica más la propia sede, nunca otra; el nodo guarda el
+  `archivo` resuelto y el comensal solo dibuja rutas del propio origen. Borrar una decoración devuelve a fábrica las
+  plantillas que la usaban. `leer_componente` lista las de la sede.
+- Pendiente para K5: banners, cabecera, cabecera de la ficha, línea del pedido, tarjeta de historial, recibo, tarjeta de
+  estado y recorridos.

@@ -5,6 +5,8 @@ desde el árbol, nunca desde HTML crudo. Reglas: solo las etiquetas de `componen
 `utilidades.json`, datos y ranuras del contrato del componente (con las obligatorias presentes), decoraciones del
 catálogo y límites de tamaño. Cada error dice qué falló y dónde, para que la IA lo corrija sola.
 """
+import contextlib
+import contextvars
 import html as html_module
 import json
 import logging
@@ -25,6 +27,30 @@ FORMATS = tuple(COMPONENTS['formatos'])
 LIMITS = COMPONENTS['limites']
 SPECIAL = {'dato', 'ranura', 'si', 'cada', 'decoracion'}
 logger = logging.getLogger(__name__)
+FACTORY_FILES = {d['id']: d['archivo'] for d in DECORATIONS['fabrica']}
+# Sede cuyo tema se está validando: sus decoraciones cuentan además de las de fábrica. La fijan las rutas que conocen la sede.
+_venue = contextvars.ContextVar('venue', default=None)
+
+
+@contextlib.contextmanager
+def for_venue(restaurant: str, venue: str):
+    token = _venue.set((restaurant, venue))
+    try:
+        yield
+    finally:
+        _venue.reset(token)
+
+
+def decoration_files(extra=()) -> dict:
+    """{id: archivo} disponible ahora: fábrica más las de la sede en contexto. Los ids de fábrica no se pueden pisar."""
+    files = {}
+    current = _venue.get()
+    if current is not None:
+        from experience_app.diseno import decoraciones
+        files.update(decoraciones.files(*current))
+    files.update({d: '' for d in extra})
+    files.update(FACTORY_FILES)
+    return files
 
 
 class InvalidTemplate(ValueError):
@@ -39,7 +65,7 @@ def component(component_id: str) -> dict:
 
 
 def decoration_ids(extra=()) -> set:
-    return {d['id'] for d in DECORATIONS['fabrica']} | set(extra)
+    return set(decoration_files(extra))
 
 
 # ---- parseo ------------------------------------------------------------------------------------------------------
@@ -139,7 +165,7 @@ def parse(html: str) -> list:
 
 # ---- validación del árbol -----------------------------------------------------------------------------------------
 _KEYS = {'elemento': {'etiqueta', 'clases', 'hijos'}, 'texto': {'texto'}, 'dato': {'nombre', 'formato'}, 'ranura': {'nombre', 'hijos'},
-         'si': {'dato', 'hijos'}, 'cada': {'dato', 'como', 'hijos'}, 'decoracion': {'id', 'movimiento', 'posicion'}}
+         'si': {'dato', 'hijos'}, 'cada': {'dato', 'como', 'hijos'}, 'decoracion': {'id', 'movimiento', 'posicion', 'archivo'}}
 
 
 class _Checker:
@@ -149,6 +175,7 @@ class _Checker:
     """
 
     def __init__(self, contract, decorations):
+        # `decorations` es {id: archivo}; el archivo se guarda en el nodo para que el comensal no tenga que resolverlo.
         self.contract, self.decorations = contract, decorations
         self.datos, self.ranuras = contract['datos'], contract['ranuras']
         self.nodes, self.decoration_count = 0, 0
@@ -264,7 +291,8 @@ class _Checker:
         position = node.get('posicion', 'libre')
         if position not in DECORATIONS['posiciones']:
             raise InvalidTemplate(f'{where}: posición desconocida «{position}»; admitidas: {", ".join(DECORATIONS["posiciones"])}.')
-        return {'tipo': 'decoracion', 'id': node['id'], 'movimiento': movement, 'posicion': position}
+        return {'tipo': 'decoracion', 'id': node['id'], 'movimiento': movement, 'posicion': position,
+                'archivo': self.decorations[node['id']] or f'/smart-menu/{node["id"]}.png'}
 
     def finish(self):
         for name, rule in self.ranuras.items():
@@ -288,7 +316,7 @@ class _Checker:
 def validate(component_id: str, tree: list, *, decorations=()) -> list:
     """Comprueba el árbol contra el contrato del componente y devuelve su forma canónica."""
     contract = component(component_id)
-    checker = _Checker(contract, decoration_ids(decorations))
+    checker = _Checker(contract, decoration_files(decorations))
     clean = checker.walk(tree)
     checker.finish()
     return clean

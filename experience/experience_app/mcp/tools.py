@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from experience_app.adapters.odoo.client import OdooClient, OdooError
 from experience_app.adapters.registry.client import Tenant, resolve
-from experience_app.diseno import borradores, plantillas
+from experience_app.diseno import borradores, decoraciones, plantillas
 from experience_app.diseno import services as design
 from experience_app.mcp.models import McpKey, McpPendingChange
 from experience_app.plantillas import services as templates
@@ -118,7 +118,9 @@ def leer_componente(key: McpKey, args: dict) -> dict:
     current = ({'origen': 'propia', 'version': saved['version'], 'html': plantillas.to_html(saved['arbol'])} if saved
                else {'origen': 'fabrica', 'version': contract['version'], 'html': contract['plantilla_fabrica']['html']})
     return {'componente': component_id, 'contrato': contract, 'plantilla_actual': current,
-            'utilidades': data['utilidades'], 'decoraciones': data['decoraciones'], 'limites': data['limites'],
+            'utilidades': data['utilidades'], 'limites': data['limites'],
+            'decoraciones': {**data['decoraciones'], 'sede': decoraciones.listing(key.restaurant_slug, key.venue_slug),
+                             'nota': 'Usa cualquier id de fabrica o de sede en <decoracion id="…"/>. Las de la sede se suben desde el POS (Diseño del menú › Decoraciones).'},
             'reglas': ['Solo las etiquetas y clases del catálogo; nada de style, script, enlaces ni imágenes propias.',
                        'Los datos obligatorios y las ranuras obligatorias deben aparecer; las ranuras son las acciones y medios reales.',
                        'Parte de plantilla_actual.html, cambia la estructura y envíala a preparar_componente. html null vuelve a la de fábrica.',

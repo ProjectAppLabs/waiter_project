@@ -22,11 +22,11 @@ from django.db import transaction
 from django.urls import reverse
 
 from experience_app.adapters.registry.client import Tenant
+from experience_app.diseno import plantillas as component_templates
 from experience_app.diseno import services as design
 from experience_app.plantillas.defaults import (
     DEFAULT_CODE,
     FALLBACK_SPEC,
-    FAMILIES,
     LAYOUT_SCREENS,
     PATTERN_SCREENS,
     SCREENS,
@@ -175,7 +175,7 @@ def _spec_for(restaurant: str, venue: str) -> tuple[dict, dict, dict]:
     return (template.spec if template else FALLBACK_SPEC), {}, {}
 
 
-def resolve_template(tenant: Tenant) -> dict:
+def _resolve_template_sin_sede(tenant: Tenant) -> dict:
     """El dict `plantilla` del contexto de entrada, desde caché."""
     key = _key(tenant.restaurant_slug, tenant.venue_slug)
     cached = cache.get(key)
@@ -192,7 +192,7 @@ def resolve_template(tenant: Tenant) -> dict:
     return resolved
 
 
-def settings_view(restaurant: str, venue: str) -> dict:
+def _settings_view_sin_sede(restaurant: str, venue: str) -> dict:
     """Los ajustes crudos (lo que el POS edita), no la plantilla resuelta."""
     chosen = get_settings(restaurant, venue)
     if chosen is None or chosen.template_id != DEFAULT_CODE:
@@ -259,7 +259,7 @@ def validate(body: dict) -> tuple[MenuTemplate, dict, dict]:
     return template, palette, typography
 
 
-def prepare(restaurant: str, venue: str, body: dict, *, chosen=None) -> tuple[MenuTemplate, dict, dict, dict]:
+def _prepare_sin_sede(restaurant: str, venue: str, body: dict, *, chosen=None) -> tuple[MenuTemplate, dict, dict, dict]:
     """Valida ambos contratos; el POS anterior conserva fundamentos que no sabe editar."""
     template, palette, typography = validate(body)
     if 'tema' in body:
@@ -297,3 +297,20 @@ def save(restaurant: str, venue: str, body: dict) -> VenueMenuSettings:
     # También al confirmar la transacción: una lectura concurrente podría haber repoblado la caché con datos viejos.
     transaction.on_commit(lambda: (brand.invalidate(restaurant, venue), invalidate(restaurant, venue)))
     return chosen
+
+
+# Plan K4: las decoraciones de la sede solo existen para su propia sede. Estas envolturas fijan la sede en contexto
+# para que el validador de plantillas (diseno/plantillas.py) las reconozca al resolver, leer y preparar el tema.
+def resolve_template(tenant: Tenant) -> dict:
+    with component_templates.for_venue(tenant.restaurant_slug, tenant.venue_slug):
+        return _resolve_template_sin_sede(tenant)
+
+
+def settings_view(restaurant: str, venue: str) -> dict:
+    with component_templates.for_venue(restaurant, venue):
+        return _settings_view_sin_sede(restaurant, venue)
+
+
+def prepare(restaurant: str, venue: str, body: dict, *, chosen=None) -> tuple[MenuTemplate, dict, dict, dict]:
+    with component_templates.for_venue(restaurant, venue):
+        return _prepare_sin_sede(restaurant, venue, body, chosen=chosen)

@@ -117,7 +117,9 @@ utilidades, validador y capa `componentes` del tema) y K2 (renderizador seguro y
 necesita `DESIGN_VERIFIER_CMD="node /home/cerrotico/work/waiter_project/diner/scripts/design-system/verificar-borrador.cjs"`
 y en su entorno `CDP_URL=http://127.0.0.1:9333` y `DINER_URL=http://localhost:3001` con Edge y el puente TCP abiertos
 (sección 4); con la variable vacía la herramienta responde `no_disponible`, y si Edge o el puente están caídos responde
-`error` (no es culpa de la plantilla). Sigue K4 (galería de decoraciones por sede).
+`error` (no es culpa de la plantilla). **K4 (galería de decoraciones por sede: modelo, migración `0027` aplicada
+localmente con copia previa en `test-reports/k4/`, pasarela de Odoo, sección del POS) también está hecho.** Sigue K5
+(más componentes plantillables).
 
 ### Plan J: completo
 

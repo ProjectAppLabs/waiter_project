@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { COMPONENT_CONTRACTS, TEMPLATE_TAGS, resolveData, templateFor, truthy } from '../plantillas'
+import { COMPONENT_CONTRACTS, TEMPLATE_TAGS, decorationFile, resolveData, templateFor, truthy } from '../plantillas'
 import type { MenuTheme, TemplateNode } from '@/lib/types'
 
 const contractsDir = join(__dirname, '../../../../experience/experience_app/diseno/componentes')
@@ -23,6 +23,8 @@ it('solo entrega árboles de la versión vigente y con la forma esperada', () =>
     { version: 1, arbol: [{ tipo: 'elemento', etiqueta: 'div', clases: ['text-red-500'], hijos: [] }] },
     { version: 1, arbol: [{ tipo: 'dato', nombre: 'plato.nombre', formato: 'html' }] },
     { version: 1, arbol: [{ tipo: 'decoracion', id: '../x', movimiento: 'flotar', posicion: 'libre' }] },
+    { version: 1, arbol: [{ tipo: 'decoracion', id: 'hoja', movimiento: 'flotar', posicion: 'libre', archivo: 'https://externo.test/x.png' }] },
+    { version: 1, arbol: [{ tipo: 'decoracion', id: 'hoja', movimiento: 'flotar', posicion: 'libre', archivo: '/api/v1/demo/salon/decoraciones/../../cuenta/' }] },
     { version: 1, arbol: [{ tipo: 'guion' }] }]) {
     expect(templateFor(theme(bad), 'plato')).toBeNull()
   }
@@ -30,6 +32,16 @@ it('solo entrega árboles de la versión vigente y con la forma esperada', () =>
   expect(templateFor(undefined, 'plato')).toBeNull()
   const huge = Array.from({ length: 151 }, () => ({ tipo: 'texto', texto: 'x' }))
   expect(templateFor(theme({ version: 1, arbol: huge }), 'plato')).toBeNull()
+})
+
+// Falla si una decoración de la sede no se sirve por el proxy del propio origen, o si una ruta externa se cuela como imagen.
+it('resuelve el archivo de una decoración solo dentro del propio origen', () => {
+  expect(decorationFile({ id: 'stars' })).toBe('/smart-menu/stars.png')
+  expect(decorationFile({ id: 'hoja', archivo: '/api/v1/burger-house/poblado/decoraciones/hoja/?v=20260925' })).toBe('/api/v1/burger-house/poblado/decoraciones/hoja/?v=20260925')
+  expect(decorationFile({ id: 'hoja', archivo: '/smart-menu/hoja.webp' })).toBe('/smart-menu/hoja.webp')
+  for (const bad of ['https://externo.test/x.png', '//externo.test/x.png', '/api/v1/a/b/decoraciones/hoja/?v=1&x=2', 'javascript:alert(1)', '/smart-menu/../x.png']) {
+    expect(decorationFile({ id: 'hoja', archivo: bad })).toBe('/smart-menu/hoja.png')
+  }
 })
 
 // Falla si <si> muestra bloques con datos vacíos o si <cada> lee los campos del elemento equivocado.

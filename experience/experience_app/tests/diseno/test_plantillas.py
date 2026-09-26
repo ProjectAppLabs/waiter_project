@@ -56,7 +56,7 @@ def test_parse_builds_a_normalized_tree():
                     {'tipo': 'texto', 'texto': '-'}, {'tipo': 'dato', 'nombre': 'plato.rebaja.porcentaje', 'formato': 'numero'}, {'tipo': 'texto', 'texto': '%'}]}]},
             {'tipo': 'ranura', 'nombre': 'precio', 'hijos': []}]},
         {'tipo': 'ranura', 'nombre': 'agregar', 'hijos': []},
-        {'tipo': 'decoracion', 'id': 'stars', 'movimiento': 'flotar', 'posicion': 'libre'}]}]
+        {'tipo': 'decoracion', 'id': 'stars', 'movimiento': 'flotar', 'posicion': 'libre', 'archivo': '/smart-menu/stars.png'}]}]
 
 
 # // Falla si alguna regla del lenguaje o del contrato deja de rechazar con un mensaje que diga qué corregir.
@@ -115,9 +115,9 @@ def test_invalid_templates_are_rejected_with_a_useful_message(html, message):
 def test_theme_layer_validates_component_templates(value, message):
     with pytest.raises(design.InvalidTheme, match=message):
         design.validate({'componentes': {'plato': value}})
-    assert design.validate({'componentes': {'plato': None}})['componentes'] == {'plato': None}
+    assert design.validate({'componentes': {'plato': None}})['componentes'] == design.defaults()['componentes']
     with pytest.raises(design.InvalidTheme, match='desconocido'):
-        design.validate({'componentes': {'cabecera': None}})
+        design.validate({'componentes': {'inexistente': None}})
 
 
 # // Falla si guardar pierde el árbol, si un árbol guardado se vuelve a parsear como HTML o si un guardado obsoleto tumba todo el tema.
@@ -129,10 +129,10 @@ def test_saved_trees_survive_revalidation_and_stale_ones_fall_back(caplog):
     stale = {**theme, 'componentes': {'plato': {'version': 99, 'arbol': saved['arbol']}}}
     with caplog.at_level('WARNING'):
         resolved = design.validate(stale)
-    assert resolved['componentes'] == {'plato': None} and resolved['fundamentos']['texto'] == 1.2
+    assert resolved['componentes'] == design.defaults()['componentes'] and resolved['fundamentos']['texto'] == 1.2
     assert 'se usa la de fábrica' in caplog.text
     broken = {**theme, 'componentes': {'plato': {'version': 1, 'arbol': [{'tipo': 'elemento', 'etiqueta': 'script', 'hijos': []}]}}}
-    assert design.validate(broken)['componentes'] == {'plato': None}
+    assert design.validate(broken)['componentes'] == design.defaults()['componentes']
 
 
 @pytest.fixture
@@ -168,7 +168,7 @@ def test_mcp_prepares_previews_and_confirms_a_component_template(client, owner):
     reset = call(client, raw, 'restablecer_tema', {'capa': 'componentes'})['structuredContent']
     assert reset['vista_previa'] == [{'campo': 'componentes.plato', 'antes': 'plantilla propia (v1, 6 nodos)', 'despues': 'de fábrica'}]
     assert not call(client, raw, 'confirmar_cambio', {'token': reset['token']})['isError']
-    assert templates.resolve_template(TABLE)['tema']['componentes'] == {'plato': None}
+    assert templates.resolve_template(TABLE)['tema']['componentes'] == design.defaults()['componentes']
 
 
 # // Falla si el contrato público deja de incluir plantillas, utilidades y decoraciones, o si sus catálogos divergen del código.
@@ -194,7 +194,7 @@ def test_to_html_round_trips_every_node_type():
     assert '<ranura nombre="foto"/>' in regenerated and 'formato="precio"' in regenerated and 'movimiento="latir"' in regenerated
     assert compile(regenerated) == tree
     for component_id in plantillas.COMPONENTS['componentes']:
-        assert compile(plantillas.to_html(plantillas.factory(component_id))) == plantillas.factory(component_id)
+        assert plantillas.compile_html(component_id, plantillas.to_html(plantillas.factory(component_id))) == plantillas.factory(component_id)
     for html in ['<p>Texto fijo</p>' + MINIMAL, '<h3>Hola<dato nombre="plato.nombre"/></h3>' + MINIMAL,
                  '<div class="ds-pila"><span class="ds-insignia">Nuevo</span><p>Otro</p></div>' + MINIMAL,
                  '<div class="ds-pila"><p>Texto</p><div class="ds-fila"><ranura nombre="precio"/></div>Suelto</div>' + MINIMAL,
@@ -231,7 +231,7 @@ def test_component_tools_read_prepare_verify_and_gate_confirmation(client, owner
     assert read['plantilla_actual'] == {'origen': 'fabrica', 'version': 1, 'html': FACTORY}
     assert read['contrato']['ranuras']['ficha']['obligatoria'] and read['contrato']['limites']['ancho_minimo'] == 142
     assert {u['clase'] for g in read['utilidades']['grupos'] for u in g['utilidades']} == plantillas.UTILITY_CLASSES
-    assert call(client, raw, 'leer_componente', {'componente': 'cabecera'})['isError']
+    assert call(client, raw, 'leer_componente', {'componente': 'inexistente'})['isError']
     bad = call(client, raw, 'preparar_componente', {'componente': 'plato', 'html': '<div class="rojo">x</div>'})
     assert bad['isError'] and 'clase desconocida «rojo»' in json.dumps(bad, ensure_ascii=False)
     loud = '<h3 class="ds-texto-grande"><dato nombre="plato.nombre"/></h3>' + MINIMAL
@@ -262,7 +262,7 @@ def test_component_tools_read_prepare_verify_and_gate_confirmation(client, owner
     assert reset['advertencias'] == [] and reset['vista_previa'][0]['despues'] == 'de fábrica' and 'nada que medir' in reset['siguiente']
     settings.DESIGN_VERIFIER_CMD = verifier(tmp_path, 'False', ['x'])
     assert not call(client, raw, 'confirmar_cambio', {'token': reset['token']})['isError']
-    assert templates.resolve_template(TABLE)['tema']['componentes'] == {'plato': None}
+    assert templates.resolve_template(TABLE)['tema']['componentes'] == design.defaults()['componentes']
     # Sin html explícito la herramienta no adivina: hay que enviar la plantilla o null.
     assert call(client, raw, 'preparar_componente', {'componente': 'plato'})['isError']
     assert call(client, raw, 'preparar_componente', {'componente': ['plato'], 'html': None})['isError']
