@@ -37,7 +37,7 @@ y GET y DELETE responden 405. Versiones: 2025-06-18, 2025-03-26 y 2024-11-05.
 | `restablecer_tema` | Prepara volver `todo` o una `capa` (`fundamentos`, `variantes`, `distribucion`, `componentes`) a sus valores por defecto |
 | `leer_componente` | Contrato de un componente plantillable (`plato`, `banners`, `cabecera`, `ficha-heroe`, `linea-pedido`, `tarjeta-historial`, `tarjeta-estado`, `recibo-papel`): datos, ranuras, límites, su plantilla actual en HTML, utilidades `ds-*` y decoraciones de fábrica y de la sede (Plan K3–K5) |
 | `preparar_componente` | Valida una plantilla HTML restringida (`html`; `null` vuelve a la de fábrica), avisa de medidas y deja un borrador. **No publica.** |
-| `verificar_borrador` | Abre la carta con el borrador en un navegador (320, 375 y 1024 px) y mide en las tarjetas con plantilla propia desbordes, solapes, palabras partidas, textos < 14 px y controles < 44 px. Una plantilla propia solo se confirma con la última verificación en verde; volver a fábrica no la necesita |
+| `verificar_borrador` | Inicia la medición en segundo plano y devuelve `en_curso` con `inicio`; al volver a llamar con el mismo token consulta el resultado guardado. Mide desbordes, solapes, palabras partidas y mínimos de texto y controles. Una plantilla propia solo se confirma con la última verificación en verde; volver a fábrica no la necesita |
 | `leer_diseno_menu` | Colores editables (con su uso), tipografía y las permitidas, saludo, logo y reglas de contraste |
 | `preparar_diseno_menu` | Valida un cambio (colores, tipografía, saludo) y devuelve una vista previa y un token. **No guarda.** |
 | `leer_banners` | Banners actuales, valores permitidos y límites de texto |
@@ -69,8 +69,10 @@ hay que leer y preparar de nuevo. Preparar o restablecer no publica ni cambia lo
 2. `preparar_componente({"componente":"plato","html":"…"})`: rechaza con el error exacto si algo no cumple; si cumple,
    devuelve `borrador`, `url`, `url_design_system`, `token`, `vista_previa` y `advertencias` (criterios de medidas que se
    juzgan sin navegador, p. ej. un título de 22 px en una tarjeta de 142 px).
-3. `verificar_borrador({"borrador":"…"})`: con `DESIGN_VERIFIER_CMD` configurado abre la carta con el borrador a 320,
-   375 y 1024 px y devuelve `estado` `ok` o `problemas` con la lista concreta («375 px: tarjetas 1, 2: la palabra
+3. `verificar_borrador({"borrador":"…"})` responde de inmediato `estado: en_curso`, `ok: null`, `inicio`, `borrador` y
+   `siguiente`. Espera unos segundos y vuelve a llamar con el mismo `borrador`: mientras corre devuelve el mismo inicio;
+   al terminar entrega el resultado guardado, sin lanzar otro navegador. Con `DESIGN_VERIFIER_CMD` configurado abre
+   la carta a 320, 375 y 1024 px y devuelve `estado` `ok` o `problemas` con la lista concreta («375 px: tarjetas 1, 2: la palabra
    «Hamburguesa» (144 px) no cabe en 66 px y se parte»), agrupada por tarjeta. `estado: error` (`ok: null`) significa que el
    navegador no pudo medir (no es culpa de la plantilla); `no_disponible` solo sale cuando la variable está vacía. Corre
    una verificación a la vez por sede. Mide en la página viva todos los componentes con plantilla propia (hasta 12 raíces
@@ -78,12 +80,18 @@ hay que leer y preparar de nuevo. Preparar o restablecer no publica ni cambia lo
 4. Con la aprobación de la persona, `confirmar_cambio({"token":"…"})`. `DESIGN_VERIFIER_REQUIRED=true` es el valor
    predeterminado: un borrador que introduce o cambia una plantilla propia solo se confirma con la última verificación
    en verde (`ok: true`). Sin comando, con `error`, con problemas o sin verificar, la confirmación explica qué falta y no
-   consume el token. Un verde anterior no sirve si la última medición falló. Volver a fábrica por MCP o cambiar otras
+   consume el token. Mientras mide, rechaza con «La verificación está en curso». Un verde anterior no sirve si la última
+   medición falló. Volver a fábrica por MCP o cambiar otras
    capas sin tocar plantillas no exige verificación.
 
 Para desarrollo sin navegador, `DESIGN_VERIFIER_REQUIRED=false` conserva la puerta anterior: MCP exige verde solo si
-hay comando configurado; el PUT interno no exige borrador. La verificación sigue siendo síncrona en A; el paquete E
-no está implementado en este cierre.
+hay comando configurado; el PUT interno no exige borrador.
+
+El hilo respeta `DESIGN_VERIFIER_TIMEOUT` y cierra sus conexiones de Django al terminar. Si se interrumpe sin guardar,
+la siguiente consulta convierte un `en_curso` de más de ese máximo + 5 segundos en `error`. Nunca se publica con un
+estado pendiente ni se acepta un verde tardío después de recuperar el error. Los resultados terminales se conservan:
+para reintentar un error o `no_disponible` tras reparar la infraestructura, o para corregir problemas, prepara otro
+borrador. El flujo es **verificar → esperar → volver a llamar → confirmar con verde y aprobación**.
 
 El mismo mecanismo sirve la vista previa del POS. Su pasarela de administrador prepara sin clave MCP y devuelve
 solo el token público. `verify {borrador}` ejecuta el POST interno de verificación y devuelve el mismo contrato del MCP.

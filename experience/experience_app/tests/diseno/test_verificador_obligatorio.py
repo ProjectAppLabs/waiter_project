@@ -13,16 +13,17 @@ from experience_app.plantillas import services as templates
 from experience_app.plantillas.models import VenueMenuSettings
 from experience_app.tests.conftest import TABLE
 from experience_app.tests.diseno.test_plantillas import MINIMAL, verifier
+from experience_app.tests.diseno.verification import verify_mcp, wait_for_verification
 from experience_app.tests.mcp.test_mcp import call
 
-pytestmark = pytest.mark.django_db
+pytestmark = pytest.mark.django_db(transaction=True)
 MENU = '/internal/v1/burger-house/poblado/menu/'
 HEADERS = {'HTTP_X_INTERNAL_KEY': 'interna'}
 BODY = {'plantilla': 'S1', 'tema': {'componentes': {'plato': {'version': 1, 'html': MINIMAL}}}}
 
 
 @pytest.fixture
-def owner(company_brand_stub, settings):
+def owner(company_brand_stub, settings, verification_threads):
     settings.DESIGN_VERIFIER_REQUIRED = True
     settings.DESIGN_VERIFIER_CMD = ''
     settings.EXPERIENCE_INTERNAL_KEY = 'interna'
@@ -41,7 +42,7 @@ def prepare(api_client):
 
 
 def verify(api_client, draft):
-    return api_client.post(MENU + f'borradores/{draft["borrador"]}/verificar/', {}, format='json', **HEADERS)
+    return wait_for_verification(lambda: api_client.post(MENU + f'borradores/{draft["borrador"]}/verificar/', {}, format='json', **HEADERS))
 
 
 # // Falla si el valor predeterminado permite publicar sin una medición en verde.
@@ -71,7 +72,7 @@ def test_strict_mcp_requires_latest_green(client, owner, settings, tmp_path, sta
     elif state == 'problemas':
         settings.DESIGN_VERIFIER_CMD = verifier(tmp_path, 'False', ['desborde'])
     if state != 'pendiente':
-        result = call(client, owner[1], 'verificar_borrador', {'borrador': draft['borrador']})['structuredContent']
+        result = verify_mcp(client, owner[1], draft['borrador'])['structuredContent']
         assert result['estado'] == state
     before = templates.settings_view('burger-house', 'poblado')
     confirmation = call(client, owner[1], 'confirmar_cambio', {'token': draft['token']})
@@ -103,7 +104,7 @@ def test_internal_verification_matches_mcp_and_put_consumes_draft(api_client, cl
     assert response.json()['ok'] is True and response.json()['borrador'] == draft['borrador']
     assert 'token' not in response.json()
     if source == 'theme':
-        assert response.json() == call(client, owner[1], 'verificar_borrador', {'borrador': draft['borrador']})['structuredContent']
+        assert response.json() == verify_mcp(client, owner[1], draft['borrador'])['structuredContent']
     assert not VenueMenuSettings.objects.exists()
     change = McpPendingChange.objects.get(preview_token=draft['borrador'])
     response = api_client.put(MENU, {**BODY, 'borrador': draft['borrador']}, format='json', **HEADERS)
@@ -157,13 +158,16 @@ def test_internal_verification_authorization_and_scope(api_client, owner, reason
 def test_put_rejects_unverified_or_mismatched_drafts(api_client, owner, settings, tmp_path, reason):
     draft = prepare(api_client)
     settings.DESIGN_VERIFIER_CMD = verifier(tmp_path, 'True')
-    if reason != 'sin-verificar':
-        assert verify(api_client, draft).json()['ok'] is True
-    if reason in ('error', 'problemas', 'no_disponible', 'verde-anterior', 'ok-texto'):
-        expression = {'error': 'None', 'problemas': 'False', 'verde-anterior': 'False', 'ok-texto': repr('false')}.get(reason)
+    if reason in ('error', 'problemas', 'no_disponible', 'ok-texto'):
+        expression = {'error': 'None', 'problemas': 'False', 'ok-texto': repr('false')}.get(reason)
         settings.DESIGN_VERIFIER_CMD = verifier(tmp_path, expression) if expression else ''
         assert verify(api_client, draft).json()['ok'] is not True
+    elif reason != 'sin-verificar':
+        assert verify(api_client, draft).json()['ok'] is True
     change = McpPendingChange.objects.get(preview_token=draft['borrador'])
+    if reason == 'verde-anterior':
+        # La puerta debe usar el último estado guardado aunque antes hubiera una medición aprobada.
+        change.payload['verificacion'] = {'estado': 'problemas', 'ok': False, 'problemas': ['desborde']}
     invalidate_draft(change, reason)
     body = {**deepcopy(BODY), 'borrador': draft['borrador']}
     if reason == 'ausente':

@@ -193,7 +193,7 @@ experience por id; el POS solo muestra miniaturas.
 Plan H. Controller JSON-RPC (`controllers/admin.py`), `auth='user'`, solo
 `point_of_sale.group_pos_manager` (los demás reciben `AccessError`). Reenvía a
 `GET/PUT /internal/v1/<rest>/<sede>/menu/` de `experience/` con `X-Internal-Key`, `requests` y
-10 s de espera (190 s solo para `verify`); los errores de red y los rechazos de `experience/` llegan al POS como `UserError`
+10 s de espera para todas las acciones; los errores de red y los rechazos de `experience/` llegan al POS como `UserError`
 en español. Así el navegador nunca conoce la clave interna.
 
 | Acción | Cuerpo (`params`) | Respuesta |
@@ -201,7 +201,7 @@ en español. Así el navegador nunca conoce la clave interna.
 | `get` | — | `{restaurante, sede, experienceUrl, dinerUrl, ajustes: {plantilla, paleta, tipografia, actualizado, porDefecto}}` |
 | `set` | `{plantilla: "S1", paleta: {acento: "#…"}, tipografia: {display: "Fraunces"}}` o `{plantilla: "S1", tema: {...}}`; `borrador` opcional | `{plantilla: <la resuelta que verá el comensal>}` |
 | `preview` | Los mismos ajustes de `set`, sin `borrador` | `{borrador, caduca, url, url_design_system, vista_previa}` |
-| `verify` | `{borrador: "<UUID público>"}` | `{borrador, estado, ok, problemas, siguiente, ...}` |
+| `verify` | `{borrador: "<UUID público>"}` | `{borrador, estado: "en_curso", ok: null, inicio, siguiente}`; al consultar tras terminar: `{borrador, estado, ok, problemas, inicio, fecha, siguiente, ...}` |
 
 `preview` envía POST a `menu/borradores/`; `verify` envía POST a
 `menu/borradores/<token>/verificar/`. La sede siempre sale de los parámetros de Odoo; `verify` rechaza tokens que no
@@ -209,14 +209,17 @@ sean UUID antes de construir la ruta. Ambos necesitan el mismo permiso de admini
 
 En experience, `DESIGN_VERIFIER_REQUIRED=true` por defecto exige un borrador verificado para cualquier cambio de
 `tema.componentes` por PUT, incluido volver a fábrica. Flujo: `preview` → `verify` → `set` con los mismos ajustes y
-`borrador`. Debe pertenecer a la sede, no haber caducado ni haberse aplicado, tener la última verificación `ok: true`
+`borrador`. Entre `verify` y `set`, espera y vuelve a llamar `verify` con el mismo token hasta obtener el resultado:
+`en_curso` bloquea publicar con un mensaje explícito. Debe pertenecer a la sede, no haber caducado ni haberse aplicado, tener la última verificación `ok: true`
 y contener exactamente el tema que se guarda. Guardar consume el borrador de forma atómica; los rechazos llegan como
 `UserError`. Sin cambios en componentes no hace falta token. `false` conserva el PUT anterior sin este requisito.
 
-El paquete A mantiene la verificación síncrona: 190 s en esta pasarela y 200 s en `gateway('verify', {borrador})` del
-POS, para cubrir `DESIGN_VERIFIER_TIMEOUT=180` de experience. Si se aumenta ese límite, se deben ajustar ambos márgenes.
-El editor del POS todavía no edita plantillas; el servicio ya reenvía `MenuSettings.borrador` al guardar. No hay UI nueva
-ni ejecución en segundo plano (paquete E pendiente).
+El paquete E ejecuta la medición en un hilo daemon de experience y devuelve `en_curso` inmediatamente. Las consultas
+posteriores no duplican el hilo: entregan el mismo `inicio` o el resultado final guardado. Un trabajo abandonado pasa
+a `error` al consultar después de `DESIGN_VERIFIER_TIMEOUT + 5` segundos; para reintentar o corregir hace falta preparar
+otro borrador. Se conservan los tiempos normales: 10 s de Odoo y 60 s del cliente POS, sin esperas especiales para
+`gateway('verify', {borrador})`. El editor todavía no edita plantillas; el servicio reenvía `MenuSettings.borrador` al
+guardar. No hay UI nueva.
 
 Parámetros del sistema (`ir.config_parameter`) que debe sembrar el onboarding:
 

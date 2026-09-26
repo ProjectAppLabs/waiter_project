@@ -90,7 +90,7 @@ def verify(request, restaurant, venue, token):
         return no_store(INVALID_KEY, status=401)
     try:
         change = borradores.get(restaurant, venue, token)
-        result = borradores.verify(change)
+        result = borradores.start_verification(change)
         return no_store(borradores.verification_result(change, result))
     except borradores.InvalidDraft as exc:
         return no_store({'detail': str(exc)}, status=400)

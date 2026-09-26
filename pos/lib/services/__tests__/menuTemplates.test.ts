@@ -22,12 +22,15 @@ it('writes the settings with action set and returns the resolved template', asyn
   expect(rpc).toHaveBeenCalledWith('/waiter/admin/menu_settings', { action: 'set', plantilla: 'A1', paleta: { acento: '#7A2E2A' }, tipografia: { display: 'Fraunces' } })
 })
 
-// Falla si verify pierde el token público, el resultado de la medición o corta la verificación síncrona antes de tiempo.
-it('verifica el borrador por la pasarela y devuelve su resultado', async () => {
+// Falla si verify pierde el token o el inicio, no permite consultar el resultado, o mantiene la espera especial de A.
+it('inicia y consulta la verificación por la pasarela con la espera normal', async () => {
+  const pending = { borrador: 'token-publico', estado: 'en_curso', ok: null, inicio: '2026-09-26T15:00:00Z', siguiente: 'Vuelve a consultar.' }
   const result = { borrador: 'token-publico', estado: 'ok', ok: true, problemas: [], siguiente: 'Guardar con aprobación.' }
-  rpc.mockResolvedValueOnce(result)
+  rpc.mockResolvedValueOnce(pending).mockResolvedValueOnce(result)
+  await expect(gateway('verify', { borrador: 'token-publico' })).resolves.toEqual(pending)
   await expect(gateway('verify', { borrador: 'token-publico' })).resolves.toEqual(result)
-  expect(rpc).toHaveBeenCalledWith('/waiter/admin/menu_settings', { action: 'verify', borrador: 'token-publico' }, { timeout: 200_000 })
+  expect(rpc).toHaveBeenNthCalledWith(1, '/waiter/admin/menu_settings', { action: 'verify', borrador: 'token-publico' })
+  expect(rpc).toHaveBeenNthCalledWith(2, '/waiter/admin/menu_settings', { action: 'verify', borrador: 'token-publico' })
 })
 
 // Falla si set descarta el borrador que acredita la verificación de los ajustes que se publican.

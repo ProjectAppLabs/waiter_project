@@ -4,6 +4,7 @@ import logging
 import os
 import shlex
 import subprocess
+import threading
 import uuid
 from copy import deepcopy
 from datetime import timedelta
@@ -11,8 +12,9 @@ from urllib.parse import quote
 
 from django.conf import settings
 from django.core.cache import cache
-from django.db import transaction
+from django.db import close_old_connections, connections, transaction
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 from experience_app.diseno import plantillas
 from experience_app.diseno import services as design
@@ -22,6 +24,7 @@ from experience_app.plantillas.models import VenueMenuSettings
 
 TTL = timedelta(minutes=30)
 LAYERS = ('fundamentos', 'variantes', 'distribucion', 'componentes')
+VERIFICATION_MARGIN = 5
 logger = logging.getLogger(__name__)
 
 
@@ -135,6 +138,8 @@ def require_verified(change):
         reason = 'La última verificación terminó con error; revisa el verificador y vuelve a intentarlo.'
     elif state == 'problemas':
         reason = 'La última verificación encontró problemas; corrige la plantilla y prepara otro borrador.'
+    elif state == 'en_curso':
+        reason = 'La verificación está en curso; espera y vuelve a consultar el mismo borrador.'
     else:
         reason = 'Falta una verificación en verde de este borrador.'
     raise InvalidDraft(f'{reason} Ejecuta verificar_borrador (MCP) o verify (POS) y publica solo con ok: true.')
@@ -142,12 +147,122 @@ def require_verified(change):
 
 def verification_result(change, result):
     """MCP y POST interno devuelven el mismo contrato, sin exponer el token de confirmación."""
-    following = {'ok': 'Muestra el resultado a la persona; con su aprobación, confirma o guarda el borrador.',
+    following = {'en_curso': 'La verificación está en curso. Espera unos segundos y vuelve a llamar verificar_borrador (MCP) o verify (POS) con el mismo borrador.',
+                 'ok': 'Muestra el resultado a la persona; con su aprobación, confirma o guarda el borrador.',
                  'problemas': 'Corrige los problemas y prepara de nuevo.',
-                 'error': 'La verificación no pudo medir: no es culpa de la plantilla. Avísale a la persona y vuelve a intentarlo más tarde.',
-                 'no_disponible': 'Configura DESIGN_VERIFIER_CMD y vuelve a verificar antes de publicar.'
+                 'error': 'La verificación no pudo medir: no es culpa de la plantilla. Avísale a la persona; para reintentar prepara otro borrador.',
+                 'no_disponible': 'Configura DESIGN_VERIFIER_CMD y prepara otro borrador para verificar antes de publicar.'
                  if settings.DESIGN_VERIFIER_REQUIRED else 'Revisa el borrador a ojo con la persona en url y url_design_system.'}
     return {**result, 'borrador': str(change.preview_token), 'siguiente': following[result['estado']]}
+
+
+def _verification_lock(change):
+    return f'verificacion:{change.restaurant_slug}/{change.venue_slug}'
+
+
+def _verification_owner(change):
+    return f'{change.pk}:{change.payload["verificacion"].get("inicio")}'
+
+
+def _release_verification(change):
+    # Un trabajo atrasado no debe liberar el cerrojo de una verificación posterior de la sede.
+    lock = _verification_lock(change)
+    if cache.get(lock) == _verification_owner(change):
+        cache.delete(lock)
+
+
+def _save_verification(change, result):
+    """Solo el trabajo vigente puede sustituir su en_curso; un hilo tardío no pisa un error ni otro resultado."""
+    saved = {**result, 'inicio': change.payload['verificacion'].get('inicio'), 'fecha': timezone.now().isoformat()}
+    McpPendingChange.objects.filter(pk=change.pk, payload=change.payload, applied_at__isnull=True).update(
+        payload={**change.payload, 'verificacion': saved})
+    return saved
+
+
+def _verification_error(message):
+    return {'estado': 'error', 'ok': None, 'problemas': [], 'mensaje': message}
+
+
+def _verification_expired(verification):
+    try:
+        started = parse_datetime(verification.get('inicio', ''))
+    except (TypeError, ValueError):
+        started = None
+    return (started is None or timezone.is_naive(started)
+            or timezone.now() >= started + timedelta(seconds=settings.DESIGN_VERIFIER_TIMEOUT + VERIFICATION_MARGIN))
+
+
+def _verification_status(change):
+    saved = change.payload.get('verificacion')
+    if saved and saved['estado'] == 'en_curso' and _verification_expired(saved):
+        _save_verification(change, _verification_error('La verificación en segundo plano superó el tiempo máximo o se interrumpió. Prepara otro borrador para reintentar.'))
+        _release_verification(change)
+        change.refresh_from_db()
+        saved = change.payload['verificacion']
+    return saved
+
+
+def _verify_worker(change):
+    try:
+        close_old_connections()
+        current = get(change.restaurant_slug, change.venue_slug, change.preview_token)
+        if current.payload == change.payload:
+            verify(change)
+    except Exception:
+        logger.exception('Falló el trabajo de verificación del borrador %s', change.pk)
+        try:
+            _save_verification(change, _verification_error('El trabajo de verificación se interrumpió. Prepara otro borrador para reintentar.'))
+        except Exception:
+            # Si la base tampoco responde, la consulta detectará el en_curso vencido y lo pasará a error.
+            logger.exception('No se pudo guardar el error de verificación del borrador %s', change.pk)
+    finally:
+        try:
+            _release_verification(change)
+        finally:
+            connections.close_all()
+
+
+def _launch_verification(change):
+    try:
+        threading.Thread(target=_verify_worker, args=(change,), daemon=True).start()
+    except Exception:
+        logger.exception('No se pudo iniciar el hilo de verificación del borrador %s', change.pk)
+        try:
+            _save_verification(change, _verification_error('No se pudo iniciar la verificación. Prepara otro borrador para reintentar.'))
+        finally:
+            _release_verification(change)
+
+
+def start_verification(change):
+    """Inicia una vez o consulta el resultado guardado; nunca espera al navegador en la petición HTTP."""
+    change = get(change.restaurant_slug, change.venue_slug, change.preview_token)
+    saved = _verification_status(change)
+    if saved:
+        return saved
+    pending = {'estado': 'en_curso', 'ok': None, 'inicio': timezone.now().isoformat()}
+    owner = f'{change.pk}:{pending["inicio"]}'
+    lock = _verification_lock(change)
+    if not cache.add(lock, owner, timeout=settings.DESIGN_VERIFIER_TIMEOUT + VERIFICATION_MARGIN):
+        # Otra petición del mismo borrador puede haberlo arrancado mientras leíamos.
+        change = get(change.restaurant_slug, change.venue_slug, change.preview_token)
+        saved = _verification_status(change)
+        if saved:
+            return saved
+        raise InvalidDraft('Ya hay una verificación en curso para esta sede; espera a que termine.')
+    try:
+        payload = {**change.payload, 'verificacion': pending}
+        # Comparar la instantánea evita iniciar dos veces o medir después de una confirmación concurrente.
+        updated = McpPendingChange.objects.filter(pk=change.pk, payload=change.payload, applied_at__isnull=True).update(payload=payload)
+        if not updated:
+            raise InvalidDraft('El borrador cambió mientras se iniciaba la verificación; vuelve a consultarlo.')
+        change.payload = payload
+        # El hilo usa otra conexión: no puede leer el borrador antes de confirmar esta escritura.
+        transaction.on_commit(lambda: _launch_verification(change))
+    except Exception:
+        if cache.get(lock) == owner:
+            cache.delete(lock)
+        raise
+    return pending
 
 
 def _run_verifier(command: str, change) -> dict:
@@ -178,22 +293,21 @@ def _run_verifier(command: str, change) -> dict:
 
 
 def verify(change) -> dict:
-    """K3: abre el borrador en un navegador (comando de DESIGN_VERIFIER_CMD) y guarda el resultado en el cambio pendiente.
+    """Trabajador síncrono: mide el borrador reservado por start_verification y guarda su resultado.
 
     El comando recibe DRAFT_TOKEN, REST y SEDE y escribe en stdout {"ok": bool|null, "problemas": [...]}. Sin comando,
-    la verificación no está disponible y se dice; nunca se inventa un resultado. Solo corre una verificación a la vez
-    por sede: el navegador es caro y comparte servidor con pedidos y pagos.
+    la verificación no está disponible y se dice; nunca se inventa un resultado. El iniciador conserva el cerrojo por
+    sede hasta que este trabajo termina o vence el tiempo máximo más el margen.
     """
     if change.applied_at or timezone.now() >= change.created_at + TTL:
         raise InvalidDraft('El borrador no existe, caducó o ya fue aplicado.')
+    if _verification_expired(change.payload['verificacion']):
+        return _save_verification(change, _verification_error('La verificación superó el tiempo máximo antes de poder medir.'))
     command = settings.DESIGN_VERIFIER_CMD
     if not command.strip():
         result = {'estado': 'no_disponible', 'ok': None, 'problemas': [],
                   'mensaje': 'La verificación en navegador no está configurada en este servidor (DESIGN_VERIFIER_CMD).'}
     else:
-        lock = f'verificacion:{change.restaurant_slug}/{change.venue_slug}'
-        if not cache.add(lock, str(change.pk), timeout=settings.DESIGN_VERIFIER_TIMEOUT + 5):
-            raise InvalidDraft('Ya hay una verificación en curso para esta sede; espera a que termine.')
         try:
             result = _run_verifier(command, change)
         except subprocess.TimeoutExpired:
@@ -203,11 +317,9 @@ def verify(change) -> dict:
             logger.exception('La verificación del borrador %s no pudo ejecutarse', change.pk)
             result = {'estado': 'error', 'ok': None, 'problemas': [],
                       'mensaje': 'La verificación no pudo ejecutarse; revisa el registro del servidor.'}
-        finally:
-            cache.delete(lock)
-    change.payload = {**change.payload, 'verificacion': {**result, 'fecha': timezone.now().isoformat()}}
-    change.save(update_fields=['payload'])
-    return result
+    if _verification_expired(change.payload['verificacion']):
+        result = _verification_error('La verificación superó el tiempo máximo; su resultado tardío no permite publicar.')
+    return _save_verification(change, result)
 
 
 @transaction.atomic
