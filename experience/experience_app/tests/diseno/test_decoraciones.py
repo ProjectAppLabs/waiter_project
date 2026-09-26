@@ -12,6 +12,7 @@ from experience_app.diseno.models import MenuDecoration
 from experience_app.mcp import keys
 from experience_app.plantillas import services as templates
 from experience_app.tests.conftest import TABLE
+from experience_app.tests.diseno.test_plantillas import verifier
 from experience_app.tests.mcp.test_mcp import call
 
 pytestmark = pytest.mark.django_db
@@ -178,7 +179,7 @@ def test_pos_preview_keeps_venue_decorations(api_client, client, company_brand_s
 
 # // Falla si la IA no ve las decoraciones de la sede, no puede prepararlas en una plantilla o el borrador público no
 # // trae la ruta del archivo que el comensal dibuja.
-def test_mcp_lists_and_uses_venue_decorations(client, owner):
+def test_mcp_lists_and_uses_venue_decorations(client, owner, settings, tmp_path):
     _, raw = owner
     decoraciones.create('burger-house', 'poblado', 'Hoja de menta', b64(png()))
     read = call(client, raw, 'leer_componente', {'componente': 'plato'})['structuredContent']
@@ -188,6 +189,8 @@ def test_mcp_lists_and_uses_venue_decorations(client, owner):
     preview = client.get(f'/api/v1/burger-house/poblado/borradores/{draft["borrador"]}/').json()['plantilla']['tema']
     node = preview['componentes']['plato']['arbol'][0]
     assert node['archivo'].startswith('/api/v1/burger-house/poblado/decoraciones/hoja-de-menta/?v=') and node['movimiento'] == 'latir'
+    settings.DESIGN_VERIFIER_CMD = verifier(tmp_path, 'True')
+    assert call(client, raw, 'verificar_borrador', {'borrador': draft['borrador']})['structuredContent']['ok'] is True
     assert not call(client, raw, 'confirmar_cambio', {'token': draft['token']})['isError']
     assert 'hoja-de-menta' in call(client, raw, 'leer_componente', {'componente': 'plato'})['structuredContent']['plantilla_actual']['html']
     assert design.SCHEMA['properties']['componentes']['properties']['plato']['componente'] == 'plato'

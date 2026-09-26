@@ -158,11 +158,7 @@ def verificar_borrador(key: McpKey, args: dict) -> dict:
         result = borradores.verify(change)
     except borradores.InvalidDraft as exc:
         raise ToolError(str(exc)) from exc
-    following = {'ok': 'Muestra el resultado a la persona; con su aprobación, confirmar_cambio con el token de confirmación.',
-                 'problemas': 'Corrige los problemas y prepara de nuevo.',
-                 'error': 'La verificación no pudo medir: no es culpa de la plantilla. Avísale a la persona y vuelve a intentarlo más tarde.',
-                 'no_disponible': 'Revisa el borrador a ojo con la persona en url y url_design_system.'}
-    return {**result, 'borrador': token, 'siguiente': following[result['estado']]}
+    return borradores.verification_result(change, result)
 
 
 def preparar_tema(key: McpKey, args: dict) -> dict:

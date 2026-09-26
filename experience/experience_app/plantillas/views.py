@@ -12,9 +12,9 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from experience_app.adapters.registry.client import resolve
-from experience_app.services import brand
 from experience_app.plantillas import services
 from experience_app.plantillas.seed import thumbnail_path
+from experience_app.services import brand
 from experience_app.utils.images import image_response
 from experience_app.views.internal import INVALID_KEY, key_is_valid
 
@@ -57,7 +57,7 @@ def venue_settings(request, restaurant, venue):
         return Response({'detail': str(exc)}, status=400)
     tenant = resolve(restaurant, venue)
     try:
-        services.save(restaurant, venue, request.data)
+        services.save_verified(restaurant, venue, request.data)
     except services.InvalidSettings as exc:
         return Response({'detail': str(exc)}, status=400)
     return Response({'plantilla': services.resolve_template(tenant)})

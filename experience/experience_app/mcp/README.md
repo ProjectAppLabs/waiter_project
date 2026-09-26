@@ -75,12 +75,22 @@ hay que leer y preparar de nuevo. Preparar o restablecer no publica ni cambia lo
    navegador no pudo medir (no es culpa de la plantilla); `no_disponible` solo sale cuando la variable está vacía. Corre
    una verificación a la vez por sede. Mide en la página viva todos los componentes con plantilla propia (hasta 12 raíces
    por componente) y, en la carta, la tarjeta, los banners y la cabecera en su contexto real.
-4. Con la aprobación de la persona, `confirmar_cambio({"token":"…"})`. Con verificador configurado, un borrador que
-   introduce o cambia una plantilla propia solo se confirma con la última verificación en verde; volver a fábrica o cambiar
-   otras capas no la exige.
+4. Con la aprobación de la persona, `confirmar_cambio({"token":"…"})`. `DESIGN_VERIFIER_REQUIRED=true` es el valor
+   predeterminado: un borrador que introduce o cambia una plantilla propia solo se confirma con la última verificación
+   en verde (`ok: true`). Sin comando, con `error`, con problemas o sin verificar, la confirmación explica qué falta y no
+   consume el token. Un verde anterior no sirve si la última medición falló. Volver a fábrica por MCP o cambiar otras
+   capas sin tocar plantillas no exige verificación.
+
+Para desarrollo sin navegador, `DESIGN_VERIFIER_REQUIRED=false` conserva la puerta anterior: MCP exige verde solo si
+hay comando configurado; el PUT interno no exige borrador. La verificación sigue siendo síncrona en A; el paquete E
+no está implementado en este cierre.
 
 El mismo mecanismo sirve la vista previa del POS. Su pasarela de administrador prepara sin clave MCP y devuelve
-solo el token público; guardar en POS conserva su autorización habitual. Contrato, endpoints y persistencia en el
+solo el token público. `verify {borrador}` ejecuta el POST interno de verificación y devuelve el mismo contrato del MCP.
+Con el modo estricto, `set` debe enviar ese `borrador` si cambia `tema.componentes` (también al volver a fábrica):
+la sede, vigencia, última verificación y tema completo deben coincidir. Guardar consume el borrador en la misma
+transacción y conserva la autorización habitual del POS; el token público por sí solo no permite publicar.
+Contrato, endpoints y persistencia en el
 [README del tema](../diseno/README.md#borradores-y-cambios-parciales-j4).
 
 ## Identidad en Odoo

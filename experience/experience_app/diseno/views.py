@@ -85,6 +85,18 @@ def preview(request, restaurant, venue, token):
 
 
 @api_view(['POST'])
+def verify(request, restaurant, venue, token):
+    if not key_is_valid(request):
+        return no_store(INVALID_KEY, status=401)
+    try:
+        change = borradores.get(restaurant, venue, token)
+        result = borradores.verify(change)
+        return no_store(borradores.verification_result(change, result))
+    except borradores.InvalidDraft as exc:
+        return no_store({'detail': str(exc)}, status=400)
+
+
+@api_view(['POST'])
 def prepare(request, restaurant, venue):
     if not key_is_valid(request):
         return no_store(INVALID_KEY, status=401)

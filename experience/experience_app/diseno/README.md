@@ -174,7 +174,20 @@ También prepara un borrador; no aplica el restablecimiento inmediatamente.
   Guardar conserva la invalidación de caché de J2.
 - El POS llama `POST /internal/v1/<rest>/<sede>/menu/borradores/` por la acción `preview` de la pasarela autorizada de Odoo.
   Acepta el contrato de paleta/tipografía anterior o un tema v2 completo, conserva las capas que el editor antiguo no
-  conoce y devuelve el mismo enlace de lectura, sin token de confirmación. Guardar en el POS sigue usando `set`.
+  conoce y devuelve el mismo enlace de lectura, sin token de confirmación.
+- Para verificar, el POS llama `verify {borrador}`: Odoo envía
+  `POST /internal/v1/<rest>/<sede>/menu/borradores/<token público>/verificar/` con `X-Internal-Key`.
+  Admite borradores `preview` y `theme` de esa sede, vigentes, no aplicados y sin clave revocada. Devuelve el mismo
+  resultado que `verificar_borrador` (`estado`, `ok`, `problemas`, `borrador`, `siguiente` y, cuando corresponde,
+  `medidas`, `capturas` o `mensaje`), con `Cache-Control: no-store`; falta de clave devuelve 401 y borrador inválido, 400.
+  La ejecución sigue siendo síncrona; el paquete E queda pendiente.
+- Guardar sigue usando `set` → `PUT /internal/v1/<rest>/<sede>/menu/`. Con `DESIGN_VERIFIER_REQUIRED=true`, cualquier
+  diferencia en `tema.componentes` exige `borrador` en el cuerpo: token público de la misma sede, vigente, no aplicado,
+  con la última `verificacion.ok` exactamente `true` y `payload.tema` igual al tema completo normalizado que se guarda.
+  Un token de confirmación MCP no sirve aquí. El PUT devuelve 400 si falta alguno de esos requisitos; consume el borrador
+  y guarda en la misma transacción, por lo que un error permite reintentar. Esto incluye volver a fábrica por PUT.
+  Si se envía `borrador` aun sin diferencias en componentes, también se valida y consume; un token usado no se reutiliza.
+  Las ediciones que conservan componentes no requieren token, incluido el editor antiguo de paleta/tipografía.
 - Diner carga `?borrador=<token>`, conserva el parámetro al navegar y recargar, y ofrece «Abrir menú publicado» para salir.
   Vuelve a validar al caducar y muestra el error si el enlace dejó de servir. Las respuestas lentas de otras cargas no
   reemplazan el tema actual. El store y el cliente HTTP bloquean escrituras durante la vista previa, incluso si ya había sesión.
@@ -249,8 +262,17 @@ colocan encima a propósito, como la valoración o el corazón, no cuentan); esc
 stdout, con `ok: null` si no pudo medir, una nota cuando el borrador no trae plantillas propias y un problema si un
 componente del borrador no llegó a dibujarse. Los problemas se agrupan por componente. experience lo lanza con `DESIGN_VERIFIER_CMD`
 (y `DESIGN_VERIFIER_TIMEOUT`) desde `verificar_borrador`, una verificación a la vez por sede, guarda el resultado en el
-cambio pendiente (solo nombres de archivo, nunca rutas) y, con verificador configurado, `confirmar_cambio` exige la última
-verificación en verde para cualquier borrador que introduzca o cambie una plantilla propia; volver a fábrica no la exige.
+cambio pendiente (solo nombres de archivo, nunca rutas). `DESIGN_VERIFIER_REQUIRED=true` es el valor predeterminado:
+`confirmar_cambio` exige la última verificación en verde (`ok: true`) para cualquier borrador que introduzca o cambie
+una plantilla propia. Un comando vacío (`no_disponible`), un fallo de infraestructura (`error`), problemas o no haber
+verificado bloquean la publicación y explican qué falta. Un nuevo resultado no verde sustituye al verde anterior.
+Volver a fábrica por MCP y cambiar otras capas sin tocar plantillas no exigen verificación.
+
+`DESIGN_VERIFIER_REQUIRED=false` conserva el comportamiento anterior para desarrollo: MCP exige verde cuando hay
+comando configurado, y el PUT no exige borrador. No convierte errores de infraestructura en verificaciones aprobadas.
+El POS dispone de `gateway('verify', {borrador})` y `MenuSettings.borrador` para enviar el token con `set`; A no añade UI.
+La pasarela espera hasta 190 s y el cliente hasta 200 s solo para `verify`, para cubrir los 180 s predeterminados de
+`DESIGN_VERIFIER_TIMEOUT`. Si se aumenta ese máximo, hay que ajustar también ambos márgenes.
 Un `arbol` enviado directamente en vez de `html` se valida y canoniza igual: solo sobreviven las claves de cada nodo.
 
 **Galería de decoraciones por sede (K4).** `MenuDecoration` (migración `0027`) guarda PNG o WebP pequeños por sede:

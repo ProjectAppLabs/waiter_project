@@ -15,6 +15,7 @@ Acciones:
   get  → {restaurante, sede, experienceUrl, dinerUrl, ajustes: GET interno (plantilla, paleta, tipografia, …)}
   set  {plantilla, paleta, tipografia} → PUT interno; devuelve {plantilla: la resuelta que verá el comensal}
   preview {plantilla, paleta, tipografia} o {plantilla, tema} → POST menu/borradores/; no publica y devuelve un enlace de lectura
+  verify {borrador} → POST menu/borradores/<token>/verificar/; set acepta ese borrador para publicar el mismo tema
 
 `POST /waiter/admin/menu_decorations` (Plan K4): galería de decoraciones de la sede para las plantillas del menú.
   list                      → {decoraciones, fabrica, limites, experienceUrl}
@@ -22,6 +23,7 @@ Acciones:
   remove {decoracion_id}    → DELETE decoraciones/<id>/
 """
 from urllib.parse import urlsplit
+from uuid import UUID
 
 import requests
 from odoo import _, http
@@ -29,6 +31,8 @@ from odoo.exceptions import AccessError, UserError
 from odoo.http import request
 
 TIMEOUT = 10
+# La verificación sigue siendo síncrona en A: deja terminar el límite predeterminado de experience (180 s).
+VERIFY_TIMEOUT = 190
 PARAMS = {
     "experience_url": "projectapp.experience_url",
     "internal_key": "projectapp.experience_internal_key",
@@ -58,9 +62,9 @@ def _params():
     return values
 
 
-def _call(method, url, key, json=None):
+def _call(method, url, key, json=None, timeout=TIMEOUT):
     try:
-        response = requests.request(method, url, headers={"X-Internal-Key": key}, json=json, timeout=TIMEOUT)
+        response = requests.request(method, url, headers={"X-Internal-Key": key}, json=json, timeout=timeout)
     except requests.RequestException as exc:
         raise UserError(_("No se pudo contactar la experiencia del comensal (%s). Revisa projectapp.experience_url y que el servicio esté arriba.") % exc.__class__.__name__) from exc
     if response.status_code == 401:
@@ -81,7 +85,7 @@ def _call(method, url, key, json=None):
 
 class WaiterAdmin(http.Controller):
     @http.route("/waiter/admin/menu_settings", type="jsonrpc", auth="user", methods=["POST"])
-    def menu_settings(self, action="get", plantilla=None, paleta=None, tipografia=None, tema=None, **kw):
+    def menu_settings(self, action="get", plantilla=None, paleta=None, tipografia=None, tema=None, borrador=None, **kw):
         # Solo quien administra el POS elige la plantilla: el mesero y el cajero no llegan aquí.
         if not request.env.user.has_group("point_of_sale.group_pos_manager"):
             raise AccessError(_("Solo un administrador del punto de venta puede cambiar la plantilla del menú."))
@@ -92,6 +96,14 @@ class WaiterAdmin(http.Controller):
         if action == "get":
             return {"restaurante": p["restaurant"], "sede": p["venue"], "experienceUrl": p["experience_url"],
                     "dinerUrl": p["diner_url"], "ajustes": _call("GET", url, p["internal_key"])}
+        if action == "verify":
+            try:
+                token = str(UUID(borrador)) if isinstance(borrador, str) else None
+            except ValueError:
+                token = None
+            if token is None:
+                raise UserError(_("Indica un token público de borrador válido para verificar."))
+            return _call("POST", url + "borradores/%s/verificar/" % token, p["internal_key"], timeout=VERIFY_TIMEOUT)
         if action in ("set", "preview"):
             if tema is not None and (paleta is not None or tipografia is not None):
                 raise UserError("Envía tema o paleta/tipografia; no ambos contratos a la vez.")
@@ -99,8 +111,10 @@ class WaiterAdmin(http.Controller):
                 "plantilla": plantilla, "paleta": paleta or {}, "tipografia": tipografia or {}}
             if action == "preview":
                 return _call("POST", url + "borradores/", p["internal_key"], json=body)
+            if borrador is not None:
+                body["borrador"] = borrador
             return _call("PUT", url, p["internal_key"], json=body)
-        raise UserError(_("Acción desconocida: %s (usa get, set o preview).") % action)
+        raise UserError(_("Acción desconocida: %s (usa get, set, preview o verify).") % action)
 
     @http.route("/waiter/admin/menu_decorations", type="jsonrpc", auth="user", methods=["POST"])
     def menu_decorations(self, action="list", nombre=None, imagen=None, decoracion_id=None, **kw):

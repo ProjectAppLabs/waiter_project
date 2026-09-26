@@ -44,6 +44,49 @@ class TestMenuSettingsGateway(HttpCase):
                                  headers={"Content-Type": "application/json"})
         return response.json()
 
+    # // Falla si verify publica, pierde el token o la clave interna, o agota la espera antes del verificador síncrono.
+    def test_verify_posts_to_internal_endpoint(self):
+        self.authenticate("admin_plantillas", "Waiter-2026-admin")
+        token = "57875cdf-2f57-48b6-b506-2a1b11f5fa2b"
+        result = {"borrador": token, "estado": "ok", "ok": True, "problemas": [], "siguiente": "Guardar con aprobación."}
+        with patch("odoo.addons.projectapp_ops.controllers.admin.requests.request") as req:
+            req.return_value.status_code = 200
+            req.return_value.json.return_value = result
+            self.assertEqual(self._rpc({"action": "verify", "borrador": token})["result"], result)
+            self.assertEqual(req.call_args.args, ("POST", "http://experience.test/internal/v1/burger-house/poblado/menu/borradores/%s/verificar/" % token))
+            self.assertEqual(req.call_args.kwargs["headers"], {"X-Internal-Key": "k"})
+            self.assertEqual(req.call_args.kwargs["timeout"], 190)
+
+    # // Falla si verify admite meseros, sede elegida desde el navegador o tokens que alteran la ruta interna.
+    def test_verify_authorization_scope_and_invalid_tokens(self):
+        self.authenticate("mesero_plantillas", "Waiter-2026-mesero")
+        self.assertEqual(self._rpc({"action": "verify", "borrador": "token"})["error"]["data"]["name"], "odoo.exceptions.AccessError")
+        self.authenticate("admin_plantillas", "Waiter-2026-admin")
+        with patch("odoo.addons.projectapp_ops.controllers.admin.requests.request") as req:
+            for params in ({"sede": "ajena"}, {"borrador": "../otra"}, {"borrador": None}, {"borrador": {}}, {}):
+                result = self._rpc({"action": "verify", **params})
+                self.assertEqual(result["error"]["data"]["name"], "odoo.exceptions.UserError")
+            req.assert_not_called()
+
+    # // Falla si set pierde el borrador público o el rechazo de la verificación no llega como mensaje legible al POS.
+    def test_set_forwards_draft_and_verification_errors(self):
+        self.authenticate("admin_plantillas", "Waiter-2026-admin")
+        token = "57875cdf-2f57-48b6-b506-2a1b11f5fa2b"
+        theme = {"componentes": {"plato": {"version": 1, "html": "<div/>"}}}
+        with patch("odoo.addons.projectapp_ops.controllers.admin.requests.request") as req:
+            req.return_value.status_code = 200
+            req.return_value.json.return_value = {"plantilla": {"codigo": "S1"}}
+            self._rpc({"action": "set", "plantilla": "S1", "tema": theme, "borrador": token})
+            self.assertEqual(req.call_args.args, ("PUT", "http://experience.test/internal/v1/burger-house/poblado/menu/"))
+            self.assertEqual(req.call_args.kwargs["json"], {"plantilla": "S1", "tema": theme, "borrador": token})
+            self._rpc({"action": "set", "plantilla": "S1", "paleta": {}, "borrador": token})
+            self.assertEqual(req.call_args.kwargs["json"], {"plantilla": "S1", "paleta": {}, "tipografia": {}, "borrador": token})
+            req.return_value.status_code = 400
+            req.return_value.json.return_value = {"detail": "Falta una verificación en verde de este borrador."}
+            result = self._rpc({"action": "set", "plantilla": "S1", "tema": theme, "borrador": token})
+            self.assertEqual(result["error"]["data"]["name"], "odoo.exceptions.UserError")
+            self.assertIn("Falta una verificación en verde", result["error"]["data"]["message"])
+
     def test_a_waiter_is_refused(self):
         """Atrapa que un mesero o cajero cambie la plantilla del menú: solo point_of_sale.group_pos_manager."""
         self.authenticate("mesero_plantillas", "Waiter-2026-mesero")
