@@ -170,5 +170,16 @@ Cada fase se fusiona por separado, sobre J5.
 - Validador con sede en contexto: `<decoracion id="…"/>` acepta fábrica más la propia sede, nunca otra; el nodo guarda el
   `archivo` resuelto y el comensal solo dibuja rutas del propio origen. Borrar una decoración devuelve a fábrica las
   plantillas que la usaban. `leer_componente` lista las de la sede.
-- Pendiente para K5: banners, cabecera, cabecera de la ficha, línea del pedido, tarjeta de historial, recibo, tarjeta de
-  estado y recorridos.
+**K5 hecho (2026-09-25)**, misma rama.
+
+- Siete componentes plantillables más: `banners`, `cabecera`, `ficha-heroe`, `linea-pedido`, `tarjeta-historial`,
+  `tarjeta-estado` y `recibo-papel`, cada uno con contrato (datos, ranuras de fábrica y alternativas en `requisitos`) y
+  plantilla de fábrica. En el comensal, cada componente real extrae su cuerpo (`BannerItem`, `SmartHeader`, `DishHero`,
+  `CartLineItem`, `HistoryCard`, `StatusCard`, `PaperReceipt`) y dibuja la plantilla dentro de su raíz, que conserva
+  variantes, acciones y gestos. Una prueba por componente exige que la plantilla de fábrica desde el árbol produzca el mismo
+  HTML que el JSX, que una plantilla propia enlace datos y ranuras y que exponga exactamente los datos del contrato.
+- Inventario: tarjetas de historial y de estado y recibo entran como componentes; la página viva los muestra con datos de
+  muestra usando los componentes reales (también la cabecera de la ficha y la línea del pedido) y marca `data-componente`.
+- Verificador: mide todos los componentes con plantilla propia en la página viva (375 y 1024 px) y la tarjeta, los banners
+  y la cabecera en la carta (320, 375 y 1024 px); avisa si un componente del borrador no llegó a dibujarse.
+- Pendiente (fuera de K5): `recorrido` (pantallas ilustradas) y los formularios; el asistente, preferencias y ayuda siguen huérfanos.

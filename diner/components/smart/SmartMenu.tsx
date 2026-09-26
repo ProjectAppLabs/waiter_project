@@ -6,8 +6,9 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { pathFor, type Route, type Screen } from '@/lib/domain/route'
-import { templateFor, type TemplateData, type TemplateSlots } from '@/lib/domain/plantillas'
+import type { TemplateData, TemplateSlots } from '@/lib/domain/plantillas'
 import { Plantilla } from '@/components/plantillas/Renderizador'
+import { usePlantilla } from '@/components/plantillas/usePlantilla'
 import { formatCop } from '@/lib/domain/cart'
 import { useDinerStore } from '@/lib/stores/dinerStore'
 import type { Dish, Entry } from '@/lib/types'
@@ -296,12 +297,30 @@ export function dishTemplateData(dish: Dish): TemplateData {
     'plato.rebaja': !!deal, 'plato.rebaja.porcentaje': deal?.porcentaje ?? null, 'plato.precioAntes': deal?.antes ?? null,
   }
 }
+// Cabecera de la ficha (foto, valoración, nombre, precio, rebaja y tiempo). Plantillable: contrato «ficha-heroe».
+export function DishHero({ dish }: { dish: Dish }) {
+  const { arbol, marker } = usePlantilla('ficha-heroe')
+  const deal = dealFor(dish)
+  const rebaja = deal ? <span className="sm-food-deal"><em>-{deal.porcentaje}%</em><s aria-label={`Antes ${money(deal.antes)}`}>{money(deal.antes)}</s></span> : null
+  const precio = <strong className="sm-price">{money(dish.precio)}</strong>
+  const tiempo = <PrepTime dish={dish}/>
+  const encabezado = <div className="sm-dish-heading"><h1>{dish.nombre}</h1>{precio}{rebaja}{tiempo}</div>
+  const orbitas = <div className="sm-dish-orbits" aria-hidden="true" />
+  const foto = <FoodPhoto dish={dish} className="sm-dish-photo" />
+  const valoracion = <DishRating dish={dish}/>
+  const factory = <>{orbitas}{foto}{valoracion}{encabezado}</>
+  return (
+    <header className="sm-dish-hero" {...marker}>
+      {arbol ? <Plantilla arbol={arbol} datos={{ ...dishTemplateData(dish), 'plato.descripcion': dish.descripcion ?? null }} ranuras={{ orbitas, foto, valoracion, encabezado, precio, rebaja, tiempo }} fallback={factory} /> : factory}
+    </header>
+  )
+}
 // Exportada para la página viva del sistema de diseño (J5), que la muestra con cada variante.
 // Con una plantilla propia (Plan K2) la tarjeta real sigue siendo la dueña de las acciones: la plantilla solo las coloca.
 export function FoodCard({ dish }: { dish: Dish }) {
   const { href } = useSmartRoute()
   const {add,busy} = useDinerStore()
-  const arbol = useDinerStore((s) => templateFor(s.template.tema, 'plato'))
+  const { arbol, marker } = usePlantilla('plato')
   const [quickAdded,setQuickAdded] = useState(false)
   const adding = useRef(false)
   const quickAdd = <button className="sm-quick-add" aria-label={`${quickAdded?'Añadido':'Agregar'}: ${dish.nombre}`} disabled={busy||dish.agotado} onClick={async()=>{if(adding.current)return;adding.current=true;try{await add(dish.id,1,'');setQuickAdded(!useDinerStore.getState().error)}finally{adding.current=false}}}><Icon name={quickAdded?'check':'plus'}/></button>
@@ -332,7 +351,7 @@ export function FoodCard({ dish }: { dish: Dish }) {
     agregar: quickAdd,
   }
   return (
-    <article className="sm-food-card" data-plantilla={arbol ? 'propia' : undefined}>
+    <article className="sm-food-card" {...marker}>
       {arbol ? <Plantilla arbol={arbol} datos={dishTemplateData(dish)} ranuras={ranuras} fallback={factory} /> : factory}
     </article>
   )
@@ -538,11 +557,7 @@ export function SmartDish({ entry, id, onClose }: SmartProps & {onClose?:()=>voi
     <>
       <div className="sm-dish-back"><button className="sm-icon" aria-label="Volver al menú" onClick={() => onClose ? onClose() : go('carta')}><Icon name="back" /></button><Heart dish={dish} /></div>
       <article className={`sm-dish-layout ${onClose ? 'sm-dish-sheet' : ''}`}>
-        <header className="sm-dish-hero">
-          <div className="sm-dish-orbits" aria-hidden="true" />
-          <FoodPhoto dish={dish} className="sm-dish-photo" />
-          <DishRating dish={dish}/><div className="sm-dish-heading"><h1>{dish.nombre}</h1><strong className="sm-price">{money(dish.precio)}</strong>{dealFor(dish)&&<span className="sm-food-deal"><em>-{dealFor(dish)!.porcentaje}%</em><s aria-label={`Antes ${money(dealFor(dish)!.antes)}`}>{money(dealFor(dish)!.antes)}</s></span>}<PrepTime dish={dish}/></div>
-        </header>
+        <DishHero dish={dish} />
         <div className="sm-dish-info">
           {dish.descripcion && (
             <p className="sm-description">{dish.descripcion}</p>

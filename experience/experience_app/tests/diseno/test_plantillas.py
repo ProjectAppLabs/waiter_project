@@ -391,3 +391,17 @@ def test_trees_sent_by_clients_are_canonicalized():
     spaced[0]['hijos'][1]['hijos'].append({'tipo': 'texto', 'texto': 'muy   largo\n\n espacio'})
     assert plantillas.validate('plato', spaced)[0]['hijos'][1]['hijos'][-1] == {'tipo': 'texto', 'texto': 'muy largo espacio'}
     assert design.validate({'componentes': {'plato': {'version': 1, 'arbol': tree}}})['componentes']['plato']['arbol'] == tree
+
+
+# // Falla si dentro de <cada> no se pueden leer los campos declarados de la lista, o si se cuelan campos que la lista no tiene.
+def test_list_fields_inside_cada():
+    html = ('<ranura nombre="cabecera"/><ul><cada dato="pedido.lineas" como="linea"><li><dato nombre="linea.cantidad" formato="numero"/> × <dato nombre="linea.nombre"/>'
+            '<si dato="linea.subtotal"><strong><dato nombre="linea.subtotal" formato="precio"/></strong></si></li></cada></ul><ranura nombre="total"/><ranura nombre="acciones"/>')
+    tree = plantillas.compile_html('tarjeta-historial', html)
+    assert tree[1]['hijos'][0]['tipo'] == 'cada' and tree[1]['hijos'][0]['hijos'][0]['hijos'][0] == {'tipo': 'dato', 'nombre': 'linea.cantidad', 'formato': 'numero'}
+    with pytest.raises(plantillas.InvalidTemplate, match='desconocido «linea.color».*linea.nombre'):
+        plantillas.compile_html('tarjeta-historial', html.replace('linea.nombre', 'linea.color'))
+    with pytest.raises(plantillas.InvalidTemplate, match='no es un precio'):
+        plantillas.compile_html('tarjeta-historial', html.replace('linea.cantidad" formato="numero"', 'linea.cantidad" formato="precio"'))
+    with pytest.raises(plantillas.InvalidTemplate, match='desconocido «linea.nombre»'):
+        plantillas.compile_html('tarjeta-historial', '<ranura nombre="cabecera"/><dato nombre="linea.nombre"/><ranura nombre="total"/><ranura nombre="acciones"/>')

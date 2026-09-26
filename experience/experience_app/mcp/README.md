@@ -35,7 +35,7 @@ y GET y DELETE responden 405. Versiones: 2025-06-18, 2025-03-26 y 2024-11-05.
 | `describir_pantalla` | Secciones en orden, fundamentos, variantes disponibles y tema actual de una pantalla del inventario |
 | `preparar_tema` | Mezcla los campos de `tema` enviados con lo guardado (incluida la capa `componentes` con plantillas HTML restringidas, Plan K), valida y devuelve borrador, enlaces (`url` a la carta, `url_design_system` a la página viva) y token de confirmación |
 | `restablecer_tema` | Prepara volver `todo` o una `capa` (`fundamentos`, `variantes`, `distribucion`, `componentes`) a sus valores por defecto |
-| `leer_componente` | Contrato de un componente plantillable (datos, ranuras, límites), su plantilla actual en HTML, utilidades `ds-*` y decoraciones de fábrica y de la sede (Plan K3–K4) |
+| `leer_componente` | Contrato de un componente plantillable (`plato`, `banners`, `cabecera`, `ficha-heroe`, `linea-pedido`, `tarjeta-historial`, `tarjeta-estado`, `recibo-papel`): datos, ranuras, límites, su plantilla actual en HTML, utilidades `ds-*` y decoraciones de fábrica y de la sede (Plan K3–K5) |
 | `preparar_componente` | Valida una plantilla HTML restringida (`html`; `null` vuelve a la de fábrica), avisa de medidas y deja un borrador. **No publica.** |
 | `verificar_borrador` | Abre la carta con el borrador en un navegador (320, 375 y 1024 px) y mide en las tarjetas con plantilla propia desbordes, solapes, palabras partidas, textos < 14 px y controles < 44 px. Una plantilla propia solo se confirma con la última verificación en verde; volver a fábrica no la necesita |
 | `leer_diseno_menu` | Colores editables (con su uso), tipografía y las permitidas, saludo, logo y reglas de contraste |
@@ -73,7 +73,8 @@ hay que leer y preparar de nuevo. Preparar o restablecer no publica ni cambia lo
    375 y 1024 px y devuelve `estado` `ok` o `problemas` con la lista concreta («375 px: tarjetas 1, 2: la palabra
    «Hamburguesa» (144 px) no cabe en 66 px y se parte»), agrupada por tarjeta. `estado: error` (`ok: null`) significa que el
    navegador no pudo medir (no es culpa de la plantilla); `no_disponible` solo sale cuando la variable está vacía. Corre
-   una verificación a la vez por sede. Hoy mide solo la carta y la tarjeta de plato (hasta 12 tarjetas).
+   una verificación a la vez por sede. Mide en la página viva todos los componentes con plantilla propia (hasta 12 raíces
+   por componente) y, en la carta, la tarjeta, los banners y la cabecera en su contexto real.
 4. Con la aprobación de la persona, `confirmar_cambio({"token":"…"})`. Con verificador configurado, un borrador que
    introduce o cambia una plantilla propia solo se confirma con la última verificación en verde; volver a fábrica o cambiar
    otras capas no la exige.

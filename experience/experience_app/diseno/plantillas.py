@@ -232,11 +232,28 @@ class _Checker:
             return f'{scope[head]}{rest}'
         return name
 
+    def _rule(self, name):
+        """Regla de un dato del contrato o de un campo de una de sus listas («pedido.lineas.cantidad»)."""
+        rule = self.datos.get(name)
+        if rule is not None:
+            return rule
+        parent, _, field = name.rpartition('.')
+        parent_rule = self.datos.get(parent)
+        if parent_rule and parent_rule['tipo'] == 'lista':
+            return parent_rule.get('campos', {}).get(field)
+        return None
+
+    def _available(self, scope):
+        names = list(self.datos)
+        for alias, list_name in scope.items():
+            names.extend(f'{alias}.{field}' for field in self.datos[list_name].get('campos', {}))
+        return ', '.join(names)
+
     def dato(self, node, depth, scope, where):
         name = self._resolve(node.get('nombre'), scope, where)
-        rule = self.datos.get(name)
+        rule = self._rule(name)
         if rule is None:
-            raise InvalidTemplate(f'{where}: dato desconocido «{node.get("nombre")}»; disponibles: {", ".join(self.datos)}.')
+            raise InvalidTemplate(f'{where}: dato desconocido «{node.get("nombre")}»; disponibles: {self._available(scope)}.')
         if rule['tipo'] in ('booleano', 'lista'):
             raise InvalidTemplate(f'{where}: «{name}» es {rule["tipo"]}; úsalo con <si> o <cada>, no con <dato>.')
         fmt = node.get('formato', 'texto')
@@ -262,8 +279,8 @@ class _Checker:
 
     def si(self, node, depth, scope, where):
         name = self._resolve(node.get('dato'), scope, where)
-        if name not in self.datos:
-            raise InvalidTemplate(f'<si>: dato desconocido «{node.get("dato")}».')
+        if self._rule(name) is None:
+            raise InvalidTemplate(f'<si>: dato desconocido «{node.get("dato")}»; disponibles: {self._available(scope)}.')
         self.used_datos.add(name)
         return {'tipo': 'si', 'dato': node['dato'], 'hijos': self.walk(node.get('hijos', []), depth + 1, scope, f'<si dato="{name}">')}
 

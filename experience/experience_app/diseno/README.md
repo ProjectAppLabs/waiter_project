@@ -242,12 +242,12 @@ Una prueba dibuja la plantilla de fábrica desde el árbol y exige el mismo HTML
 [README del MCP](../mcp/README.md)). `plantillas.to_html` regenera el HTML de un árbol para que la IA edite la plantilla
 actual; `plantillas.warnings` aplica criterios de medidas sin navegador (`limites.ancho_minimo` del contrato: títulos
 grandes, rejillas o varias decoraciones en un componente estrecho). La verificación dinámica la hace
-`diner/scripts/design-system/verificar-borrador.cjs`: abre la carta con el borrador a 320, 375 y 1024 px y mide en las
-tarjetas con plantilla propia (hasta 12) desbordes de página y tarjeta, elementos que sobresalen, palabras que no caben
+`diner/scripts/design-system/verificar-borrador.cjs`: abre la página viva a 375 y 1024 px y la carta a 320, 375 y 1024 px
+con el borrador y mide en cada raíz con plantilla propia (hasta 12 por componente) desbordes de página y raíz, elementos que sobresalen, palabras que no caben
 (medidas con la fuente real contra el ancho del bloque), textos < 14 px, controles < 44 px y solapes (las piezas que se
 colocan encima a propósito, como la valoración o el corazón, no cuentan); escribe `{ok, problemas, medidas, capturas}` en
-stdout, con `ok: null` si no pudo medir y una nota cuando el borrador no trae plantillas propias. Hoy solo cubre la carta y
-la tarjeta de plato; cada componente nuevo añade su pantalla y su selector. experience lo lanza con `DESIGN_VERIFIER_CMD`
+stdout, con `ok: null` si no pudo medir, una nota cuando el borrador no trae plantillas propias y un problema si un
+componente del borrador no llegó a dibujarse. Los problemas se agrupan por componente. experience lo lanza con `DESIGN_VERIFIER_CMD`
 (y `DESIGN_VERIFIER_TIMEOUT`) desde `verificar_borrador`, una verificación a la vez por sede, guarda el resultado en el
 cambio pendiente (solo nombres de archivo, nunca rutas) y, con verificador configurado, `confirmar_cambio` exige la última
 verificación en verde para cualquier borrador que introduzca o cambie una plantilla propia; volver a fábrica no la exige.
@@ -264,6 +264,16 @@ cualquier id de fábrica o de su propia sede; el validador fija la sede en conte
 resolver, leer y preparar el tema y a toda herramienta MCP) y guarda en el nodo el `archivo` resuelto, que el comensal solo
 acepta si es una ruta del propio origen. Borrar una decoración invalida la caché y las plantillas que la usaban vuelven a
 fábrica al releerse. `leer_componente` lista `decoraciones.sede` junto a las de fábrica.
+
+**Componentes plantillables (K5).** Ocho contratos en `componentes/`: `plato` (tarjeta de plato), `banners`, `cabecera`,
+`ficha-heroe` (cabecera de la ficha), `linea-pedido`, `tarjeta-historial`, `tarjeta-estado` y `recibo-papel`. En todos, la
+raíz real (enlace, cabecera, artículo…) sigue siendo del código con sus variantes y acciones; la plantilla se dibuja dentro.
+Cada contrato ofrece dos formas de componer: **ranuras de fábrica** (bloques enteros del diseño actual, p. ej. `copia`,
+`saludo`, `encabezado`, `info`, `cabecera`, `total`) y **datos sueltos** (`banner.titulo`, `marca.nombre`, `linea.subtotal`,
+`pedido.lineas` con `<cada>`), con las obligaciones expresadas como alternativas en `requisitos` (el título como dato o como
+ranura de fábrica). La plantilla de fábrica de cada uno reproduce el diseño actual exactamente, y una prueba del comensal lo
+exige para los ocho. La página viva muestra los ocho con datos de muestra y marca `data-componente` en cada raíz con
+plantilla propia; el verificador mide allí todos los componentes (y en la carta la tarjeta, los banners y la cabecera).
 Los contratos viven en `componentes/<id>.json`; `componentes.json` guarda las reglas comunes y la capa `componentes` del
 esquema se completa al cargar.
 

@@ -45,7 +45,25 @@
     },
     "pedido.lineas": {
       "tipo": "lista",
-      "descripcion": "Platos: nombre, cantidad, precio y subtotal (úsalo con <cada>)."
+      "descripcion": "Platos del pedido; con <cada dato=\"pedido.lineas\" como=\"linea\"> se leen linea.nombre, linea.cantidad, linea.precio y linea.subtotal.",
+      "campos": {
+        "nombre": {
+          "tipo": "texto",
+          "descripcion": "Nombre del plato."
+        },
+        "cantidad": {
+          "tipo": "numero",
+          "descripcion": "Unidades."
+        },
+        "precio": {
+          "tipo": "precio",
+          "descripcion": "Precio unitario."
+        },
+        "subtotal": {
+          "tipo": "precio",
+          "descripcion": "Precio por la cantidad."
+        }
+      }
     }
   },
   "ranuras": {

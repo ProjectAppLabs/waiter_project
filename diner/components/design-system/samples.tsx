@@ -5,9 +5,12 @@
 import type { ReactNode } from 'react'
 import { COMPONENT_VARIANTS, SCREEN_LAYOUTS, designSystemAttributes } from '@/lib/domain/designVariants'
 import type { Dish, Entry, MenuBanner, Template } from '@/lib/types'
-import { DishRating, FoodCard, FoodPhoto, Icon, PrepTime, PriceBlock, money } from '@/components/smart/SmartMenu'
+import { DishHero, DishRating, FoodCard, FoodPhoto, Icon, PriceBlock, money } from '@/components/smart/SmartMenu'
 import { SmartHeader } from '@/components/smart/SmartHome'
 import { MenuBanners } from '@/components/smart/MenuBanners'
+import { CartLineItem, StatusCard } from '@/components/smart/SmartOrder'
+import { HistoryCard, PaperReceipt } from '@/components/smart/SmartAccount'
+import type { AccountOrder, CartLine, OrderStatus } from '@/lib/types'
 
 // Copia del inventario de experience (id, nombre y variantes que consume) para dibujar la página aunque el contrato
 // público no responda; la prueba de paridad falla si diverge de inventario.json.
@@ -27,6 +30,9 @@ export const COMPONENTS = [
   { id: 'carta', nombre: 'Distribución de los platos', variantes: ['carta'] },
   { id: 'ficha', nombre: 'Ficha del plato', variantes: ['ficha'] },
   { id: 'carrito', nombre: 'Líneas del pedido', variantes: ['carrito'] },
+  { id: 'tarjeta-historial', nombre: 'Tarjeta de pedido pasado', variantes: ['insignia'] },
+  { id: 'tarjeta-estado', nombre: 'Tarjeta de estado del pedido', variantes: [] },
+  { id: 'recibo', nombre: 'Recibo', variantes: ['insignia'] },
 ] as const
 export type ComponentId = (typeof COMPONENTS)[number]['id']
 export type VariantField = keyof typeof COMPONENT_VARIANTS | keyof typeof SCREEN_LAYOUTS
@@ -71,6 +77,17 @@ export function sampleBanners(entry: Entry, dish: Dish): MenuBanner[] {
 }
 
 export interface SampleContext { entry: Entry; dishes: Dish[] }
+
+// Pedido de muestra para las tarjetas de historial, estado y recibo: platos reales de la sede, sin tocar ninguna cuenta.
+export function sampleOrder(dishes: Dish[]): AccountOrder {
+  const lineas = dishes.slice(0, 2).map((dish, i) => ({ producto_id: dish.id, nombre: dish.nombre, cantidad: i + 1, precio: dish.precio }))
+  const total = lineas.reduce((sum, l) => sum + l.precio * l.cantidad, 0)
+  return { id: 'muestra-0001', fecha: '2026-09-20T18:30:00Z', local: 'Muestra', mesa: 8, items: lineas.length, total, estado: 'pagado', descuento: Math.round(total * 0.05), lineas }
+}
+export function sampleLines(dishes: Dish[]): CartLine[] {
+  return dishes.slice(0, 2).map((dish, i) => ({ id: i + 1, comensal: 'muestra', mio: true, producto_id: dish.id, nombre: dish.nombre, precio: dish.precio, cantidad: i + 1, nota: i === 0 ? 'Sin cebolla' : '', subtotal: dish.precio * (i + 1) }))
+}
+const never = async () => undefined
 
 // Contenedor de una muestra: atributos completos del tema (con la opción demostrada encima), .smart-menu y .sm-page reales.
 // `inert` deja las muestras sin interacción: la página enseña el diseño, nunca abre sesiones ni escribe.
@@ -138,25 +155,15 @@ export const SAMPLES: Record<ComponentId, (context: SampleContext) => ReactNode>
   ficha: ({ dishes }) => {
     const dish = showcase(dishes[0])
     return <article className="sm-dish-layout">
-      <header className="sm-dish-hero">
-        <div className="sm-dish-orbits" aria-hidden="true" />
-        <FoodPhoto dish={dish} className="sm-dish-photo" />
-        <DishRating dish={dish} />
-        <div className="sm-dish-heading"><h1>{dish.nombre}</h1><strong className="sm-price">{money(dish.precio)}</strong><PrepTime dish={dish} /></div>
-      </header>
+      <DishHero dish={dish} />
       <div className="sm-dish-info">
         <p className="sm-description">{dish.descripcion || 'Descripción del plato con sus ingredientes y su preparación.'}</p>
         <div className="sm-dish-purchase"><button type="button" className="sm-primary">Agregar a mi pedido <span>{money(dish.precio)}</span></button></div>
       </div>
     </article>
   },
-  carrito: ({ dishes }) => <section className="sm-cart-lines">{dishes.slice(0, 2).map((dish, i) => <article className="sm-cart-line" key={dish.id}>
-    <FoodPhoto dish={dish} />
-    <div className="sm-cart-line-info">
-      <h2>{dish.nombre}</h2><p>Para ti{i === 0 ? ' · Sin cebolla' : ''}</p><strong>{money(dish.precio * (i + 1))}</strong>
-      <div className="sm-line-controls"><div className="sm-stepper">
-        <button type="button" aria-label={`Menos ${dish.nombre}`}><Icon name="minus" /></button><output>{i + 1}</output><button type="button" aria-label={`Más ${dish.nombre}`}><Icon name="plus" /></button>
-      </div></div>
-    </div>
-  </article>)}</section>,
+  carrito: ({ dishes }) => <section className="sm-cart-lines">{sampleLines(dishes).map((line) => <CartLineItem key={line.id} line={line} dish={dishes.find((d) => d.id === line.producto_id)} swiped={false} onSwipe={never} busy={false} setQty={never} remove={never} />)}</section>,
+  'tarjeta-historial': ({ dishes }) => <div className="sm-history-grid"><HistoryCard order={sampleOrder(dishes)} busy={false} reordering={null} reorder={never} /></div>,
+  'tarjeta-estado': ({ dishes }) => <section className="sm-status"><StatusCard order={{ id: 'muestra-0001', sesion: 'muestra', estado: 'en_cocina', total: sampleOrder(dishes).total, impuestos: 0, intentos: 1 } as OrderStatus} current={1} /></section>,
+  recibo: ({ dishes }) => <PaperReceipt order={sampleOrder(dishes)} products={dishes} />,
 }

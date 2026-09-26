@@ -78,3 +78,10 @@
 /* Piezas reales dentro de una plantilla propia: la foto no supera el ancho que le deje la plantilla. Solo se acota;
  * el ancho, la proporción y el margen siguen siendo los de la carta y de sus variantes (cuadrícula, foto grande). */
 .smart-menu .sm-food-card[data-plantilla] .sm-food-photo { max-width: 100%; height: auto; flex: 0 1 auto; min-width: 0; }
+/* Cabecera de la ficha con plantilla propia: la foto deja de ir en absoluto a la derecha (distribución «actual») y fluye con
+ * la plantilla, como en la distribución «héroe»; así la plantilla decide el orden sin que la foto tape lo que ponga. */
+.smart-menu .sm-dish-hero[data-plantilla] { display: flex; flex-direction: column; align-items: stretch; position: relative; top: auto; min-height: 0; padding-top: var(--ds-espacio-24); }
+.smart-menu .sm-dish-hero[data-plantilla] > .sm-dish-orbits { display: none; }
+.smart-menu .sm-dish-hero[data-plantilla] .sm-dish-photo { position: relative; inset: auto; width: min(100%, 280px); height: auto; max-width: 100%; aspect-ratio: 1; margin: 0 auto var(--ds-espacio-12); }
+.smart-menu .sm-dish-hero[data-plantilla] > .sm-rating-pill { position: static; align-self: flex-start; }
+.smart-menu .sm-dish-hero[data-plantilla] .sm-dish-heading { width: 100%; padding: var(--ds-espacio-16) 0 0; text-align: left; }

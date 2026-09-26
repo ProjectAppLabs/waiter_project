@@ -118,8 +118,10 @@ necesita `DESIGN_VERIFIER_CMD="node /home/cerrotico/work/waiter_project/diner/sc
 y en su entorno `CDP_URL=http://127.0.0.1:9333` y `DINER_URL=http://localhost:3001` con Edge y el puente TCP abiertos
 (sección 4); con la variable vacía la herramienta responde `no_disponible`, y si Edge o el puente están caídos responde
 `error` (no es culpa de la plantilla). **K4 (galería de decoraciones por sede: modelo, migración `0027` aplicada
-localmente con copia previa en `test-reports/k4/`, pasarela de Odoo, sección del POS) también está hecho.** Sigue K5
-(más componentes plantillables).
+localmente con copia previa en `test-reports/k4/`, pasarela de Odoo, sección del POS) y K5 (siete componentes
+plantillables más, página viva y verificador ampliados) también están hechos.** El Plan K queda completo salvo los
+recorridos ilustrados. Las ramas J2 a J5 y la de K (`feat/25092026-plan-k1-contrato-plantillas`, que contiene K1 a K5)
+siguen sin publicar; conservar el orden J1 → J5 → K y una fase por PR (K puede ir en un PR por fase con `git rebase -i`).
 
 ### Plan J: completo
 

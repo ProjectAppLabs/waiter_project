@@ -6,7 +6,10 @@ import { updateAccount } from '@/lib/services/api'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { initials } from '@/lib/domain/template'
 import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { AccountOrder, RegisterForm } from '@/lib/types'
+import type { AccountOrder, Dish, RegisterForm } from '@/lib/types'
+import { Plantilla } from '@/components/plantillas/Renderizador'
+import { usePlantilla } from '@/components/plantillas/usePlantilla'
+import type { TemplateData } from '@/lib/domain/plantillas'
 import {
   Empty,
   FoodPhoto,
@@ -461,57 +464,7 @@ export function SmartHistory() {
           {orders.length ? (
             <div className="sm-history-grid">
               {orders.map((o) => (
-                <article className="sm-history-card" key={o.id}>
-                  <div className="sm-history-top">
-                    <span>
-                      <Icon name="bag" />
-                      Pedido #{o.id.slice(0, 8)}
-                    </span>
-                    <span className="sm-status-chip">
-                      {historyStatus[o.estado]}
-                    </span>
-                  </div>
-                  <h2>{o.local}</h2>
-                  <p>
-                    {new Date(o.fecha).toLocaleDateString('es-CO', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                    })}
-                    {o.mesa ? ` · Mesa ${o.mesa}` : ''}
-                  </p>
-                  <ul>
-                    {o.lineas?.map((l, i) => (
-                      <li key={i}>
-                        <span>
-                          {l.cantidad} × {l.nombre}
-                        </span>
-                        <span>{money(l.precio * l.cantidad)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="sm-total">
-                    <span>Tu consumo</span>
-                    <strong>{money(o.total)}</strong>
-                  </div>
-                  <div className="sm-history-actions"><Link className="sm-text-button" href={href('opinion',o.id)}>Valorar visita</Link><Link className="sm-text-button" href={href('recibo',o.id)}>Ver detalle</Link>
-                    <Link
-                      className="sm-text-button"
-                      href={href('estado', o.id)}
-                    >
-                      Ver estado
-                    </Link>
-                    {!!o.lineas?.length && (
-                      <button
-                        className="sm-secondary"
-                        disabled={busy || reordering !== null}
-                        onClick={() => void reorder(o)}
-                      >
-                        {reordering === o.id ? 'Agregando…' : 'Volver a pedir'}
-                      </button>
-                    )}
-                  </div>
-                </article>
+                <HistoryCard key={o.id} order={o} busy={busy} reordering={reordering} reorder={reorder} />
               ))}
             </div>
           ) : (
@@ -567,5 +520,51 @@ export function SmartReceipt({id}: {id: string | null}) {
   const order = accountOrders.find(o => o.id === id && (!o.restaurante || o.restaurante === keys?.rest) && (!o.sede || o.sede === keys?.venue))
   if (!order) return <Empty icon="bag" title="No encontramos este pedido en tu cuenta" action="Mis pedidos" onAction={() => go('historial')}/>
   const products = entry?.carta.categorias.flatMap(c => c.productos) || []
-  return <><Title title="Detalle del pedido" back="historial"/><article className="sm-paper-receipt"><header><span className="sm-avatar"><Icon name="plate"/></span><h1>{order.local}</h1><p>{new Date(order.fecha).toLocaleString('es-CO',{dateStyle:'long',timeStyle:'short'})}</p><p>Pedido #{order.id.slice(0,8)}{order.mesa ? ` · Mesa ${order.mesa}` : ''}</p><span className="sm-status-chip">{historyStatus[order.estado]}</span></header><div className="sm-receipt-lines">{order.lineas?.map((line,i) => <div key={i}><FoodPhoto dish={products.find(p => p.id === line.producto_id) || {id:line.producto_id,nombre:line.nombre,precio:line.precio,agotado:false,categorias:[]}}/><span><strong>{line.nombre}</strong><small>{line.cantidad} × {money(line.precio)}</small></span><strong>{money(line.cantidad * line.precio)}</strong></div>)}</div>{order.descuento > 0 && <div className="sm-receipt-total"><span>Descuento</span><strong>{money(order.descuento)}</strong></div>}<div className="sm-receipt-total"><span>Total</span><strong>{money(order.total)}</strong></div></article><Link className="sm-primary" href={href('historial')}>Volver a mis pedidos<Icon name="arrow"/></Link></>
+  return <><Title title="Detalle del pedido" back="historial"/><PaperReceipt order={order} products={products}/><Link className="sm-primary" href={href('historial')}>Volver a mis pedidos<Icon name="arrow"/></Link></>
+}
+
+// ---- Plan K5: componentes plantillables de la cuenta ---------------------------------------------------------------
+const longDate = (iso: string) => new Date(iso).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })
+const orderLines = (order: AccountOrder) => (order.lineas ?? []).map((l) => ({ nombre: l.nombre, cantidad: l.cantidad, precio: l.precio, subtotal: l.precio * l.cantidad }))
+// Datos que una plantilla de la tarjeta de historial puede enlazar (contrato «tarjeta-historial»).
+export function historyTemplateData(order: AccountOrder): TemplateData {
+  return { 'pedido.numero': `#${order.id.slice(0, 8)}`, 'pedido.estado': historyStatus[order.estado], 'pedido.local': order.local, 'pedido.fecha': longDate(order.fecha),
+    'pedido.mesa': !!order.mesa, 'pedido.mesa.numero': order.mesa ?? null, 'pedido.total': order.total, 'pedido.lineas': orderLines(order) }
+}
+export function HistoryCard({ order: o, busy, reordering, reorder }: { order: AccountOrder; busy: boolean; reordering: string | null; reorder: (order: AccountOrder) => Promise<void> }) {
+  const { href } = useSmartRoute()
+  const { arbol, marker } = usePlantilla('tarjeta-historial')
+  const estado = <span className="sm-status-chip">{historyStatus[o.estado]}</span>
+  const cabecera = <div className="sm-history-top"><span><Icon name="bag" />Pedido #{o.id.slice(0, 8)}</span>{estado}</div>
+  const titulo = <h2>{o.local}</h2>
+  const fecha = <p>{longDate(o.fecha)}{o.mesa ? ` · Mesa ${o.mesa}` : ''}</p>
+  const lineas = <ul>{o.lineas?.map((l, i) => <li key={i}><span>{l.cantidad} × {l.nombre}</span><span>{money(l.precio * l.cantidad)}</span></li>)}</ul>
+  const total = <div className="sm-total"><span>Tu consumo</span><strong>{money(o.total)}</strong></div>
+  const acciones = <div className="sm-history-actions"><Link className="sm-text-button" href={href('opinion',o.id)}>Valorar visita</Link><Link className="sm-text-button" href={href('recibo',o.id)}>Ver detalle</Link><Link className="sm-text-button" href={href('estado', o.id)}>Ver estado</Link>{!!o.lineas?.length && <button className="sm-secondary" disabled={busy || reordering !== null} onClick={() => void reorder(o)}>{reordering === o.id ? 'Agregando…' : 'Volver a pedir'}</button>}</div>
+  const factory = <>{cabecera}{titulo}{fecha}{lineas}{total}{acciones}</>
+  return (
+    <article className="sm-history-card" {...marker}>
+      {arbol ? <Plantilla arbol={arbol} datos={historyTemplateData(o)} ranuras={{ cabecera, estado, titulo, fecha, lineas, total, acciones }} fallback={factory} /> : factory}
+    </article>
+  )
+}
+
+// Datos que una plantilla del recibo puede enlazar (contrato «recibo-papel»).
+export function receiptTemplateData(order: AccountOrder): TemplateData {
+  return { 'pedido.numero': `#${order.id.slice(0, 8)}`, 'pedido.estado': historyStatus[order.estado], 'pedido.local': order.local,
+    'pedido.fecha': new Date(order.fecha).toLocaleString('es-CO', { dateStyle: 'long', timeStyle: 'short' }), 'pedido.mesa': !!order.mesa, 'pedido.mesa.numero': order.mesa ?? null,
+    'pedido.descuento': order.descuento > 0, 'pedido.descuento.monto': order.descuento > 0 ? order.descuento : null, 'pedido.total': order.total, 'pedido.lineas': orderLines(order) }
+}
+export function PaperReceipt({ order, products }: { order: AccountOrder; products: Dish[] }) {
+  const { arbol, marker } = usePlantilla('recibo-papel')
+  const cabecera = <header><span className="sm-avatar"><Icon name="plate"/></span><h1>{order.local}</h1><p>{new Date(order.fecha).toLocaleString('es-CO',{dateStyle:'long',timeStyle:'short'})}</p><p>Pedido #{order.id.slice(0,8)}{order.mesa ? ` · Mesa ${order.mesa}` : ''}</p><span className="sm-status-chip">{historyStatus[order.estado]}</span></header>
+  const lineas = <div className="sm-receipt-lines">{order.lineas?.map((line,i) => <div key={i}><FoodPhoto dish={products.find(p => p.id === line.producto_id) || {id:line.producto_id,nombre:line.nombre,precio:line.precio,agotado:false,categorias:[]}}/><span><strong>{line.nombre}</strong><small>{line.cantidad} × {money(line.precio)}</small></span><strong>{money(line.cantidad * line.precio)}</strong></div>)}</div>
+  const descuento = order.descuento > 0 ? <div className="sm-receipt-total"><span>Descuento</span><strong>{money(order.descuento)}</strong></div> : null
+  const total = <div className="sm-receipt-total"><span>Total</span><strong>{money(order.total)}</strong></div>
+  const factory = <>{cabecera}{lineas}{descuento}{total}</>
+  return (
+    <article className="sm-paper-receipt" {...marker}>
+      {arbol ? <Plantilla arbol={arbol} datos={receiptTemplateData(order)} ranuras={{ cabecera, lineas, descuento, total }} fallback={factory} /> : factory}
+    </article>
+  )
 }

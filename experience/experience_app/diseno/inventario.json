@@ -344,6 +344,58 @@
       "variantes": [
         "carrito"
       ]
+    },
+    {
+      "id": "tarjeta-historial",
+      "nombre": "Tarjeta de pedido pasado",
+      "selectores": [
+        ".sm-history-card",
+        ".sm-history-top",
+        ".sm-history-actions"
+      ],
+      "fundamentos": [
+        "fundamentos.texto",
+        "fundamentos.densidad",
+        "fundamentos.forma.tarjeta",
+        "fundamentos.colores.superficie"
+      ],
+      "variantes": [
+        "insignia"
+      ]
+    },
+    {
+      "id": "tarjeta-estado",
+      "nombre": "Tarjeta de estado del pedido",
+      "selectores": [
+        ".sm-status-card",
+        ".sm-status-art"
+      ],
+      "fundamentos": [
+        "fundamentos.texto",
+        "fundamentos.titulo",
+        "fundamentos.densidad",
+        "fundamentos.forma.tarjeta",
+        "fundamentos.colores.acento"
+      ],
+      "variantes": []
+    },
+    {
+      "id": "recibo",
+      "nombre": "Recibo",
+      "selectores": [
+        ".sm-paper-receipt",
+        ".sm-receipt-lines",
+        ".sm-receipt-total"
+      ],
+      "fundamentos": [
+        "fundamentos.texto",
+        "fundamentos.densidad",
+        "fundamentos.colores.superficie",
+        "fundamentos.colores.tinta"
+      ],
+      "variantes": [
+        "insignia"
+      ]
     }
   ],
   "pantallas": {
@@ -398,7 +450,7 @@
     ],
     "historial": [
       "cabecera",
-      "plato"
+      "tarjeta-historial"
     ],
     "favoritos": [
       "cabecera",
@@ -407,6 +459,7 @@
     ],
     "estado": [
       "cabecera",
+      "tarjeta-estado",
       "texto",
       "boton"
     ],
@@ -466,8 +519,7 @@
     ],
     "recibo": [
       "cabecera",
-      "texto",
-      "pedido"
+      "recibo"
     ],
     "ubicacion": [
       "cabecera",
