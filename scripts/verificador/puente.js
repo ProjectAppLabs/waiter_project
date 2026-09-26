@@ -1,16 +1,21 @@
-// Plan K, paquete B: puente TCP 127.0.0.1:3001 → WAITER_HOST:3001 para que el Edge de Windows llegue al comensal.
-// En WSL2 con red en espejo, el firewall de Hyper-V no deja que Windows abra la IP de la LAN del propio equipo, pero sí
-// localhost, que WSL comparte. El verificador usa DINER_URL=http://localhost:3001 y pasa por aquí. Sin WAITER_HOST toma
-// la IP de salida de la máquina, igual que scripts/dev.sh. Se instala como servicio con scripts/verificador/waiter-puente.service.
+// Plan K, paquete B: puente 127.0.0.1:<puerto> → WAITER_HOST:<puerto> para los puertos de desarrollo.
+// En WSL2 con red en espejo, Windows no llega a los servicios de WSL por la IP de la LAN del propio equipo (salvo con
+// hostAddressLoopback=true en .wslconfig), pero sí por localhost, que ambos comparten. Así el Edge del verificador abre
+// http://localhost:3001 y el navegador de Windows puede usar localhost para el comensal, el POS, Odoo, experience y el
+// registro. Sin WAITER_HOST toma la IP de salida de la máquina, igual que scripts/dev.sh. Servicio: waiter-puente.service.
 const net = require('net')
 const { execSync } = require('child_process')
 function hostIp() {
   if (process.env.WAITER_HOST) return process.env.WAITER_HOST
   try { return execSync('ip -4 route get 1.1.1.1', { encoding: 'utf8' }).match(/src (\S+)/)[1] } catch { return '127.0.0.1' }
 }
-const host = hostIp(), port = Number(process.env.WAITER_PORT || 3001)
-net.createServer((client) => {
-  const upstream = net.connect(port, host)
-  client.pipe(upstream).pipe(client)
-  client.on('error', () => upstream.destroy()); upstream.on('error', () => client.destroy())
-}).listen(port, '127.0.0.1', () => console.log(`puente 127.0.0.1:${port} → ${host}:${port}`))
+const host = hostIp()
+const ports = (process.env.WAITER_PORTS || '3000,3001,8001,8002,8069').split(',').map(Number).filter(Boolean)
+for (const port of ports) {
+  net.createServer((client) => {
+    const upstream = net.connect(port, host)
+    client.pipe(upstream).pipe(client)
+    client.on('error', () => upstream.destroy()); upstream.on('error', () => client.destroy())
+  }).on('error', (error) => console.error(`puente ${port}: ${error.message}`))
+    .listen(port, '127.0.0.1', () => console.log(`puente 127.0.0.1:${port} → ${host}:${port}`))
+}
