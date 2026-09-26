@@ -53,6 +53,7 @@
 .ds-option[data-elegida="true"] > .ds-sample { outline: 3px solid var(--t-acento); outline-offset: -3px; }
 /* Dentro de una muestra, lo que en la carta es fijo o modal se ve en su sitio. */
 .ds-sample > .smart-menu { min-height: 0; }
+.ds-sample .sm-journey { min-height: 0; }
 /* Las pantallas de ficha y pedido reservan sitio para sus barras fijas; en la muestra esas barras van en su sitio. */
 .ds-sample .smart-menu .sm-page { max-width: none; padding: 24px !important; }
 .ds-sample .sm-dish-purchase { position: static; inset: auto; border-radius: calc(24px * var(--ds-forma-hoja)); }

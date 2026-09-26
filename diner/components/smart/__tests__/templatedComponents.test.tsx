@@ -5,6 +5,7 @@ import { SmartHeader } from '../SmartHome'
 import { DishHero } from '../SmartMenu'
 import { CartLineItem, StatusCard } from '../SmartOrder'
 import { HistoryCard, PaperReceipt } from '../SmartAccount'
+import { Recorrido } from '../Recorrido'
 import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
 import { useDinerStore } from '@/lib/stores/dinerStore'
 import type { AccountOrder, CartLine, Dish, Entry, MenuBanner, MenuTheme, OrderStatus } from '@/lib/types'
@@ -36,6 +37,8 @@ const CASES: { id: string; selector: string; render: () => React.ReactElement; c
     custom: '<div class="ds-pila"><strong><dato nombre="pedido.local"/> · <dato nombre="pedido.numero"/></strong><ul><cada dato="pedido.lineas" como="linea"><li><dato nombre="linea.cantidad" formato="numero"/>× <dato nombre="linea.nombre"/> = <dato nombre="linea.subtotal" formato="precio"/></li></cada></ul><ranura nombre="total"/><ranura nombre="acciones"/></div>', expect: 'Casa Demo · #a1b2c3d42× Bandeja paisa = $ 64.000' },
   { id: 'recibo-papel', selector: '.sm-paper-receipt', render: () => <PaperReceipt order={past} products={[dish]} />,
     custom: '<h1><dato nombre="pedido.local"/></h1><si dato="pedido.descuento"><p>Descuento <dato nombre="pedido.descuento.monto" formato="precio"/></p></si><ranura nombre="total"/>', expect: 'Casa DemoDescuento $ 3.200' },
+  { id: 'recorrido', selector: '.sm-recorrido', render: () => <section className="sm-journey sm-intro"><Recorrido ilustracion="/smart-menu/stars.png" diapositivas={{ actual: 1, total: 4, ir: () => undefined }} titulo="Conoce tu menú" texto="Pide desde tu mesa." cuerpo={<p className="sm-note">Nota de la pantalla</p>} acciones={<button type="button" className="sm-primary">Continuar</button>} /></section>,
+    custom: '<ranura nombre="ilustracion"/><h1 class="ds-texto-grande"><dato nombre="recorrido.titulo"/></h1><small>Paso <dato nombre="recorrido.paso" formato="numero"/> de <dato nombre="recorrido.pasos" formato="numero"/></small><si dato="recorrido.texto"><p><dato nombre="recorrido.texto"/></p></si><ranura nombre="cuerpo"/><ranura nombre="acciones"/>', expect: 'Conoce tu menúPaso 2 de 4Pide desde tu mesa.Nota de la pantallaContinuar' },
 ]
 const withTemplate = (id: string, arbol: unknown) => useDinerStore.setState({ template: { ...DEFAULT_TEMPLATE, tema: { version: 2, componentes: { [id]: { version: 1, arbol } } } as unknown as MenuTheme } })
 const html = (container: HTMLElement, selector: string) => container.querySelector(selector)!.innerHTML

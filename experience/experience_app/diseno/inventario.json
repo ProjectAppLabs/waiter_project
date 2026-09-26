@@ -396,6 +396,23 @@
       "variantes": [
         "insignia"
       ]
+    },
+    {
+      "id": "recorrido",
+      "nombre": "Recorrido con ilustración",
+      "selectores": [
+        ".sm-recorrido",
+        ".sm-orbit-hero",
+        ".sm-slide-dots",
+        ".sm-journey-footer"
+      ],
+      "fundamentos": [
+        "fundamentos.texto",
+        "fundamentos.titulo",
+        "fundamentos.densidad",
+        "fundamentos.colores.acento"
+      ],
+      "variantes": []
     }
   ],
   "pantallas": {
@@ -405,7 +422,8 @@
       "categorias",
       "carta",
       "plato",
-      "pedido"
+      "pedido",
+      "recorrido"
     ],
     "plato": [
       "cabecera",
@@ -461,7 +479,8 @@
       "cabecera",
       "tarjeta-estado",
       "texto",
-      "boton"
+      "boton",
+      "recorrido"
     ],
     "la-cuenta": [
       "cabecera",
@@ -475,22 +494,26 @@
     "opinion": [
       "cabecera",
       "texto",
-      "boton"
+      "boton",
+      "recorrido"
     ],
     "cuenta/correo": [
       "cabecera",
       "campo",
-      "boton"
+      "boton",
+      "recorrido"
     ],
     "cuenta/canal": [
       "cabecera",
       "texto",
-      "boton"
+      "boton",
+      "recorrido"
     ],
     "cuenta/lista": [
       "cabecera",
       "texto",
-      "boton"
+      "boton",
+      "recorrido"
     ],
     "cuenta/informacion": [
       "cabecera",
@@ -515,7 +538,8 @@
     "cuenta/restablecer": [
       "cabecera",
       "campo",
-      "boton"
+      "boton",
+      "recorrido"
     ],
     "recibo": [
       "cabecera",
@@ -525,7 +549,8 @@
       "cabecera",
       "campo",
       "texto",
-      "boton"
+      "boton",
+      "recorrido"
     ],
     "recompensas": [
       "cabecera",

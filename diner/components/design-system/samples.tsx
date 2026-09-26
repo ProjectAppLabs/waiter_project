@@ -10,6 +10,7 @@ import { SmartHeader } from '@/components/smart/SmartHome'
 import { MenuBanners } from '@/components/smart/MenuBanners'
 import { CartLineItem, StatusCard } from '@/components/smart/SmartOrder'
 import { HistoryCard, PaperReceipt } from '@/components/smart/SmartAccount'
+import { Recorrido } from '@/components/smart/Recorrido'
 import type { AccountOrder, CartLine, OrderStatus } from '@/lib/types'
 
 // Copia del inventario de experience (id, nombre y variantes que consume) para dibujar la página aunque el contrato
@@ -33,6 +34,7 @@ export const COMPONENTS = [
   { id: 'tarjeta-historial', nombre: 'Tarjeta de pedido pasado', variantes: ['insignia'] },
   { id: 'tarjeta-estado', nombre: 'Tarjeta de estado del pedido', variantes: [] },
   { id: 'recibo', nombre: 'Recibo', variantes: ['insignia'] },
+  { id: 'recorrido', nombre: 'Recorrido con ilustración', variantes: [] },
 ] as const
 export type ComponentId = (typeof COMPONENTS)[number]['id']
 export type VariantField = keyof typeof COMPONENT_VARIANTS | keyof typeof SCREEN_LAYOUTS
@@ -166,4 +168,7 @@ export const SAMPLES: Record<ComponentId, (context: SampleContext) => ReactNode>
   'tarjeta-historial': ({ dishes }) => <div className="sm-history-grid"><HistoryCard order={sampleOrder(dishes)} busy={false} reordering={null} reorder={never} /></div>,
   'tarjeta-estado': ({ dishes }) => <section className="sm-status"><StatusCard order={{ id: 'muestra-0001', sesion: 'muestra', estado: 'en_cocina', total: sampleOrder(dishes).total, impuestos: 0, intentos: 1 } as OrderStatus} current={1} /></section>,
   recibo: ({ dishes }) => <PaperReceipt order={sampleOrder(dishes)} products={dishes} />,
+  // La introducción de la primera visita: ilustración, puntos de diapositiva, título, frase y pie con dos acciones.
+  recorrido: ({ entry }) => <section className="sm-journey sm-intro"><Recorrido ilustracion="/smart-menu/onboarding-menu.png" diapositivas={{ actual: 0, total: 4, ir: noop }} titulo="El menú, a tu manera" texto={`Explora los platos de ${entry.contexto.marca.nombre} y encuentra algo que te encante.`}
+    acciones={<><button type="button" className="sm-primary">Continuar<Icon name="arrow" /></button><button type="button" className="sm-text-button">Omitir introducción</button></>} /></section>,
 }

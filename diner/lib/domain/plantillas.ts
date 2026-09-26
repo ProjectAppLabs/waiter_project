@@ -3,7 +3,7 @@ import type { ComponentTemplate, MenuTheme, TemplateNode } from '@/lib/types'
 // Plan K2: qué plantilla de componente aplica y cómo se leen sus datos. La validación de fondo la hizo experience
 // (diseno/plantillas.py); aquí solo se comprueba lo que protege al comensal: versión del contrato, forma del árbol,
 // etiquetas y clases admitidas. Cualquier duda vuelve al componente de fábrica.
-export const COMPONENT_CONTRACTS = { plato: 1, banners: 1, cabecera: 1, 'ficha-heroe': 1, 'linea-pedido': 1, 'tarjeta-historial': 1, 'tarjeta-estado': 1, 'recibo-papel': 1 } as const
+export const COMPONENT_CONTRACTS = { plato: 1, banners: 1, cabecera: 1, 'ficha-heroe': 1, 'linea-pedido': 1, 'tarjeta-historial': 1, 'tarjeta-estado': 1, 'recibo-papel': 1, recorrido: 1 } as const
 export type TemplatableComponent = keyof typeof COMPONENT_CONTRACTS
 export const TEMPLATE_TAGS = ['div', 'span', 'p', 'h1', 'h2', 'h3', 'strong', 'em', 'small', 'ul', 'ol', 'li', 'figure', 'figcaption'] as const
 const UTILITY = /^ds-[a-z0-9-]+$/

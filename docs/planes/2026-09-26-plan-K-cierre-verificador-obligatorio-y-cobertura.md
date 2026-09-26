@@ -58,6 +58,11 @@ Para que esté siempre:
 
 Criterio: `verificar_borrador` por MCP devuelve `ok`/`problemas` sin intervención manual, también tras reiniciar el equipo.
 
+Ojo con la IP: los `.env` locales (`experience/.env`, `registry/.env`, `diner/.env.local`, `pos/.env.local`) fijan la IP de la
+máquina en la LAN (`REGISTRY_URL`, `EXPERIENCE_ORIGIN`, `ODOO_ORIGIN`, `ALLOWED_HOSTS`, `CORS`). El 2026-09-26 el DHCP cambió
+192.168.1.13 por 192.168.1.8 y los servicios dejaron de encontrarse (503 en experience, comensal sin API). Reserva la IP en
+el router o, tras un cambio, actualiza esas líneas y reinicia con `scripts/dev.sh down && scripts/dev.sh up`.
+
 ### C. Recorridos (Claude)
 
 Extraer un componente `Recorrido` (ilustración `sm-orbit-hero`, título, texto, pie con una o dos acciones, puntos de
@@ -85,5 +90,12 @@ Pruebas con un verificador falso que tarda.
 
 1. A y C en paralelo → 2. B (dueño) y D → 3. E.
 
-**Estado (2026-09-26):** plan escrito; C empieza con Claude; A queda para Codex con el
-[traspaso](../traspaso/2026-09-26-traspaso-codex-plan-k-cierre.md).
+**Estado (2026-09-26):** plan escrito. **C hecho** (rama `feat/26092026-plan-k-c-recorridos`): componente `Recorrido`
+(`diner/components/smart/Recorrido.tsx`) en las nueve pantallas, contrato `componentes/recorrido.json` (datos
+`recorrido.titulo/texto/paso/pasos/ilustrado`; ranuras `ilustracion`, `cuerpo` y `acciones` obligatorias, `puntos`, `titulo`,
+`texto`), muestra en la página viva, inventario, verificador (excluye la ilustración orbital y los puntos de diapositiva) y
+pruebas: la genérica de plantillas y una por pantalla. Cambio visual mínimo: los enlaces del pie del recorrido pasan a 44 px de
+alto. La medición en Edge de un borrador con plantilla propia del recorrido queda pendiente de que el registro
+apunte a la IP actual de Odoo (ver «Ojo con la IP» en B); el contrato, la muestra y las suites están en verde. A corre con Codex (plugin `openai/codex-plugin-cc`, árbol `../waiter_project-codex-a`, rama
+`feat/26092026-plan-k-a-verificador-obligatorio`) con el [traspaso](../traspaso/2026-09-26-traspaso-codex-plan-k-cierre.md).
+Sigue D.

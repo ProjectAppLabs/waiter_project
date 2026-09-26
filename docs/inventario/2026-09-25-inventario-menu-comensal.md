@@ -110,7 +110,7 @@ controla el código.
 | rebaja | Rebaja | `.sm-food-deal` (em, s) | *precioAntes > precio → porcentaje* | — | nuevo (hoy dentro de insignia) |
 | insignia | Valoración, estado y tiempo | `.sm-rating-pill`, `.sm-dish-rating`, `.sm-status-chip`, `.sm-food-time`, `.sm-sold-out` | *valoracion.promedio/cantidad, estado del pedido, tiempoPreparacion, agotado* | — | existe; ampliar selectores |
 | texto | Texto del menú | `.smart-menu` h1/h2/h3/p, `.sm-description`, `.sm-eyebrow` | — | — | existe |
-| recorrido | Pantalla con ilustración | `.sm-journey`, `.sm-intro`, `.sm-orbit-hero`, `.sm-journey-footer`, `.sm-slide-dots` | **ilustración (`/smart-menu/*.png`), título, texto**; *pie con 1–2 acciones, puntos de diapositiva* | `ranura: principal, secundaria` | nuevo; usado en 9 pantallas y la intro |
+| recorrido | Pantalla con ilustración | `.sm-journey`, `.sm-intro`, `.sm-recorrido`, `.sm-orbit-hero`, `.sm-journey-footer`, `.sm-slide-dots` | **ilustración (`/smart-menu/*.png`), título, texto**; *pie con 1–2 acciones, puntos de diapositiva* | `ranura: principal, secundaria` | nuevo; usado en 9 pantallas y la intro |
 | tarjeta-opcion | Tarjeta de opción | `.sm-home-options`, `.sm-home-card`, `.sm-home-arrow`, `.sm-fulfillment-option` | **título, texto/icono**; *imagen* | `ranura: elegir` | nuevo |
 
 ### 3.2 Carta y favoritos
