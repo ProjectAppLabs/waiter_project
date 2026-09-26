@@ -53,5 +53,7 @@ servicios ya implementados. El contrato ejecutado de H prevalece para sus flujos
 - [Inventario de pantallas y componentes del menú del comensal: base del Plan K](inventario/2026-09-25-inventario-menu-comensal.md)
 - [Plan K: plantillas HTML por componente con datos y design system siempre enlazados](planes/2026-09-25-plan-K-plantillas-por-componente.md)
 - [Decisión: plantillas HTML restringidas por componente](decisiones/2026-09-25-plantillas-html-restringidas-por-componente.md)
+- [Plan K · cierre: verificador obligatorio, navegador permanente y cobertura](planes/2026-09-26-plan-K-cierre-verificador-obligatorio-y-cobertura.md)
+- [Traspaso a Codex del cierre del Plan K (paquetes A y E)](traspaso/2026-09-26-traspaso-codex-plan-k-cierre.md)
 - [Traspaso de J4: estado y cierre local](traspaso/2026-09-25-j4-estado-y-cierre.md)
 - [Traspaso a Codex (2026-09-24): estado, ramas, pendientes y entorno](traspaso/2026-09-24-traspaso-a-codex.md)
