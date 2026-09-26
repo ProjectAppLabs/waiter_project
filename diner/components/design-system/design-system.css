@@ -53,6 +53,9 @@
 .ds-option[data-elegida="true"] > .ds-sample { outline: 3px solid var(--t-acento); outline-offset: -3px; }
 /* Dentro de una muestra, lo que en la carta es fijo o modal se ve en su sitio. */
 .ds-sample > .smart-menu { min-height: 0; }
+/* En anchos de teléfono la muestra sangra hasta los bordes de la página: así mide lo mismo que la pantalla real
+ * (375 px de ventana = 327 px de contenido) y el verificador no ve solapes que en el menú no existen. */
+@media (max-width: 480px) { .ds-sample { margin: 0 -16px; border-left: 0; border-right: 0; border-radius: 0; } }
 .ds-sample .sm-journey { min-height: 0; }
 /* Las pantallas de ficha y pedido reservan sitio para sus barras fijas; en la muestra esas barras van en su sitio. */
 .ds-sample .smart-menu .sm-page { max-width: none; padding: 24px !important; }

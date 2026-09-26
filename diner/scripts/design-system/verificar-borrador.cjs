@@ -46,8 +46,13 @@ function measureRoots() {
     const heading = root.querySelector('h1,h2,h3')?.textContent.trim().slice(0, 30)
     const label = `${component} ${counts[component]}${heading ? ` («${heading}»)` : ''}`
     const rb = box(root)
-    if (root.scrollWidth > root.clientWidth + 1) problems.push(`${label}: el contenido desborda ${root.scrollWidth - root.clientWidth} px a lo ancho`)
-    for (const el of root.querySelectorAll('*')) {
+    // Un carril que se desplaza a lo ancho a propósito (categorías, tarjetas en fila) no desborda: su contenido sigue.
+    // Una raíz que recorta (overflow hidden) esconde adornos que se salen por diseño; lo que importa allí es que ningún
+    // elemento real quede fuera de su caja, y eso lo mira la comprobación siguiente.
+    const overflowX = getComputedStyle(root).overflowX
+    const rail = ['auto', 'scroll'].includes(overflowX), clipped = overflowX === 'hidden'
+    if (!rail && !clipped && root.scrollWidth > root.clientWidth + 1) problems.push(`${label}: el contenido desborda ${root.scrollWidth - root.clientWidth} px a lo ancho`)
+    if (!rail) for (const el of root.querySelectorAll('*')) {
       if (!visible(el) || floats(el)) continue
       const r = box(el)
       if (r.right > rb.right + 1 || r.left < rb.left - 1) { problems.push(`${label}: «${name(el)}» sobresale del componente`); break }
@@ -116,6 +121,8 @@ async function main() {
       page.on('request', (request) => { if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method())) writes.push(`${request.method()} ${request.url()}`) })
       await page.goto(`${base}/${encodeURIComponent(rest)}/${encodeURIComponent(venue)}/${spec.path}/?borrador=${encodeURIComponent(token)}`, { waitUntil: 'networkidle', timeout: 120000 })
       await page.locator(spec.wait).first().waitFor({ timeout: 60000 })
+      // Un teléfono no reserva sitio para la barra de desplazamiento; el Edge de Windows sí (15 px). Se oculta para medir el ancho real.
+      await page.addStyleTag({ content: 'html { scrollbar-width: none } ::-webkit-scrollbar { display: none }' })
       await page.evaluate(() => document.fonts.ready)
       await page.waitForTimeout(600)
       const measured = await page.evaluate(measureRoots)

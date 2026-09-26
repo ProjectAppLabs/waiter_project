@@ -58,6 +58,13 @@ Para que esté siempre:
 
 Criterio: `verificar_borrador` por MCP devuelve `ok`/`problemas` sin intervención manual, también tras reiniciar el equipo.
 
+**Estado de B (2026-09-26).** Hecho: `scripts/verificador/puente.js` y la unidad `scripts/verificador/waiter-puente.service`
+(instalación en su cabecera: copiar a `~/.config/systemd/user/` y `systemctl --user enable --now waiter-puente`); la tarea
+de Windows «WSL Waiter Edge» registrada (Programador de tareas, al iniciar sesión, estado Ready); `DESIGN_VERIFIER_CMD`,
+`CDP_URL`, `DINER_URL` y `DESIGN_EVIDENCE` en `experience/.env`. Quedan para el dueño, porque el asistente no puede
+persistir fuera del repositorio: instalar la unidad con esos dos comandos, y `hostAddressLoopback=true` bajo `[wsl2]` en
+`%USERPROFILE%\.wslconfig` seguido de `wsl --shutdown` (cierra todas las sesiones de WSL; hacerlo con calma).
+
 Ojo con la IP: los `.env` locales (`experience/.env`, `registry/.env`, `diner/.env.local`, `pos/.env.local`) fijan la IP de la
 máquina en la LAN (`REGISTRY_URL`, `EXPERIENCE_ORIGIN`, `ODOO_ORIGIN`, `ALLOWED_HOSTS`, `CORS`). El 2026-09-26 el DHCP cambió
 192.168.1.13 por 192.168.1.8 y los servicios dejaron de encontrarse (503 en experience, comensal sin API). Reserva la IP en
@@ -95,11 +102,16 @@ Pruebas con un verificador falso que tarda.
 `recorrido.titulo/texto/paso/pasos/ilustrado`; ranuras `ilustracion`, `cuerpo` y `acciones` obligatorias, `puntos`, `titulo`,
 `texto`), muestra en la página viva, inventario, verificador (excluye la ilustración orbital y los puntos de diapositiva) y
 pruebas: la genérica de plantillas y una por pantalla. Cambio visual mínimo: los enlaces del pie del recorrido pasan a 44 px de
-alto. La medición en Edge de un borrador con plantilla propia del recorrido queda pendiente de que el registro
-apunte a la IP actual de Odoo (ver «Ojo con la IP» en B); el contrato, la muestra y las suites están en verde. A corre con Codex (plugin `openai/codex-plugin-cc`, árbol `../waiter_project-codex-a`, rama
+alto. Medido en Edge con un borrador de plantilla propia: sin problemas en la página viva (375 y 1024) ni en la carta
+(320, 375 y 1024). A corre con Codex (plugin `openai/codex-plugin-cc`, árbol `../waiter_project-codex-a`, rama
 `feat/26092026-plan-k-a-verificador-obligatorio`) con el [traspaso](../traspaso/2026-09-26-traspaso-codex-plan-k-cierre.md).
 **D hecho** (misma rama que C): `buscador`, `categorias`, `seccion`, `resumen`, `cupon`, `perfil`, `saldo-puntos` y
 `banner-recompensa`, cada uno con contrato, componente extraído (`SearchBox`, `CategoryNav`, `SectionHeading`, `OrderSummary`,
 `CouponField`, `ProfileSection`, `PointsBalanceView`, `RewardBanner`), plantilla de fábrica idéntica, muestra en la página viva,
-inventario y caso en la prueba genérica. Con C suman diecisiete componentes plantillables. La medición en Edge queda con la
-misma pendiente que C (IP de Odoo en el registro).
+inventario y caso en la prueba genérica. Con C suman diecisiete componentes plantillables. Medido en Edge junto con el
+recorrido: un borrador con plantillas propias de los nueve, 25 raíces en cinco anchos, cero problemas, y la verificación
+lanzada desde el propio experience con `DESIGN_VERIFIER_CMD` devuelve `ok`. La medición afinó tres cosas: el verificador no
+cuenta como desborde un carril con desplazamiento horizontal (categorías) ni los adornos recortados de una raíz con
+`overflow: hidden` (banner de recompensa), y oculta la barra de desplazamiento del Edge de Windows (15 px) para medir el
+ancho de un teléfono; la página viva sangra las muestras hasta el borde en anchos de teléfono (375 px de ventana = 327 px
+de contenido, como la pantalla real); y la ilustración de los puntos conserva sus 96 px aunque una plantilla la anide.

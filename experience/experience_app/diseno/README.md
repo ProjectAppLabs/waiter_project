@@ -279,7 +279,10 @@ ranura de fábrica). La plantilla de fábrica de cada uno reproduce el diseño a
 exige para los diecisiete (y otra, pantalla por pantalla, para los nueve recorridos). La página viva muestra los diecisiete con datos
 de muestra y marca `data-componente` en cada raíz con plantilla propia; el verificador mide allí todos los componentes (y en
 la carta la tarjeta, los banners y la cabecera). En el recorrido, la ilustración orbital sobresale de la columna a propósito
-y los puntos de diapositiva miden 6 px: el verificador los excluye del desborde y del mínimo de 44 px.
+y los puntos de diapositiva miden 6 px: el verificador los excluye del desborde y del mínimo de 44 px. Tampoco cuenta como
+desborde un carril con desplazamiento horizontal (categorías) ni los adornos recortados de una raíz con `overflow: hidden`,
+y oculta la barra de desplazamiento del navegador al medir para que 375 px de ventana sean 375 px de pantalla; la página viva
+sangra las muestras hasta el borde en teléfonos para que midan lo mismo que la pantalla real.
 Los contratos viven en `componentes/<id>.json`; `componentes.json` guarda las reglas comunes y la capa `componentes` del
 esquema se completa al cargar.
 

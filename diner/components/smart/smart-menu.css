@@ -1697,7 +1697,7 @@
 .sm-coupon-input[data-applied=true] .sm-coupon-check{color:#20c85a}
 .sm-coupon small{display:block;color:var(--sm-muted);line-height:calc(20px * var(--ds-texto));margin-top:var(--ds-espacio-8)}
 .sm-points-balance{border-radius:calc(24px * var(--ds-forma-tarjeta));background:var(--sm-surface);padding:var(--ds-espacio-24);margin-bottom:var(--ds-espacio-24);text-align:center}
-.sm-points-balance>img{width:96px;height:96px;object-fit:contain;margin:0 auto var(--ds-espacio-12)}
+.sm-points-balance img{width:96px;height:96px;object-fit:contain}.sm-points-balance>img{margin:0 auto var(--ds-espacio-12)}
 .sm-points-balance>strong{display:block;font-size:calc(32px * var(--ds-texto));color:var(--sm-accent-text);margin:var(--ds-espacio-12) 0}
 .sm-points-balance p{color:var(--sm-muted);line-height:calc(24px * var(--ds-texto))}
 .sm-member-code{border:1px dashed var(--sm-border);border-radius:calc(16px * var(--ds-forma-tarjeta));padding:var(--ds-espacio-18);margin:var(--ds-espacio-20) 0}

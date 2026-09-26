@@ -1,0 +1,16 @@
+# Plan K, paquete B: unidad de systemd de usuario para el puente del verificador. Instalación (una vez, sin sudo):
+#   cp scripts/verificador/waiter-puente.service ~/.config/systemd/user/ && systemctl --user daemon-reload
+#   systemctl --user enable --now waiter-puente.service        # arranca ya y en cada inicio (waiter-dev ya tiene Linger)
+# Comprobar: systemctl --user status waiter-puente; ss -ltn | grep 127.0.0.1:3001
+[Unit]
+Description=Waiter: puente 127.0.0.1:3001 hacia el comensal para el Edge de Windows (verificador de plantillas)
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/bin/bash -lc 'exec node /home/cerrotico/work/waiter_project/scripts/verificador/puente.js'
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target
