@@ -51,3 +51,18 @@ it('define las utilidades de marca en el CSS del menú', () => {
     expect([cls, css.includes(`.smart-menu .${cls} {`)]).toEqual([cls, true])
   expect(css).toMatch(/\.ds-texto-enorme \{[^}]*calc\(40px/)
 })
+
+// Falla si la textura del fondo deja de traducirse a su patrón del catálogo, acepta un patrón o un rango inventado, o
+// deja de usar la tinta del fondo (así sirve con fondos claros y oscuros).
+it('traduce la textura del fondo a un patrón del catálogo con su tamaño e intensidad', () => {
+  const vars = designSystemVars(theme({ textura: { patron: 'reticula', tamano: 16, intensidad: .07 } }))
+  expect(vars['--ds-textura']).toContain('linear-gradient(to right, var(--sm-textura-tinta) 1px')
+  expect(vars['--ds-textura-tamano']).toBe('16px')
+  expect(vars['--ds-textura-intensidad']).toBe('7%')
+  expect(designSystemVars(theme({ textura: { patron: 'cuaderno', tamano: 24, intensidad: .1 } }))['--ds-textura']).toBe('linear-gradient(to bottom, var(--sm-textura-tinta) 1px, transparent 1px)')
+  const bad = designSystemVars(theme({ textura: { patron: 'url(http://x)', tamano: 500, intensidad: 3 } }))
+  expect([bad['--ds-textura'], bad['--ds-textura-tamano'], bad['--ds-textura-intensidad']]).toEqual(['none', '16px', '7%'])
+  expect(designSystemVars(undefined)['--ds-textura']).toBe('none')
+  const css = readFileSync(join(__dirname, '../../../components/smart/smart-marca.css'), 'utf8')
+  expect(css).toContain('--sm-textura-tinta: color-mix(in srgb, var(--sm-ink-fondo) var(--ds-textura-intensidad), transparent)')
+})

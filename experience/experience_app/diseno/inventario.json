@@ -62,6 +62,15 @@
       "--t-cuerpo",
       "--t-mono"
     ],
+    "fundamentos.textura.patron": [
+      "--ds-textura"
+    ],
+    "fundamentos.textura.tamano": [
+      "--ds-textura-tamano"
+    ],
+    "fundamentos.textura.intensidad": [
+      "--ds-textura-intensidad"
+    ],
     "fundamentos.colores.tintaFondo": [
       "--t-tinta-fondo"
     ],

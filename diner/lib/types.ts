@@ -49,6 +49,8 @@ export interface MenuTheme {
     colores: Pick<TemplateTokens, 'fondo' | 'superficie' | 'tinta' | 'tintaSuave' | 'tintaTerciaria' | 'borde' | 'acento' | 'acentoTinta' | 'acentoSuave'> & { tintaFondo?: string }
     // Plan L: hasta tres familias de Google Fonts importadas una vez para toda la sede; las plantillas las usan con ds-fuente-N.
     tipografia: { display: string; cuerpo: string; fuentes?: string[] }
+    // Plan L: textura de todo el fondo de la página (patrón del catálogo, tamaño en px e intensidad 0–0.25).
+    textura?: { patron: string; tamano: number; intensidad: number }
   }
 }
 // `contexto.plantilla`: la plantilla resuelta (catálogo + paleta y tipografía de la sede + marca). Es lo único que el motor necesita.

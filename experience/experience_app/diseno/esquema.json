@@ -209,6 +209,39 @@
               "description": "De 0 a 3 familias de Google Fonts, por nombre exacto y sin repetir. Globales para toda la sede, se comprueban al preparar y se cargan una sola vez. ds-fuente-1, ds-fuente-2 y ds-fuente-3 eligen la posición; sin familia en esa posición usan display."
             }
           }
+        },
+        "textura": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Plan L: textura de todo el fondo de la página, dibujada con la tinta del fondo. Sin imágenes ni CSS libre: un patrón del catálogo con su tamaño e intensidad.",
+          "properties": {
+            "patron": {
+              "type": "string",
+              "enum": [
+                "ninguna",
+                "reticula",
+                "cuaderno",
+                "puntos",
+                "diagonal"
+              ],
+              "default": "ninguna",
+              "description": "ninguna, reticula (cuadrícula), cuaderno (renglones), puntos o diagonal (rayado a 45°)."
+            },
+            "tamano": {
+              "type": "number",
+              "minimum": 8,
+              "maximum": 48,
+              "default": 16,
+              "description": "Separación del patrón en píxeles."
+            },
+            "intensidad": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 0.25,
+              "default": 0.07,
+              "description": "Opacidad de las líneas o puntos sobre el fondo (0 a 0.25)."
+            }
+          }
         }
       }
     },

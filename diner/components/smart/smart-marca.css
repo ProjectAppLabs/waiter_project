@@ -17,3 +17,11 @@
 [data-ds-banners="tema"] .smart-menu .sm-featured { background-color: var(--t-fondo); color: var(--sm-ink-fondo); border: 2px solid var(--sm-highlight); box-shadow: 4px 4px 0 var(--sm-highlight);
   background-image: linear-gradient(to right, color-mix(in srgb, var(--sm-ink-fondo) 7%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--sm-ink-fondo) 7%, transparent) 1px, transparent 1px); background-size: 16px 16px; }
 [data-ds-banners="tema"] .smart-menu .sm-featured :is(h2, span, strong) { color: inherit; }
+
+/* Plan L: textura de todo el fondo de la página. El patrón llega como variable (catálogo cerrado en designSystem.ts) y se
+ * pinta encima del color de fondo; «ninguna» deja el fondo como estaba. Diagonal fija su propio paso. */
+.smart-menu {
+  --sm-textura-tinta: color-mix(in srgb, var(--sm-ink-fondo) var(--ds-textura-intensidad), transparent);
+  background-image: var(--ds-textura), radial-gradient(ellipse at 85% 0%, color-mix(in srgb, var(--sm-accent) 5%, transparent), transparent 45%);
+  background-size: var(--ds-textura-tamano) var(--ds-textura-tamano), auto;
+}
