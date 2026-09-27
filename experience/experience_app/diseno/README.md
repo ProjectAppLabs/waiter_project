@@ -1,10 +1,10 @@
-# Tema del menú v2 (Plan J2–J3)
+# Tema del menú v2 (Plan J2–J4)
 
 `esquema.json` es el contrato cerrado y versionado. `services.validate` completa los valores omitidos, normaliza colores,
 calcula los derivados y rechaza campos, versiones, tipos, fuentes o rangos desconocidos. No admite HTML ni CSS.
 `inventario.json` relaciona fundamentos, variables CSS y los componentes compartidos de las pantallas actuales.
 J3 añade variantes de componente y distribución mediante atributos `data-ds-*` en `<main>` y selectores CSS.
-Las herramientas nuevas del MCP y los borradores pertenecen a J4.
+J4 expone el contrato por MCP y comparte los borradores con la vista previa del POS.
 
 ## Contrato
 
@@ -153,3 +153,31 @@ Los resultados se guardan en `variantes-resumen.json` y `variantes/<tema>/`. Adm
 `VARIANT_SCENARIOS=cart,cart-swiped` para repetir recorridos conservando la evidencia anterior y `VARIANT_VERIFY_ONLY=1`
 para reevaluar los JSON sin abrir el navegador. La última opción no reemplaza una captura después de cambiar CSS.
 Ver [resultado y límites de J3](../../../docs/revisiones/2026-09-24-plan-j3.md).
+
+## Borradores y cambios parciales (J4)
+
+`preparar_tema({"tema":{"variantes":{"boton":"contorno"}}})` mezcla recursivamente solo los campos enviados con el
+tema guardado. Valida el resultado completo y devuelve `token` de confirmación, `borrador` de lectura, `url`, `caduca`
+y `vista_previa` (lista de campo/antes/después). No publica nada. Los derivados `acentoTinta` y `acentoSuave` se rechazan
+como entrada del cambio parcial. `restablecer_tema` acepta `capa`: `todo`, `fundamentos`, `variantes` o `distribucion`.
+También prepara un borrador; no aplica el restablecimiento inmediatamente.
+
+- `McpPendingChange` guarda una instantánea validada y el tema base. La migración `0026` añade token público,
+  sede e instantánea; permite una clave nula para las vistas previas del POS. Los tokens públicos y de confirmación
+  son UUID aleatorios independientes de 122 bits. El enlace no concede permiso para publicar.
+- `GET /api/v1/<rest>/<sede>/borradores/<token>/` devuelve solo `plantilla` y `caduca`, con `Cache-Control: no-store`.
+  Es de solo lectura. Sede ajena, token inválido, 30 minutos cumplidos, clave revocada o cambio aplicado responden 404.
+- `confirmar_cambio` exige la clave MCP que preparó el cambio. Reclama el token y guarda en una transacción, bloquea
+  los ajustes de la sede y rechaza si el tema publicado cambió desde la preparación. Si falla, no consume el token.
+  Guardar conserva la invalidación de caché de J2.
+- El POS llama `POST /internal/v1/<rest>/<sede>/menu/borradores/` por la acción `preview` de la pasarela autorizada de Odoo.
+  Acepta el contrato de paleta/tipografía anterior o un tema v2 completo, conserva las capas que el editor antiguo no
+  conoce y devuelve el mismo enlace de lectura, sin token de confirmación. Guardar en el POS sigue usando `set`.
+- Diner carga `?borrador=<token>`, conserva el parámetro al navegar y recargar, y ofrece «Abrir menú publicado» para salir.
+  Vuelve a validar al caducar y muestra el error si el enlace dejó de servir. Las respuestas lentas de otras cargas no
+  reemplazan el tema actual. El store y el cliente HTTP bloquean escrituras durante la vista previa, incluso si ya había sesión.
+- Los enlaces antiguos `vista_previa` permanecen por compatibilidad, pero el POS ya no codifica ajustes en la URL.
+
+Configuración: `DINER_PUBLIC_URL` debe ser la dirección pública del comensal. Reiniciar experience tras actualizar el
+contrato y Odoo tras cambiar la pasarela. Los borradores caducados se limpian al preparar otros de la misma sede.
+Esquema y catálogo de herramientas: [README del MCP](../mcp/README.md).

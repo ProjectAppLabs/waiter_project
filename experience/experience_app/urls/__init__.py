@@ -1,11 +1,27 @@
 from django.urls import path
 
+from experience_app.diseno import views as design
 from experience_app.mcp import views as mcp
 from experience_app.plantillas import views as templates
-from experience_app.views import agent_chat, channel_orders, payment_gateways
-from experience_app.views import benefits, password_reset, account, context, internal, logo, orders, payments, photos, sessions
+from experience_app.views import (
+    account,
+    agent_chat,
+    benefits,
+    channel_orders,
+    context,
+    internal,
+    logo,
+    orders,
+    password_reset,
+    payment_gateways,
+    payments,
+    photos,
+    sessions,
+)
 
 urlpatterns = [
+    path('api/v1/<slug:restaurant>/<slug:venue>/borradores/<str:token>/', design.preview, name='theme-preview'),
+    path('internal/v1/<slug:restaurant>/<slug:venue>/menu/borradores/', design.prepare, name='theme-prepare'),
     path('mcp/', mcp.endpoint, name='mcp'),
     path('mcp', mcp.endpoint),  # sin barra: un POST no puede redirigirse a /mcp/
     path('mcp/<str:raw_key>/', mcp.endpoint, name='mcp-url-key'),

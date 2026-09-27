@@ -1,4 +1,4 @@
-import { base64url, gateway, listTemplates, previewUrl, type MenuSettings } from '@/lib/services/menuTemplates'
+import { gateway, listTemplates, previewUrl, type MenuSettings } from '@/lib/services/menuTemplates'
 import { jsonRpc } from '@/lib/services/odoo'
 
 jest.mock('@/lib/services/odoo', () => ({ jsonRpc: jest.fn() }))
@@ -33,18 +33,13 @@ it('fetches the public catalog from experience and rejects HTTP errors', async (
   await expect(listTemplates('http://192.168.56.10:8001')).rejects.toThrow('HTTP 503')
 })
 
-// Falla si la vista previa no apunta a la entrada de la sede o si el JSON no viaja en base64url (sin +, / ni =).
-it('builds the diner preview URL with the settings as base64url JSON', () => {
-  const url = previewUrl('http://192.168.56.10:3001/', 'burger-house', 'poblado', SETTINGS)
-  const [base, query] = url.split('?vista_previa=')
-  expect(base).toBe('http://192.168.56.10:3001/burger-house/poblado/carta/')
-  expect(query).toMatch(/^[A-Za-z0-9_-]+$/)
-  const decoded = Buffer.from(query.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8')
-  expect(JSON.parse(decoded)).toEqual(SETTINGS)
-})
-
-// Falla si un texto con acentos (fuera de Latin-1) rompe btoa o si el alfabeto no es el de la URL.
-it('encodes UTF-8 text as base64url', () => {
-  expect(base64url('Menú «día»')).toBe(Buffer.from('Menú «día»', 'utf8').toString('base64url'))
-  expect(base64url('??>')).toBe('Pz8-')
+// Falla si previsualizar evita la autorización del addon o manda el tema crudo en la URL pública.
+it('prepara el borrador en la pasarela y construye un enlace solo con el token', async () => {
+  rpc.mockResolvedValueOnce({ borrador: 'token-lectura', caduca: '2026-09-25T01:00:00Z' })
+  await expect(gateway('preview', SETTINGS)).resolves.toMatchObject({ borrador: 'token-lectura' })
+  expect(rpc).toHaveBeenCalledWith('/waiter/admin/menu_settings', { action: 'preview', ...SETTINGS })
+  const url = previewUrl('http://diner.test/', 'burger-house', 'poblado', 'token-lectura')
+  expect(url).toBe('http://diner.test/burger-house/poblado/carta?borrador=token-lectura')
+  expect(url).not.toContain('paleta')
+  expect(url).not.toContain('vista_previa')
 })

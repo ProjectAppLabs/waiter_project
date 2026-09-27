@@ -5,12 +5,15 @@ las mismas reglas que el POS y dejan un cambio pendiente (McpPendingChange) con 
 `confirmar_cambio`, con el token que devolvió la preparación, lo aplica. Así la IA propone y una persona decide.
 """
 import uuid
+from copy import deepcopy
 from datetime import timedelta
 
 from django.utils import timezone
 
 from experience_app.adapters.odoo.client import OdooClient, OdooError
 from experience_app.adapters.registry.client import Tenant, resolve
+from experience_app.diseno import borradores
+from experience_app.diseno import services as design
 from experience_app.mcp.models import McpKey, McpPendingChange
 from experience_app.plantillas import services as templates
 from experience_app.plantillas.defaults import DEFAULT_CODE
@@ -46,6 +49,72 @@ def _banners(tenant: Tenant) -> list[dict]:
 def _pending(key: McpKey, kind: str, payload: dict) -> str:
     McpPendingChange.objects.filter(key=key, applied_at__isnull=True, created_at__lt=timezone.now() - CHANGE_TTL).delete()
     return str(McpPendingChange.objects.create(key=key, kind=kind, payload=payload).id)
+
+
+# ---- sistema de diseño (J4) --------------------------------------------------------------------------------------
+def _arguments(args, allowed, required=()):
+    if set(args) - set(allowed):
+        raise ToolError(f'Argumento desconocido: {sorted(set(args) - set(allowed))[0]}.')
+    if set(required) - set(args):
+        raise ToolError(f'Falta el argumento {sorted(set(required) - set(args))[0]}.')
+
+
+def leer_design_system(key: McpKey, args: dict) -> dict:
+    _arguments(args, ())
+    return {'esquema': deepcopy(design.SCHEMA), 'inventario': deepcopy(design.INVENTORY),
+            'tema': templates.settings_view(key.restaurant_slug, key.venue_slug)['tema'],
+            'reglas': ['Cambia solo los campos del esquema. Los colores derivados son de solo lectura.',
+                       'preparar_tema mezcla los campos enviados con el tema guardado; restablecer_tema prepara los valores por defecto.',
+                       'El borrador caduca a los 30 minutos. Revisa el enlace antes de confirmar_cambio.']}
+
+
+def describir_pantalla(key: McpKey, args: dict) -> dict:
+    _arguments(args, ('pantalla',), ('pantalla',))
+    name = args['pantalla']
+    screens = design.INVENTORY['pantallas']
+    if not isinstance(name, str) or name not in screens:
+        raise ToolError(f'Pantalla desconocida. Elige una de: {", ".join(screens)}.')
+    components = {c['id']: c for c in design.INVENTORY['componentes']}
+    theme = templates.settings_view(key.restaurant_slug, key.venue_slug)['tema']
+    sections = []
+    for component_id in screens[name]:
+        component = deepcopy(components[component_id])
+        component['opciones'] = {field: deepcopy(design.INVENTORY['variantes'][field]) for field in component['variantes']}
+        sections.append(component)
+    return {'pantalla': name, 'secciones': sections, 'tema': theme,
+            'nota': 'Las secciones siguen el orden del inventario. El tema es global; no se admite HTML ni CSS libre.'}
+
+
+def _prepare_theme(key, theme, current):
+    try:
+        change = borradores.create(_tenant(key), theme, key=key, before=current)
+    except design.InvalidTheme as exc:
+        raise ToolError(str(exc)) from exc
+    return {**borradores.result(change), 'token': str(change.id),
+            'siguiente': 'Muestra el enlace y los cambios a la persona. Solo tras su aprobación llama confirmar_cambio con token.'}
+
+
+def preparar_tema(key: McpKey, args: dict) -> dict:
+    _arguments(args, ('tema',), ('tema',))
+    patch = args['tema']
+    if not isinstance(patch, dict) or not patch:
+        raise ToolError('tema debe ser un objeto no vacío con los campos que quieres cambiar.')
+    current = templates.settings_view(key.restaurant_slug, key.venue_slug)['tema']
+    try:
+        theme = borradores.merge(current, patch)
+    except design.InvalidTheme as exc:
+        raise ToolError(str(exc)) from exc
+    return _prepare_theme(key, theme, current)
+
+
+def restablecer_tema(key: McpKey, args: dict) -> dict:
+    _arguments(args, ('capa',))
+    layer = args.get('capa', 'todo')
+    if layer not in ('todo', *borradores.LAYERS):
+        raise ToolError('capa debe ser todo, fundamentos, variantes o distribucion.')
+    current = templates.settings_view(key.restaurant_slug, key.venue_slug)['tema']
+    theme = design.defaults() if layer == 'todo' else {**current, layer: design.defaults()[layer]}
+    return _prepare_theme(key, theme, current)
 
 
 # ---- diseño del menú ----------------------------------------------------------------------------------------------
@@ -133,7 +202,9 @@ def preparar_banners(key: McpKey, args: dict) -> dict:
         if not isinstance(item, dict):
             raise ToolError(f'El banner {i + 1} no es un objeto.')
         row = {f: item[f] for f in BANNER_FIELDS if f in item}
-        row.setdefault('subtitle', ''); row.setdefault('button', ''); row.setdefault('active', True)
+        row.setdefault('subtitle', '')
+        row.setdefault('button', '')
+        row.setdefault('active', True)
         source = item.get('imagen_de_banner')
         if source is not None:
             if type(source) is not int or not 0 <= source < len(current):
@@ -170,6 +241,12 @@ def confirmar_cambio(key: McpKey, args: dict) -> dict:
         raise ToolError('Ese cambio ya se aplicó.')
     if timezone.now() - change.created_at > CHANGE_TTL:
         raise ToolError('El cambio caducó (30 minutos). Vuelve a prepararlo.')
+    if change.kind == 'theme':
+        try:
+            borradores.confirm(key, token)
+        except (borradores.InvalidDraft, templates.InvalidSettings) as exc:
+            raise ToolError(str(exc)) from exc
+        return {'aplicado': 'theme', 'mensaje': 'Tema guardado. El comensal lo verá al recargar la carta.'}
     tenant = _tenant(key)
     if change.kind == 'design':
         payload = dict(change.payload)
@@ -179,9 +256,11 @@ def confirmar_cambio(key: McpKey, args: dict) -> dict:
             _odoo(tenant, 'res.company', 'write_brand', [{'brand_greeting': greeting}])
             brand.invalidate(key.restaurant_slug, key.venue_slug)
         templates.invalidate(key.restaurant_slug, key.venue_slug)
-    else:
+    elif change.kind == 'banners':
         _odoo(tenant, 'pos.config', 'waiter_banner_settings_integration', [[tenant.odoo.pos_config_id], change.payload['banners']],
               {'dry_run': False, 'actor': f'MCP {key.prefix}'})
+    else:
+        raise ToolError('Este cambio no se puede confirmar por MCP.')
     McpPendingChange.objects.filter(pk=change.pk).update(applied_at=timezone.now())
     return {'aplicado': change.kind, 'mensaje': 'Guardado. El comensal lo verá al recargar la carta.'}
 
@@ -197,6 +276,21 @@ def _is_uuid(value: str) -> bool:
 # ---- catálogo de herramientas (tools/list) ------------------------------------------------------------------------
 _COLOR = {'type': ['string', 'null'], 'pattern': '^#[0-9A-Fa-f]{6}$'}
 TOOLS = [
+    {'name': 'leer_design_system', 'handler': leer_design_system, 'annotations': {'readOnlyHint': True},
+     'description': 'Lee el esquema versionado, inventario de componentes y pantallas, y tema actual de esta sede. Empieza aquí antes de diseñar.',
+     'inputSchema': {'type': 'object', 'properties': {}, 'additionalProperties': False}},
+    {'name': 'describir_pantalla', 'handler': describir_pantalla, 'annotations': {'readOnlyHint': True},
+     'description': 'Describe una pantalla: secciones en orden, componentes, fundamentos y variantes disponibles, con el tema actual.',
+     'inputSchema': {'type': 'object', 'additionalProperties': False, 'required': ['pantalla'],
+                     'properties': {'pantalla': {'type': 'string', 'enum': list(design.INVENTORY['pantallas'])}}}},
+    {'name': 'preparar_tema', 'handler': preparar_tema,
+     'description': 'Mezcla cambios parciales del tema con lo guardado, valida y prepara un borrador de 30 minutos. Devuelve cambios, enlace y token; NO publica.',
+     'inputSchema': {'type': 'object', 'additionalProperties': False, 'required': ['tema'],
+                     'properties': {'tema': design.SCHEMA}}},
+    {'name': 'restablecer_tema', 'handler': restablecer_tema,
+     'description': 'Prepara volver todo el tema o una capa a sus valores predeterminados. Devuelve un borrador; NO publica hasta confirmar_cambio.',
+     'inputSchema': {'type': 'object', 'additionalProperties': False,
+                     'properties': {'capa': {'type': 'string', 'enum': ['todo', *borradores.LAYERS], 'default': 'todo'}}}},
     {'name': 'leer_diseno_menu', 'handler': leer_diseno_menu, 'annotations': {'readOnlyHint': True},
      'description': 'Lee el diseño del menú del restaurante: colores editables (con su uso), tipografía y las permitidas, saludo, logo y reglas de contraste.',
      'inputSchema': {'type': 'object', 'properties': {}, 'additionalProperties': False}},
@@ -229,7 +323,7 @@ TOOLS = [
      'description': 'Lista los productos y categorías de la carta, con sus ids, para usarlos como destino de los banners.',
      'inputSchema': {'type': 'object', 'properties': {}, 'additionalProperties': False}},
     {'name': 'confirmar_cambio', 'handler': confirmar_cambio,
-     'description': 'Aplica un cambio preparado (diseño o banners) con el token que devolvió la preparación. Úsalo solo cuando la persona haya aprobado la vista previa.',
+     'description': 'Aplica un cambio preparado (tema, diseño o banners) con el token de confirmación. Úsalo solo cuando la persona haya aprobado la vista previa.',
      'inputSchema': {'type': 'object', 'additionalProperties': False, 'required': ['token'], 'properties': {'token': {'type': 'string'}}},
      'annotations': {'destructiveHint': True}},
 ]

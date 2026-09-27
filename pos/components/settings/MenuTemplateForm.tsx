@@ -28,6 +28,7 @@ import {
   type ColorToken,
   type MenuSettings,
   type MenuSettingsContext,
+  type MenuDraft,
   type TemplateSpec,
 } from '@/lib/services/menuTemplates'
 import { loadTemplateFonts } from './googleFonts'
@@ -60,7 +61,9 @@ export function MenuTemplateForm() {
   const [logo, setLogo] = useState<string | null>(null)
   const [logoChange, setLogoChange] = useState<LogoChange | undefined>()
   const [greeting, setGreeting] = useState('')
-  const [preview, setPreview] = useState<MenuSettings | null>(null)
+  const [preview, setPreview] = useState<MenuDraft | null>(null)
+  const [previewError, setPreviewError] = useState<string | null>(null)
+  const [previewBusy, setPreviewBusy] = useState(false)
   const [previewVersion, setPreviewVersion] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [logoError, setLogoError] = useState<string | null>(null)
@@ -110,12 +113,19 @@ export function MenuTemplateForm() {
     tipografia: { display: font },
   })
   useEffect(() => {
-    const timer = setTimeout(
-      () => setPreview(JSON.parse(serialized) as MenuSettings),
-      400,
-    )
-    return () => clearTimeout(timer)
-  }, [serialized])
+    if (!ctx) return
+    let alive = true
+    const timer = setTimeout(() => {
+      setPreviewBusy(true)
+      setPreviewError(null)
+      setPreview(null)
+      void gateway('preview', JSON.parse(serialized) as MenuSettings)
+        .then(draft => { if (alive) setPreview(draft) })
+        .catch((e: unknown) => { if (alive) setPreviewError(e instanceof Error ? e.message : String(e)) })
+        .finally(() => { if (alive) setPreviewBusy(false) })
+    }, 400)
+    return () => { alive = false; clearTimeout(timer) }
+  }, [ctx, serialized, previewVersion])
   if (failed) return <p role="alert">No pudimos cargar el menú. {error}</p>
   if (!ctx || !spec || !brand)
     return <p className="text-soft">Cargando tu menú…</p>
@@ -131,7 +141,7 @@ export function MenuTemplateForm() {
       : logoChange.base64
     : logo
   const src = preview
-    ? previewUrl(ctx.dinerUrl, ctx.restaurante, ctx.sede, preview)
+    ? previewUrl(ctx.dinerUrl, ctx.restaurante, ctx.sede, preview.borrador)
     : null
   const onSave = () =>
     save(async () => {
@@ -165,7 +175,7 @@ export function MenuTemplateForm() {
         </h2>
         <p className="mt-2 text-[15px] text-soft">
           Un solo diseño para el menú, los favoritos, los pedidos y el perfil.
-          Cambia colores, tipografía y logo; la distribución conserva el diseño
+            Cambia colores, tipografía y logo; el tema se aplica
           en todas las pantallas.
         </p>
       </div>
@@ -354,9 +364,15 @@ export function MenuTemplateForm() {
               className="max-w-full rounded-[26px] border border-border bg-surface"
             />
           )}
+          {previewBusy && <p role="status">Preparando vista previa…</p>}
+          {previewError && <p role="alert">No pudimos preparar la vista previa. {previewError}</p>}
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            {src && <a href={src} target="_blank" rel="noreferrer" className="text-sm font-medium text-primary">Abrir borrador ↗</a>}
+            <Button size="compact" disabled={previewBusy} onClick={() => setPreviewVersion(v => v + 1)}>Actualizar vista previa</Button>
+          </div>
           <p className="mt-3 text-xs text-soft">
             Explora el diseño antes de guardar. Los cambios de color y fuente
-            solo aparecen aquí hasta que los guardes.
+            solo aparecen en el borrador hasta que los guardes. El enlace caduca a los 30 minutos.
           </p>
         </aside>
       </div>

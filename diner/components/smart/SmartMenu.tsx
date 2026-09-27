@@ -149,9 +149,10 @@ export function money(n: number) {
 }
 export function useSmartRoute() {
   const keys = useDinerStore((s) => s.keys)
+  const draft = useDinerStore((s) => s.draftToken)
   const router = useRouter()
   const href = (screen: Screen, id?: string | number) =>
-    keys ? pathFor(keys.rest, keys.venue, keys.token, screen, id) : '#'
+    keys ? pathFor(keys.rest, keys.venue, keys.token, screen, id, draft) : '#'
   return {
     href,
     go: (screen: Screen, id?: string | number) => router.push(href(screen, id)),

@@ -1,7 +1,7 @@
 # MCP de Waiter
 
 Servidor MCP para que un asistente de IA (Claude u otro cliente MCP) llene la configuración aburrida del restaurante.
-v1 cubre el **diseño del menú** (colores, tipografía de títulos, saludo) y los **banners** del carrusel.
+Cubre el **tema v2 completo**, el diseño anterior (colores, tipografía de títulos, saludo) y los **banners** del carrusel.
 
 ## Claves: una por persona o asistente, siempre de un solo restaurante
 
@@ -31,6 +31,10 @@ y GET y DELETE responden 405. Versiones: 2025-06-18, 2025-03-26 y 2024-11-05.
 
 | Herramienta | Qué hace |
 |---|---|
+| `leer_design_system` | Esquema versionado, inventario de componentes/pantallas, tema actual y reglas |
+| `describir_pantalla` | Secciones en orden, fundamentos, variantes disponibles y tema actual de una pantalla del inventario |
+| `preparar_tema` | Mezcla los campos de `tema` enviados con lo guardado, valida y devuelve borrador, enlace y token de confirmación |
+| `restablecer_tema` | Prepara volver `todo` o una `capa` (`fundamentos`, `variantes`, `distribucion`) a sus valores por defecto |
 | `leer_diseno_menu` | Colores editables (con su uso), tipografía y las permitidas, saludo, logo y reglas de contraste |
 | `preparar_diseno_menu` | Valida un cambio (colores, tipografía, saludo) y devuelve una vista previa y un token. **No guarda.** |
 | `leer_banners` | Banners actuales, valores permitidos y límites de texto |
@@ -41,6 +45,23 @@ y GET y DELETE responden 405. Versiones: 2025-06-18, 2025-03-26 y 2024-11-05.
 Las reglas son las mismas del POS: `plantillas.services.validate` para el diseño y
 `pos.config._waiter_clean_banners` para los banners. Las imágenes de los banners y el logo se siguen subiendo desde el
 POS. Un banner puede conservar su imagen con `imagen_de_banner`.
+
+### Flujo del tema completo (J4)
+
+1. Leer `leer_design_system`; consultar `describir_pantalla({"pantalla":"carta"})` si hace falta.
+2. Preparar, por ejemplo:
+   `preparar_tema({"tema":{"variantes":{"boton":"contorno"},"distribucion":{"carta":"lista"}}})`.
+3. Mostrar `vista_previa` y abrir `url` (`/<rest>/<sede>/carta?borrador=<token-de-lectura>`).
+4. Tras la aprobación de la persona, llamar `confirmar_cambio({"token":"<token-de-confirmación>"})`.
+
+Los dos tokens son distintos. El público solo permite leer la instantánea validada durante 30 minutos; nunca devuelve
+el token de confirmación ni la clave MCP. Revocar la clave, confirmar o alcanzar la caducidad retira el enlace.
+No se permite editar derivados de color. La confirmación rechaza un borrador si otro editor cambió el tema entretanto;
+hay que leer y preparar de nuevo. Preparar o restablecer no publica ni cambia los ajustes de la sede.
+
+El mismo mecanismo sirve la vista previa del POS. Su pasarela de administrador prepara sin clave MCP y devuelve
+solo el token público; guardar en POS conserva su autorización habitual. Contrato, endpoints y persistencia en el
+[README del tema](../diseno/README.md#borradores-y-cambios-parciales-j4).
 
 ## Identidad en Odoo
 

@@ -12,13 +12,14 @@ const ctx = { restaurante: 'burger-house', sede: 'poblado', experienceUrl: 'http
 const wrap = () => render(<NextIntlClientProvider locale="es" messages={messages}><MenuTemplateForm/></NextIntlClientProvider>)
 beforeEach(() => {
   jest.clearAllMocks()
-  jest.mocked(gateway).mockImplementation((action: string) => Promise.resolve(action === 'get' ? ctx : { codigo: 'S1' }) as never)
+  jest.mocked(gateway).mockImplementation((action: string) => Promise.resolve(action === 'get' ? ctx : action === 'preview' ? { borrador: 'borrador-pos', caduca: '2026-09-25T01:00:00Z' } : { codigo: 'S1' }) as never)
   jest.mocked(listTemplates).mockResolvedValue({ plantillas: [{ codigo: 'S1', tokens }], familias: {} } as never)
   jest.mocked(getBrand).mockResolvedValue({ companyId: 1, hasLogo: true, color: '#AA0000' } as never)
   jest.mocked(getBrandLogo).mockResolvedValue('existing-logo')
   jest.mocked(saveBrandLogo).mockResolvedValue(undefined)
   jest.mocked(saveBrandGreeting).mockResolvedValue(undefined)
 })
+// Falla si editar previsualiza con ajustes crudos, publica antes de guardar o deja de pasar por la pasarela.
 it('shows one design, previews changes without saving and persists only the chosen branding', async () => {
   wrap()
   await screen.findByText('Tu restaurante, tu identidad')
@@ -27,8 +28,8 @@ it('shows one design, previews changes without saving and persists only the chos
   fireEvent.change(screen.getByLabelText('Tipografía del menú'), { target: { value: 'DM Sans' } })
   await waitFor(() => {
     const url = screen.getByTitle('Vista previa del menú').getAttribute('src')!
-    const settings = JSON.parse(Buffer.from(url.split('vista_previa=')[1], 'base64url').toString())
-    expect(settings).toEqual({ plantilla: 'S1', paleta: { acento: '#145A52' }, tipografia: { display: 'DM Sans' } })
+    expect(url).toBe('http://diner/burger-house/poblado/carta?borrador=borrador-pos')
+    expect(gateway).toHaveBeenCalledWith('preview', { plantilla: 'S1', paleta: { acento: '#145A52' }, tipografia: { display: 'DM Sans' } })
   })
   expect(gateway).not.toHaveBeenCalledWith('set', expect.anything())
   fireEvent.click(screen.getByRole('button', { name: /^Guardar$/ }))
@@ -36,6 +37,7 @@ it('shows one design, previews changes without saving and persists only the chos
   expect(saveBrandLogo).not.toHaveBeenCalled()
   expect(saveBrandGreeting).not.toHaveBeenCalled()
 })
+// Falla si permite guardar texto ilegible o borra la edición cuando falla el servidor.
 it('blocks unreadable text on cards and preserves changes after a failed save', async () => {
   wrap(); await screen.findByText('Tu restaurante, tu identidad')
   fireEvent.change(screen.getByLabelText('Tarjetas · HEX'), { target: { value: '#32324D' } })
@@ -46,6 +48,7 @@ it('blocks unreadable text on cards and preserves changes after a failed save', 
   await screen.findByText('Sin conexión')
   expect(screen.getByLabelText('Tarjetas · HEX')).toHaveValue('#FFFFFF')
 })
+// Falla si quitar el logo pisa ajustes ajenos o deja de usar el servicio de marca.
 it('removes the logo through the brand service without overwriting its other settings', async () => {
   wrap(); await screen.findByText('Tu restaurante, tu identidad')
   fireEvent.click(screen.getByRole('button', { name: 'Quitar logo' }))
@@ -61,4 +64,14 @@ it('saves the menu greeting only when it changed', async () => {
   expect(screen.getByText(/Qué gusto verte, Camila/)).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: /^Guardar$/ }))
   await waitFor(() => expect(saveBrandGreeting).toHaveBeenCalledWith('Qué gusto verte'))
+})
+
+// Falla si un rechazo de validación se oculta tras una vista previa anterior aparentemente válida.
+it('muestra el rechazo del borrador sin publicar los cambios', async () => {
+  wrap(); await screen.findByTitle('Vista previa del menú')
+  jest.mocked(gateway).mockRejectedValueOnce(new Error('Contraste insuficiente'))
+  fireEvent.change(screen.getByLabelText('Botones y color principal · HEX'), { target: { value: '#234567' } })
+  expect(await screen.findByRole('alert')).toHaveTextContent('Contraste insuficiente')
+  expect(screen.queryByTitle('Vista previa del menú')).not.toBeInTheDocument()
+  expect(gateway).not.toHaveBeenCalledWith('set', expect.anything())
 })

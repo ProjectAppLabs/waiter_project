@@ -1,6 +1,7 @@
 import axios from 'axios'
+import { isPreviewReadOnly, PREVIEW_MESSAGE } from '@/lib/domain/preview'
 
-import type { Account, AccountSummary, Bill, Cart, Entry, OrderStatus, PayMethod, PayScope, PayResult, RegisterForm, Session, TemplateCatalog } from '@/lib/types'
+import type { Account, AccountSummary, Bill, Cart, Entry, OrderStatus, PayMethod, PayScope, PayResult, RegisterForm, Session, Template, TemplateCatalog } from '@/lib/types'
 
 // Único punto de I/O del comensal: la API pública del bloque 3, por el proxy same-origin (/api → experience).
 export const http = axios.create({ baseURL: '', withCredentials: true, timeout: 15_000 })
@@ -9,7 +10,15 @@ export class ApiError extends Error {
   constructor(message: string, readonly status: number) { super(message) }
 }
 
+http.interceptors.request.use(config => {
+  if (isPreviewReadOnly() && !['get', 'head', 'options'].includes((config.method || 'get').toLowerCase())) {
+    throw new ApiError(PREVIEW_MESSAGE, 403)
+  }
+  return config
+})
+
 http.interceptors.response.use((r) => r, (error) => {
+  if (error instanceof ApiError) return Promise.reject(error)
   const status = error?.response?.status ?? 0
   const detail = error?.response?.data?.detail
   return Promise.reject(new ApiError(typeof detail === 'string' ? detail : status ? `Error ${status}` : 'Sin conexión', status))
@@ -19,6 +28,9 @@ const base = (rest: string, venue: string, token: string | null) => `/api/v1/${r
 
 export async function getEntry(rest: string, venue: string, token: string | null): Promise<Entry> {
   return (await http.get<Entry>(base(rest, venue, token))).data
+}
+export async function getThemeDraft(rest: string, venue: string, token: string): Promise<{plantilla: Template; caduca: string}> {
+  return (await http.get(`/api/v1/${encodeURIComponent(rest)}/${encodeURIComponent(venue)}/borradores/${encodeURIComponent(token)}/`)).data
 }
 export async function openSession(rest: string, venue: string, token: string | null): Promise<{ sesion: Session; comensal: { id: string } }> {
   return (await http.post('/api/v1/sesiones/', { restaurante: rest, sede: venue, token: token ?? undefined })).data

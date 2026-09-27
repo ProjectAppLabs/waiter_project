@@ -14,6 +14,7 @@ Parámetros del sistema (`ir.config_parameter`, los siembra el onboarding; en de
 Acciones:
   get  → {restaurante, sede, experienceUrl, dinerUrl, ajustes: GET interno (plantilla, paleta, tipografia, …)}
   set  {plantilla, paleta, tipografia} → PUT interno; devuelve {plantilla: la resuelta que verá el comensal}
+  preview {plantilla, paleta, tipografia} o {plantilla, tema} → POST menu/borradores/; no publica y devuelve un enlace de lectura
 """
 from urllib.parse import urlsplit
 
@@ -75,19 +76,26 @@ def _call(method, url, key, json=None):
 
 class WaiterAdmin(http.Controller):
     @http.route("/waiter/admin/menu_settings", type="jsonrpc", auth="user", methods=["POST"])
-    def menu_settings(self, action="get", plantilla=None, paleta=None, tipografia=None, **kw):
+    def menu_settings(self, action="get", plantilla=None, paleta=None, tipografia=None, tema=None, **kw):
         # Solo quien administra el POS elige la plantilla: el mesero y el cajero no llegan aquí.
         if not request.env.user.has_group("point_of_sale.group_pos_manager"):
             raise AccessError(_("Solo un administrador del punto de venta puede cambiar la plantilla del menú."))
+        if kw:
+            raise UserError(_("Parámetros desconocidos: %s") % ", ".join(sorted(kw)))
         p = _params()
         url = "%s/internal/v1/%s/%s/menu/" % (p["experience_url"].rstrip("/"), p["restaurant"], p["venue"])
         if action == "get":
             return {"restaurante": p["restaurant"], "sede": p["venue"], "experienceUrl": p["experience_url"],
                     "dinerUrl": p["diner_url"], "ajustes": _call("GET", url, p["internal_key"])}
-        if action == "set":
-            body = {"plantilla": plantilla, "paleta": paleta or {}, "tipografia": tipografia or {}}
+        if action in ("set", "preview"):
+            if tema is not None and (paleta is not None or tipografia is not None):
+                raise UserError("Envía tema o paleta/tipografia; no ambos contratos a la vez.")
+            body = {"plantilla": plantilla, "tema": tema} if tema is not None else {
+                "plantilla": plantilla, "paleta": paleta or {}, "tipografia": tipografia or {}}
+            if action == "preview":
+                return _call("POST", url + "borradores/", p["internal_key"], json=body)
             return _call("PUT", url, p["internal_key"], json=body)
-        raise UserError(_("Acción desconocida: %s (usa get o set).") % action)
+        raise UserError(_("Acción desconocida: %s (usa get, set o preview).") % action)
 
     @http.route("/waiter/admin/mcp_keys", type="jsonrpc", auth="user", methods=["POST"])
     def mcp_keys(self, action="list", nombre=None, key_id=None, **kw):

@@ -17,7 +17,8 @@ export function parseRoute(segments: string[] = []): Route {
   return { token, screen, id: (SCREENS as string[]).includes(head) ? rest[1] ?? null : null }
 }
 
-export function pathFor(rest: string, venue: string, token: string | null, screen: Screen, id?: string | number): string {
+export function pathFor(rest: string, venue: string, token: string | null, screen: Screen, id?: string | number, draft?: string | null): string {
   const head = `/${rest}/${venue}${token ? `/t/${token}` : ''}`
-  return screen === 'portada' ? head : `${head}/${screen}${id !== undefined ? `/${id}` : ''}`
+  const path = screen === 'portada' ? head : `${head}/${screen}${id !== undefined ? `/${id}` : ''}`
+  return draft != null ? `${path}?borrador=${encodeURIComponent(draft)}` : path
 }
