@@ -45,13 +45,15 @@ def test_unknown_variants_are_rejected(body, path):
         design.validate(body)
 
 
-# // Falla si leer un tema J2 necesita migración, pierde escalas o cambia el diseño sin haber elegido una variante.
+# // Falla si leer un tema J2 necesita migración, pierde escalas o cambia el diseño sin haber elegido una variante; o si
+# // unas fotos en punta guardadas antes de la regla de imágenes siguen en punta (se leen con el radio del sistema).
 def test_j2_theme_fills_missing_layers_without_mutating_saved_data():
     old = {'version': 2, 'fundamentos': {'texto': 1.25, 'forma': {'imagen': 0}}}
     original = deepcopy(old)
     resolved = design.resolve(old, FALLBACK_SPEC['tokens'])
     assert resolved['fundamentos']['texto'] == 1.25
-    assert resolved['fundamentos']['forma']['imagen'] == 0
+    assert resolved['fundamentos']['forma']['imagen'] == 1
+    assert resolved['fundamentos']['imagenes'] == {'radio': 16, 'ajuste': 'cubrir'}
     for layer in LAYERS:
         assert resolved[layer] == design.defaults()[layer]
     assert old == original

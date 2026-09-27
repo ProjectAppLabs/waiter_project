@@ -103,6 +103,41 @@ function contrastCheck() {
   return [...problems.values()]
 }
 
+// Se ejecuta dentro de la página: reglas de las fotos que define el sistema de diseño (fundamentos.imagenes y
+// variantes.marcoImagen). Una foto de plato (ruta /fotos/<id>/) se mide en su caja de recorte (.sm-food-photo): radio de al
+// menos la mitad del definido y nunca menos de 8 px (salvo circular), sin deformación, con el ajuste y el marco del tema.
+function imageCheck() {
+  const main = document.querySelector('main') || document.documentElement
+  const vars = getComputedStyle(main)
+  const radio = parseFloat(vars.getPropertyValue('--ds-imagen-radio')) || 16
+  const fit = vars.getPropertyValue('--ds-imagen-ajuste').trim() || 'cover'
+  const marco = main.closest('[data-ds-marco-imagen]')?.getAttribute('data-ds-marco-imagen') || main.getAttribute('data-ds-marco-imagen') || 'ninguno'
+  const minimum = Math.max(8, radio / 2)
+  const problems = new Map()
+  const px = (value, size) => (value.endsWith('%') ? (parseFloat(value) / 100) * size : parseFloat(value) || 0)
+  for (const img of document.querySelectorAll('.smart-menu img')) {
+    if (!/\/fotos\/\d+/.test(img.getAttribute('src') || '')) continue
+    const clip = img.closest('.sm-food-photo') || img
+    const box = clip.getBoundingClientRect()
+    if (box.width < 8 || box.height < 8) continue
+    // La muestra de la página viva sobreescribe el marco por opción: se lee el atributo más cercano a la foto.
+    const frame = clip.closest('[data-ds-marco-imagen]')?.getAttribute('data-ds-marco-imagen') || marco
+    const where = (clip.closest('[data-componente]')?.dataset.componente) || (clip.parentElement?.className.toString().split(' ')[0]) || 'foto'
+    const cs = getComputedStyle(clip), ics = getComputedStyle(img)
+    const radius = Math.min(...['borderTopLeftRadius', 'borderTopRightRadius', 'borderBottomLeftRadius', 'borderBottomRightRadius'].map((k) => px(cs[k], box.width)))
+    const circular = radius >= Math.min(box.width, box.height) / 2 - 1
+    if (!circular && radius < minimum - 0.5) problems.set(`r${where}`, `imágenes: ${where}: foto con radio ${Math.round(radius)} px; el sistema de diseño pide al menos ${Math.round(minimum)} px (radio ${radio} px, nunca en punta)`)
+    const natural = img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : null
+    const shown = img.getBoundingClientRect(), ratio = shown.width / shown.height
+    if (ics.objectFit === 'fill' && natural && Math.abs(ratio - natural) / natural > 0.03) problems.set(`d${where}`, `imágenes: ${where}: foto deformada (se estira de ${natural.toFixed(2)} a ${ratio.toFixed(2)})`)
+    if (ics.objectFit !== fit) problems.set(`a${where}`, `imágenes: ${where}: la foto usa object-fit ${ics.objectFit}; el sistema de diseño pide ${fit}`)
+    const shadow = cs.boxShadow !== 'none' ? cs.boxShadow : ''
+    if (frame === 'borde' && !(/ 2px\)?$|0px 0px 0px 2px/.test(shadow) || parseFloat(cs.borderTopWidth) >= 2)) problems.set(`b${where}`, `imágenes: ${where}: la foto no lleva el borde de 2 px del sistema de diseño`)
+    if (frame === 'sombra' && !shadow) problems.set(`s${where}`, `imágenes: ${where}: la foto no lleva la sombra del sistema de diseño`)
+  }
+  return [...problems.values()]
+}
+
 // Se ejecuta dentro de la página: devuelve los problemas de cada raíz con plantilla propia, agrupados por componente.
 function measureRoots() {
   const problems = [], counts = {}
@@ -225,6 +260,7 @@ async function main() {
       if (token && writes.length) measured.problemas.push(...writes.map((w) => `la página intentó escribir: ${w}`))
       measured.problemas.push(...await page.evaluate(securityCheck, fonts))
       measured.problemas.push(...await page.evaluate(contrastCheck))
+      measured.problemas.push(...await page.evaluate(imageCheck))
       measured.problemas.push(...[...foreign].map((origin) => `seguridad: la página pidió recursos a un origen no permitido: ${origin}`))
       Object.keys(measured.raices).forEach((id) => seen.add(id))
       result.medidas[`${spec.name} ${width}px`] = { raices: measured.raices, problemas: measured.problemas.length }

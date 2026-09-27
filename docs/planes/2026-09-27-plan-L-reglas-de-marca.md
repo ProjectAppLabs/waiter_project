@@ -39,3 +39,17 @@ posible sin abrir CSS libre, y endurece el verificador contra contenido activo.
 | Rediseño Littigio por MCP con las reglas nuevas, verificado en Edge | Claude | — |
 
 Rama única `feat/27092026-plan-l-reglas-de-marca`; cada uno toca solo sus carpetas.
+
+## Ampliaciones tras las pruebas reales (2026-09-27)
+
+- **Textura del fondo** (`fundamentos.textura`: patrón ninguna/retícula/cuaderno/puntos/diagonal, tamaño 8–48 px,
+  intensidad 0–0.25), dibujada en todo el layout con la tinta del fondo.
+- **Contraste verificado en Chromium**: texto 4.5:1 (grande 3:1) e iconos 3:1 contra su fondo efectivo, en catorce
+  combinaciones de pantalla y ancho, también sobre el tema publicado. La tinta por contexto (fondo o tarjeta) se genera desde el
+  propio CSS con `diner/scripts/design-system/superficies.cjs` (orden de cascada, `@media`, `!important`, colores fijos claros).
+- **Reglas de imágenes en el sistema de diseño**: `fundamentos.imagenes` (`radio` 8–40 px, nunca en punta; `ajuste`
+  cubrir/contener) y `variantes.marcoImagen` (ninguno/borde/sombra). `forma.imagen` se deriva del radio y no se edita. El
+  verificador exige a cada foto de plato un radio de al menos la mitad del definido y nunca menos de 8 px (salvo circular),
+  sin deformación y con el ajuste y el marco del tema.
+- **Orden del MCP**: primero el sistema de diseño, después los componentes. `preparar_componente` y `preparar_tema` rechazan
+  plantillas mientras los fundamentos sigan siendo los de fábrica; `leer_design_system` devuelve el `orden`.

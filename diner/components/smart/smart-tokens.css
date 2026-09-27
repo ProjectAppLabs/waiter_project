@@ -26,6 +26,9 @@
   --ds-textura: none;
   --ds-textura-tamano: 16px;
   --ds-textura-intensidad: 7%;
+  /* Plan L: reglas de las fotos. */
+  --ds-imagen-radio: 16px;
+  --ds-imagen-ajuste: cover;
 }
 
 /* Las variables derivadas se calculan donde se hereda la densidad de <main>.

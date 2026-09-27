@@ -62,6 +62,13 @@
       "--t-cuerpo",
       "--t-mono"
     ],
+    "fundamentos.imagenes.radio": [
+      "--ds-imagen-radio",
+      "--ds-forma-imagen"
+    ],
+    "fundamentos.imagenes.ajuste": [
+      "--ds-imagen-ajuste"
+    ],
     "fundamentos.textura.patron": [
       "--ds-textura"
     ],
@@ -270,7 +277,8 @@
       ],
       "variantes": [
         "imagen",
-        "formaImagen"
+        "formaImagen",
+        "marcoImagen"
       ]
     },
     {
@@ -981,6 +989,28 @@
           "valor": "tema",
           "descripcion": "Todos los banners usan acento, acentoTinta y tintaTerciaria.",
           "selector": "[data-ds-banners=\"tema\"]"
+        }
+      ]
+    },
+    "marcoImagen": {
+      "ruta": "variantes.marcoImagen",
+      "atributo": "data-ds-marco-imagen",
+      "predeterminada": "ninguno",
+      "opciones": [
+        {
+          "valor": "ninguno",
+          "descripcion": "Fotos sin marco.",
+          "selector": ".sm-food-photo"
+        },
+        {
+          "valor": "borde",
+          "descripcion": "Borde de 2 px color tinta alrededor de cada foto.",
+          "selector": "[data-ds-marco-imagen=\"borde\"]"
+        },
+        {
+          "valor": "sombra",
+          "descripcion": "Sombra suave bajo cada foto.",
+          "selector": "[data-ds-marco-imagen=\"sombra\"]"
         }
       ]
     }

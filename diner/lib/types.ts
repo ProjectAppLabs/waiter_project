@@ -51,6 +51,8 @@ export interface MenuTheme {
     tipografia: { display: string; cuerpo: string; fuentes?: string[] }
     // Plan L: textura de todo el fondo de la página (patrón del catálogo, tamaño en px e intensidad 0–0.25).
     textura?: { patron: string; tamano: number; intensidad: number }
+    // Plan L: reglas de las fotos (radio 8–40 px, cubrir o contener); forma.imagen se deriva del radio.
+    imagenes?: { radio: number; ajuste: 'cubrir' | 'contener' }
   }
 }
 // `contexto.plantilla`: la plantilla resuelta (catálogo + paleta y tipografía de la sede + marca). Es lo único que el motor necesita.

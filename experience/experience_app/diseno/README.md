@@ -380,3 +380,10 @@ esquema se completa al cargar.
 si se pasa `DRAFT_TOKEN`, con un borrador. Comprueba componentes y opciones, atributos e inercia de cada muestra, el estilo
 calculado que distingue cada opción, ausencia de elementos fijos, desbordamiento, errores JS y escrituras, y guarda capturas
 y recortes en `DESIGN_EVIDENCE` (`test-reports/j5`). Admite `DINER_URL`, `CDP_URL`, `REST` y `SEDE`. Solo lee.
+
+## Reglas de imágenes y orden de diseño (Plan L)
+
+`fundamentos.imagenes` fija cómo se ven las fotos: `radio` de 8 a 40 px (no hay esquinas en punta) y `ajuste` (`cubrir` o
+`contener`); `variantes.marcoImagen` añade `borde` o `sombra`. `forma.imagen` pasa a ser de solo lectura (`radio / 16`); un
+tema guardado con fotos en punta se lee con el radio del sistema. El verificador del comensal exige estas reglas a cada
+foto en el navegador. El MCP no acepta plantillas de componente con los fundamentos de fábrica: primero el sistema de diseño.

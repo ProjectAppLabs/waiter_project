@@ -71,7 +71,8 @@
               "default": 1,
               "minimum": 0,
               "maximum": 2,
-              "description": "Multiplica el radio original del componente; 0 deja esquinas rectas."
+              "description": "Se calcula de fundamentos.imagenes.radio (radio / 16); no se edita.",
+              "readOnly": true
             },
             "hoja": {
               "type": "number",
@@ -242,6 +243,29 @@
               "description": "Opacidad de las líneas o puntos sobre el fondo (0 a 0.25)."
             }
           }
+        },
+        "imagenes": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Reglas de las fotografías del menú, parte del sistema de diseño y verificadas en el navegador: ninguna foto se dibuja con un radio menor que radio (salvo las circulares), ni deformada, y todas usan el ajuste y el marco del tema. No hay esquinas en punta: el mínimo es 8 px.",
+          "properties": {
+            "radio": {
+              "type": "number",
+              "minimum": 8,
+              "maximum": 40,
+              "default": 16,
+              "description": "Radio de las esquinas de las fotos en píxeles (8 a 40)."
+            },
+            "ajuste": {
+              "type": "string",
+              "enum": [
+                "cubrir",
+                "contener"
+              ],
+              "default": "cubrir",
+              "description": "cubrir recorta la foto para llenar su caja; contener la muestra entera dentro de la caja."
+            }
+          }
         }
       }
     },
@@ -354,6 +378,16 @@
           ],
           "default": "actual",
           "description": "actual: Conserva los colores fijos violeta, ámbar y oscuro. tema: Todos los banners usan acento, acentoTinta y tintaTerciaria. Atributo data-ds-banners."
+        },
+        "marcoImagen": {
+          "type": "string",
+          "enum": [
+            "ninguno",
+            "borde",
+            "sombra"
+          ],
+          "default": "ninguno",
+          "description": "Tratamiento de las fotos: sin marco, con borde de 2 px color tinta o con sombra suave."
         }
       }
     },

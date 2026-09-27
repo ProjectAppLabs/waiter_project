@@ -108,6 +108,8 @@ def validate(theme: dict) -> dict:
     for role in ('display', 'cuerpo'):
         if typography[role] not in rules[role]['anyOf'][0]['enum'] + typography['fuentes']:
             raise InvalidTheme(f'tema.fundamentos.tipografia.{role}: elige una familia de la lista fija o declárala en tipografia.fuentes.')
+    # Las fotos redondean según fundamentos.imagenes.radio; forma.imagen (factor sobre 16 px) se deriva de él.
+    clean['fundamentos']['forma']['imagen'] = round(clean['fundamentos']['imagenes']['radio'] / 16, 4)
     colors = clean['fundamentos']['colores']
     original = defaults()['fundamentos']['colores']
     # S1 conserva sus derivados exactos; una paleta nueva mezcla el acento sobre las tarjetas.

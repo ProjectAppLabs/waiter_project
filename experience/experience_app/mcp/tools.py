@@ -69,7 +69,14 @@ def leer_design_system(key: McpKey, args: dict) -> dict:
             'tema': templates.settings_view(key.restaurant_slug, key.venue_slug)['tema'],
             'pagina': borradores.design_system_url(key.restaurant_slug, key.venue_slug),
             'plantillas': plantillas.contract(),
-            'reglas': ['Cambia solo los campos del esquema. Los colores derivados son de solo lectura.',
+            'orden': ['1. Sistema de diseño: preparar_tema con fundamentos (colores, tipografía y fuentes globales, forma, '
+                      'imágenes, textura) y variantes; verificar_borrador y confirmar_cambio.',
+                      '2. Componentes: preparar_componente (o tema.componentes) sobre ese sistema, usando sus utilidades ds-*.',
+                      'Sin sistema de diseño propio el MCP rechaza las plantillas de componente.'],
+            'reglas': ['Cambia solo los campos del esquema. Los colores derivados y forma.imagen son de solo lectura.',
+                       'Imágenes: fundamentos.imagenes.radio (8 a 40 px, nunca esquinas en punta), imagenes.ajuste (cubrir o contener) y '
+                       'variantes.marcoImagen (ninguno, borde o sombra) son reglas del sistema: el navegador falla si una foto se dibuja con '
+                       'menos radio (salvo circular), deformada o sin el ajuste o el marco del tema.',
                        FONT_RULE,
                        'Contraste mínimo 4.5:1: tintaFondo sobre fondo; tinta y tintaSuave sobre superficie; tinta sobre acentoSuave; acentoTinta sobre acento. tintaFondo omitida usa tinta; acentoSuave se mezcla con superficie.',
                        'variantes.banners: actual conserva los colores fijos; tema usa acento, acentoTinta y tintaTerciaria.',
@@ -138,6 +145,17 @@ def leer_componente(key: McpKey, args: dict) -> dict:
                        'Después de preparar, llama verificar_borrador con el token borrador antes de confirmar_cambio.']}
 
 
+DESIGN_FIRST = ('Define primero el sistema de diseño: llama preparar_tema con fundamentos (colores, tipografía, forma, '
+                'imágenes y textura) y confírmalo; después diseña los componentes sobre ese sistema.')
+
+
+def _require_design_system(theme: dict) -> None:
+    """El MCP diseña de fuera hacia dentro: sin sistema de diseño propio no acepta plantillas de componente."""
+    has_templates = any(value for value in theme.get('componentes', {}).values())
+    if has_templates and theme['fundamentos'] == design.defaults()['fundamentos']:
+        raise ToolError(DESIGN_FIRST)
+
+
 def preparar_componente(key: McpKey, args: dict) -> dict:
     _arguments(args, ('componente', 'html'), ('componente', 'html'))
     component_id, html = _component_id(args), args['html']
@@ -150,6 +168,7 @@ def preparar_componente(key: McpKey, args: dict) -> dict:
         theme = borradores.merge(current, patch)
     except design.InvalidTheme as exc:
         raise ToolError(str(exc)) from exc
+    _require_design_system(theme)
     result = _prepare_theme(key, theme, current)
     saved = theme['componentes'][component_id]
     result['advertencias'] = plantillas.warnings(component_id, saved['arbol']) if saved else []
@@ -182,6 +201,7 @@ def preparar_tema(key: McpKey, args: dict) -> dict:
         theme = borradores.merge(current, patch)
     except design.InvalidTheme as exc:
         raise ToolError(str(exc)) from exc
+    _require_design_system(theme)
     return _prepare_theme(key, theme, current)
 
 

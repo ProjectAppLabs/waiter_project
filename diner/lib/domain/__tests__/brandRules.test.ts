@@ -75,3 +75,13 @@ it('mantiene al día el contexto de tinta generado desde el CSS', () => {
   const { execFileSync } = require('node:child_process')
   expect(() => execFileSync('node', [join(__dirname, '../../../scripts/design-system/superficies.cjs'), '--check'], { stdio: 'pipe' })).not.toThrow()
 })
+
+// Falla si las reglas de las fotos (radio y ajuste) dejan de llegar al CSS, o si un valor fuera de rango o desconocido
+// pasa sin volver al predeterminado.
+it('traduce las reglas de las fotos a variables CSS', () => {
+  const vars = designSystemVars(theme({ imagenes: { radio: 24, ajuste: 'contener' } }))
+  expect([vars['--ds-imagen-radio'], vars['--ds-imagen-ajuste']]).toEqual(['24px', 'contain'])
+  const bad = designSystemVars(theme({ imagenes: { radio: 0, ajuste: 'estirar' } }))
+  expect([bad['--ds-imagen-radio'], bad['--ds-imagen-ajuste']]).toEqual(['16px', 'cover'])
+  expect(designSystemAttributes(theme({}, { variantes: { marcoImagen: 'sombra' } }))['data-ds-marco-imagen']).toBe('sombra')
+})

@@ -44,13 +44,23 @@ function textureVars(theme?: MenuTheme): Record<string, string> {
   return { '--ds-textura': pattern(patron, size, pct), '--ds-textura-tamano': `${size}px`, '--ds-textura-intensidad': pct }
 }
 
+// Plan L: reglas de las fotos. El radio (8–40 px) y el ajuste (cover/contain) llegan como variables; el verificador los lee
+// de <main> para exigirlos a cada foto.
+export const IMAGE_RULES = { radio: { min: 8, max: 40, default: 16 }, ajustes: { cubrir: 'cover', contener: 'contain' } } as const
+function imageVars(theme?: MenuTheme): Record<string, string> {
+  const rules = theme?.version === 2 ? theme.fundamentos?.imagenes : undefined
+  const radio = typeof rules?.radio === 'number' && Number.isFinite(rules.radio) && rules.radio >= IMAGE_RULES.radio.min && rules.radio <= IMAGE_RULES.radio.max ? rules.radio : IMAGE_RULES.radio.default
+  const fit = rules?.ajuste === 'contener' ? 'contain' : 'cover'
+  return { '--ds-imagen-radio': `${radio}px`, '--ds-imagen-ajuste': fit }
+}
+
 // Plan L: la tinta del fondo y las tres fuentes globales como variables CSS. ds-fuente-N sin fuente usa la de títulos.
 function brandVars(theme?: MenuTheme): Record<string, string> {
   const ink = theme?.version === 2 ? theme.fundamentos?.colores?.tintaFondo : undefined
   const fonts = themeFonts(theme)
   const vars: Record<string, string> = { '--t-tinta-fondo': typeof ink === 'string' && HEX.test(ink) ? ink.toUpperCase() : 'var(--t-tinta)' }
   for (let i = 0; i < MAX_FONTS; i++) vars[`--ds-fuente-${i + 1}`] = fonts[i] ? `'${fonts[i]}', var(--t-display)` : 'var(--t-display)'
-  return { ...vars, ...textureVars(theme) }
+  return { ...vars, ...textureVars(theme), ...imageVars(theme) }
 }
 
 export function designSystemVars(theme?: MenuTheme): Record<string, string> {

@@ -153,3 +153,10 @@ servicio sigue siendo `admin` en la demo. El MCP no amplía ese acceso, pero tam
 
 Fichas de plato (ingredientes, nutrición, adicionales), horario de reservas, cupones… Cada una se agrega en `tools.py`
 (`TOOLS`) con el mismo patrón: leer, preparar con vista previa y confirmar.
+
+## Orden: primero el sistema de diseño (Plan L)
+
+`leer_design_system` devuelve `orden`: 1) `preparar_tema` con fundamentos (colores, tipografía y fuentes globales, forma,
+imágenes, textura) y variantes, verificado y confirmado; 2) plantillas de componente sobre ese sistema. Con los fundamentos de
+fábrica, `preparar_componente` y `preparar_tema` con `componentes` responden «Define primero el sistema de diseño». Las
+reglas de imágenes (`fundamentos.imagenes`, `variantes.marcoImagen`) las comprueba `verificar_borrador` en cada foto.
