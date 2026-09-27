@@ -147,7 +147,7 @@ def owner(company_brand_stub, settings):
 
 
 # // Falla si la IA no puede leer el contrato, preparar una plantilla por preparar_tema, verla en el borrador público y confirmarla.
-def test_mcp_prepares_previews_and_confirms_a_component_template(client, owner):
+def test_mcp_prepares_previews_and_confirms_a_component_template(client, owner, settings, tmp_path):
     record, raw = owner
     data = call(client, raw, 'leer_design_system')['structuredContent']
     contract = data['plantillas']
@@ -163,6 +163,8 @@ def test_mcp_prepares_previews_and_confirms_a_component_template(client, owner):
     assert content['vista_previa'] == [{'campo': 'componentes.plato', 'antes': 'de fábrica', 'despues': 'plantilla propia (v1, 6 nodos)'}]
     preview = client.get(f'/api/v1/burger-house/poblado/borradores/{content["borrador"]}/').json()['plantilla']['tema']
     assert preview['componentes']['plato']['arbol'] == plantillas.compile_html('plato', MINIMAL)
+    settings.DESIGN_VERIFIER_CMD = verifier(tmp_path, 'True')
+    assert call(client, raw, 'verificar_borrador', {'borrador': content['borrador']})['structuredContent']['ok'] is True
     assert not call(client, raw, 'confirmar_cambio', {'token': content['token']})['isError']
     assert templates.resolve_template(TABLE)['tema']['componentes']['plato']['version'] == 1
     reset = call(client, raw, 'restablecer_tema', {'capa': 'componentes'})['structuredContent']
@@ -238,10 +240,11 @@ def test_component_tools_read_prepare_verify_and_gate_confirmation(client, owner
     draft = call(client, raw, 'preparar_componente', {'componente': 'plato', 'html': loud})['structuredContent']
     assert draft['vista_previa'] == [{'campo': 'componentes.plato', 'antes': 'de fábrica', 'despues': 'plantilla propia (v1, 8 nodos)'}]
     assert any('ds-texto-grande' in w for w in draft['advertencias']) and 'verificar_borrador' in draft['siguiente']
-    # Sin verificador configurado se dice, y confirmar sigue permitido (no se inventa un resultado).
+    # Sin verificador configurado se dice; el modo estricto impide confirmar.
     settings.DESIGN_VERIFIER_CMD = ''
     unavailable = call(client, raw, 'verificar_borrador', {'borrador': draft['borrador']})['structuredContent']
     assert unavailable['estado'] == 'no_disponible' and unavailable['ok'] is None
+    assert call(client, raw, 'confirmar_cambio', {'token': draft['token']})['isError']
     assert call(client, raw, 'verificar_borrador', {'borrador': str(uuid.uuid4())})['isError']
     # Con verificador, un resultado con problemas bloquea la confirmación; en verde la permite.
     settings.DESIGN_VERIFIER_CMD = verifier(tmp_path, 'False', ['375 px: tarjeta 1: la palabra «Hamburguesa» no cabe'])

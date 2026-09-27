@@ -85,5 +85,11 @@ Pruebas con un verificador falso que tarda.
 
 1. A y C en paralelo → 2. B (dueño) y D → 3. E.
 
-**Estado (2026-09-26):** plan escrito; C empieza con Claude; A queda para Codex con el
-[traspaso](../traspaso/2026-09-26-traspaso-codex-plan-k-cierre.md).
+**Estado (2026-09-26):** A implementado en `feat/26092026-plan-k-a-verificador-obligatorio`, sobre `f7824e3`:
+modo estricto por defecto, POST interno de verificar, puerta transaccional en el PUT, pasarela Odoo y servicio POS,
+pruebas y documentación. Diseño/MCP: **234 pruebas**; experience sin contract/addon: **536**; POS: **7** del servicio
+de menú y **3** del cliente Odoo. TypeScript, Ruff, ESLint y comprobación de migraciones sin errores. Odoo
+`TestMenuSettingsGateway`: **11 pruebas, 0 fallos** (las corrió Claude sobre una copia desechable de la base; el sandbox de
+Codex no llega a Docker). Commit hecho por Claude desde fuera del sandbox de Codex.
+Detalle, decisiones y comandos en el [traspaso](../traspaso/2026-09-26-traspaso-codex-plan-k-cierre.md#cierre-de-a--2026-09-26).
+C continúa con Claude; E no está incluido y sigue pendiente. Sin publicación ni fusión de ramas.

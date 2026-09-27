@@ -17,10 +17,10 @@ export const http = axios.create({ baseURL: '/odoo', timeout: 60_000, withCreden
 
 let nextId = 1
 
-export async function jsonRpc<T>(path: string, params: Record<string, unknown>): Promise<T> {
+export async function jsonRpc<T>(path: string, params: Record<string, unknown>, options?: { timeout: number }): Promise<T> {
   const { data } = await http.post<JsonRpcResponse<T>>(path, {
     jsonrpc: '2.0', method: 'call', id: nextId++, params,
-  })
+  }, options)
   if (data.error) {
     const detail = data.error.data ?? {}
     throw new OdooError(detail.message ?? data.error.message, detail.name ?? 'odoo.exceptions.Error')

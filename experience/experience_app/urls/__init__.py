@@ -27,6 +27,7 @@ urlpatterns = [
     path('internal/v1/<slug:restaurant>/<slug:venue>/decoraciones/<slug:slug>/', design.internal_decoration, name='internal-decoration'),
     path('api/v1/<slug:restaurant>/<slug:venue>/borradores/<str:token>/', design.preview, name='theme-preview'),
     path('internal/v1/<slug:restaurant>/<slug:venue>/menu/borradores/', design.prepare, name='theme-prepare'),
+    path('internal/v1/<slug:restaurant>/<slug:venue>/menu/borradores/<str:token>/verificar/', design.verify, name='theme-verify'),
     path('mcp/', mcp.endpoint, name='mcp'),
     path('mcp', mcp.endpoint),  # sin barra: un POST no puede redirigirse a /mcp/
     path('mcp/<str:raw_key>/', mcp.endpoint, name='mcp-url-key'),

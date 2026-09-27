@@ -108,6 +108,7 @@ DINER_PUBLIC_URL = os.getenv('DINER_PUBLIC_URL', 'http://192.168.56.10:3001').rs
 # SEDE en el entorno y escribe JSON en stdout). Vacío = la verificación en navegador no está disponible en este servidor.
 DESIGN_VERIFIER_CMD = os.getenv('DESIGN_VERIFIER_CMD', '')
 DESIGN_VERIFIER_TIMEOUT = int(os.getenv('DESIGN_VERIFIER_TIMEOUT', '180'))
+DESIGN_VERIFIER_REQUIRED = os.getenv('DESIGN_VERIFIER_REQUIRED', 'true').lower() in {'1', 'true', 'yes', 'on'}
 MAILERS = {'default': {
     'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
     'OPTIONS': {

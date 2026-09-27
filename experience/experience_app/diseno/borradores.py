@@ -96,16 +96,23 @@ def result(change):
             'vista_previa': differences(change.payload['base'], change.payload['tema'])}
 
 
-def read(restaurant, venue, token):
+def get(restaurant, venue, token, *, lock=False):
+    """Resuelve el token público dentro de su sede; el guardado bloquea la fila hasta consumirla."""
     try:
         token = uuid.UUID(str(token))
     except ValueError:
         raise InvalidDraft('El borrador no existe, caducó o ya fue aplicado.') from None
-    change = McpPendingChange.objects.select_related('key').filter(preview_token=token,
+    changes = McpPendingChange.objects.select_for_update() if lock else McpPendingChange.objects.all()
+    change = changes.filter(preview_token=token,
         restaurant_slug=restaurant, venue_slug=venue, kind__in=['theme', 'preview']).first()
     if (change is None or change.applied_at or timezone.now() >= change.created_at + TTL
             or (change.key_id and change.key.revoked_at)):
         raise InvalidDraft('El borrador no existe, caducó o ya fue aplicado.')
+    return change
+
+
+def read(restaurant, venue, token):
+    change = get(restaurant, venue, token)
     return {'plantilla': change.preview, 'caduca': (change.created_at + TTL).isoformat()}
 
 
@@ -114,6 +121,33 @@ def introduces_templates(change) -> bool:
     base = change.payload['base'].get('componentes', {})
     return any(value is not None and value != base.get(component_id)
                for component_id, value in change.payload['tema'].get('componentes', {}).items())
+
+
+def require_verified(change):
+    """La última medición del borrador debe ser verde; explica qué falta para poder publicar."""
+    verification = change.payload.get('verificacion', {})
+    if verification.get('ok') is True:
+        return
+    state = verification.get('estado')
+    if state == 'no_disponible' or (not state and not settings.DESIGN_VERIFIER_CMD.strip()):
+        reason = 'La verificación en navegador no está configurada; configura DESIGN_VERIFIER_CMD.'
+    elif state == 'error':
+        reason = 'La última verificación terminó con error; revisa el verificador y vuelve a intentarlo.'
+    elif state == 'problemas':
+        reason = 'La última verificación encontró problemas; corrige la plantilla y prepara otro borrador.'
+    else:
+        reason = 'Falta una verificación en verde de este borrador.'
+    raise InvalidDraft(f'{reason} Ejecuta verificar_borrador (MCP) o verify (POS) y publica solo con ok: true.')
+
+
+def verification_result(change, result):
+    """MCP y POST interno devuelven el mismo contrato, sin exponer el token de confirmación."""
+    following = {'ok': 'Muestra el resultado a la persona; con su aprobación, confirma o guarda el borrador.',
+                 'problemas': 'Corrige los problemas y prepara de nuevo.',
+                 'error': 'La verificación no pudo medir: no es culpa de la plantilla. Avísale a la persona y vuelve a intentarlo más tarde.',
+                 'no_disponible': 'Configura DESIGN_VERIFIER_CMD y vuelve a verificar antes de publicar.'
+                 if settings.DESIGN_VERIFIER_REQUIRED else 'Revisa el borrador a ojo con la persona en url y url_design_system.'}
+    return {**result, 'borrador': str(change.preview_token), 'siguiente': following[result['estado']]}
 
 
 def _run_verifier(command: str, change) -> dict:
@@ -135,6 +169,8 @@ def _run_verifier(command: str, change) -> dict:
     if data.get('ok') is None:
         return {'estado': 'error', 'ok': None, 'problemas': problems,
                 'mensaje': 'La verificación no pudo medir el borrador; revisa el registro del servidor y avísale a la persona.'}
+    if type(data['ok']) is not bool:
+        raise ValueError('el campo ok del verificador debe ser booleano o null')
     captures = data.get('capturas') if isinstance(data.get('capturas'), list) else []
     return {'estado': 'ok' if data['ok'] else 'problemas', 'ok': bool(data['ok']), 'problemas': problems,
             'medidas': data.get('medidas') if isinstance(data.get('medidas'), dict) else {},
@@ -153,7 +189,7 @@ def verify(change) -> dict:
     command = settings.DESIGN_VERIFIER_CMD
     if not command.strip():
         result = {'estado': 'no_disponible', 'ok': None, 'problemas': [],
-                  'mensaje': 'La verificación en navegador no está configurada en este servidor. Revisa el borrador a ojo en url y url_design_system antes de confirmar.'}
+                  'mensaje': 'La verificación en navegador no está configurada en este servidor (DESIGN_VERIFIER_CMD).'}
     else:
         lock = f'verificacion:{change.restaurant_slug}/{change.venue_slug}'
         if not cache.add(lock, str(change.pk), timeout=settings.DESIGN_VERIFIER_TIMEOUT + 5):
@@ -179,10 +215,10 @@ def confirm(key, token):
     change = McpPendingChange.objects.select_for_update().filter(pk=token, key=key, kind='theme').first()
     if change is None or change.applied_at or timezone.now() >= change.created_at + TTL:
         raise InvalidDraft('El borrador no existe, caducó o ya fue aplicado. Vuelve a prepararlo.')
-    # K3: con verificador configurado, una plantilla propia solo se publica con la última verificación en verde.
+    # Cierre A: el modo estricto exige verificación incluso sin comando; false conserva la puerta de K3.
     # Volver a fábrica no exige verificación: no hay plantilla que medir.
-    if settings.DESIGN_VERIFIER_CMD.strip() and introduces_templates(change) and change.payload.get('verificacion', {}).get('ok') is not True:
-        raise InvalidDraft('Este borrador introduce una plantilla propia: llama verificar_borrador y corrige los problemas antes de confirmar.')
+    if (settings.DESIGN_VERIFIER_REQUIRED or settings.DESIGN_VERIFIER_CMD.strip()) and introduces_templates(change):
+        require_verified(change)
     # Reclamar dentro de la transacción impide confirmar dos veces también en SQLite; si guardar falla, se revierte.
     if not McpPendingChange.objects.filter(pk=change.pk, applied_at__isnull=True).update(applied_at=timezone.now()):
         raise InvalidDraft('Ese cambio ya se aplicó.')

@@ -20,6 +20,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.db import transaction
 from django.urls import reverse
+from django.utils import timezone
 
 from experience_app.adapters.registry.client import Tenant
 from experience_app.diseno import plantillas as component_templates
@@ -297,6 +298,38 @@ def save(restaurant: str, venue: str, body: dict) -> VenueMenuSettings:
     # También al confirmar la transacción: una lectura concurrente podría haber repoblado la caché con datos viejos.
     transaction.on_commit(lambda: (brand.invalidate(restaurant, venue), invalidate(restaurant, venue)))
     return chosen
+
+
+@transaction.atomic
+def save_verified(restaurant: str, venue: str, body: dict) -> VenueMenuSettings:
+    """Puerta del PUT: consume el borrador verificado y guarda su tema en la misma transacción."""
+    from experience_app.diseno import borradores
+    from experience_app.mcp.models import McpPendingChange
+
+    if not settings.DESIGN_VERIFIER_REQUIRED:
+        return save(restaurant, venue, body)
+    try:
+        # Mismo orden que confirmar por MCP: primero borrador, luego ajustes de la sede.
+        change = borradores.get(restaurant, venue, body['borrador'], lock=True) if 'borrador' in body else None
+        template, _, _, _ = prepare(restaurant, venue, body)
+        # También bloquea la primera publicación, cuando aún no existían ajustes para esta sede.
+        VenueMenuSettings.objects.get_or_create(restaurant_slug=restaurant, venue_slug=venue,
+                                                defaults={'template': template})
+        previous = VenueMenuSettings.objects.select_for_update().select_related('template').get(
+            restaurant_slug=restaurant, venue_slug=venue)
+        _, _, _, theme = prepare(restaurant, venue, body, chosen=previous)
+        current = settings_view(restaurant, venue)['tema']
+        if theme['componentes'] != current['componentes'] or change is not None:
+            if change is None:
+                raise InvalidSettings('Cambiar tema.componentes exige borrador: prepara y verifica ese tema antes de guardar.')
+            borradores.require_verified(change)
+            if change.payload['tema'] != theme:
+                raise InvalidSettings('El tema no coincide con el borrador verificado. Prepara y verifica el tema que vas a guardar.')
+            if not McpPendingChange.objects.filter(pk=change.pk, applied_at__isnull=True).update(applied_at=timezone.now()):
+                raise InvalidSettings('Ese borrador ya fue aplicado.')
+        return save(restaurant, venue, body)
+    except borradores.InvalidDraft as exc:
+        raise InvalidSettings(str(exc)) from exc
 
 
 # Plan K4: las decoraciones de la sede solo existen para su propia sede. Estas envolturas fijan la sede en contexto

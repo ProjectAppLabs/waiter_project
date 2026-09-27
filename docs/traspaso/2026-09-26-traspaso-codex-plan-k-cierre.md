@@ -69,3 +69,49 @@ cd pos && npx tsc --noEmit && npx jest --ci lib/services/__tests__/menuTemplates
 experience corre con `--noreload`: tras cambiar Python, reinícialo (`scripts/dev.sh down && scripts/dev.sh up`, o matar el
 PID de `/tmp/waiter-dev/experience.pid` y `scripts/dev.sh up`). No publiques ramas ni fusiones sin pedido. Deja el
 estado en este archivo al terminar cada paquete.
+
+## Cierre de A · 2026-09-26
+
+Implementado en `feat/26092026-plan-k-a-verificador-obligatorio`, sobre `f7824e3`, en el árbol separado
+`/home/cerrotico/work/waiter_project-codex-a`. Solo A: E sigue pendiente. No se han reiniciado servicios ni modificado
+archivos del árbol principal; no se han instalado dependencias, publicado ramas ni fusionado.
+
+- `DESIGN_VERIFIER_REQUIRED=true` por defecto; MCP exige la última verificación en verde para introducir o cambiar
+  una plantilla propia. `false` conserva el comportamiento anterior.
+- POST interno de verificación compartido con MCP, con clave interna y aislamiento por sede; PUT con borrador
+  vigente, sin aplicar, verificado y del mismo tema completo. El consumo del token y el guardado son atómicos.
+- Odoo incorpora `verify` y reenvía `borrador` en `set`; el servicio del POS expone ambas operaciones sin UI nueva.
+- Documentados los contratos en los README de diseño, MCP y addon. Pruebas de tokens ajenos, caducados, aplicados,
+  revocados, de confirmación, otro tipo, otro tema, falta de verificación, error, problemas y verde sustituido por rojo;
+  también publicación correcta, uso único, reversión ante error y compatibilidad con `false` y ediciones antiguas.
+
+Verificación local:
+
+| Comprobación | Resultado |
+|---|---|
+| experience: diseño + MCP | **234 pasaron** |
+| experience: suite sin contract ni addon | **536 pasaron** |
+| Ruff (incluye además plantillas y urls modificados) | **0 errores** |
+| `makemigrations --check --dry-run` | **0 migraciones pendientes** |
+| POS: `tsc --noEmit` | **0 errores** |
+| POS: `menuTemplates.test.ts` | **7 pasaron** |
+| POS: `odoo.test.ts` (cliente con espera opcional) | **3 pasaron** |
+| ESLint de los tres archivos TypeScript modificados | **0 errores** |
+| Odoo: `TestMenuSettingsGateway` | **11 pasaron, 0 fallos** (las corrió Claude fuera del sandbox, con `scripts/odoo-test.sh`) |
+
+Odoo no pudo iniciarse en el sandbox de Codex: `sg docker` respondió `Cannot open audit interface - aborting.` y el acceso
+directo a `/var/run/docker.sock` respondió `permission denied`. Claude corrió las pruebas después copiando los dos archivos
+del addon al árbol principal (que es el que monta el contenedor) y restaurándolos: 11 pruebas, 0 fallos.
+
+Decisiones de implementación: A conserva la ejecución síncrona; para que no la corten los límites anteriores,
+`verify` tiene 190 s de espera en Odoo y 200 s en el POS, frente a los 180 s predeterminados de experience. Por eso
+también cambia `pos/lib/services/odoo.ts` (espera opcional por petición). Un `ok` que no sea booleano o null en la salida
+del verificador se trata como error, nunca como verde. Si el PUT recibe `borrador` aunque no cambien componentes,
+también lo valida y consume; esto evita reutilizar un token aplicado. El regreso a fábrica sigue libre por MCP y
+requiere borrador por PUT, tal como distingue el alcance de A.
+
+**Commit.** Codex no pudo crearlo: `git add` no pudo escribir `index.lock` en
+`/home/cerrotico/work/waiter_project/.git/worktrees/waiter_project-codex-a/` (los metadatos del worktree viven fuera de la
+raíz que su sandbox permite escribir). Claude revisó el diff y lo confirmó desde fuera del sandbox. Para la próxima vez:
+los worktrees que use Codex deben crearse con `git worktree add` y luego darle a Codex también permiso de escritura sobre
+`.git/worktrees/<nombre>/`, o pedir a Claude que haga el commit.
