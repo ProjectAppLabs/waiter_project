@@ -22,6 +22,7 @@ const PAGES = [
   { name: 'carta', path: 'carta', widths: [320, 375, 1024], wait: 'article.sm-food-card', shot: '.sm-menu-sections section, .sm-food-list, .sm-food-grid' },
   // El contraste depende de los colores del tema en todas las pantallas, no solo donde hay plantillas propias: sin sesión
   // se ven los estados vacíos, formularios y títulos que más sufren con un fondo oscuro.
+  { name: 'plato', path: 'plato/41', widths: [375, 1024], wait: '.sm-dish-hero', shot: '.smart-menu' },
   ...['favoritos', 'pedido', 'la-cuenta', 'historial', 'recompensas', 'ubicacion', 'cuenta', 'cuenta/entrar', 'cuenta/registro']
     .map((screen) => ({ name: screen, path: screen, widths: [375], wait: '.smart-menu .sm-page', shot: '.smart-menu' })),
 ]

@@ -54,7 +54,7 @@
 .sm-wallet-details { padding:var(--ds-espacio-20); border-radius:calc(16px * var(--ds-forma-tarjeta)); background:var(--sm-surface); }
 .sm-wallet-details p { padding:var(--ds-espacio-16) 0; border-bottom:1px solid var(--sm-border); }
 .sm-dish-hero > .sm-dish-photo { position:absolute; top:26px; right:-88px; width:230px; height:230px; max-width:none; margin:0; box-shadow:0 14px 40px #32324d0d; }
-.sm-dish-orbits { position:absolute; top:4px; right:-110px; width:274px; height:274px; border:1px solid #ffffffa0; border-radius:50%; box-shadow:0 0 0 18px #ffffff45,0 0 0 20px #ffffff70,0 0 0 38px #ffffff25; pointer-events:none; z-index:-1; }
+.sm-dish-orbits { position:absolute; top:4px; right:-110px; width:274px; height:274px; border:1px solid color-mix(in srgb, var(--t-superficie, #fff) 63%, transparent); border-radius:50%; box-shadow:0 0 0 18px color-mix(in srgb, var(--t-superficie, #fff) 27%, transparent),0 0 0 20px color-mix(in srgb, var(--t-superficie, #fff) 44%, transparent),0 0 0 38px color-mix(in srgb, var(--t-superficie, #fff) 15%, transparent); pointer-events:none; z-index:-1; }
 .sm-dish-info { display:flex; flex-direction:column; gap:var(--ds-espacio-28); min-width:0; }
 .sm-dish-info > .sm-description { margin:0; color:var(--sm-muted); font-size:calc(14px * var(--ds-texto)); line-height:calc(24px * var(--ds-texto)); }
 .sm-dish-info > .sm-footnote { margin-top:calc(-1 * var(--ds-espacio-20)); }
@@ -144,3 +144,17 @@ body:has(.sm-recommendation-dialog[open]) { overflow:hidden; }
  .sm-recommendation-dialog[open] { animation:sm-dish-enter .2s ease-out; }
  @keyframes sm-dish-enter { from { opacity:0; translate:0 24px; } to { opacity:1; translate:0 0; } }
 }
+
+/* Las órbitas acompañan a una foto circular (fotos «actual» o «circular»); con fotos del radio del sistema de diseño no
+ * tienen sentido y se ocultan. Su color sale de la superficie del tema, no de un blanco fijo. */
+[data-ds-forma-imagen="tema"] .smart-menu .sm-dish-orbits { display: none; }
+/* Sin órbitas, la foto no sangra fuera de la pantalla: queda dentro del margen, a la derecha del nombre. */
+[data-ds-forma-imagen="tema"] .smart-menu .sm-dish-hero:not([data-plantilla]) > .sm-dish-photo { right: 0; width: 150px; height: 150px; }
+
+/* La acción principal de la ficha va al muelle inferior junto a «Mi mesero» (como en el pedido); la cantidad y el aviso
+ * de agregado quedan dentro de la ficha, sin franja flotante. */
+.smart-menu .sm-dish-purchase.is-inline { position: static; inset: auto; z-index: auto; box-shadow: none; background: transparent; border-radius: 0; padding: var(--ds-espacio-16) 0 calc(96px + env(safe-area-inset-bottom)); }
+.smart-menu .sm-dish-dock-action { display: flex; min-width: 0; width: 100%; }
+.smart-menu .sm-dish-dock-action .sm-primary { width: 100%; min-height: 54px; }
+.smart-menu .sm-dish-dock-action .sm-added { display: flex; width: 100%; }
+.smart-menu .sm-dish-dock-action .sm-added > :not(.sm-primary) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
