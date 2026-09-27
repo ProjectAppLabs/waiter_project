@@ -313,6 +313,12 @@
           "description": "tarjetas: Tarjetas separadas, como en J2. compacta: Filas con separadores y fotografías pequeñas; mantiene cantidades, notas y acciones."
         }
       }
+    },
+    "componentes": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Plan K: plantilla propia por componente. null = plantilla de fábrica; al preparar se envía {version, html} y se guarda {version, arbol}. Las propiedades se completan al cargar con los contratos de componentes/<id>.json.",
+      "properties": {}
     }
   }
 }

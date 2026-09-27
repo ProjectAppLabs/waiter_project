@@ -54,7 +54,12 @@ def test_public_contract_matches_mcp_and_is_read_only(client):
     response = client.get('/api/v1/diseno/')
     assert response.status_code == 200 and response['Cache-Control'] == 'public, max-age=3600'
     data = response.json()
-    assert data == {'version': 2, 'esquema': design.SCHEMA, 'inventario': design.INVENTORY}
+    assert set(data) == {'version', 'esquema', 'inventario', 'plantillas'}
+    assert data['version'] == 2 and data['esquema'] == design.public_schema() and data['inventario'] == design.INVENTORY
+    # El esquema publicado es JSON Schema válido: la capa componentes se describe como null | {version, html}.
+    plato = data['esquema']['properties']['componentes']['properties']['plato']
+    assert 'type' not in plato and plato['oneOf'][0] == {'type': 'null'} and plato['oneOf'][1]['properties']['version'] == {'const': 1}
+    assert {k: v for k, v in data['esquema']['properties'].items() if k != 'componentes'} == {k: v for k, v in design.SCHEMA['properties'].items() if k != 'componentes'}
     for method in (client.post, client.put, client.delete):
         assert method('/api/v1/diseno/', {}, content_type='application/json').status_code == 405
 

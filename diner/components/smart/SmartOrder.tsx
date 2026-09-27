@@ -7,7 +7,10 @@ import { createPortal } from 'react-dom'
 import {CouponField,PaidCelebration} from './SmartBenefits'
 import {SmartWallet} from './SmartWallet'
 import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { OrderState, PayMethod, PayScope } from '@/lib/types'
+import type { CartLine, Dish, OrderState, OrderStatus, PayMethod, PayScope } from '@/lib/types'
+import { Plantilla } from '@/components/plantillas/Renderizador'
+import { usePlantilla } from '@/components/plantillas/usePlantilla'
+import type { TemplateData } from '@/lib/domain/plantillas'
 import {
   Empty,
   FoodPhoto,
@@ -27,7 +30,6 @@ export function SmartCart({ actionTarget }: { actionTarget?: HTMLElement | null 
   const [allergens,setAllergens] = useState(account?.alergenos || '')
   const modeDialog = useRef<HTMLDialogElement>(null)
   const [swiped,setSwiped] = useState<number|null>(null)
-  const pointer = useRef<{x:number;y:number}|null>(null)
   const lock = useRef(false)
   const send = async () => {
     if (lock.current) return
@@ -79,57 +81,7 @@ export function SmartCart({ actionTarget }: { actionTarget?: HTMLElement | null 
             {cart.lineas.map((line) => {
               const dish = dishes.find((d) => d.id === line.producto_id)
               return (
-                <article className="sm-cart-line" key={line.id} data-swiped={swiped===line.id} onPointerDown={e=>{if(line.mio && !(e.target as HTMLElement).closest('button'))pointer.current={x:e.clientX,y:e.clientY}}} onPointerCancel={()=>{pointer.current=null}} onPointerUp={e=>{if(pointer.current){const dx=e.clientX-pointer.current.x,dy=e.clientY-pointer.current.y;if(Math.abs(dy)<40 && Math.abs(dx)>60)setSwiped(dx<0?line.id:null);pointer.current=null}}}>
-                  {swiped===line.id && <button className="sm-swipe-delete" aria-label={`Confirmar eliminación de ${line.nombre}`} disabled={busy||sending} onClick={()=>void remove(line.id)}><Icon name="close"/>Eliminar</button>}
-                  {dish && <FoodPhoto dish={dish} />}
-                  <div className="sm-cart-line-info">
-                    <h2>{line.nombre}</h2>
-                    <p>
-                      {line.mio
-                        ? 'Para ti'
-                        : `Comensal ${line.comensal.slice(0, 6)}`}
-                      {line.nota && ` · ${line.nota}`}
-                    </p>
-                    <strong>{money(line.subtotal)}</strong>
-                    <div className="sm-line-controls">
-                      {line.mio ? (
-                        <>
-                          <div className="sm-stepper">
-                            <button
-                              disabled={busy || sending || line.cantidad <= 1}
-                              aria-label={`Menos ${line.nombre}`}
-                              onClick={() =>
-                                void setQty(line.id, line.cantidad - 1)
-                              }
-                            >
-                              <Icon name="minus" />
-                            </button>
-                            <output>{line.cantidad}</output>
-                            <button
-                              disabled={busy || sending || line.cantidad >= 99}
-                              aria-label={`Más ${line.nombre}`}
-                              onClick={() =>
-                                void setQty(line.id, line.cantidad + 1)
-                              }
-                            >
-                              <Icon name="plus" />
-                            </button>
-                          </div>
-                          <button
-                            disabled={busy || sending}
-                            className="sm-text-button"
-                            aria-label={`Eliminar ${line.nombre}`}
-                            onClick={() => void remove(line.id)}
-                          >
-                            Eliminar
-                          </button>
-                        </>
-                      ) : (
-                        <span>{line.cantidad} unidades</span>
-                      )}
-                    </div>
-                  </div>
-                </article>
+                <CartLineItem key={line.id} line={line} dish={dish} swiped={swiped===line.id} onSwipe={(id)=>setSwiped(id)} busy={busy||sending} setQty={setQty} remove={remove} />
               )
             })}
             <Link href={href('carta')} className="sm-secondary">
@@ -243,14 +195,7 @@ export function SmartStatus({ id }: { id: string | null }) {
     <>
       {order.estado==='pagado'?<PaidCelebration order={order}/>:<Title title="Sigue tu pedido" back="historial" />}
       <section className="sm-status sm-exporty-status" hidden={order.estado==='pagado'}>
-        <div className="sm-status-card" role="status" aria-live="polite">
-          <h2>{labels[order.estado]}</h2>
-          <strong>{order.estado === 'pendiente_pago' ? 'Pendiente de pago' : order.estado === 'enviado' ? 'Esperando preparación' : order.estado === 'en_cocina' ? 'En preparación' : order.estado === 'listo' ? 'En camino a tu mesa' : order.estado === 'servido' ? 'Disfruta tu comida' : order.estado === 'pagado' ? 'Cuenta cerrada' : 'Intenta nuevamente'}</strong>
-          <div className="sm-status-art">
-            {order.estado === 'fallido' ? <Icon name="close"/> : <img src={`/smart-menu/${current >= 3 ? 'served' : current === 2 ? 'ready' : 'preparing'}.png`} alt=""/>}
-            <span/><span/>
-          </div>
-        </div>
+        <StatusCard order={order} current={current} />
         <details className="sm-status-details">
           <summary>Tu pedido y sus precios<span>⌄</span></summary>
           <p>{hints[order.estado]}</p>
@@ -431,3 +376,46 @@ export function SmartDemoPay() {
 }
 
 export { SmartOnlinePay as SmartPay } from './SmartOnlinePay'
+
+// ---- Plan K5: componentes plantillables del pedido ----------------------------------------------------------------
+// Datos que una plantilla de la línea puede enlazar (contrato «linea-pedido»).
+export function cartLineTemplateData(line: CartLine): TemplateData {
+  return { 'linea.nombre': line.nombre, 'linea.subtotal': line.subtotal, 'linea.precio': line.precio, 'linea.cantidad': line.cantidad,
+    'linea.mia': line.mio, 'linea.comensal': line.mio ? 'Para ti' : `Comensal ${line.comensal.slice(0, 6)}`, 'linea.nota': line.nota || null }
+}
+// Una línea del carrito: la raíz y el gesto de deslizar para eliminar son del código; dentro, la plantilla o el diseño de fábrica.
+export function CartLineItem({ line, dish, swiped, onSwipe, busy, setQty, remove }: { line: CartLine; dish?: Dish; swiped: boolean; onSwipe: (id: number | null) => void; busy: boolean; setQty: (lineId: number, qty: number) => Promise<void>; remove: (lineId: number) => Promise<void> }) {
+  const { arbol, marker } = usePlantilla('linea-pedido')
+  const pointer = useRef<{x:number;y:number}|null>(null)
+  const controles = <div className="sm-line-controls">{line.mio ? (<><div className="sm-stepper"><button disabled={busy || line.cantidad <= 1} aria-label={`Menos ${line.nombre}`} onClick={() => void setQty(line.id, line.cantidad - 1)}><Icon name="minus" /></button><output>{line.cantidad}</output><button disabled={busy || line.cantidad >= 99} aria-label={`Más ${line.nombre}`} onClick={() => void setQty(line.id, line.cantidad + 1)}><Icon name="plus" /></button></div><button disabled={busy} className="sm-text-button" aria-label={`Eliminar ${line.nombre}`} onClick={() => void remove(line.id)}>Eliminar</button></>) : (<span>{line.cantidad} unidades</span>)}</div>
+  const foto = dish ? <FoodPhoto dish={dish} /> : null
+  const info = <div className="sm-cart-line-info"><h2>{line.nombre}</h2><p>{line.mio ? 'Para ti' : `Comensal ${line.comensal.slice(0, 6)}`}{line.nota && ` · ${line.nota}`}</p><strong>{money(line.subtotal)}</strong>{controles}</div>
+  const factory = <>{foto}{info}</>
+  return (
+    <article className="sm-cart-line" data-swiped={swiped} {...marker} onPointerDown={e=>{if(line.mio && !(e.target as HTMLElement).closest('button'))pointer.current={x:e.clientX,y:e.clientY}}} onPointerCancel={()=>{pointer.current=null}} onPointerUp={e=>{if(pointer.current){const dx=e.clientX-pointer.current.x,dy=e.clientY-pointer.current.y;if(Math.abs(dy)<40 && Math.abs(dx)>60)onSwipe(dx<0?line.id:null);pointer.current=null}}}>
+      {swiped && <button className="sm-swipe-delete" aria-label={`Confirmar eliminación de ${line.nombre}`} disabled={busy} onClick={()=>void remove(line.id)}><Icon name="close"/>Eliminar</button>}
+      {arbol ? <Plantilla arbol={arbol} datos={cartLineTemplateData(line)} ranuras={{ foto, info, controles }} fallback={factory} /> : factory}
+    </article>
+  )
+}
+
+const STATUS_TEXT: Record<OrderState, string> = { pendiente_pago: 'Pendiente de pago', enviado: 'Esperando preparación', en_cocina: 'En preparación', listo: 'En camino a tu mesa', servido: 'Disfruta tu comida', pagado: 'Cuenta cerrada', fallido: 'Intenta nuevamente' }
+// Datos que una plantilla de la tarjeta de estado puede enlazar (contrato «tarjeta-estado»).
+export function statusTemplateData(order: OrderStatus): TemplateData {
+  return { 'estado.titulo': labels[order.estado], 'estado.texto': STATUS_TEXT[order.estado], 'estado.codigo': order.estado, 'estado.fallido': order.estado === 'fallido' }
+}
+export function StatusCard({ order, current }: { order: OrderStatus; current: number }) {
+  const { arbol, marker } = usePlantilla('tarjeta-estado')
+  const titulo = <h2>{labels[order.estado]}</h2>
+  const texto = <strong>{STATUS_TEXT[order.estado]}</strong>
+  const arte = <div className="sm-status-art">
+    {order.estado === 'fallido' ? <Icon name="close"/> : <img src={`/smart-menu/${current >= 3 ? 'served' : current === 2 ? 'ready' : 'preparing'}.png`} alt=""/>}
+    <span/><span/>
+  </div>
+  const factory = <>{titulo}{texto}{arte}</>
+  return (
+    <div className="sm-status-card" role="status" aria-live="polite" {...marker}>
+      {arbol ? <Plantilla arbol={arbol} datos={statusTemplateData(order)} ranuras={{ titulo, texto, arte }} fallback={factory} /> : factory}
+    </div>
+  )
+}

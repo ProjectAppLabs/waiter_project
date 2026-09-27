@@ -15,6 +15,11 @@ Acciones:
   get  → {restaurante, sede, experienceUrl, dinerUrl, ajustes: GET interno (plantilla, paleta, tipografia, …)}
   set  {plantilla, paleta, tipografia} → PUT interno; devuelve {plantilla: la resuelta que verá el comensal}
   preview {plantilla, paleta, tipografia} o {plantilla, tema} → POST menu/borradores/; no publica y devuelve un enlace de lectura
+
+`POST /waiter/admin/menu_decorations` (Plan K4): galería de decoraciones de la sede para las plantillas del menú.
+  list                      → {decoraciones, fabrica, limites, experienceUrl}
+  add {nombre, imagen}      → POST decoraciones/ (imagen en base64 o data URL; PNG/WebP, 300 KB, 1024 px)
+  remove {decoracion_id}    → DELETE decoraciones/<id>/
 """
 from urllib.parse import urlsplit
 
@@ -96,6 +101,26 @@ class WaiterAdmin(http.Controller):
                 return _call("POST", url + "borradores/", p["internal_key"], json=body)
             return _call("PUT", url, p["internal_key"], json=body)
         raise UserError(_("Acción desconocida: %s (usa get, set o preview).") % action)
+
+    @http.route("/waiter/admin/menu_decorations", type="jsonrpc", auth="user", methods=["POST"])
+    def menu_decorations(self, action="list", nombre=None, imagen=None, decoracion_id=None, **kw):
+        if not request.env.user.has_group("point_of_sale.group_pos_manager"):
+            raise AccessError(_("Solo un administrador del punto de venta puede administrar las decoraciones del menú."))
+        if kw:
+            raise UserError(_("Parámetros desconocidos: %s") % ", ".join(sorted(kw)))
+        p = _params()
+        base = "%s/internal/v1/%s/%s/decoraciones/" % (p["experience_url"].rstrip("/"), p["restaurant"], p["venue"])
+        if action == "list":
+            return {**_call("GET", base, p["internal_key"]), "experienceUrl": p["experience_url"]}
+        if action == "add":
+            if not isinstance(nombre, str) or not isinstance(imagen, str):
+                raise UserError(_("Indica el nombre y la imagen de la decoración."))
+            return _call("POST", base, p["internal_key"], json={"nombre": nombre, "imagen": imagen, "creadaPor": request.env.user.name})
+        if action == "remove":
+            if not isinstance(decoracion_id, str) or not decoracion_id.replace("-", "").isalnum():
+                raise UserError(_("Indica qué decoración eliminar."))
+            return _call("DELETE", "%s%s/" % (base, decoracion_id), p["internal_key"])
+        raise UserError(_("Acción desconocida: %s (usa list, add o remove).") % action)
 
     @http.route("/waiter/admin/mcp_keys", type="jsonrpc", auth="user", methods=["POST"])
     def mcp_keys(self, action="list", nombre=None, key_id=None, **kw):

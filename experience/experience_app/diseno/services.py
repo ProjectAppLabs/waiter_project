@@ -6,9 +6,28 @@ import re
 from copy import deepcopy
 from pathlib import Path
 
+from experience_app.diseno import plantillas
 from experience_app.utils.brand import contrast, ink_for
 
 SCHEMA = json.loads(Path(__file__).with_name('esquema.json').read_text(encoding='utf-8'))
+# Plan K: la capa `componentes` del esquema se completa con los contratos de componentes/<id>.json.
+SCHEMA['properties']['componentes']['properties'] = {
+    component_id: {'type': 'plantilla', 'componente': component_id, 'default': None,
+                   'description': f'{rule["nombre"]} (contrato v{rule["version"]}).'}
+    for component_id, rule in plantillas.COMPONENTS['componentes'].items()}
+
+
+def public_schema() -> dict:
+    """El esquema para clientes (tools/list y GET /api/v1/diseno/): `plantilla` no es un tipo JSON Schema, así que la
+    capa componentes se publica como null | {version, html}."""
+    schema = deepcopy(SCHEMA)
+    for component_id, rule in schema['properties']['componentes']['properties'].items():
+        version = plantillas.COMPONENTS['componentes'][component_id]['version']
+        rule.pop('type', None)
+        rule.pop('componente', None)
+        rule['oneOf'] = [{'type': 'null'}, {'type': 'object', 'additionalProperties': False, 'required': ['version', 'html'],
+                                            'properties': {'version': {'const': version}, 'html': {'type': 'string', 'maxLength': 20000}}}]
+    return schema
 INVENTORY = json.loads(Path(__file__).with_name('inventario.json').read_text(encoding='utf-8'))
 logger = logging.getLogger(__name__)
 
@@ -19,6 +38,12 @@ class InvalidTheme(ValueError):
 
 def _normalize(value, schema, path='tema'):
     kind = schema['type']
+    if kind == 'plantilla':
+        # Plan K: la plantilla de un componente se valida con su contrato y se guarda como árbol.
+        try:
+            return plantillas.normalize(schema['componente'], value, path)
+        except plantillas.InvalidTemplate as exc:
+            raise InvalidTheme(str(exc)) from None
     if kind == 'object':
         if not isinstance(value, dict):
             raise InvalidTheme(f'{path} debe ser un objeto.')

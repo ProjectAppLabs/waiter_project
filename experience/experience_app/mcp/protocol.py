@@ -9,6 +9,7 @@ import logging
 
 from experience_app.adapters.odoo.client import OdooUnavailable
 from experience_app.adapters.registry.client import RegistryUnavailable, TenantNotFound
+from experience_app.diseno import plantillas
 from experience_app.mcp.models import McpKey
 from experience_app.mcp.tools import TOOLS, TOOLS_BY_NAME, ToolError
 
@@ -42,7 +43,8 @@ def call_tool(key: McpKey, params: dict) -> dict:
     if not isinstance(args, dict):
         return {'content': _text('arguments debe ser un objeto.'), 'isError': True}
     try:
-        data = tool['handler'](key, args)
+        with plantillas.for_venue(key.restaurant_slug, key.venue_slug):
+            data = tool['handler'](key, args)
     except ToolError as exc:
         return {'content': _text(str(exc)), 'isError': True}
     except TenantNotFound:

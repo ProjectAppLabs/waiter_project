@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "nombre": "Banner del restaurante",
+  "selector": ".sm-promo-banner",
+  "pantallas": [
+    "carta"
+  ],
+  "descripcion": "Cada banner del carrusel de la carta. La plantilla se dibuja dentro del banner real, que conserva su color (tema), su acción al tocarlo y su tamaño.",
+  "datos": {
+    "banner.titulo": {
+      "tipo": "texto",
+      "descripcion": "Título del banner."
+    },
+    "banner.subtitulo": {
+      "tipo": "texto",
+      "descripcion": "Descripción corta; puede faltar."
+    },
+    "banner.etiqueta": {
+      "tipo": "texto",
+      "descripcion": "Etiqueta pequeña según el tipo: Plato destacado, Promoción, Explora el menú o Novedades."
+    },
+    "banner.boton": {
+      "tipo": "texto",
+      "descripcion": "Texto del botón; «Ver más» si no se configuró."
+    },
+    "banner.tipo": {
+      "tipo": "texto",
+      "descripcion": "product, promotion, category, image o notice."
+    },
+    "banner.flyer": {
+      "tipo": "booleano",
+      "descripcion": "Verdadero si es un flyer de imagen completa (tipo image): solo muestra la imagen."
+    },
+    "banner.accion": {
+      "tipo": "booleano",
+      "descripcion": "Verdadero si al tocarlo abre un plato o filtra una categoría."
+    },
+    "banner.producto": {
+      "tipo": "booleano",
+      "descripcion": "Verdadero si el banner destaca un plato que existe en la carta."
+    },
+    "banner.producto.nombre": {
+      "tipo": "texto",
+      "descripcion": "Nombre del plato destacado."
+    },
+    "banner.producto.precio": {
+      "tipo": "precio",
+      "descripcion": "Precio del plato destacado."
+    },
+    "banner.imagen": {
+      "tipo": "booleano",
+      "descripcion": "Verdadero si el banner trae imagen propia o foto del plato."
+    },
+    "banner.copia": {
+      "tipo": "booleano",
+      "descripcion": "Verdadero cuando no es un flyer: el banner lleva texto e imagen al lado."
+    }
+  },
+  "ranuras": {
+    "imagen": {
+      "obligatoria": true,
+      "descripcion": "La imagen del banner: flyer completo, imagen propia o foto del plato destacado."
+    },
+    "copia": {
+      "descripcion": "El bloque de texto de fábrica: etiqueta, título, descripción, plato y botón."
+    },
+    "cta": {
+      "descripcion": "Texto del botón con la flecha, solo si el banner tiene acción."
+    }
+  },
+  "requisitos": [
+    {
+      "cualquiera": [
+        "dato:banner.titulo",
+        "ranura:copia"
+      ],
+      "mensaje": "el título del banner (dato banner.titulo o ranura copia)"
+    }
+  ],
+  "limites": {
+    "ancho_minimo": 327,
+    "nota": "En un teléfono el banner ocupa el ancho de la pantalla menos los márgenes."
+  },
+  "plantilla_fabrica": "<si dato=\"banner.copia\"><ranura nombre=\"copia\"/></si>\n<ranura nombre=\"imagen\"/>"
+}

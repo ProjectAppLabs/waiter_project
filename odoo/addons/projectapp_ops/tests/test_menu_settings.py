@@ -140,3 +140,48 @@ class TestMenuSettingsGateway(HttpCase):
             body = self._rpc({"action": "get"})
         self.assertEqual(body["error"]["data"]["name"], "odoo.exceptions.UserError")
         self.assertIn("No se pudo contactar", body["error"]["data"]["message"])
+
+
+@tagged("post_install", "-at_install")
+class TestMenuDecorationsGateway(HttpCase):
+    """Plan K4: la galería de decoraciones pasa por la misma pasarela autorizada; la sede sale de Odoo."""
+
+    def setUp(self):
+        super().setUp()
+        icp = self.env["ir.config_parameter"].sudo()
+        for key, value in PARAMS.items():
+            icp.set_param(key, value)
+        new_test_user(self.env, login="mesero_decor", password="Waiter-2026-mesero", groups="base.group_user,point_of_sale.group_pos_user")
+        new_test_user(self.env, login="admin_decor", password="Waiter-2026-admin", waiter_role="admin", groups="base.group_user,point_of_sale.group_pos_manager")
+        self.env.flush_all()
+
+    def _rpc(self, params):
+        response = self.url_open("/waiter/admin/menu_decorations", data=json.dumps({"jsonrpc": "2.0", "method": "call", "params": params}),
+                                 headers={"Content-Type": "application/json"})
+        return response.json()
+
+    # // Falla si un mesero puede subir decoraciones, si el navegador puede elegir la sede o si falta la clave interna.
+    def test_authorization_scope_and_forwarding(self):
+        self.authenticate("mesero_decor", "Waiter-2026-mesero")
+        self.assertEqual(self._rpc({"action": "list"})["error"]["data"]["name"], "odoo.exceptions.AccessError")
+        self.authenticate("admin_decor", "Waiter-2026-admin")
+        with patch("odoo.addons.projectapp_ops.controllers.admin.requests.request") as req:
+            self.assertEqual(self._rpc({"action": "list", "sede": "ajena"})["error"]["data"]["name"], "odoo.exceptions.UserError")
+            self.assertEqual(self._rpc({"action": "remove", "decoracion_id": "../otra"})["error"]["data"]["name"], "odoo.exceptions.UserError")
+            req.assert_not_called()
+            req.return_value.status_code = 200
+            req.return_value.json.return_value = {"decoraciones": [], "fabrica": [], "limites": {"peso": 300000}}
+            result = self._rpc({"action": "list"})["result"]
+            self.assertEqual(result["experienceUrl"], "http://experience.test")
+            self.assertEqual(req.call_args.args, ("GET", "http://experience.test/internal/v1/burger-house/poblado/decoraciones/"))
+            self.assertEqual(req.call_args.kwargs["headers"], {"X-Internal-Key": "k"})
+            req.return_value.status_code = 201
+            req.return_value.json.return_value = {"id": "hoja", "archivo": "/api/v1/burger-house/poblado/decoraciones/hoja/?v=1"}
+            added = self._rpc({"action": "add", "nombre": "Hoja", "imagen": "data:image/png;base64,AAAA"})["result"]
+            self.assertEqual(added["id"], "hoja")
+            self.assertTrue(req.call_args.kwargs["json"]["creadaPor"].startswith("admin_decor"))
+            self.assertEqual(req.call_args.kwargs["json"]["imagen"], "data:image/png;base64,AAAA")
+            req.return_value.status_code = 200
+            req.return_value.json.return_value = {"eliminada": "hoja"}
+            self.assertEqual(self._rpc({"action": "remove", "decoracion_id": "hoja"})["result"], {"eliminada": "hoja"})
+            self.assertEqual(req.call_args.args, ("DELETE", "http://experience.test/internal/v1/burger-house/poblado/decoraciones/hoja/"))

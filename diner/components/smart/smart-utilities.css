@@ -1,0 +1,87 @@
+/* Plan K1 · Utilidades del design system para las plantillas de componente.
+ * Son las únicas clases que admite una plantilla (experience/diseno/utilidades.json, misma lista; la prueba
+ * utilities.test.ts vigila que coincidan). Todas salen de los tokens: espacio por densidad, texto por escala, radios
+ * por forma y colores del tema. No hay utilidad que baje de 14 px de texto ni de 44 px de área táctil. */
+
+/* Disposición */
+.smart-menu .ds-pila { display: flex; flex-direction: column; align-items: stretch; min-width: 0; }
+.smart-menu .ds-fila { display: flex; flex-direction: row; align-items: center; min-width: 0; }
+.smart-menu .ds-envolver { flex-wrap: wrap; }
+.smart-menu .ds-centro { justify-content: center; align-items: center; text-align: center; }
+.smart-menu .ds-extremos { justify-content: space-between; }
+.smart-menu .ds-rejilla-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(130px * var(--ds-texto))), 1fr)); min-width: 0; }
+.smart-menu .ds-crecer { flex: 1 1 auto; min-width: 0; }
+.smart-menu .ds-relativo { position: relative; }
+.smart-menu .ds-esquina-arriba-izquierda { position: absolute; top: var(--ds-espacio-8); left: var(--ds-espacio-8); z-index: 2; }
+.smart-menu .ds-esquina-arriba-derecha { position: absolute; top: var(--ds-espacio-8); right: var(--ds-espacio-8); z-index: 2; }
+.smart-menu .ds-esquina-abajo-izquierda { position: absolute; bottom: var(--ds-espacio-8); left: var(--ds-espacio-8); z-index: 2; }
+.smart-menu .ds-esquina-abajo-derecha { position: absolute; bottom: var(--ds-espacio-8); right: var(--ds-espacio-8); z-index: 2; }
+.smart-menu .ds-ancho-completo { width: 100%; }
+
+/* Espacio */
+.smart-menu .ds-espacio-4 { gap: var(--ds-espacio-4); }
+.smart-menu .ds-espacio-8 { gap: var(--ds-espacio-8); }
+.smart-menu .ds-espacio-12 { gap: var(--ds-espacio-12); }
+.smart-menu .ds-espacio-16 { gap: var(--ds-espacio-16); }
+.smart-menu .ds-espacio-24 { gap: var(--ds-espacio-24); }
+.smart-menu .ds-espacio-32 { gap: var(--ds-espacio-32); }
+.smart-menu .ds-relleno-8 { padding: var(--ds-espacio-8); }
+.smart-menu .ds-relleno-12 { padding: var(--ds-espacio-12); }
+.smart-menu .ds-relleno-16 { padding: var(--ds-espacio-16); }
+.smart-menu .ds-relleno-24 { padding: var(--ds-espacio-24); }
+
+/* Superficies y bordes: cada fondo lleva su tinta legible */
+.smart-menu .ds-fondo { background: var(--t-fondo); color: var(--sm-ink); }
+.smart-menu .ds-superficie { background: var(--sm-surface); color: var(--sm-ink); }
+.smart-menu .ds-acento { background: var(--sm-accent); color: var(--t-acento-tinta, #fff); }
+.smart-menu .ds-acento-suave { background: var(--t-acento-suave); color: var(--sm-accent-text); }
+.smart-menu .ds-destacado { background: var(--sm-highlight); color: var(--sm-highlight-ink, #212134); }
+.smart-menu .ds-borde { border: 1px solid var(--sm-border); }
+.smart-menu .ds-sombra-suave { box-shadow: 0 6px 18px color-mix(in srgb, var(--sm-ink) 12%, transparent); }
+.smart-menu .ds-sombra-marcada { box-shadow: 0 10px 30px color-mix(in srgb, var(--sm-ink) 24%, transparent); }
+
+/* Texto */
+.smart-menu .ds-texto-pequeno { font-size: calc(14px * var(--ds-texto)); line-height: calc(20px * var(--ds-texto)); }
+.smart-menu .ds-texto-cuerpo { font-size: calc(16px * var(--ds-texto)); line-height: calc(24px * var(--ds-texto)); }
+.smart-menu .ds-texto-subtitulo { font-size: calc(18px * var(--ds-texto)); line-height: calc(26px * var(--ds-texto)); font-weight: 600; }
+.smart-menu .ds-texto-titulo { font: 500 calc(22px * var(--ds-texto) * var(--ds-titulo)) / calc(28px * var(--ds-texto) * var(--ds-titulo)) var(--t-display); letter-spacing: -0.02em; overflow-wrap: anywhere; }
+.smart-menu .ds-texto-grande { font: 500 calc(28px * var(--ds-texto) * var(--ds-titulo)) / calc(34px * var(--ds-texto) * var(--ds-titulo)) var(--t-display); letter-spacing: -0.025em; overflow-wrap: anywhere; }
+.smart-menu .ds-tinta { color: var(--sm-ink); }
+.smart-menu .ds-tinta-suave { color: var(--sm-readable-muted); }
+.smart-menu .ds-acento-texto { color: var(--sm-accent-text); }
+.smart-menu .ds-destacado-texto { color: var(--sm-highlight-text); }
+.smart-menu .ds-negrita { font-weight: 700; }
+.smart-menu .ds-centrado { text-align: center; }
+.smart-menu .ds-mayusculas { text-transform: uppercase; letter-spacing: 0.08em; }
+.smart-menu .ds-tachado { text-decoration: line-through; }
+
+/* Forma */
+.smart-menu .ds-radio-tarjeta { border-radius: calc(16px * var(--ds-forma-tarjeta)); }
+.smart-menu .ds-radio-boton { border-radius: calc(16px * var(--ds-forma-boton)); }
+.smart-menu .ds-radio-chip { border-radius: calc(12px * var(--ds-forma-chip)); }
+.smart-menu .ds-radio-campo { border-radius: calc(16px * var(--ds-forma-campo)); }
+.smart-menu .ds-radio-imagen { border-radius: calc(16px * var(--ds-forma-imagen)); }
+.smart-menu .ds-radio-hoja { border-radius: calc(24px * var(--ds-forma-hoja)); }
+.smart-menu .ds-redondo { border-radius: 999px; }
+
+/* Tamaño y recorte */
+.smart-menu .ds-foto-pequena { width: 64px; max-width: 100%; }
+.smart-menu .ds-foto-media { width: 110px; max-width: 100%; }
+.smart-menu .ds-foto-grande { width: 100%; }
+.smart-menu .ds-cuadrado { aspect-ratio: 1; }
+.smart-menu .ds-4-3 { aspect-ratio: 4 / 3; }
+.smart-menu .ds-recorte { overflow: hidden; }
+
+/* Piezas */
+.smart-menu .ds-insignia { display: inline-flex; align-items: center; gap: var(--ds-espacio-4); padding: var(--ds-espacio-2) var(--ds-espacio-8); border-radius: calc(12px * var(--ds-forma-chip)); background: var(--t-acento-suave); color: var(--sm-accent-text); font-size: calc(14px * var(--ds-texto)); line-height: calc(20px * var(--ds-texto)); font-weight: 700; white-space: nowrap; }
+
+/* Piezas reales dentro de una plantilla propia: la foto no supera el ancho que le deje la plantilla. Solo se acota;
+ * el ancho, la proporción y el margen siguen siendo los de la carta y de sus variantes (cuadrícula, foto grande). */
+.smart-menu .sm-food-card[data-plantilla] .sm-food-photo { max-width: 100%; height: auto; flex: 0 1 auto; min-width: 0; }
+/* Cabecera de la ficha con plantilla propia: la foto deja de ir en absoluto a la derecha (distribución «actual») y fluye con
+ * la plantilla, como en la distribución «héroe»; así la plantilla decide el orden sin que la foto tape lo que ponga. */
+.smart-menu .sm-dish-hero[data-plantilla] { display: flex; flex-direction: column; align-items: stretch; position: relative; top: auto; min-height: 0; padding-top: var(--ds-espacio-24); }
+.smart-menu .sm-dish-hero[data-plantilla] > .sm-dish-orbits { display: none; }
+.smart-menu .sm-dish-hero[data-plantilla] .sm-dish-photo { position: relative; inset: auto; width: min(100%, 280px); height: auto; max-width: 100%; aspect-ratio: 1; margin: 0 auto var(--ds-espacio-12); }
+.smart-menu .sm-dish-hero[data-plantilla] > .sm-rating-pill { position: static; align-self: flex-start; }
+.smart-menu .sm-dish-hero[data-plantilla] .sm-dish-heading { width: 100%; padding: var(--ds-espacio-16) 0 0; text-align: left; }

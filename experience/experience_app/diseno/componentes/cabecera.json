@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "nombre": "Cabecera y saludo",
+  "selector": ".sm-location-header",
+  "pantallas": [
+    "carta",
+    "favoritos",
+    "ubicacion",
+    "estado"
+  ],
+  "descripcion": "La cabecera de la carta: logo, saludo, restaurante, sede y mesa, con el botón de navegación. La plantilla se dibuja dentro de la cabecera real.",
+  "datos": {
+    "marca.nombre": {
+      "tipo": "texto",
+      "descripcion": "Nombre del restaurante."
+    },
+    "sede.nombre": {
+      "tipo": "texto",
+      "descripcion": "Nombre de la sede."
+    },
+    "saludo": {
+      "tipo": "texto",
+      "descripcion": "Saludo según la hora o el que fijó el administrador; con cuenta lleva el nombre."
+    },
+    "linea": {
+      "tipo": "texto",
+      "descripcion": "«Restaurante · Sede · Mesa N», como en la carta actual."
+    },
+    "mesa": {
+      "tipo": "booleano",
+      "descripcion": "Verdadero cuando la visita viene de una mesa."
+    },
+    "mesa.numero": {
+      "tipo": "numero",
+      "descripcion": "Número de la mesa."
+    },
+    "marca.logo": {
+      "tipo": "booleano",
+      "descripcion": "Verdadero si el restaurante tiene logo."
+    }
+  },
+  "ranuras": {
+    "saludo": {
+      "descripcion": "El bloque de fábrica: logo, saludo y línea del restaurante, con las variantes de cabecera y saludo del tema."
+    },
+    "logo": {
+      "descripcion": "El logo del restaurante, solo si existe."
+    },
+    "navegacion": {
+      "obligatoria": true,
+      "descripcion": "El botón que abre la navegación principal."
+    }
+  },
+  "requisitos": [
+    {
+      "cualquiera": [
+        "dato:marca.nombre",
+        "ranura:saludo"
+      ],
+      "mensaje": "el nombre del restaurante (dato marca.nombre o ranura saludo)"
+    }
+  ],
+  "limites": {
+    "ancho_minimo": 327
+  },
+  "plantilla_fabrica": "<ranura nombre=\"saludo\"/>\n<ranura nombre=\"navegacion\"/>"
+}

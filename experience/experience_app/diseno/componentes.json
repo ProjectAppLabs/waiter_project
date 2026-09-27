@@ -1,0 +1,31 @@
+{
+  "version": 3,
+  "limites": {
+    "nodos": 150,
+    "profundidad": 8,
+    "texto": 120,
+    "decoraciones": 3
+  },
+  "etiquetas": [
+    "div",
+    "span",
+    "p",
+    "h1",
+    "h2",
+    "h3",
+    "strong",
+    "em",
+    "small",
+    "ul",
+    "ol",
+    "li",
+    "figure",
+    "figcaption"
+  ],
+  "formatos": [
+    "texto",
+    "precio",
+    "numero"
+  ],
+  "nota": "Reglas comunes del lenguaje de plantillas. Cada componente plantillable vive en componentes/<id>.json."
+}

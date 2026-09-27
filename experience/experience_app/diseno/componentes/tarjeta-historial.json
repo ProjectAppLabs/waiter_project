@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "nombre": "Tarjeta de pedido pasado",
+  "selector": ".sm-history-card",
+  "pantallas": [
+    "historial"
+  ],
+  "descripcion": "Cada pedido en Mis pedidos. La plantilla se dibuja dentro de la tarjeta real.",
+  "datos": {
+    "pedido.numero": {
+      "tipo": "texto",
+      "descripcion": "Número corto del pedido (#xxxxxxxx)."
+    },
+    "pedido.estado": {
+      "tipo": "texto",
+      "descripcion": "Estado legible: Recibido, En preparación, Listo, Entregado, Pagado…"
+    },
+    "pedido.local": {
+      "tipo": "texto",
+      "descripcion": "Nombre del local."
+    },
+    "pedido.fecha": {
+      "tipo": "texto",
+      "descripcion": "Fecha larga en español."
+    },
+    "pedido.mesa": {
+      "tipo": "booleano",
+      "descripcion": "Verdadero si fue en una mesa."
+    },
+    "pedido.mesa.numero": {
+      "tipo": "numero",
+      "descripcion": "Número de la mesa."
+    },
+    "pedido.total": {
+      "tipo": "precio",
+      "descripcion": "Total de esta persona."
+    },
+    "pedido.lineas": {
+      "tipo": "lista",
+      "descripcion": "Platos del pedido; con <cada dato=\"pedido.lineas\" como=\"linea\"> se leen linea.nombre, linea.cantidad, linea.precio y linea.subtotal.",
+      "campos": {
+        "nombre": {
+          "tipo": "texto",
+          "descripcion": "Nombre del plato."
+        },
+        "cantidad": {
+          "tipo": "numero",
+          "descripcion": "Unidades."
+        },
+        "precio": {
+          "tipo": "precio",
+          "descripcion": "Precio unitario."
+        },
+        "subtotal": {
+          "tipo": "precio",
+          "descripcion": "Precio por la cantidad."
+        }
+      }
+    }
+  },
+  "ranuras": {
+    "cabecera": {
+      "descripcion": "Número de pedido y chip de estado de fábrica."
+    },
+    "estado": {
+      "descripcion": "Solo el chip de estado."
+    },
+    "titulo": {
+      "descripcion": "Nombre del local en título."
+    },
+    "fecha": {
+      "descripcion": "Fecha y mesa."
+    },
+    "lineas": {
+      "descripcion": "Lista de platos de fábrica."
+    },
+    "total": {
+      "descripcion": "Bloque «Tu consumo»."
+    },
+    "acciones": {
+      "obligatoria": true,
+      "descripcion": "Valorar, ver detalle, ver estado y volver a pedir."
+    }
+  },
+  "requisitos": [
+    {
+      "cualquiera": [
+        "dato:pedido.numero",
+        "ranura:cabecera"
+      ],
+      "mensaje": "el número del pedido (dato pedido.numero o ranura cabecera)"
+    },
+    {
+      "cualquiera": [
+        "dato:pedido.total",
+        "ranura:total"
+      ],
+      "mensaje": "el total (dato pedido.total o ranura total)"
+    }
+  ],
+  "limites": {
+    "ancho_minimo": 327
+  },
+  "plantilla_fabrica": "<ranura nombre=\"cabecera\"/>\n<ranura nombre=\"titulo\"/>\n<ranura nombre=\"fecha\"/>\n<ranura nombre=\"lineas\"/>\n<ranura nombre=\"total\"/>\n<ranura nombre=\"acciones\"/>"
+}

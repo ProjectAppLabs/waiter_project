@@ -7,6 +7,9 @@ import { useDinerStore } from '@/lib/stores/dinerStore'
 import { initials } from '@/lib/domain/template'
 import { pickGreeting } from '@/lib/domain/greeting'
 import { FoodPhoto, Icon, money, useSmartRoute } from './SmartMenu'
+import { Plantilla } from '@/components/plantillas/Renderizador'
+import { usePlantilla } from '@/components/plantillas/usePlantilla'
+import type { TemplateData } from '@/lib/domain/plantillas'
 
 // Saludo de la cabecera: frase del repertorio según la hora (lib/domain/greeting) o el texto que fijó el administrador
 // en Diseño del menú → Saludo; con cuenta lleva el primer nombre. No es un enlace: la navegación vive en el botón.
@@ -19,20 +22,33 @@ export function venueLine(entry: Entry) {
   return parts.join(' · ')
 }
 
+// Datos que una plantilla de la cabecera puede enlazar (contrato «cabecera»).
+export function headerTemplateData(entry: Entry, saludo: string): TemplateData {
+  return {
+    'marca.nombre': entry.contexto.marca.nombre || entry.carta.restaurante, 'sede.nombre': entry.contexto.sede.nombre, 'saludo': saludo,
+    'linea': venueLine(entry), 'mesa': !!entry.contexto.mesa, 'mesa.numero': entry.contexto.mesa?.numero ?? null, 'marca.logo': !!entry.contexto.marca.logo,
+  }
+}
+
 export function SmartHeader({ entry, current='portada' }: { entry: Entry;current?:'portada'|'carta' }) {
   const { href } = useSmartRoute()
   const account = useDinerStore(s => s.account)
   const dialog = useRef<HTMLDialogElement>(null)
+  const { arbol, marker } = usePlantilla('cabecera')
+  const saludo = greeting(entry, account?.nombre)
+  const logo = entry.contexto.marca.logo ? <img src={entry.contexto.marca.logo} alt="" /> : null
+  const greetingLine = <div className="sm-greeting-line">
+    {logo}
+    <div>
+      <strong>{saludo}</strong>
+      <span>{venueLine(entry)}</span>
+    </div>
+  </div>
+  const navigation = <button aria-label="Abrir navegación" onClick={() => dialog.current?.showModal()}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden><path d="M3 6h18M3 12h13M3 18h18"/></svg></button>
+  const factory = <>{greetingLine}{navigation}</>
   return <>
-    <header className="sm-location-header">
-      <div className="sm-greeting-line">
-        {entry.contexto.marca.logo && <img src={entry.contexto.marca.logo} alt="" />}
-        <div>
-          <strong>{greeting(entry, account?.nombre)}</strong>
-          <span>{venueLine(entry)}</span>
-        </div>
-      </div>
-      <button aria-label="Abrir navegación" onClick={() => dialog.current?.showModal()}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden><path d="M3 6h18M3 12h13M3 18h18"/></svg></button>
+    <header className="sm-location-header" {...marker}>
+      {arbol ? <Plantilla arbol={arbol} datos={headerTemplateData(entry, saludo)} ranuras={{ saludo: greetingLine, logo, navegacion: navigation }} fallback={factory} /> : factory}
     </header>
     <dialog ref={dialog} className="sm-navigation" aria-label="Navegación principal" onClick={e => {if(e.target === e.currentTarget) dialog.current?.close()}}>
       <div className="sm-navigation-inner">

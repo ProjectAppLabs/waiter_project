@@ -104,6 +104,10 @@ ODOO_TIMEOUT_SECONDS = int(os.getenv('ODOO_TIMEOUT_SECONDS', '20'))
 # Recuperación de cuenta: se habilita únicamente con un proveedor de correo configurado.
 DINER_EMAIL_ENABLED = os.getenv('DINER_EMAIL_ENABLED', 'false').lower() in {'1', 'true', 'yes', 'on'}
 DINER_PUBLIC_URL = os.getenv('DINER_PUBLIC_URL', 'http://192.168.56.10:3001').rstrip('/')
+# Plan K3: comando que abre un borrador en un navegador y mide desbordes, solapes y mínimos (recibe DRAFT_TOKEN, REST y
+# SEDE en el entorno y escribe JSON en stdout). Vacío = la verificación en navegador no está disponible en este servidor.
+DESIGN_VERIFIER_CMD = os.getenv('DESIGN_VERIFIER_CMD', '')
+DESIGN_VERIFIER_TIMEOUT = int(os.getenv('DESIGN_VERIFIER_TIMEOUT', '180'))
 MAILERS = {'default': {
     'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
     'OPTIONS': {

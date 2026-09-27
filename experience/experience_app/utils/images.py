@@ -32,6 +32,22 @@ def image_content_type(data: bytes) -> str:
     return raster_content_type(data) or 'application/octet-stream'
 
 
+def image_dimensions(data: bytes) -> tuple[int, int] | None:
+    """(ancho, alto) de un PNG o WebP leyendo solo su cabecera; None si no se reconoce. Sin Pillow."""
+    if data.startswith(b'\x89PNG') and len(data) >= 24 and data[12:16] == b'IHDR':
+        return int.from_bytes(data[16:20], 'big'), int.from_bytes(data[20:24], 'big')
+    if data[:4] == b'RIFF' and data[8:12] == b'WEBP' and len(data) >= 16:
+        chunk = data[12:16]
+        if chunk == b'VP8 ' and len(data) >= 30:
+            return int.from_bytes(data[26:28], 'little') & 0x3FFF, int.from_bytes(data[28:30], 'little') & 0x3FFF
+        if chunk == b'VP8L' and len(data) >= 25:
+            bits = int.from_bytes(data[21:25], 'little')
+            return (bits & 0x3FFF) + 1, ((bits >> 14) & 0x3FFF) + 1
+        if chunk == b'VP8X' and len(data) >= 30:
+            return int.from_bytes(data[24:27], 'little') + 1, int.from_bytes(data[27:30], 'little') + 1
+    return None
+
+
 def image_response(data: bytes, content_type: str, *, immutable: bool, filename: str) -> HttpResponse:
     """Respuesta binaria con la política común: caché inmutable solo si la versión pedida es la actual (si no, no-store)."""
     response = HttpResponse(data, content_type=content_type)

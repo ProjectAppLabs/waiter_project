@@ -133,6 +133,7 @@ export function DesignSystem({ entry, template, contract, draft, expires, base }
           {full && <ul className="ds-meta" aria-label="Fundamentos y selectores que consume">
             {full.fundamentos.map((f) => <li key={f}>{f.replace(/^fundamentos\./, '')}</li>)}
             {full.selectores.map((s) => <li key={s}><code>{s}</code></li>)}
+            {template.tema?.componentes?.[id] && <li className="ds-meta-plantilla">plantilla propia (v{template.tema.componentes[id]!.version})</li>}
           </ul>}
           <Sample template={template} screen={id === 'ficha' ? 'plato' : id === 'carrito' ? 'pedido' : 'carta'}>{render(context)}</Sample>
           {elsewhere.length > 0 && <p className="ds-elsewhere">También cambia con {elsewhere.map((field, i) => <span key={field}>{i > 0 && ', '}<a href={`#componente-${DEMONSTRATED_BY[field]}`}>{FIELD_LABELS[field].toLowerCase()}</a></span>)}.</p>}

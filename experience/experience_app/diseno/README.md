@@ -1,4 +1,4 @@
-# Tema del menú v2 (Plan J2–J5)
+# Tema del menú v2 (Plan J2–J5 y K1)
 
 `esquema.json` es el contrato cerrado y versionado. `services.validate` completa los valores omitidos, normaliza colores,
 calcula los derivados y rechaza campos, versiones, tipos, fuentes o rangos desconocidos. No admite HTML ni CSS.
@@ -6,6 +6,7 @@ calcula los derivados y rechaza campos, versiones, tipos, fuentes o rangos desco
 J3 añade variantes de componente y distribución mediante atributos `data-ds-*` en `<main>` y selectores CSS.
 J4 expone el contrato por MCP y comparte los borradores con la vista previa del POS.
 J5 añade la página viva del comensal, que muestra todos los componentes y variantes con el tema de la sede o de un borrador.
+K1 añade la capa `componentes`: una plantilla HTML restringida por componente, validada contra su contrato.
 
 ## Contrato
 
@@ -200,6 +201,81 @@ enlaza la carta con el borrador y el tema publicado.
   y `.sm-page` reales; el `<main>` no lleva atributos para que una opción no alcance a la vecina. Las muestras son `inert`:
   la página no abre sesiones ni escribe. La copia local de la lista de componentes (`components/design-system/samples.tsx`)
   tiene una prueba de paridad con `inventario.json`.
+
+## Plantillas por componente (Plan K)
+
+Cuarta capa del tema, `componentes`: por cada componente plantillable, `null` (plantilla de fábrica) o una plantilla
+propia. Se prepara con `{"version": N, "html": "…"}` y se guarda como `{"version": N, "arbol": [...]}`, un árbol JSON
+validado que el comensal dibuja sin HTML crudo. La [decisión](../../../docs/decisiones/2026-09-25-plantillas-html-restringidas-por-componente.md)
+y el [plan K](../../../docs/planes/2026-09-25-plan-K-plantillas-por-componente.md) explican el porqué.
+
+- `componentes.json` es el contrato: por componente, `version`, `datos` (con tipo; `obligatorio` cuando la plantilla
+  debe enlazarlo), `ranuras` (`obligatoria`; `envoltorio` si admite contenido), `requisitos` (alternativas, p. ej.
+  el precio como dato o como ranura) y `plantilla_fabrica`, escrita en el mismo lenguaje. Hoy solo `plato` (tarjeta de plato).
+- `utilidades.json` es el catálogo de clases `ds-*` que admite una plantilla; `diner/components/smart/smart-utilities.css`
+  las implementa desde los tokens y una prueba de paridad las mantiene iguales.
+- `decoraciones.json` lista el paquete de fábrica (las ilustraciones de `/smart-menu/`), los movimientos y las posiciones.
+- `plantillas.py` parsea y valida: etiquetas `div span p h1 h2 h3 strong em small ul ol li figure figcaption`, solo el
+  atributo `class` con utilidades; `<dato nombre="plato.nombre"/>` (con `formato="precio|numero|texto"`),
+  `<ranura nombre="agregar"/>` (las obligatorias exactamente una vez; las de envoltorio admiten hijos),
+  `<si dato="…">`, `<cada dato="…" como="alias">` y `<decoracion id="…" movimiento="…" posicion="…"/>`. Límites:
+  150 nodos, profundidad 8, textos fijos de 120 caracteres, 3 decoraciones, sin direcciones web.
+- Cada error dice qué falló y dónde («<div>: clase desconocida «rojo»…», «falta el dato obligatorio «plato.nombre»»).
+- Un HTML inválido se rechaza al preparar. Un árbol guardado que ya no cumple su contrato (otra versión, un dato retirado)
+  vuelve a fábrica y se registra; nunca impide cargar la carta.
+- Se prepara con las herramientas de J4: `preparar_tema({"tema":{"componentes":{"plato":{"version":1,"html":"…"}}}})`
+  y `restablecer_tema({"capa":"componentes"})`. `vista_previa` resume «de fábrica» / «plantilla propia (vN)».
+- `GET /api/v1/diseno/` y `leer_design_system` devuelven `plantillas`: componentes con su contrato y plantilla de fábrica
+  (HTML y árbol), utilidades y decoraciones.
+
+**Dibujo en el comensal (K2).** `diner/components/plantillas/Renderizador.tsx` convierte el árbol en React con la
+lista cerrada de etiquetas; los datos y las ranuras los aporta el componente real, que sigue siendo dueño de las
+acciones (`FoodCard` conserva `add`, favorito y el enlace a la ficha; la plantilla solo los coloca). Sin `innerHTML`.
+`lib/domain/plantillas.ts` comprueba versión del contrato, forma del árbol, etiquetas y clases antes de dibujar; ante
+cualquier duda, o si algo falla al convertir, se muestra el componente de fábrica. La plantilla se dibuja **dentro** de
+la raíz real (`article.sm-food-card`), así la variante de tarjeta y la distribución de la carta siguen mandando. La tarjeta
+con plantilla propia lleva `data-plantilla="propia"` y la página viva la marca. Las decoraciones se dibujan como `<img>`
+del paquete de fábrica con las clases de movimiento de `smart-decoraciones.css` (quietas con `prefers-reduced-motion`).
+Una prueba dibuja la plantilla de fábrica desde el árbol y exige el mismo HTML que el JSX de fábrica.
+
+**Herramientas y verificación (K3).** `leer_componente`, `preparar_componente` y `verificar_borrador` (ver el
+[README del MCP](../mcp/README.md)). `plantillas.to_html` regenera el HTML de un árbol para que la IA edite la plantilla
+actual; `plantillas.warnings` aplica criterios de medidas sin navegador (`limites.ancho_minimo` del contrato: títulos
+grandes, rejillas o varias decoraciones en un componente estrecho). La verificación dinámica la hace
+`diner/scripts/design-system/verificar-borrador.cjs`: abre la página viva a 375 y 1024 px y la carta a 320, 375 y 1024 px
+con el borrador y mide en cada raíz con plantilla propia (hasta 12 por componente) desbordes de página y raíz, elementos que sobresalen, palabras que no caben
+(medidas con la fuente real contra el ancho del bloque), textos < 14 px, controles < 44 px y solapes (las piezas que se
+colocan encima a propósito, como la valoración o el corazón, no cuentan); escribe `{ok, problemas, medidas, capturas}` en
+stdout, con `ok: null` si no pudo medir, una nota cuando el borrador no trae plantillas propias y un problema si un
+componente del borrador no llegó a dibujarse. Los problemas se agrupan por componente. experience lo lanza con `DESIGN_VERIFIER_CMD`
+(y `DESIGN_VERIFIER_TIMEOUT`) desde `verificar_borrador`, una verificación a la vez por sede, guarda el resultado en el
+cambio pendiente (solo nombres de archivo, nunca rutas) y, con verificador configurado, `confirmar_cambio` exige la última
+verificación en verde para cualquier borrador que introduzca o cambie una plantilla propia; volver a fábrica no la exige.
+Un `arbol` enviado directamente en vez de `html` se valida y canoniza igual: solo sobreviven las claves de cada nodo.
+
+**Galería de decoraciones por sede (K4).** `MenuDecoration` (migración `0027`) guarda PNG o WebP pequeños por sede:
+300 KB, entre 16 y 1024 px de lado, 30 por sede, tipo y dimensiones leídos de la cabecera (sin Pillow), id
+`[a-z0-9-]` derivado del nombre y único por sede (los ids de fábrica no se pueden pisar). El POS los sube por
+`POST /internal/v1/<rest>/<sede>/decoraciones/` (`{nombre, imagen}` en base64 o data URL) y los borra por `DELETE
+…/decoraciones/<id>/`, ambos con `X-Internal-Key`, a través de la pasarela `/waiter/admin/menu_decorations` de Odoo. El
+comensal recibe la lista en `GET /api/v1/<rest>/<sede>/decoraciones/` y cada imagen en `…/decoraciones/<id>/?v=<versión>`
+con las mismas cabeceras seguras e inmutables que las fotos y el logo. Una plantilla usa `<decoracion id="…"/>` con
+cualquier id de fábrica o de su propia sede; el validador fija la sede en contexto (`plantillas.for_venue`, aplicado al
+resolver, leer y preparar el tema y a toda herramienta MCP) y guarda en el nodo el `archivo` resuelto, que el comensal solo
+acepta si es una ruta del propio origen. Borrar una decoración invalida la caché y las plantillas que la usaban vuelven a
+fábrica al releerse. `leer_componente` lista `decoraciones.sede` junto a las de fábrica.
+
+**Componentes plantillables (K5).** Ocho contratos en `componentes/`: `plato` (tarjeta de plato), `banners`, `cabecera`,
+`ficha-heroe` (cabecera de la ficha), `linea-pedido`, `tarjeta-historial`, `tarjeta-estado` y `recibo-papel`. En todos, la
+raíz real (enlace, cabecera, artículo…) sigue siendo del código con sus variantes y acciones; la plantilla se dibuja dentro.
+Cada contrato ofrece dos formas de componer: **ranuras de fábrica** (bloques enteros del diseño actual, p. ej. `copia`,
+`saludo`, `encabezado`, `info`, `cabecera`, `total`) y **datos sueltos** (`banner.titulo`, `marca.nombre`, `linea.subtotal`,
+`pedido.lineas` con `<cada>`), con las obligaciones expresadas como alternativas en `requisitos` (el título como dato o como
+ranura de fábrica). La plantilla de fábrica de cada uno reproduce el diseño actual exactamente, y una prueba del comensal lo
+exige para los ocho. La página viva muestra los ocho con datos de muestra y marca `data-componente` en cada raíz con
+plantilla propia; el verificador mide allí todos los componentes (y en la carta la tarjeta, los banners y la cabecera).
+Los contratos viven en `componentes/<id>.json`; `componentes.json` guarda las reglas comunes y la capa `componentes` del
+esquema se completa al cargar.
 
 `diner/scripts/design-system/verificar-pagina.cjs` abre la página en Edge/Chromium a 375 y 1024 px, con el tema publicado y,
 si se pasa `DRAFT_TOKEN`, con un borrador. Comprueba componentes y opciones, atributos e inercia de cada muestra, el estilo

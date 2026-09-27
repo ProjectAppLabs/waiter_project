@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "nombre": "Línea del pedido",
+  "selector": ".sm-cart-line",
+  "pantallas": [
+    "pedido"
+  ],
+  "descripcion": "Cada plato del carrito. La plantilla se dibuja dentro de la línea real, que conserva la distribución del carrito y el gesto de deslizar para eliminar.",
+  "datos": {
+    "linea.nombre": {
+      "tipo": "texto",
+      "descripcion": "Nombre del plato."
+    },
+    "linea.subtotal": {
+      "tipo": "precio",
+      "descripcion": "Precio por la cantidad."
+    },
+    "linea.precio": {
+      "tipo": "precio",
+      "descripcion": "Precio unitario."
+    },
+    "linea.cantidad": {
+      "tipo": "numero",
+      "descripcion": "Unidades."
+    },
+    "linea.mia": {
+      "tipo": "booleano",
+      "descripcion": "Verdadero si la pidió esta persona (puede cambiar cantidad y eliminar)."
+    },
+    "linea.comensal": {
+      "tipo": "texto",
+      "descripcion": "«Para ti» o «Comensal xxxxxx»."
+    },
+    "linea.nota": {
+      "tipo": "texto",
+      "descripcion": "Nota para cocina; puede faltar."
+    }
+  },
+  "ranuras": {
+    "foto": {
+      "descripcion": "Foto del plato, si sigue en la carta."
+    },
+    "info": {
+      "descripcion": "El bloque de fábrica: nombre, comensal y nota, subtotal y controles."
+    },
+    "controles": {
+      "descripcion": "Contador de cantidad y eliminar (o las unidades si la línea es de otra persona)."
+    }
+  },
+  "requisitos": [
+    {
+      "cualquiera": [
+        "dato:linea.nombre",
+        "ranura:info"
+      ],
+      "mensaje": "el nombre del plato (dato linea.nombre o ranura info)"
+    },
+    {
+      "cualquiera": [
+        "dato:linea.subtotal",
+        "ranura:info"
+      ],
+      "mensaje": "el subtotal (dato linea.subtotal o ranura info)"
+    },
+    {
+      "cualquiera": [
+        "ranura:controles",
+        "ranura:info"
+      ],
+      "mensaje": "los controles de cantidad (ranura controles o ranura info)"
+    }
+  ],
+  "limites": {
+    "ancho_minimo": 327
+  },
+  "plantilla_fabrica": "<ranura nombre=\"foto\"/>\n<ranura nombre=\"info\"/>"
+}
