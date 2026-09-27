@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "nota": "Únicas clases que admite una plantilla. Todas salen de los tokens del tema: espaciado por densidad, texto por escala, radios por forma y colores del tema. No existe utilidad que baje de 14 px ni de 44 px.",
+  "nota": "Únicas clases que admite una plantilla. Todas salen de los tokens del tema: espaciado por densidad, texto por escala, radios por forma y colores del tema. El texto no baja de 14 px ni los controles de 44 px; las piezas decorativas, como ds-barra, tienen sus propias medidas.",
   "grupos": [
     {"id": "disposicion", "nombre": "Disposición", "utilidades": [
       {"clase": "ds-pila", "descripcion": "Columna vertical con separación (usa ds-espacio-N para el hueco)."},
@@ -70,6 +70,18 @@
       {"clase": "ds-cuadrado", "descripcion": "Proporción 1:1."},
       {"clase": "ds-4-3", "descripcion": "Proporción 4:3."},
       {"clase": "ds-recorte", "descripcion": "Recorta lo que sobresale del contenedor."}
+    ]},
+    {"id": "marca", "nombre": "Marca", "utilidades": [
+      {"clase": "ds-sombra-dura", "descripcion": "Sombra desplazada 4 px en ambos ejes, sin desenfoque, color tinta."},
+      {"clase": "ds-borde-grueso", "descripcion": "Borde de 2 px color tinta."},
+      {"clase": "ds-fondo-reticula", "descripcion": "Color de fondo de la página con su tintaFondo y retícula de 16 px."},
+      {"clase": "ds-inclinado-izquierda", "descripcion": "Giro de −2.5° hacia la izquierda."},
+      {"clase": "ds-inclinado-derecha", "descripcion": "Giro de 2.5° hacia la derecha."},
+      {"clase": "ds-barra", "descripcion": "Barra decorativa de acento de 36 × 4 px, color tintaTerciaria; admite un elemento vacío."},
+      {"clase": "ds-texto-enorme", "descripcion": "Texto display de 40 px × escala, en mayúsculas, interlineado 1."},
+      {"clase": "ds-fuente-1", "descripcion": "Primera familia global de tipografia.fuentes; sin esa posición usa la fuente de títulos (display)."},
+      {"clase": "ds-fuente-2", "descripcion": "Segunda familia global de tipografia.fuentes; sin esa posición usa la fuente de títulos (display)."},
+      {"clase": "ds-fuente-3", "descripcion": "Tercera familia global de tipografia.fuentes; sin esa posición usa la fuente de títulos (display)."}
     ]},
     {"id": "piezas", "nombre": "Piezas", "utilidades": [
       {"clase": "ds-insignia", "descripcion": "Chip pequeño con fondo de acento suave, texto legible y esquinas de chip."}

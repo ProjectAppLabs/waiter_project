@@ -19,7 +19,7 @@ import type { AccountOrder, Cart, CartLine, OrderStatus } from '@/lib/types'
 // público no responda; la prueba de paridad falla si diverge de inventario.json.
 export const COMPONENTS = [
   { id: 'cabecera', nombre: 'Cabecera y saludo', variantes: ['cabecera', 'saludo'] },
-  { id: 'banners', nombre: 'Banners del restaurante', variantes: [] },
+  { id: 'banners', nombre: 'Banners del restaurante', variantes: ['banners'] },
   { id: 'categorias', nombre: 'Navegación de categorías', variantes: ['categorias'] },
   { id: 'plato', nombre: 'Tarjeta de plato', variantes: ['tarjeta', 'precio', 'imagen', 'formaImagen', 'insignia'] },
   { id: 'boton', nombre: 'Acción principal', variantes: ['boton', 'formaBoton'] },
@@ -52,11 +52,12 @@ export type VariantField = keyof typeof COMPONENT_VARIANTS | keyof typeof SCREEN
 export const DEMONSTRATED_BY: Record<VariantField, ComponentId> = {
   boton: 'boton', formaBoton: 'boton', tarjeta: 'plato', categorias: 'categorias', precio: 'precio', imagen: 'imagen',
   formaImagen: 'imagen', cabecera: 'cabecera', saludo: 'cabecera', insignia: 'insignia', carta: 'carta', ficha: 'ficha', carrito: 'carrito',
+  banners: 'banners',
 }
 export const FIELD_LABELS: Record<VariantField, string> = {
   boton: 'Estilo del botón', formaBoton: 'Forma del botón', tarjeta: 'Tarjeta', categorias: 'Categorías', precio: 'Precio',
   imagen: 'Recorte de la foto', formaImagen: 'Forma de la foto', cabecera: 'Cabecera', saludo: 'Saludo', insignia: 'Insignias',
-  carta: 'Carta', ficha: 'Ficha del plato', carrito: 'Carrito',
+  carta: 'Carta', ficha: 'Ficha del plato', carrito: 'Carrito', banners: 'Colores de los banners',
 }
 export const FIELDS: Record<VariantField, { attribute: string; default: string; values: readonly string[] }> = { ...COMPONENT_VARIANTS, ...SCREEN_LAYOUTS }
 

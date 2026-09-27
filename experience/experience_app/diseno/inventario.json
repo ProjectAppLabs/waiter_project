@@ -61,6 +61,14 @@
     "fundamentos.tipografia.cuerpo": [
       "--t-cuerpo",
       "--t-mono"
+    ],
+    "fundamentos.colores.tintaFondo": [
+      "--t-tinta-fondo"
+    ],
+    "fundamentos.tipografia.fuentes": [
+      "--ds-fuente-1",
+      "--ds-fuente-2",
+      "--ds-fuente-3"
     ]
   },
   "derivadas": {
@@ -114,7 +122,7 @@
         "fundamentos.titulo",
         "fundamentos.densidad",
         "fundamentos.tipografia.display",
-        "fundamentos.colores.tinta"
+        "fundamentos.colores.tintaFondo"
       ],
       "variantes": [
         "cabecera",
@@ -130,9 +138,14 @@
       "fundamentos": [
         "fundamentos.texto",
         "fundamentos.densidad",
-        "fundamentos.forma.tarjeta"
+        "fundamentos.forma.tarjeta",
+        "fundamentos.colores.acento",
+        "fundamentos.colores.acentoTinta",
+        "fundamentos.colores.tintaTerciaria"
       ],
-      "variantes": []
+      "variantes": [
+        "banners"
+      ]
     },
     {
       "id": "categorias",
@@ -144,7 +157,8 @@
         "fundamentos.texto",
         "fundamentos.densidad",
         "fundamentos.forma.chip",
-        "fundamentos.colores.tintaTerciaria"
+        "fundamentos.colores.tintaTerciaria",
+        "fundamentos.colores.tintaFondo"
       ],
       "variantes": [
         "categorias"
@@ -230,7 +244,9 @@
         "fundamentos.tipografia.cuerpo",
         "fundamentos.colores.tinta",
         "fundamentos.colores.tintaSuave",
-        "fundamentos.colores.fondo"
+        "fundamentos.colores.fondo",
+        "fundamentos.colores.tintaFondo",
+        "fundamentos.tipografia.fuentes"
       ],
       "variantes": []
     },
@@ -436,7 +452,8 @@
       "fundamentos": [
         "fundamentos.texto",
         "fundamentos.titulo",
-        "fundamentos.densidad"
+        "fundamentos.densidad",
+        "fundamentos.colores.tintaFondo"
       ],
       "variantes": []
     },
@@ -938,6 +955,23 @@
           "valor": "compacta",
           "descripcion": "Filas con separadores y fotografías pequeñas; mantiene cantidades, notas y acciones.",
           "selector": "[data-ds-carrito=\"compacta\"]"
+        }
+      ]
+    },
+    "banners": {
+      "ruta": "variantes.banners",
+      "atributo": "data-ds-banners",
+      "predeterminada": "actual",
+      "opciones": [
+        {
+          "valor": "actual",
+          "descripcion": "Conserva los colores fijos violeta, ámbar y oscuro.",
+          "selector": ".sm-promo-banner"
+        },
+        {
+          "valor": "tema",
+          "descripcion": "Todos los banners usan acento, acentoTinta y tintaTerciaria.",
+          "selector": "[data-ds-banners=\"tema\"]"
         }
       ]
     }

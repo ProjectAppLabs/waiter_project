@@ -63,6 +63,44 @@ el token de confirmación ni la clave MCP. Revocar la clave, confirmar o alcanza
 No se permite editar derivados de color. La confirmación rechaza un borrador si otro editor cambió el tema entretanto;
 hay que leer y preparar de nuevo. Preparar o restablecer no publica ni cambia los ajustes de la sede.
 
+### Reglas de marca (Plan L)
+
+`leer_design_system` expone el esquema ampliado, los mapas de `tintaFondo` y `tipografia.fuentes` a sus variables CSS,
+la variante `banners` y el grupo **Marca**. `leer_componente` entrega ese mismo catálogo y la `tipografia` actual de la sede,
+para conocer qué familia corresponde a cada utilidad. Las descripciones de `preparar_tema` y del esquema explican su uso.
+
+Ejemplo de cambio parcial para fondo oscuro, tarjetas claras y fuentes globales:
+
+```json
+{
+  "tema": {
+    "fundamentos": {
+      "colores": {"fondo": "#111111", "superficie": "#FFFFFF", "tinta": "#32324D", "tintaSuave": "#666687", "tintaFondo": "#FFFFFF"},
+      "tipografia": {"fuentes": ["Barlow Condensed", "Anton"], "display": "Barlow Condensed", "cuerpo": "Mulish"}
+    },
+    "variantes": {"banners": "tema"}
+  }
+}
+```
+
+- `fuentes` admite 0–3 nombres exactos, únicos, con patrón `^[A-Z][A-Za-z0-9 ]{1,39}$`; `[]` es el valor por defecto.
+  Son globales, cargadas una sola vez para toda la sede. `display` y `cuerpo` eligen la lista fija o una de esas familias.
+  La lista enviada reemplaza la anterior: si retiras una familia en uso, cambia también el rol que la usa.
+- `ds-fuente-1`, `ds-fuente-2` y `ds-fuente-3` eligen la familia por posición; una posición vacía usa la fuente de títulos.
+  Las demás clases de Marca son `ds-sombra-dura`, `ds-borde-grueso`, `ds-fondo-reticula`, `ds-inclinado-izquierda`,
+  `ds-inclinado-derecha`, `ds-barra` (admite `<span class="ds-barra"></span>`) y `ds-texto-enorme`.
+- Al preparar cualquier borrador que conserve fuentes globales se exige HTTP 200 de
+  `https://fonts.googleapis.com/css2?family=<Familia>` por cada familia. Cada petición tiene 3 s de tiempo de conexión/lectura,
+  sin redirecciones ni reintentos. Sin red o sin HTTP 200 se devuelve `isError` con la familia y no se crea el borrador.
+  Leer y confirmar no hacen nuevas consultas. Las pruebas simulan las respuestas HTTP.
+- `tintaFondo` omitida toma `tinta`. Contrastes mínimos de 4,5:1: `tintaFondo`/`fondo`, `tinta`/`superficie`,
+  `tintaSuave`/`superficie`, `tinta`/`acentoSuave`, `acentoTinta`/`acento`. La mezcla de acento suave usa `superficie`;
+  S1 sin cambios conserva sus derivados originales. Ya no se exige `tinta` sobre `fondo`.
+- `variantes.banners`: `actual` conserva violeta/ámbar/oscuro; `tema` usa `acento`, `acentoTinta` y `tintaTerciaria`.
+- El contrato del verificador del comensal añade contenido activo, orígenes de recursos y carga de las fuentes globales
+  a las mediciones existentes. Solo admite recursos del propio origen, `fonts.googleapis.com` y `fonts.gstatic.com`;
+  los detalles y las utilidades se documentan en el [README del tema](../diseno/README.md#fuentes-y-utilidades-de-marca-plan-l).
+
 ### Flujo de una plantilla de componente (K3)
 
 1. `leer_componente({"componente":"plato"})`: contrato, `plantilla_actual.html` (de fábrica o la propia), utilidades y decoraciones.

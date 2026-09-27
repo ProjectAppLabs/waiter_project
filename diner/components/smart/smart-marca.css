@@ -1,0 +1,16 @@
+/* Plan L · Tinta del fondo y banners del tema.
+ * .smart-menu escribe con --sm-ink-fondo (texto sobre el fondo de la página). Todo lo que se pinta sobre una superficie
+ * vuelve a --sm-ink y recalcula su texto suave sobre la superficie. Con los valores por defecto ambas tintas son la misma. */
+.smart-menu { --sm-muted: color-mix(in srgb, var(--sm-ink-fondo) 78%, var(--t-fondo)); }
+.smart-menu :is(.sm-food-card, .sm-summary, .sm-filter-dialog, .sm-cart-line, .sm-history-card, .sm-paper-receipt,
+  .sm-status-card, .sm-profile-stats, .sm-points-balance, .sm-search, .sm-field, .sm-profile-link, .sm-home-card,
+  .sm-venue-card, .sm-dish-purchase, .sm-chat-dialog, .sm-navigation, .sm-coupon-input, .sm-secondary, .sm-empty,
+  .sm-auth-form, .sm-help-list, .sm-note, .sm-side, .sm-topping, .sm-nutrition, .sm-profile-notification, .ds-superficie, .ds-fondo) {
+  color: var(--sm-ink);
+  --sm-muted: color-mix(in srgb, var(--sm-ink) 78%, var(--sm-surface));
+}
+
+/* data-ds-banners="tema": los tres colores fijos de los banners pasan a ser los del tema. */
+[data-ds-banners="tema"] .smart-menu :is(.sm-banner-violet, .sm-banner-amber, .sm-banner-dark) { background: var(--sm-accent); color: var(--t-acento-tinta, #fff); }
+[data-ds-banners="tema"] .smart-menu .sm-banner-amber { background: var(--sm-highlight); color: var(--sm-highlight-ink, #212134); }
+[data-ds-banners="tema"] .smart-menu .sm-featured { background: var(--sm-accent); color: var(--t-acento-tinta, #fff); }

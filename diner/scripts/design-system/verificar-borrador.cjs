@@ -1,4 +1,4 @@
-/* Plan K3–K5: verificación dinámica de un borrador con plantillas de componente.
+/* Plan K3–K5 y L: verificación dinámica de un borrador con plantillas de componente (medidas y seguridad).
  * Abre en un navegador real la página viva del sistema de diseño con ?borrador=<token> (todos los componentes, con datos
  * de muestra) a 375 y 1024 px, y la carta a 320, 375 y 1024 px (tarjeta, banners y cabecera en su contexto real), y
  * mide cada raíz dibujada con plantilla propia ([data-plantilla="propia"], hasta 12 por componente): desbordes de la
@@ -21,6 +21,30 @@ const PAGES = [
   { name: 'sistema', path: 'design-system', widths: [375, 1024], wait: '.ds-option', shot: '#componentes' },
   { name: 'carta', path: 'carta', widths: [320, 375, 1024], wait: 'article.sm-food-card', shot: '.sm-menu-sections section, .sm-food-list, .sm-food-grid' },
 ]
+
+// Orígenes a los que la carta puede pedir recursos: el propio (incluidos los proxys /api y /experience) y Google Fonts.
+const ALLOWED_ORIGINS = new Set([new URL(base).origin, 'https://fonts.googleapis.com', 'https://fonts.gstatic.com'])
+
+// Se ejecuta dentro de la página: contenido activo que una plantilla nunca debe traer (Plan L). El validador del servidor ya
+// lo impide al preparar; esto lo comprueba en lo que de verdad dibujó el navegador.
+function securityCheck(fonts) {
+  const problems = []
+  for (const el of document.querySelectorAll('iframe, object, embed, frame')) problems.push(`seguridad: la página contiene <${el.tagName.toLowerCase()}>`)
+  for (const root of document.querySelectorAll('[data-plantilla="propia"]')) {
+    const component = root.dataset.componente || 'componente'
+    for (const el of [root, ...root.querySelectorAll('*')]) {
+      if (el.tagName === 'SCRIPT') problems.push(`seguridad: ${component}: contiene <script>`)
+      for (const attr of el.attributes) {
+        const name = attr.name.toLowerCase(), value = attr.value.trim().toLowerCase()
+        if (name.startsWith('on')) problems.push(`seguridad: ${component}: atributo de evento ${name}`)
+        if (['href', 'src', 'action', 'formaction', 'xlink:href'].includes(name) && /^(javascript|data|vbscript):/.test(value)) problems.push(`seguridad: ${component}: enlace ${value.split(':')[0]}: en ${name}`)
+        if (name === 'style' && /url\(\s*['"]?(?!\/[^/])/.test(value)) problems.push(`seguridad: ${component}: estilo con url() externa`)
+      }
+    }
+  }
+  for (const font of fonts) if (!document.fonts.check(`16px "${font}"`)) problems.push(`la fuente global «${font}» no cargó desde Google Fonts`)
+  return [...new Set(problems)]
+}
 
 // Se ejecuta dentro de la página: devuelve los problemas de cada raíz con plantilla propia, agrupados por componente.
 function measureRoots() {
@@ -102,9 +126,12 @@ async function main() {
   // Un borrador que no trae ninguna plantilla propia (p. ej. vuelve a fábrica) no tiene nada que medir aquí.
   const draft = await fetch(`${base}/api/v1/${encodeURIComponent(rest)}/${encodeURIComponent(venue)}/borradores/${encodeURIComponent(token)}/`)
   if (!draft.ok) throw new Error(`el borrador no responde (${draft.status})`)
-  const components = (await draft.json()).plantilla?.tema?.componentes || {}
+  const theme = (await draft.json()).plantilla?.tema || {}
+  const components = theme.componentes || {}
   const targets = Object.keys(components).filter((id) => components[id])
-  if (!targets.length) {
+  // Plan L: las fuentes globales del borrador también se comprueban (que carguen desde Google Fonts).
+  const fonts = (theme.fundamentos?.tipografia?.fuentes || []).filter((f) => typeof f === 'string')
+  if (!targets.length && !fonts.length) {
     result.medidas.nota = 'el borrador no trae plantillas propias; nada que medir'
     process.stdout.write(JSON.stringify(result))
     return
@@ -122,7 +149,12 @@ async function main() {
       if (visible) await page.setViewportSize({ width, height: 900 })
       const errors = [], writes = []
       page.on('pageerror', (error) => errors.push(error.message))
-      page.on('request', (request) => { if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method())) writes.push(`${request.method()} ${request.url()}`) })
+      const foreign = new Set()
+      page.on('request', (request) => {
+        if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method())) writes.push(`${request.method()} ${request.url()}`)
+        const url = request.url()
+        if (/^https?:/.test(url) && !ALLOWED_ORIGINS.has(new URL(url).origin)) foreign.add(new URL(url).origin)
+      })
       await page.goto(`${base}/${encodeURIComponent(rest)}/${encodeURIComponent(venue)}/${spec.path}/?borrador=${encodeURIComponent(token)}`, { waitUntil: 'networkidle', timeout: 120000 })
       await page.locator(spec.wait).first().waitFor({ timeout: 60000 })
       // Un teléfono no reserva sitio para la barra de desplazamiento; el Edge de Windows sí (15 px). Se oculta para medir el ancho real.
@@ -132,6 +164,8 @@ async function main() {
       const measured = await page.evaluate(measureRoots)
       if (errors.length) measured.problemas.push(...errors.map((e) => `error de JavaScript: ${e}`))
       if (writes.length) measured.problemas.push(...writes.map((w) => `la página intentó escribir: ${w}`))
+      measured.problemas.push(...await page.evaluate(securityCheck, fonts))
+      measured.problemas.push(...[...foreign].map((origin) => `seguridad: la página pidió recursos a un origen no permitido: ${origin}`))
       Object.keys(measured.raices).forEach((id) => seen.add(id))
       result.medidas[`${spec.name} ${width}px`] = { raices: measured.raices, problemas: measured.problemas.length }
       result.problemas.push(...measured.problemas.map((p) => `${spec.name} ${width} px: ${p}`))

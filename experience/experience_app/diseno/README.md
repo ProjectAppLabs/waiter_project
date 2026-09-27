@@ -1,4 +1,4 @@
-# Tema del menú v2 (Plan J2–J5 y K1)
+# Tema del menú v2 (planes J, K y L)
 
 `esquema.json` es el contrato cerrado y versionado. `services.validate` completa los valores omitidos, normaliza colores,
 calcula los derivados y rechaza campos, versiones, tipos, fuentes o rangos desconocidos. No admite HTML ni CSS.
@@ -7,6 +7,7 @@ J3 añade variantes de componente y distribución mediante atributos `data-ds-*`
 J4 expone el contrato por MCP y comparte los borradores con la vista previa del POS.
 J5 añade la página viva del comensal, que muestra todos los componentes y variantes con el tema de la sede o de un borrador.
 K1 añade la capa `componentes`: una plantilla HTML restringida por componente, validada contra su contrato.
+L añade fuentes globales, tinta independiente para el fondo, banners del tema y diez utilidades de marca.
 
 ## Contrato
 
@@ -40,8 +41,9 @@ en la misma petición. El GET interno devuelve el tema y los campos anteriores; 
 | Texto | 1–1,5; cuerpo base = 14 px × factor | 1 |
 | Títulos de J1 (fuente display) | 1–1,5; se multiplica también por texto | 1 |
 | Forma: tarjeta, botón, chip, campo, imagen, hoja | 0–2, multiplicador del radio de J1; 0 = recto | 1 |
-| Colores | 9 colores `#RRGGBB`; `acentoTinta` y `acentoSuave` calculados, de solo lectura | S1 |
-| Fuentes de títulos y cuerpo | Lista cerrada del esquema; independientes | DM Sans / Mulish |
+| Colores | 10 colores `#RRGGBB`; `acentoTinta` y `acentoSuave` calculados, de solo lectura | S1; `tintaFondo` omitida toma `tinta` |
+| Fuentes de títulos y cuerpo | Lista fija del esquema o una familia de `tipografia.fuentes`; independientes | DM Sans / Mulish |
+| Fuentes globales | De 0 a 3 familias de Google Fonts, únicas, patrón `^[A-Z][A-Za-z0-9 ]{1,39}$` | `[]` |
 
 Con las variantes predeterminadas, los radios circulares de J1 (`50%`, `999px`) conservan su forma. No se convierten en cuadrados al poner un factor cero.
 Los tokens `--t-radio-*` antiguos siguen presentes por compatibilidad;
@@ -49,7 +51,7 @@ los componentes smart usan los factores `--ds-forma-*`.
 
 ## Variantes y distribución
 
-El catálogo tiene 13 campos y 36 valores, incluidos los 13 predeterminados. Cada opción tiene descripción y selector
+El catálogo tiene 14 campos y 38 valores, incluidos los 14 predeterminados. Cada opción tiene descripción y selector
 en `inventario.json`; los componentes y pantallas declaran qué campos consumen. El servidor rechaza opciones,
 campos y tipos desconocidos. El comensal solo emite atributos del catálogo cerrado de `designVariants.ts`.
 
@@ -65,6 +67,7 @@ campos y tipos desconocidos. El comensal solo emite atributos del catálogo cerr
 | `variantes.cabecera` | **`izquierda`**, `centrada` |
 | `variantes.saludo` | **`visible`**, `oculto` |
 | `variantes.insignia` | **`rellena`**, `contorno` |
+| `variantes.banners` | **`actual`**, `tema` |
 | `distribucion.carta` | **`actual`**, `cuadricula`, `lista`, `foto-grande` |
 | `distribucion.ficha` | **`actual`**, `heroe`, `dividida` |
 | `distribucion.carrito` | **`tarjetas`**, `compacta` |
@@ -79,11 +82,18 @@ campos y tipos desconocidos. El comensal solo emite atributos del catálogo cerr
   grande mantienen filtros, favoritos y añadir. La ficha dividida muestra dos columnas desde 760 px y se apila en móvil.
 - Ocultar el saludo conserva logo, sede y navegación. El carrito compacto conserva precios, cantidades y eliminación.
   Los diálogos heredan el mismo tema, sin duplicar componentes ni introducir condiciones de JavaScript por variante.
+- Banners `actual` conserva los colores fijos violeta/ámbar/oscuro; `tema` usa `acento`, `acentoTinta` y `tintaTerciaria`
+  en todos los banners, mediante `data-ds-banners`.
 
 ## Legibilidad
 
-El servidor exige contraste ≥ 4,5:1 entre `tinta`/`tintaSuave` y `fondo`/`superficie`, entre `tinta` y `acentoSuave`,
-y entre `acentoTinta` y `acento`. El comensal deriva `--sm-highlight-text`, `--sm-accent-text` y `--sm-readable-muted`
+El servidor exige contraste ≥ 4,5:1 en cinco pares: `tintaFondo` sobre `fondo`, `tinta` y `tintaSuave` sobre `superficie`,
+`tinta` sobre `acentoSuave` y `acentoTinta` sobre `acento`. No exige `tinta` ni `tintaSuave` sobre `fondo`: pueden convivir
+un fondo oscuro y tarjetas claras. `tintaFondo` es el texto directo sobre la página (títulos, saludo, encabezados y pestañas);
+si falta, toma el valor normalizado de `tinta`. El esquema documenta esta dependencia con `x-defaultFrom`.
+`acentoSuave` mezcla 10 % de acento con 90 % de superficie al cambiar acento, fondo o superficie; S1 sin cambios conserva
+sus derivados originales. Ambos derivados ignoran valores enviados en temas completos y se rechazan en cambios parciales.
+El comensal deriva `--sm-highlight-text`, `--sm-accent-text` y `--sm-readable-muted`
 para leer precios, acentos y texto secundario sobre las tres superficies. `--sm-highlight-ink` contrasta sobre el
 color destacado. El color decorativo original permanece disponible para fondos y bordes; las superficies oscuras
 fijas usan sus propias tintas claras.
@@ -97,13 +107,50 @@ El cierre pedido por el usuario acepta estos cambios visuales frente a J1: favor
 más grandes; texto secundario mayor; precios más oscuros en el tema claro. Ya no se conserva la excepción de accesibilidad
 inicial. Las pruebas miden estos mínimos en componentes reales; no constituyen una certificación WCAG completa.
 
+## Fuentes y utilidades de marca (Plan L)
+
+`fundamentos.tipografia.fuentes` contiene nombres exactos de Google Fonts: no se recortan ni se cambian mayúsculas.
+`display` y `cuerpo` pueden elegir cualquiera de esas familias o de la lista fija anterior. La pertenencia a la lista
+global se valida en `services.validate`; el JSON Schema describe las alternativas y el patrón, sin expresar esa relación
+entre campos. Los cambios parciales reemplazan la lista entera y se validan después de mezclar todos los campos;
+retirar una familia que todavía usa un rol requiere cambiar ese rol en el mismo parche.
+
+Al crear un borrador, `services.check_google_fonts` consulta cada familia de `fuentes`, incluso las de la lista fija:
+GET a `https://fonts.googleapis.com/css2?family=<Familia>`, parámetros codificados, tiempo de conexión/lectura de 3 s,
+sin redirecciones, sin reintentos ni descarga del cuerpo. Solo se acepta HTTP 200. Un estado distinto o un error de red
+devuelve un error con la familia y no crea el borrador; MCP lo expone como `isError` y la vista previa interna como HTTP 400.
+Se aplica también al preparar componentes o restablecer una capa que conserve fuentes. Validar, resolver, leer y confirmar
+una instantánea ya preparada no consultan la red. Las pruebas simulan HTTP; no necesitan Google Fonts.
+
+Las familias son globales para toda la sede y el comensal las carga una sola vez desde `tema.fundamentos.tipografia.fuentes`.
+El borrador también las incorpora a `fuentesGoogle`, sin duplicados. Los tokens anteriores conservan sus claves;
+`tintaFondo` se entrega dentro del tema y se representa con `--t-tinta-fondo`.
+
+El grupo **Marca** de `utilidades.json` contiene exactamente estas diez clases, disponibles al leer el sistema y cada componente:
+
+| Utilidad | Efecto |
+|---|---|
+| `ds-sombra-dura` | Sombra 4 × 4 px, sin desenfoque, color tinta |
+| `ds-borde-grueso` | Borde de 2 px color tinta |
+| `ds-fondo-reticula` | Fondo de la página, `tintaFondo` y retícula de 16 px |
+| `ds-inclinado-izquierda` / `ds-inclinado-derecha` | Giro de −2,5° / 2,5° |
+| `ds-barra` | Barra 36 × 4 px color `tintaTerciaria`; admite un elemento vacío |
+| `ds-texto-enorme` | Display 40 px × escala, mayúsculas, interlineado 1 |
+| `ds-fuente-1` / `ds-fuente-2` / `ds-fuente-3` | Posición de la lista global; sin esa posición usa `display` |
+
+El contrato del comensal incluye `--ds-fuente-1..3` y un `<link>` a Google Fonts. El verificador del Plan L, implementado
+en `diner/scripts/design-system/verificar-borrador.cjs`, además rechaza `iframe`, `object`, `embed` y `frame` en la página;
+`script`, atributos `on*`, estilos no emitidos por el código y enlaces `javascript:`/`data:` en raíces con plantilla propia;
+recursos de orígenes ajenos al propio, `fonts.googleapis.com` y `fonts.gstatic.com`; y familias globales que no carguen.
+El servidor conserva sus resultados y la puerta de confirmación existente; estas comprobaciones del navegador pertenecen al comensal.
+
 ## Persistencia y compatibilidad
 
 - `VenueMenuSettings.theme` guarda el tema de cada sede. La migración `0025` copia colores y tipografía de S1 con
   factores en 1; conserva `palette` y `typography`. Las plantillas retiradas no se reactivan.
 - El PUT anterior del POS/MCP sigue reemplazando su paleta y su tipografía. Conserva densidad, escalas, formas,
   colores exclusivos de v2, una fuente de cuerpo elegida independientemente y las dos capas de J3. Se valida el resultado combinado.
-- No hay migración adicional en J3: al leer un tema v2 anterior, el resolvedor completa las capas omitidas con sus
+- No hay migración adicional en J3 ni L: al leer un tema v2 anterior, el resolvedor completa las capas omitidas con sus
   valores predeterminados sin modificar la fila guardada. El número de versión sigue siendo 2.
 - La preparación antigua del MCP usa la misma validación para no producir un borrador que falle al confirmar.
 - La caché está separada por restaurante/sede y versión; se invalida al guardar y al confirmar la transacción.
@@ -119,6 +166,8 @@ inicial. Las pruebas miden estos mínimos en componentes reales; no constituyen 
 ```bash
 cd experience
 venv/bin/python -m pytest -q experience_app/tests/diseno experience_app/tests/mcp
+venv/bin/python -m pytest -q --ignore=experience_app/tests/contract --ignore=experience_app/tests/addon
+venv/bin/ruff check experience_app/diseno experience_app/mcp experience_app/tests/diseno
 venv/bin/python manage.py makemigrations --check --dry-run
 cd ../diner
 npx tsc --noEmit
@@ -203,7 +252,7 @@ Esquema y catálogo de herramientas: [README del MCP](../mcp/README.md).
 
 `<diner>/<rest>/<sede>/design-system` dibuja, con el tema publicado de la sede, los fundamentos (colores con derivados
 marcados, tipografía, escalas, espaciado y formas), los 15 componentes del inventario con los componentes reales de la
-carta, cada opción de las 13 variantes y distribuciones con la elegida enmarcada, y las pantallas con sus componentes en
+carta, cada opción de las 14 variantes y distribuciones con la elegida enmarcada, y las pantallas con sus componentes en
 orden. Con `?borrador=<token público>` muestra ese borrador en todos los componentes, avisa de que nada está publicado y
 enlaza la carta con el borrador y el tema publicado.
 

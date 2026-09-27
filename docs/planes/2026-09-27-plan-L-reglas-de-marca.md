@@ -22,7 +22,7 @@ posible sin abrir CSS libre, y endurece el verificador contra contenido activo.
    banners toman `acento`, `acentoTinta` y `tintaTerciaria`). Atributo `data-ds-banners`.
 4. **Utilidades nuevas** (grupo «Marca» en `utilidades.json`; el comensal las define igual en `smart-utilities.css`):
    `ds-sombra-dura` (sombra desplazada 4px 4px sin desenfoque, color tinta), `ds-borde-grueso` (2 px color tinta),
-   `ds-fondo-reticula` (fondo acento con retícula de 16 px), `ds-inclinado-izquierda` / `ds-inclinado-derecha`
+   `ds-fondo-reticula` (color de fondo de la página, con su tinta `tintaFondo`, y retícula de 16 px), `ds-inclinado-izquierda` / `ds-inclinado-derecha`
    (giro de 2.5°), `ds-barra` (barra de acento de 36×4 px con `tintaTerciaria`; admite elemento vacío),
    `ds-texto-enorme` (display 40 px × escala, mayúsculas, interlineado 1), `ds-fuente-1`, `ds-fuente-2`, `ds-fuente-3`.
 5. **Verificador de seguridad** (`verificar-borrador.cjs`): además de medidas, falla si la página con el borrador tiene

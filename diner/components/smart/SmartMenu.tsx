@@ -40,6 +40,7 @@ import './smart-motion.css'
 import './smart-accessibility.css'
 import './smart-variants.css'
 import './smart-utilities.css'
+import './smart-marca.css'
 import './smart-decoraciones.css'
 
 export type SmartProps = {

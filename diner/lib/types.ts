@@ -45,8 +45,10 @@ export interface MenuTheme {
   fundamentos: {
     densidad: number; texto: number; titulo: number
     forma: Record<'tarjeta' | 'boton' | 'chip' | 'campo' | 'imagen' | 'hoja', number>
-    colores: Pick<TemplateTokens, 'fondo' | 'superficie' | 'tinta' | 'tintaSuave' | 'tintaTerciaria' | 'borde' | 'acento' | 'acentoTinta' | 'acentoSuave'>
-    tipografia: { display: string; cuerpo: string }
+    // Plan L: tintaFondo es el texto que va directo sobre el fondo de la página (por defecto, igual que tinta).
+    colores: Pick<TemplateTokens, 'fondo' | 'superficie' | 'tinta' | 'tintaSuave' | 'tintaTerciaria' | 'borde' | 'acento' | 'acentoTinta' | 'acentoSuave'> & { tintaFondo?: string }
+    // Plan L: hasta tres familias de Google Fonts importadas una vez para toda la sede; las plantillas las usan con ds-fuente-N.
+    tipografia: { display: string; cuerpo: string; fuentes?: string[] }
   }
 }
 // `contexto.plantilla`: la plantilla resuelta (catálogo + paleta y tipografía de la sede + marca). Es lo único que el motor necesita.

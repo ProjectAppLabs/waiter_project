@@ -85,3 +85,16 @@
 .smart-menu .sm-dish-hero[data-plantilla] .sm-dish-photo { position: relative; inset: auto; width: min(100%, 280px); height: auto; max-width: 100%; aspect-ratio: 1; margin: 0 auto var(--ds-espacio-12); }
 .smart-menu .sm-dish-hero[data-plantilla] > .sm-rating-pill { position: static; align-self: flex-start; }
 .smart-menu .sm-dish-hero[data-plantilla] .sm-dish-heading { width: 100%; padding: var(--ds-espacio-16) 0 0; text-align: left; }
+
+/* Plan L · Marca: piezas de identidad que una plantilla puede combinar. Salen de los tokens (tinta, acento, destacado) y no
+ * bajan de 14 px de texto. La lista es la misma que experience/diseno/utilidades.json (grupo «Marca»). */
+.smart-menu .ds-sombra-dura { box-shadow: 4px 4px 0 var(--sm-ink); }
+.smart-menu .ds-borde-grueso { border: 2px solid var(--sm-ink); }
+.smart-menu .ds-fondo-reticula { background-color: var(--t-fondo); color: var(--sm-ink-fondo); --sm-muted: color-mix(in srgb, var(--sm-ink-fondo) 78%, var(--t-fondo)); background-image: linear-gradient(to right, color-mix(in srgb, var(--sm-ink-fondo) 7%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--sm-ink-fondo) 7%, transparent) 1px, transparent 1px); background-size: 16px 16px; }
+.smart-menu .ds-inclinado-izquierda { transform: rotate(-2.5deg); }
+.smart-menu .ds-inclinado-derecha { transform: rotate(2.5deg); }
+.smart-menu .ds-barra { display: block; flex: 0 0 auto; width: 36px; height: 4px; border-radius: calc(2px * var(--ds-forma-chip)); background: var(--sm-highlight); }
+.smart-menu .ds-texto-enorme { font: 400 calc(40px * var(--ds-texto) * var(--ds-titulo)) / 1 var(--t-display); text-transform: uppercase; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.smart-menu .ds-fuente-1 { font-family: var(--ds-fuente-1); }
+.smart-menu .ds-fuente-2 { font-family: var(--ds-fuente-2); }
+.smart-menu .ds-fuente-3 { font-family: var(--ds-fuente-3); }

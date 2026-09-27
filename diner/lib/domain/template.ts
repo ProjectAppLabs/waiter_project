@@ -1,5 +1,5 @@
 import type { PreviewPayload, Template, TemplateFamily, TemplateSpec, TemplateTokens } from '@/lib/types'
-import { designSystemVars } from './designSystem'
+import { designSystemVars, themeFonts } from './designSystem'
 import { contrastRatio, readableText } from './contrast'
 
 // Copia del contrato S1 del backend: disponible incluso antes de cargar la entrada.
@@ -175,7 +175,8 @@ export const googleFontHref = (font: string) => `https://fonts.googleapis.com/cs
 
 // Qué pedir a Google Fonts para una plantilla: sus fuentesGoogle más las tres familias de sus tokens, sin las ya cargadas.
 export function fontsToLoad(t: Template): string[] {
-  const all = [...t.fuentesGoogle, t.tokens.displayFont, t.tokens.cuerpoFont, t.tokens.monoFont].map((f) => f.trim()).filter(Boolean)
+  // Plan L: las fuentes globales de la sede (tipografia.fuentes) se piden una vez para toda la página, se usen donde se usen.
+  const all = [...t.fuentesGoogle, ...themeFonts(t.tema), t.tokens.displayFont, t.tokens.cuerpoFont, t.tokens.monoFont].map((f) => f.trim()).filter(Boolean)
   return Array.from(new Set(all)).filter((f) => !PRELOADED_FONTS.includes(f))
 }
 

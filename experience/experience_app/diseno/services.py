@@ -6,6 +6,8 @@ import re
 from copy import deepcopy
 from pathlib import Path
 
+import requests
+
 from experience_app.diseno import plantillas
 from experience_app.utils.brand import contrast, ink_for
 
@@ -30,6 +32,8 @@ def public_schema() -> dict:
     return schema
 INVENTORY = json.loads(Path(__file__).with_name('inventario.json').read_text(encoding='utf-8'))
 logger = logging.getLogger(__name__)
+GOOGLE_FONTS_URL = 'https://fonts.googleapis.com/css2'
+GOOGLE_FONTS_TIMEOUT = 3
 
 
 class InvalidTheme(ValueError):
@@ -51,8 +55,21 @@ def _normalize(value, schema, path='tema'):
         unknown = set(value) - set(props)
         if unknown:
             raise InvalidTheme(f'{path}: campo desconocido «{sorted(unknown)[0]}».')
-        return {key: _normalize(value.get(key, deepcopy(rule.get('default', {}))), rule, f'{path}.{key}')
-                for key, rule in props.items()}
+        clean = {key: _normalize(value.get(key, deepcopy(rule.get('default', {}))), rule, f'{path}.{key}')
+                 for key, rule in props.items()}
+        for key, rule in props.items():
+            if key not in value and 'x-defaultFrom' in rule:
+                clean[key] = clean[rule['x-defaultFrom']]
+        return clean
+    if kind == 'array':
+        if not isinstance(value, list):
+            raise InvalidTheme(f'{path} debe ser una lista.')
+        if not schema['minItems'] <= len(value) <= schema['maxItems']:
+            raise InvalidTheme(f'{path}: admite de {schema["minItems"]} a {schema["maxItems"]} familias.')
+        clean = [_normalize(item, schema['items'], f'{path}[{index}]') for index, item in enumerate(value)]
+        if schema.get('uniqueItems') and len(set(clean)) != len(clean):
+            raise InvalidTheme(f'{path}: las familias no se pueden repetir.')
+        return clean
     if kind in ('number', 'integer'):
         if type(value) not in (int, float) or (type(value) is float and not math.isfinite(value)) or (kind == 'integer' and value != int(value)):
             raise InvalidTheme(f'{path} debe ser un número finito.')
@@ -65,8 +82,10 @@ def _normalize(value, schema, path='tema'):
             raise InvalidTheme(f'{path} debe ser texto.')
         if 'pattern' in schema:
             if re.fullmatch(schema['pattern'], value) is None:
-                raise InvalidTheme(f'{path} debe ser #RRGGBB.')
-            value = value.upper()
+                requirement = '#RRGGBB' if schema['pattern'].startswith('^#') else 'una familia con el patrón ^[A-Z][A-Za-z0-9 ]{1,39}$'
+                raise InvalidTheme(f'{path} debe ser {requirement}.')
+            if schema['pattern'].startswith('^#'):
+                value = value.upper()
         if 'enum' in schema and value not in schema['enum']:
             raise InvalidTheme(f'{path}: valor fuera de la lista: {", ".join(schema["enum"])}.')
     return value
@@ -84,18 +103,22 @@ def _mix(accent: str, background: str) -> str:
 def validate(theme: dict) -> dict:
     """Acepta un tema parcial, completa lo omitido y devuelve un tema canónico sin modificar la entrada."""
     clean = _normalize(theme, SCHEMA)
+    typography = clean['fundamentos']['tipografia']
+    rules = SCHEMA['properties']['fundamentos']['properties']['tipografia']['properties']
+    for role in ('display', 'cuerpo'):
+        if typography[role] not in rules[role]['anyOf'][0]['enum'] + typography['fuentes']:
+            raise InvalidTheme(f'tema.fundamentos.tipografia.{role}: elige una familia de la lista fija o declárala en tipografia.fuentes.')
     colors = clean['fundamentos']['colores']
     original = defaults()['fundamentos']['colores']
-    # El diseño conserva sus derivados exactos; un acento/fondo nuevo recalcula ambos.
-    if any(colors[k] != original[k] for k in ('acento', 'fondo')):
+    # S1 conserva sus derivados exactos; una paleta nueva mezcla el acento sobre las tarjetas.
+    if any(colors[k] != original[k] for k in ('acento', 'fondo', 'superficie')):
         colors['acentoTinta'] = ink_for(colors['acento'])
-        colors['acentoSuave'] = _mix(colors['acento'], colors['fondo'])
+        colors['acentoSuave'] = _mix(colors['acento'], colors['superficie'])
     else:
         for key in ('acentoTinta', 'acentoSuave'):
             colors[key] = original[key]
-    pairs = [(ink, surface) for ink in ('tinta', 'tintaSuave') for surface in ('fondo', 'superficie')]
-    pairs.append(('tinta', 'acentoSuave'))
-    pairs.append(('acentoTinta', 'acento'))
+    pairs = [('tintaFondo', 'fondo'), ('tinta', 'superficie'), ('tintaSuave', 'superficie'),
+             ('tinta', 'acentoSuave'), ('acentoTinta', 'acento')]
     for ink, surface in pairs:
         ratio = contrast(colors[ink], colors[surface])
         if ratio < 4.5:
@@ -103,11 +126,28 @@ def validate(theme: dict) -> dict:
     return clean
 
 
+def check_google_fonts(theme: dict) -> None:
+    """Comprueba las familias globales al preparar; las lecturas del menú nunca dependen de la red."""
+    for family in theme['fundamentos']['tipografia']['fuentes']:
+        try:
+            # Sin redirecciones ni descarga del cuerpo: solo vale el 200 del origen de Google Fonts.
+            with requests.get(GOOGLE_FONTS_URL, params={'family': family}, timeout=GOOGLE_FONTS_TIMEOUT,
+                              allow_redirects=False, stream=True) as response:
+                status = response.status_code
+        except requests.RequestException as exc:
+            raise InvalidTheme(f'No se pudo comprobar «{family}» en Google Fonts por un problema de red o tiempo de espera. '
+                               'No se preparó el borrador; vuelve a intentarlo con conexión.') from exc
+        if status != 200:
+            raise InvalidTheme(f'Google Fonts no confirmó la familia «{family}» (HTTP {status}; se requiere 200). '
+                               'Revisa el nombre exacto y vuelve a preparar.')
+
+
 def from_tokens(tokens: dict) -> dict:
     theme = defaults()
     foundation = theme['fundamentos']
-    foundation['colores'].update({k: tokens[k] for k in foundation['colores']})
-    foundation['tipografia'] = {'display': tokens['displayFont'], 'cuerpo': tokens['cuerpoFont']}
+    foundation['colores'].update({k: tokens[k] for k in foundation['colores'] if k in tokens})
+    foundation['colores']['tintaFondo'] = tokens.get('tintaFondo', tokens['tinta'])
+    foundation['tipografia'].update(display=tokens['displayFont'], cuerpo=tokens['cuerpoFont'])
     return theme
 
 
@@ -122,5 +162,7 @@ def resolve(theme, tokens: dict) -> dict:
 
 def apply_to_tokens(theme: dict, tokens: dict) -> dict:
     foundation = theme['fundamentos']
-    return {**tokens, **foundation['colores'], 'displayFont': foundation['tipografia']['display'],
+    # El contrato anterior de tokens conserva sus claves; tintaFondo viaja en tema.fundamentos.colores.
+    colors = {key: value for key, value in foundation['colores'].items() if key != 'tintaFondo'}
+    return {**tokens, **colors, 'displayFont': foundation['tipografia']['display'],
             'cuerpoFont': foundation['tipografia']['cuerpo'], 'monoFont': foundation['tipografia']['cuerpo']}

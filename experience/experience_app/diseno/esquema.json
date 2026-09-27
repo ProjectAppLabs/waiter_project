@@ -132,6 +132,13 @@
               "pattern": "^#[0-9A-Fa-f]{6}$",
               "default": "#EEEBF5",
               "readOnly": true
+            },
+            "tintaFondo": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "default": "#32324D",
+              "x-defaultFrom": "tinta",
+              "description": "Texto directo sobre el fondo: títulos, saludo, encabezados de sección y pestañas. Si se omite, usa tinta. Contraste mínimo 4.5:1 sobre fondo."
             }
           }
         },
@@ -141,35 +148,65 @@
           "properties": {
             "display": {
               "type": "string",
-              "enum": [
-                "Instrument Serif",
-                "Playfair Display",
-                "Fraunces",
-                "DM Serif Display",
-                "Lora",
-                "Cormorant Garamond",
-                "Mulish",
-                "DM Sans",
-                "Nunito Sans",
-                "Lato"
+              "default": "DM Sans",
+              "anyOf": [
+                {
+                  "enum": [
+                    "Instrument Serif",
+                    "Playfair Display",
+                    "Fraunces",
+                    "DM Serif Display",
+                    "Lora",
+                    "Cormorant Garamond",
+                    "Mulish",
+                    "DM Sans",
+                    "Nunito Sans",
+                    "Lato"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "pattern": "^[A-Z][A-Za-z0-9 ]{1,39}$"
+                }
               ],
-              "default": "DM Sans"
+              "description": "Familia de la lista fija o de tipografia.fuentes; el servidor valida la pertenencia a esa lista global."
             },
             "cuerpo": {
               "type": "string",
-              "enum": [
-                "Instrument Serif",
-                "Playfair Display",
-                "Fraunces",
-                "DM Serif Display",
-                "Lora",
-                "Cormorant Garamond",
-                "Mulish",
-                "DM Sans",
-                "Nunito Sans",
-                "Lato"
+              "default": "Mulish",
+              "anyOf": [
+                {
+                  "enum": [
+                    "Instrument Serif",
+                    "Playfair Display",
+                    "Fraunces",
+                    "DM Serif Display",
+                    "Lora",
+                    "Cormorant Garamond",
+                    "Mulish",
+                    "DM Sans",
+                    "Nunito Sans",
+                    "Lato"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "pattern": "^[A-Z][A-Za-z0-9 ]{1,39}$"
+                }
               ],
-              "default": "Mulish"
+              "description": "Familia de la lista fija o de tipografia.fuentes; el servidor valida la pertenencia a esa lista global."
+            },
+            "fuentes": {
+              "type": "array",
+              "default": [],
+              "minItems": 0,
+              "maxItems": 3,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Z][A-Za-z0-9 ]{1,39}$"
+              },
+              "description": "De 0 a 3 familias de Google Fonts, por nombre exacto y sin repetir. Globales para toda la sede, se comprueban al preparar y se cargan una sola vez. ds-fuente-1, ds-fuente-2 y ds-fuente-3 eligen la posición; sin familia en esa posición usan display."
             }
           }
         }
@@ -275,6 +312,15 @@
           ],
           "default": "rellena",
           "description": "rellena: Conserva el fondo de valoraciones, descuentos y estados. contorno: Usa la superficie del tema y un contorno con tinta legible."
+        },
+        "banners": {
+          "type": "string",
+          "enum": [
+            "actual",
+            "tema"
+          ],
+          "default": "actual",
+          "description": "actual: Conserva los colores fijos violeta, ámbar y oscuro. tema: Todos los banners usan acento, acentoTinta y tintaTerciaria. Atributo data-ds-banners."
         }
       }
     },

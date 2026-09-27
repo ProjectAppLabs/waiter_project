@@ -17,6 +17,11 @@
   --ds-forma-campo: 1;
   --ds-forma-imagen: 1;
   --ds-forma-hoja: 1;
+  /* Plan L: tinta del fondo y fuentes globales (sin fuentes, ds-fuente-N usa la de títulos). */
+  --t-tinta-fondo: var(--t-tinta);
+  --ds-fuente-1: var(--t-display);
+  --ds-fuente-2: var(--t-display);
+  --ds-fuente-3: var(--t-display);
 }
 
 /* Las variables derivadas se calculan donde se hereda la densidad de <main>.
