@@ -10,7 +10,7 @@ from experience_app.diseno import services as design
 from experience_app.plantillas.defaults import FALLBACK_SPEC
 from experience_app.utils.brand import contrast
 
-MARCA = ['ds-sombra-dura', 'ds-borde-grueso', 'ds-fondo-reticula', 'ds-inclinado-izquierda',
+MARCA = ['ds-sombra-dura', 'ds-borde-grueso', 'ds-tinta-fondo', 'ds-fondo-reticula', 'ds-inclinado-izquierda',
          'ds-inclinado-derecha', 'ds-barra', 'ds-texto-enorme', 'ds-fuente-1', 'ds-fuente-2', 'ds-fuente-3']
 
 

@@ -24,7 +24,7 @@ posible sin abrir CSS libre, y endurece el verificador contra contenido activo.
    `ds-sombra-dura` (sombra desplazada 4px 4px sin desenfoque, color tinta), `ds-borde-grueso` (2 px color tinta),
    `ds-fondo-reticula` (color de fondo de la página, con su tinta `tintaFondo`, y retícula de 16 px), `ds-inclinado-izquierda` / `ds-inclinado-derecha`
    (giro de 2.5°), `ds-barra` (barra de acento de 36×4 px con `tintaTerciaria`; admite elemento vacío),
-   `ds-texto-enorme` (display 40 px × escala, mayúsculas, interlineado 1), `ds-fuente-1`, `ds-fuente-2`, `ds-fuente-3`.
+   `ds-texto-enorme` (display 40 px × escala, mayúsculas, interlineado 1), `ds-tinta-fondo` (texto con `tintaFondo`, añadida tras la primera prueba), `ds-fuente-1`, `ds-fuente-2`, `ds-fuente-3`.
 5. **Verificador de seguridad** (`verificar-borrador.cjs`): además de medidas, falla si la página con el borrador tiene
    `iframe`, `object`, `embed` o `frame`; si dentro de una raíz con plantilla propia hay `script`, atributos `on*`,
    `style` que no ponga el código, enlaces `javascript:` o `data:`; si la página pide recursos a orígenes fuera de la

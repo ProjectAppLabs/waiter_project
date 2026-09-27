@@ -27,7 +27,7 @@ const ALLOWED_ORIGINS = new Set([new URL(base).origin, 'https://fonts.googleapis
 
 // Se ejecuta dentro de la página: contenido activo que una plantilla nunca debe traer (Plan L). El validador del servidor ya
 // lo impide al preparar; esto lo comprueba en lo que de verdad dibujó el navegador.
-function securityCheck(fonts) {
+async function securityCheck(fonts) {
   const problems = []
   for (const el of document.querySelectorAll('iframe, object, embed, frame')) problems.push(`seguridad: la página contiene <${el.tagName.toLowerCase()}>`)
   for (const root of document.querySelectorAll('[data-plantilla="propia"]')) {
@@ -42,7 +42,11 @@ function securityCheck(fonts) {
       }
     }
   }
-  for (const font of fonts) if (!document.fonts.check(`16px "${font}"`)) problems.push(`la fuente global «${font}» no cargó desde Google Fonts`)
+  // Una familia solo descarga los pesos que se usan: se pide explícitamente y basta con que Google Fonts sirva alguna cara.
+  for (const font of fonts) {
+    const faces = await document.fonts.load(`16px "${font}"`).catch(() => [])
+    if (!faces.length) problems.push(`la fuente global «${font}» no cargó desde Google Fonts`)
+  }
   return [...new Set(problems)]
 }
 
@@ -87,11 +91,15 @@ function measureRoots() {
       const size = parseFloat(style.fontSize)
       if (size < 14) problems.push(`${label}: «${name(el)}» tiene texto de ${size.toFixed(1)} px (mínimo 14)`)
       canvas.font = style.font
+      // Se mide la palabra como se dibuja: con su transformación (mayúsculas) y su interletraje, que el lienzo no aplica.
+      const shown = (w) => style.textTransform === 'uppercase' ? w.toUpperCase() : style.textTransform === 'lowercase' ? w.toLowerCase() : w
+      const spacing = parseFloat(style.letterSpacing) || 0
+      const measure = (w) => canvas.measureText(shown(w)).width + spacing * [...w].length
       const words = [...el.childNodes].filter((n) => n.nodeType === 3).flatMap((n) => n.textContent.split(/\s+/)).filter(Boolean)
-      const longest = words.reduce((best, w) => (canvas.measureText(w).width > canvas.measureText(best).width ? w : best), '')
+      const longest = words.reduce((best, w) => (measure(w) > measure(best) ? w : best), '')
       const available = blockWidth(el)
       // Tolerancia de 3 px: un bloque que se encoge a su contenido mide la palabra con redondeo de subpíxeles.
-      if (longest && canvas.measureText(longest).width > available + 3) problems.push(`${label}: la palabra «${longest}» (${Math.round(canvas.measureText(longest).width)} px) no cabe en ${Math.round(available)} px y se parte`)
+      if (longest && measure(longest) > available + 3) problems.push(`${label}: la palabra «${shown(longest)}» (${Math.round(measure(longest))} px) no cabe en ${Math.round(available)} px y se parte`)
     }
     for (const el of root.querySelectorAll('a, button')) {
       if (!visible(el) || el.closest(paginator)) continue

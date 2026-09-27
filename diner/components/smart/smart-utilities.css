@@ -90,6 +90,7 @@
  * bajan de 14 px de texto. La lista es la misma que experience/diseno/utilidades.json (grupo «Marca»). */
 .smart-menu .ds-sombra-dura { box-shadow: 4px 4px 0 var(--sm-ink); }
 .smart-menu .ds-borde-grueso { border: 2px solid var(--sm-ink); }
+.smart-menu .ds-tinta-fondo { color: var(--sm-ink-fondo); }
 .smart-menu .ds-fondo-reticula { background-color: var(--t-fondo); color: var(--sm-ink-fondo); --sm-muted: color-mix(in srgb, var(--sm-ink-fondo) 78%, var(--t-fondo)); background-image: linear-gradient(to right, color-mix(in srgb, var(--sm-ink-fondo) 7%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--sm-ink-fondo) 7%, transparent) 1px, transparent 1px); background-size: 16px 16px; }
 .smart-menu .ds-inclinado-izquierda { transform: rotate(-2.5deg); }
 .smart-menu .ds-inclinado-derecha { transform: rotate(2.5deg); }

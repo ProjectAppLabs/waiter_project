@@ -13,4 +13,7 @@
 /* data-ds-banners="tema": los tres colores fijos de los banners pasan a ser los del tema. */
 [data-ds-banners="tema"] .smart-menu :is(.sm-banner-violet, .sm-banner-amber, .sm-banner-dark) { background: var(--sm-accent); color: var(--t-acento-tinta, #fff); }
 [data-ds-banners="tema"] .smart-menu .sm-banner-amber { background: var(--sm-highlight); color: var(--sm-highlight-ink, #212134); }
-[data-ds-banners="tema"] .smart-menu .sm-featured { background: var(--sm-accent); color: var(--t-acento-tinta, #fff); }
+/* El plato destacado (sin banners) toma el fondo del tema con retícula y un borde de destacado. */
+[data-ds-banners="tema"] .smart-menu .sm-featured { background-color: var(--t-fondo); color: var(--sm-ink-fondo); border: 2px solid var(--sm-highlight); box-shadow: 4px 4px 0 var(--sm-highlight);
+  background-image: linear-gradient(to right, color-mix(in srgb, var(--sm-ink-fondo) 7%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--sm-ink-fondo) 7%, transparent) 1px, transparent 1px); background-size: 16px 16px; }
+[data-ds-banners="tema"] .smart-menu .sm-featured :is(h2, span, strong) { color: inherit; }
