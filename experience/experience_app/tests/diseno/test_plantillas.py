@@ -14,9 +14,10 @@ from experience_app.mcp import keys
 from experience_app.mcp.models import McpPendingChange
 from experience_app.plantillas import services as templates
 from experience_app.tests.conftest import TABLE
+from experience_app.tests.diseno.verification import verify_mcp
 from experience_app.tests.mcp.test_mcp import call
 
-pytestmark = pytest.mark.django_db
+pytestmark = pytest.mark.django_db(transaction=True)
 FACTORY = plantillas.component('plato')['plantilla_fabrica']
 MINIMAL = '<ranura nombre="ficha"><ranura nombre="foto"/><h3><dato nombre="plato.nombre"/></h3><dato nombre="plato.precio" formato="precio"/></ranura><ranura nombre="agregar"/>'
 
@@ -136,7 +137,7 @@ def test_saved_trees_survive_revalidation_and_stale_ones_fall_back(caplog):
 
 
 @pytest.fixture
-def owner(company_brand_stub, settings):
+def owner(company_brand_stub, settings, verification_threads):
     from unittest.mock import patch
     settings.DINER_PUBLIC_URL = 'https://menu.test'
     record, raw = keys.create('burger-house', 'poblado', 'Diseño de prueba')
@@ -164,7 +165,7 @@ def test_mcp_prepares_previews_and_confirms_a_component_template(client, owner, 
     preview = client.get(f'/api/v1/burger-house/poblado/borradores/{content["borrador"]}/').json()['plantilla']['tema']
     assert preview['componentes']['plato']['arbol'] == plantillas.compile_html('plato', MINIMAL)
     settings.DESIGN_VERIFIER_CMD = verifier(tmp_path, 'True')
-    assert call(client, raw, 'verificar_borrador', {'borrador': content['borrador']})['structuredContent']['ok'] is True
+    assert verify_mcp(client, raw, content['borrador'])['structuredContent']['ok'] is True
     assert not call(client, raw, 'confirmar_cambio', {'token': content['token']})['isError']
     assert templates.resolve_template(TABLE)['tema']['componentes']['plato']['version'] == 1
     reset = call(client, raw, 'restablecer_tema', {'capa': 'componentes'})['structuredContent']
@@ -242,19 +243,21 @@ def test_component_tools_read_prepare_verify_and_gate_confirmation(client, owner
     assert any('ds-texto-grande' in w for w in draft['advertencias']) and 'verificar_borrador' in draft['siguiente']
     # Sin verificador configurado se dice; el modo estricto impide confirmar.
     settings.DESIGN_VERIFIER_CMD = ''
-    unavailable = call(client, raw, 'verificar_borrador', {'borrador': draft['borrador']})['structuredContent']
+    unavailable = verify_mcp(client, raw, draft['borrador'])['structuredContent']
     assert unavailable['estado'] == 'no_disponible' and unavailable['ok'] is None
     assert call(client, raw, 'confirmar_cambio', {'token': draft['token']})['isError']
-    assert call(client, raw, 'verificar_borrador', {'borrador': str(uuid.uuid4())})['isError']
+    assert verify_mcp(client, raw, str(uuid.uuid4()))['isError']
     # Con verificador, un resultado con problemas bloquea la confirmación; en verde la permite.
     settings.DESIGN_VERIFIER_CMD = verifier(tmp_path, 'False', ['375 px: tarjeta 1: la palabra «Hamburguesa» no cabe'])
-    failed = call(client, raw, 'verificar_borrador', {'borrador': draft['borrador']})['structuredContent']
+    draft = call(client, raw, 'preparar_componente', {'componente': 'plato', 'html': loud})['structuredContent']
+    failed = verify_mcp(client, raw, draft['borrador'])['structuredContent']
     assert failed['estado'] == 'problemas' and failed['problemas'] == ['375 px: tarjeta 1: la palabra «Hamburguesa» no cabe']
     blocked = call(client, raw, 'confirmar_cambio', {'token': draft['token']})
     assert blocked['isError'] and 'verificar_borrador' in json.dumps(blocked, ensure_ascii=False)
     assert McpPendingChange.objects.get(pk=draft['token']).applied_at is None
     settings.DESIGN_VERIFIER_CMD = verifier(tmp_path, 'True')
-    passed = call(client, raw, 'verificar_borrador', {'borrador': draft['borrador']})['structuredContent']
+    draft = call(client, raw, 'preparar_componente', {'componente': 'plato', 'html': loud})['structuredContent']
+    passed = verify_mcp(client, raw, draft['borrador'])['structuredContent']
     assert passed['estado'] == 'ok' and passed['medidas'] == {'375px': {'tarjetas': 3}}
     assert McpPendingChange.objects.get(pk=draft['token']).payload['verificacion']['ok'] is True
     assert not call(client, raw, 'confirmar_cambio', {'token': draft['token']})['isError']
@@ -288,7 +291,7 @@ def test_verifier_infrastructure_failures_are_reported_as_errors(client, owner, 
     path.write_text(script + '\n', encoding='utf-8')
     settings.DESIGN_VERIFIER_CMD = f'{sys.executable} {path}'
     settings.DESIGN_VERIFIER_TIMEOUT = 1
-    result = call(client, raw, 'verificar_borrador', {'borrador': draft['borrador']})
+    result = verify_mcp(client, raw, draft['borrador'])
     assert not result['isError'], result
     content = result['structuredContent']
     assert content['estado'] == 'error' and content['ok'] is None and expected in content['mensaje']
@@ -304,10 +307,11 @@ def test_verifier_output_shapes(client, owner, settings, tmp_path):
     path = tmp_path / 'v.py'
     path.write_text("import json, sys; sys.stdout.write(json.dumps({'ok': False, 'problemas': 'abc', 'capturas': ['/srv/evidencia/borrador-375.png'], 'medidas': 'x'})); sys.exit(1)\n", encoding='utf-8')
     settings.DESIGN_VERIFIER_CMD = f'{sys.executable} {path}'
-    content = call(client, raw, 'verificar_borrador', {'borrador': draft['borrador']})['structuredContent']
+    content = verify_mcp(client, raw, draft['borrador'])['structuredContent']
     assert content == {**content, 'estado': 'problemas', 'ok': False, 'problemas': [], 'medidas': {}, 'capturas': ['borrador-375.png']}
     settings.DESIGN_VERIFIER_CMD = '   '
-    assert call(client, raw, 'verificar_borrador', {'borrador': draft['borrador']})['structuredContent']['estado'] == 'no_disponible'
+    draft = call(client, raw, 'preparar_componente', {'componente': 'plato', 'html': MINIMAL})['structuredContent']
+    assert verify_mcp(client, raw, draft['borrador'])['structuredContent']['estado'] == 'no_disponible'
 
 
 # // Falla si un borrador que no toca plantillas exige verificación, o si la última verificación deja de mandar (verde → rojo).
@@ -319,15 +323,21 @@ def test_gate_applies_only_to_new_templates_and_uses_the_latest_verification(cli
     assert 'verificacion' not in McpPendingChange.objects.get(pk=variants['token']).payload
     draft = call(client, raw, 'preparar_componente', {'componente': 'plato', 'html': MINIMAL})['structuredContent']
     settings.DESIGN_VERIFIER_CMD = verifier(tmp_path, 'True')
-    first = call(client, raw, 'verificar_borrador', {'borrador': draft['borrador']})['structuredContent']
+    first = verify_mcp(client, raw, draft['borrador'])['structuredContent']
+    # La consulta no relanza un resultado terminado. Simula una medición interna posterior para probar la puerta.
+    change = McpPendingChange.objects.get(pk=draft['token'])
+    change.payload['verificacion'] = {'estado': 'en_curso', 'ok': None, 'inicio': timezone.now().isoformat()}
+    change.save(update_fields=['payload'])
     settings.DESIGN_VERIFIER_CMD = verifier(tmp_path, 'False', ['se solapa'])
-    second = call(client, raw, 'verificar_borrador', {'borrador': draft['borrador']})['structuredContent']
+    borradores.verify(change)
+    second = verify_mcp(client, raw, draft['borrador'])['structuredContent']
     assert first['ok'] is True and second['ok'] is False
     saved = McpPendingChange.objects.get(pk=draft['token']).payload['verificacion']
     assert saved['ok'] is False and saved['fecha'] >= first_date(first, draft)
     assert call(client, raw, 'confirmar_cambio', {'token': draft['token']})['isError']
     settings.DESIGN_VERIFIER_CMD = verifier(tmp_path, 'True')
-    call(client, raw, 'verificar_borrador', {'borrador': draft['borrador']})
+    draft = call(client, raw, 'preparar_componente', {'componente': 'plato', 'html': MINIMAL})['structuredContent']
+    verify_mcp(client, raw, draft['borrador'])
     assert not call(client, raw, 'confirmar_cambio', {'token': draft['token']})['isError']
     # Con una plantilla propia guardada, restablecer otra capa no toca componentes y tampoco exige verificación.
     settings.DESIGN_VERIFIER_CMD = verifier(tmp_path, 'False', ['x'])
@@ -359,12 +369,12 @@ def test_verify_scope(api_client, client, owner, settings, tmp_path, case):
         elif case == 'caducado':
             McpPendingChange.objects.filter(pk=draft['token']).update(created_at=timezone.now() - timedelta(minutes=31))
         elif case == 'aplicado':
-            call(client, raw, 'verificar_borrador', {'borrador': token})
+            verify_mcp(client, raw, token)
             assert not call(client, raw, 'confirmar_cambio', {'token': draft['token']})['isError']
             marker.unlink()
         elif case == 'token-de-confirmacion':
             token = draft['token']
-    assert call(client, raw, 'verificar_borrador', {'borrador': token})['isError']
+    assert verify_mcp(client, raw, token)['isError']
     assert not marker.exists()
 
 

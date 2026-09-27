@@ -155,7 +155,7 @@ def verificar_borrador(key: McpKey, args: dict) -> dict:
     if change is None:
         raise ToolError('No hay un borrador vigente con ese token para esta clave.')
     try:
-        result = borradores.verify(change)
+        result = borradores.start_verification(change)
     except borradores.InvalidDraft as exc:
         raise ToolError(str(exc)) from exc
     return borradores.verification_result(change, result)
@@ -368,7 +368,7 @@ TOOLS = [
                      'properties': {'componente': {'type': 'string', 'enum': list(plantillas.COMPONENTS['componentes'])},
                                     'html': {'type': ['string', 'null'], 'maxLength': 20000}}}},
     {'name': 'verificar_borrador', 'handler': verificar_borrador,
-     'description': 'Abre la carta con el borrador en un navegador a 320, 375 y 1024 px y mide en las tarjetas con plantilla propia (hasta 12) desbordes, solapes, palabras partidas, textos < 14 px y controles < 44 px. Devuelve problemas concretos; una plantilla propia solo se confirma con la última verificación en verde.',
+     'description': 'Inicia la verificación del borrador en un navegador en segundo plano y responde en_curso con inicio. Espera unos segundos y vuelve a llamar con el mismo borrador para consultar el resultado guardado. Mide desbordes, solapes, palabras partidas y mínimos de texto y controles. Una plantilla propia solo se confirma con la última verificación en verde; para reintentar tras un error prepara otro borrador.',
      'inputSchema': {'type': 'object', 'additionalProperties': False, 'required': ['borrador'], 'properties': {'borrador': {'type': 'string'}}}},
     {'name': 'leer_diseno_menu', 'handler': leer_diseno_menu, 'annotations': {'readOnlyHint': True},
      'description': 'Lee el diseño del menú del restaurante: colores editables (con su uso), tipografía y las permitidas, saludo, logo y reglas de contraste.',

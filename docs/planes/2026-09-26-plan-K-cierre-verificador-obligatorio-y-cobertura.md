@@ -92,4 +92,15 @@ de menú y **3** del cliente Odoo. TypeScript, Ruff, ESLint y comprobación de m
 `TestMenuSettingsGateway`: **11 pruebas, 0 fallos** (las corrió Claude sobre una copia desechable de la base; el sandbox de
 Codex no llega a Docker). Commit hecho por Claude desde fuera del sandbox de Codex.
 Detalle, decisiones y comandos en el [traspaso](../traspaso/2026-09-26-traspaso-codex-plan-k-cierre.md#cierre-de-a--2026-09-26).
-C continúa con Claude; E no está incluido y sigue pendiente. Sin publicación ni fusión de ramas.
+C continúa con Claude. Sin publicación ni fusión de ramas.
+
+**E (2026-09-26):** implementado en `feat/26092026-plan-k-e-verificacion-segundo-plano`, sobre A (`45743f2`),
+revisado y confirmado por Claude. MCP y POST interno responden `en_curso` y consultan el resultado
+guardado; publicación bloqueada mientras mide, cerrojo por sede, tiempo máximo y cierre de conexiones conservados.
+Una consulta recupera trabajos abandonados tras el máximo + 5 s como `error`, y un hilo tardío no puede pisarlo.
+Odoo y POS vuelven a las esperas normales. Se reutiliza el JSON existente, sin modificar modelos ni añadir migraciones.
+
+Verificación de E: **17** pruebas específicas de segundo plano, **251** de diseño/MCP y **553** de experience sin
+contract/addon; POS: **7 + 3** pruebas en 2 suites. TypeScript, Ruff, ESLint y comprobación de migraciones sin errores.
+Pruebas de Odoo adaptadas y pendientes de Claude (11 pasaron, 0 fallos (Claude). El flujo y las
+decisiones están documentados en los tres README y en el [cierre de E del traspaso](../traspaso/2026-09-26-traspaso-codex-plan-k-cierre.md#cierre-de-e--2026-09-26).

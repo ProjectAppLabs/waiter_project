@@ -180,7 +180,9 @@ También prepara un borrador; no aplica el restablecimiento inmediatamente.
   Admite borradores `preview` y `theme` de esa sede, vigentes, no aplicados y sin clave revocada. Devuelve el mismo
   resultado que `verificar_borrador` (`estado`, `ok`, `problemas`, `borrador`, `siguiente` y, cuando corresponde,
   `medidas`, `capturas` o `mensaje`), con `Cache-Control: no-store`; falta de clave devuelve 401 y borrador inválido, 400.
-  La ejecución sigue siendo síncrona; el paquete E queda pendiente.
+  La primera llamada responde `estado: en_curso`, `ok: null`, `inicio`, `borrador` y `siguiente`: la medición corre en un
+  hilo daemon de experience. Espera unos segundos y vuelve a llamar con el mismo token; mientras mide devuelve el mismo
+  `inicio`, y al terminar devuelve el resultado guardado. Consultar no vuelve a ejecutar el navegador.
 - Guardar sigue usando `set` → `PUT /internal/v1/<rest>/<sede>/menu/`. Con `DESIGN_VERIFIER_REQUIRED=true`, cualquier
   diferencia en `tema.componentes` exige `borrador` en el cuerpo: token público de la misma sede, vigente, no aplicado,
   con la última `verificacion.ok` exactamente `true` y `payload.tema` igual al tema completo normalizado que se guarda.
@@ -270,9 +272,26 @@ Volver a fábrica por MCP y cambiar otras capas sin tocar plantillas no exigen v
 
 `DESIGN_VERIFIER_REQUIRED=false` conserva el comportamiento anterior para desarrollo: MCP exige verde cuando hay
 comando configurado, y el PUT no exige borrador. No convierte errores de infraestructura en verificaciones aprobadas.
-El POS dispone de `gateway('verify', {borrador})` y `MenuSettings.borrador` para enviar el token con `set`; A no añade UI.
-La pasarela espera hasta 190 s y el cliente hasta 200 s solo para `verify`, para cubrir los 180 s predeterminados de
-`DESIGN_VERIFIER_TIMEOUT`. Si se aumenta ese máximo, hay que ajustar también ambos márgenes.
+El POS dispone de `gateway('verify', {borrador})` y `MenuSettings.borrador` para enviar el token con `set`; no hay UI nueva.
+Con E, la pasarela y el cliente vuelven a su espera normal (10 s en Odoo y 60 s en el POS): ninguna petición espera
+los 180 s predeterminados de `DESIGN_VERIFIER_TIMEOUT`.
+
+**Verificación en segundo plano (E).** `start_verification` guarda
+`payload.verificacion = {estado: "en_curso", ok: null, inicio: "<ISO>"}` antes de lanzar `borradores.verify` en un hilo
+daemon mediante `transaction.on_commit`. Conserva `cache.add` por sede y el tiempo máximo del subproceso. Otro borrador
+de esa sede debe esperar; las consultas del mismo borrador no crean hilos adicionales. `confirmar_cambio` y el PUT
+rechazan publicar una plantilla pendiente con un mensaje de «en curso».
+
+El hilo guarda el resultado y `fecha`, conserva `inicio`, libera su cerrojo y cierra sus conexiones de Django. Si falla
+al iniciar o durante la ejecución, guarda `error`; si el proceso muere o no puede guardar, la siguiente consulta convierte
+un `en_curso` de más de `DESIGN_VERIFIER_TIMEOUT + 5` segundos en `error`. Un resultado tardío no puede sobrescribir ese
+error ni otro resultado guardado. La recuperación ocurre al consultar; no hay cola persistente ni reanudación de hilos
+tras reiniciar experience. En despliegues con varios procesos, la caché debe ser compartida (por ejemplo, Redis) para
+que el cerrojo de sede abarque todos los trabajadores.
+
+Flujo: verificar → esperar → volver a verificar con el mismo token → publicar solo con verde. Los resultados terminales
+(`ok`, `problemas`, `error`, `no_disponible`) se conservan hasta que el borrador caduque o se aplique; para corregir o
+reintentar, prepara otro borrador. Todo el estado cabe en el JSON existente: E no necesita campos ni migración nuevos.
 Un `arbol` enviado directamente en vez de `html` se valida y canoniza igual: solo sobreviven las claves de cada nodo.
 
 **Galería de decoraciones por sede (K4).** `MenuDecoration` (migración `0027`) guarda PNG o WebP pequeños por sede:

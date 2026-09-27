@@ -13,9 +13,10 @@ from experience_app.mcp import keys
 from experience_app.plantillas import services as templates
 from experience_app.tests.conftest import TABLE
 from experience_app.tests.diseno.test_plantillas import verifier
+from experience_app.tests.diseno.verification import verify_mcp
 from experience_app.tests.mcp.test_mcp import call
 
-pytestmark = pytest.mark.django_db
+pytestmark = pytest.mark.django_db(transaction=True)
 MINIMAL = '<ranura nombre="ficha"><ranura nombre="foto"/><h3><dato nombre="plato.nombre"/></h3><ranura nombre="precio"/></ranura><ranura nombre="agregar"/>'
 
 
@@ -155,7 +156,7 @@ def test_saved_template_falls_back_when_its_decoration_is_deleted(company_brand_
 
 
 @pytest.fixture
-def owner(company_brand_stub, settings):
+def owner(company_brand_stub, settings, verification_threads):
     settings.DINER_PUBLIC_URL = 'https://menu.test'
     record, raw = keys.create('burger-house', 'poblado', 'Diseño de prueba')
     with patch('experience_app.mcp.tools.resolve', return_value=TABLE), \
@@ -190,7 +191,7 @@ def test_mcp_lists_and_uses_venue_decorations(client, owner, settings, tmp_path)
     node = preview['componentes']['plato']['arbol'][0]
     assert node['archivo'].startswith('/api/v1/burger-house/poblado/decoraciones/hoja-de-menta/?v=') and node['movimiento'] == 'latir'
     settings.DESIGN_VERIFIER_CMD = verifier(tmp_path, 'True')
-    assert call(client, raw, 'verificar_borrador', {'borrador': draft['borrador']})['structuredContent']['ok'] is True
+    assert verify_mcp(client, raw, draft['borrador'])['structuredContent']['ok'] is True
     assert not call(client, raw, 'confirmar_cambio', {'token': draft['token']})['isError']
     assert 'hoja-de-menta' in call(client, raw, 'leer_componente', {'componente': 'plato'})['structuredContent']['plantilla_actual']['html']
     assert design.SCHEMA['properties']['componentes']['properties']['plato']['componente'] == 'plato'

@@ -44,18 +44,21 @@ class TestMenuSettingsGateway(HttpCase):
                                  headers={"Content-Type": "application/json"})
         return response.json()
 
-    # // Falla si verify publica, pierde el token o la clave interna, o agota la espera antes del verificador síncrono.
+    # // Falla si verify publica, pierde el estado en_curso o el resultado, o conserva la espera especial de A.
     def test_verify_posts_to_internal_endpoint(self):
         self.authenticate("admin_plantillas", "Waiter-2026-admin")
         token = "57875cdf-2f57-48b6-b506-2a1b11f5fa2b"
+        pending = {"borrador": token, "estado": "en_curso", "ok": None, "inicio": "2026-09-26T15:00:00Z", "siguiente": "Vuelve a consultar."}
         result = {"borrador": token, "estado": "ok", "ok": True, "problemas": [], "siguiente": "Guardar con aprobación."}
         with patch("odoo.addons.projectapp_ops.controllers.admin.requests.request") as req:
             req.return_value.status_code = 200
+            req.return_value.json.return_value = pending
+            self.assertEqual(self._rpc({"action": "verify", "borrador": token})["result"], pending)
             req.return_value.json.return_value = result
             self.assertEqual(self._rpc({"action": "verify", "borrador": token})["result"], result)
             self.assertEqual(req.call_args.args, ("POST", "http://experience.test/internal/v1/burger-house/poblado/menu/borradores/%s/verificar/" % token))
             self.assertEqual(req.call_args.kwargs["headers"], {"X-Internal-Key": "k"})
-            self.assertEqual(req.call_args.kwargs["timeout"], 190)
+            self.assertEqual(req.call_args.kwargs["timeout"], 10)
 
     # // Falla si verify admite meseros, sede elegida desde el navegador o tokens que alteran la ruta interna.
     def test_verify_authorization_scope_and_invalid_tokens(self):

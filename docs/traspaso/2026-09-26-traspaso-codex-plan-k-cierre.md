@@ -115,3 +115,49 @@ requiere borrador por PUT, tal como distingue el alcance de A.
 raíz que su sandbox permite escribir). Claude revisó el diff y lo confirmó desde fuera del sandbox. Para la próxima vez:
 los worktrees que use Codex deben crearse con `git worktree add` y luego darle a Codex también permiso de escritura sobre
 `.git/worktrees/<nombre>/`, o pedir a Claude que haga el commit.
+
+## Cierre de E · 2026-09-26
+
+Implementado en `feat/26092026-plan-k-e-verificacion-segundo-plano`, sobre el commit de A `45743f2`, en el mismo árbol
+separado. Los cambios los revisó y confirmó Claude desde fuera del sandbox (Codex no puede escribir los metadatos del worktree). No se
+intentó escribir el índice de Git, cambiar de rama, instalar dependencias, publicar, fusionar ni tocar servicios.
+
+- MCP y el POST interno guardan `en_curso`, `ok: null` e `inicio` antes de lanzar `borradores.verify` en un hilo daemon.
+  El arranque se difiere hasta confirmar la transacción; el hilo abre su conexión y la cierra al terminar.
+- Las consultas durante la medición devuelven el mismo inicio; después devuelven el resultado guardado sin relanzar.
+  Confirmar por MCP o guardar por PUT rechaza una plantilla pendiente con el mensaje «en curso».
+- Se conserva `cache.add` por sede y `DESIGN_VERIFIER_TIMEOUT`. Un fallo de arranque o ejecución guarda `error`; si el
+  proceso desaparece sin resultado, la consulta recupera un `en_curso` vencido tras el máximo + 5 segundos. La escritura
+  compara la instantánea pendiente para que un hilo tardío no sustituya un error recuperado ni otro resultado.
+- Odoo usa de nuevo `TIMEOUT=10`; el POS conserva sus 60 s normales, sin espera especial para `verify`. Se retiró también
+  la opción de espera por petición añadida al cliente `odoo.ts` en A, pues ya no tiene usuarios.
+- Pruebas reales con verificador que duerme 2 s para MCP y POST: respuesta inmediata, consultas sin duplicar hilos,
+  publicación bloqueada durante la medición y permitida con verde. También prueban cerrojo entre borradores,
+  caducidad, fallo del hilo, fallo de arranque, arranque tras commit, limpieza de conexiones y rechazo de resultados tardíos.
+
+Verificación local de E:
+
+| Comprobación | Resultado |
+|---|---|
+| Pruebas específicas de segundo plano | **17 pasaron** (incluidas en las suites siguientes) |
+| experience: diseño + MCP | **251 pasaron** |
+| experience: suite sin contract ni addon | **553 pasaron** |
+| Ruff indicado en el traspaso | **0 errores** |
+| `makemigrations --check --dry-run` | **0 migraciones pendientes** |
+| POS: `tsc --noEmit` | **0 errores** |
+| POS: `menuTemplates.test.ts` + `odoo.test.ts` | **10 pasaron** (7 + 3; 2 suites) |
+| ESLint de los tres archivos TypeScript modificados | **0 errores** |
+| Odoo: `TestMenuSettingsGateway` con los cambios de E | **11 pasaron, 0 fallos** (las corrió Claude fuera del sandbox) |
+
+Las pruebas de Odoo quedan adaptadas para comprobar `en_curso` → resultado y la espera de 10 s. No se intentó
+ejecutarlas en este sandbox, según la indicación del dueño; las 11 pruebas de A aprobadas no sustituyen esta revisión
+de E. La sintaxis de los dos archivos Python del addon se comprobó localmente.
+
+Archivos: backend `diseno/borradores.py`, `diseno/views.py`, `mcp/tools.py`; pruebas de diseño (`test_plantillas.py`,
+`test_decoraciones.py`, `test_verificador_obligatorio.py`, nuevo `test_verificacion_segundo_plano.py`, `conftest.py` y
+`verification.py`); addon `controllers/admin.py` y `tests/test_menu_settings.py`; POS `menuTemplates.ts`, `odoo.ts` y
+`menuTemplates.test.ts`; README de diseño, MCP y addon, este traspaso y el plan de cierre (**19 archivos**).
+
+Decisiones: el JSON `McpPendingChange.payload` ya admite todo el estado, por lo que no se añaden campos ni migración.
+Un resultado terminal es estable: para reintentar o corregir se prepara otro borrador. La recuperación de trabajos
+abandonados ocurre al consultar después del máximo + 5 s; no se añade cola persistente ni reanudación tras reinicios.

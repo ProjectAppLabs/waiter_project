@@ -49,9 +49,11 @@ export interface ResolvedTemplate { codigo: string; nombre: string; familia: Fam
 export interface MenuDraft { borrador: string; caduca: string; url: string; vista_previa: { campo: string; antes: unknown; despues: unknown }[] }
 export interface MenuVerification {
   borrador: string
-  estado: 'ok' | 'problemas' | 'error' | 'no_disponible'
+  estado: 'en_curso' | 'ok' | 'problemas' | 'error' | 'no_disponible'
   ok: boolean | null
-  problemas: (string | Record<string, unknown>)[]
+  inicio?: string
+  fecha?: string
+  problemas?: (string | Record<string, unknown>)[]
   medidas?: Record<string, unknown>
   capturas?: string[]
   mensaje?: string
@@ -66,9 +68,7 @@ export function gateway(action: 'set', payload: MenuSettings): Promise<ResolvedT
 export function gateway(action: 'preview', payload: MenuSettings): Promise<MenuDraft>
 export function gateway(action: 'verify', payload: { borrador: string }): Promise<MenuVerification>
 export function gateway(action: 'get' | 'set' | 'preview' | 'verify', payload: Partial<MenuSettings> = {}): Promise<MenuSettingsContext | ResolvedTemplate | MenuDraft | MenuVerification> {
-  // A verifica de forma síncrona: permite los 180 s de experience y el margen de la pasarela de Odoo.
-  if (action === 'verify') return jsonRpc<MenuVerification>(GATEWAY_PATH, { action, ...payload }, { timeout: 200_000 })
-  return jsonRpc<MenuSettingsContext | ResolvedTemplate | MenuDraft>(GATEWAY_PATH, { action, ...payload })
+  return jsonRpc<MenuSettingsContext | ResolvedTemplate | MenuDraft | MenuVerification>(GATEWAY_PATH, { action, ...payload })
 }
 
 const trimSlash = (url: string) => url.replace(/\/+$/, '')

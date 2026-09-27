@@ -31,8 +31,6 @@ from odoo.exceptions import AccessError, UserError
 from odoo.http import request
 
 TIMEOUT = 10
-# La verificación sigue siendo síncrona en A: deja terminar el límite predeterminado de experience (180 s).
-VERIFY_TIMEOUT = 190
 PARAMS = {
     "experience_url": "projectapp.experience_url",
     "internal_key": "projectapp.experience_internal_key",
@@ -62,9 +60,9 @@ def _params():
     return values
 
 
-def _call(method, url, key, json=None, timeout=TIMEOUT):
+def _call(method, url, key, json=None):
     try:
-        response = requests.request(method, url, headers={"X-Internal-Key": key}, json=json, timeout=timeout)
+        response = requests.request(method, url, headers={"X-Internal-Key": key}, json=json, timeout=TIMEOUT)
     except requests.RequestException as exc:
         raise UserError(_("No se pudo contactar la experiencia del comensal (%s). Revisa projectapp.experience_url y que el servicio esté arriba.") % exc.__class__.__name__) from exc
     if response.status_code == 401:
@@ -103,7 +101,7 @@ class WaiterAdmin(http.Controller):
                 token = None
             if token is None:
                 raise UserError(_("Indica un token público de borrador válido para verificar."))
-            return _call("POST", url + "borradores/%s/verificar/" % token, p["internal_key"], timeout=VERIFY_TIMEOUT)
+            return _call("POST", url + "borradores/%s/verificar/" % token, p["internal_key"])
         if action in ("set", "preview"):
             if tema is not None and (paleta is not None or tipografia is not None):
                 raise UserError("Envía tema o paleta/tipografia; no ambos contratos a la vez.")
