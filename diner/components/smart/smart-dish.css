@@ -153,7 +153,9 @@ body:has(.sm-recommendation-dialog[open]) { overflow:hidden; }
 
 /* La acción principal de la ficha va al muelle inferior junto a «Mi mesero» (como en el pedido); la cantidad y el aviso
  * de agregado quedan dentro de la ficha, sin franja flotante. */
-.smart-menu .sm-dish-purchase.is-inline { position: static; inset: auto; z-index: auto; box-shadow: none; background: transparent; border-radius: 0; padding: var(--ds-espacio-16) 0 calc(96px + env(safe-area-inset-bottom)); }
+.smart-menu .sm-dish-purchase.is-inline { position: static; inset: auto; z-index: auto; box-shadow: none; background: transparent; border-radius: 0; padding: 0; }
+/* Sin barra de compra flotante, la ficha solo reserva el alto del muelle (como el pedido), no el de la barra más el muelle. */
+.smart-menu.sm-screen-plato:has(.sm-dish-purchase.is-inline) .sm-page { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 .smart-menu .sm-dish-dock-action { display: flex; min-width: 0; width: 100%; }
 .smart-menu .sm-dish-dock-action .sm-primary { width: 100%; min-height: 54px; }
 .smart-menu .sm-dish-dock-action .sm-added { display: flex; width: 100%; }
