@@ -1,4 +1,6 @@
 import type { PreviewPayload, Template, TemplateFamily, TemplateSpec, TemplateTokens } from '@/lib/types'
+import { designSystemVars } from './designSystem'
+import { contrastRatio, readableText } from './contrast'
 
 // Copia del contrato S1 del backend: disponible incluso antes de cargar la entrada.
 export const DEFAULT_TEMPLATE: Template = {
@@ -59,8 +61,14 @@ const quote = (font: string) => `'${font.replace(/'/g, '')}'`
 // Todos los tokens como variables CSS --t-*: se ponen en <main> y las utilidades de globals.css (bg-t-fondo, t-title…) las leen.
 export function templateVars(t: Template): Record<string, string> {
   const k = t.tokens
+  const surfaces = [k.fondo, k.superficie, k.acentoSuave]
+  const highlightInk = accentTokens(k.tintaTerciaria, k.fondo).acentoTinta
   return {
-    '--sm-highlight-ink': accentTokens(k.tintaTerciaria, k.fondo).acentoTinta,
+    ...designSystemVars(t.tema),
+    '--sm-highlight-ink': contrastRatio(highlightInk, k.tintaTerciaria) >= 4.5 ? highlightInk : '#000000',
+    '--sm-highlight-text': readableText(k.tintaTerciaria, surfaces, k.tinta),
+    '--sm-accent-text': readableText(k.acento, surfaces, k.tinta),
+    '--sm-readable-muted': readableText(k.tintaSuave, surfaces, k.tinta),
     '--t-fondo': k.fondo, '--t-superficie': k.superficie, '--t-tinta': k.tinta, '--t-tinta-suave': k.tintaSuave, '--t-tinta-terciaria': k.tintaTerciaria,
     '--t-borde': k.borde, '--t-acento': k.acento, '--t-acento-tinta': k.acentoTinta, '--t-acento-suave': k.acentoSuave,
     '--t-display': `${quote(k.displayFont)}, system-ui, sans-serif`, '--t-display-peso': String(k.displayPeso), '--t-display-tracking': k.displayTracking, '--t-display-transform': k.displayTransform,

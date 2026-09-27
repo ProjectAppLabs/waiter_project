@@ -33,6 +33,24 @@ Variables extra de `capture.cjs`:
 | `AUDIT_CONTINUE=1` | Si un escenario falla (un paso que ya no existe en la interfaz), lo anota y sigue con el siguiente. |
 | `AUDIT_TIMEOUT` | Espera máxima por paso, en ms (5000 acelera los escenarios que fallan; por defecto 30 s). |
 | `AUDIT_BOXES=1` | Guarda en `evidence.json` la caja (y, alto, relleno, fuente) de cada elemento, para saber qué regla movió algo. |
+| `AUDIT_CASES=j2` | Selecciona 50 escenarios vigentes de carta, pedido, cuenta, pagos, reserva, opinión y chat. Evita los recorridos históricos retirados. |
+| `AUDIT_ACCESSIBILITY=1` | Omite la introducción salvo en `first-visit`, estabiliza animaciones y registra controles <44 px, texto <14 px, contraste <4,5:1 y desbordamiento. Cualquier infracción provoca salida fallida. |
+| `AUDIT_TEMPLATE` | Ruta absoluta a la plantilla JSON resuelta por `experience_app.plantillas.services.build`; permite probar el tema v2. Sin ella se usa el fixture anterior. |
 
 Para comparar, captura antes y después con los mismos escenarios. Repite las pantallas con diferencias con el mismo CSS:
 lo que también cambia entre dos capturas iguales es ruido (animaciones, reloj), no un cambio del CSS.
+
+Para repetir el cierre de J2 en un tema exportado por el backend:
+
+```bash
+AUDIT_CASES=j2 AUDIT_ACCESSIBILITY=1 AUDIT_CONTINUE=1 \
+  AUDIT_TEMPLATE=/ruta/plantilla-resuelta.json \
+  CDP_URL=http://127.0.0.1:9333 DINER_URL=http://localhost:3001 \
+  EXPORTY_SOURCE=/ruta/exporty EXPORTY_OUTPUT=/ruta/evidencia \
+  node diner/scripts/exporty-audit/capture.cjs
+```
+
+`auditar-accesibilidad.cjs` calcula el contraste sobre fondos sólidos y registra cualquier imagen/gradiente que requiera
+revisión, sin darlo por aprobado. Incluye placeholders y etiquetas de checkbox/radio. Excluye del contraste los controles
+deshabilitados; si hay un diálogo modal, mide el diálogo. No certifica navegación por teclado ni otros requisitos WCAG.
+La salida falla también si un recorrido falla, aunque `AUDIT_CONTINUE=1` permita completar los demás.

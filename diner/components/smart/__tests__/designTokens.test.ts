@@ -49,3 +49,20 @@ it('multiplies every radius by the shape of its role', () => {
     .map(([p, v]) => `${f}: ${p}:${v.trim()}`))
   expect(fixed).toEqual([])
 })
+
+// Falla si una etiqueta, precio o texto secundario vuelve a tener menos de 14 px con el tema predeterminado.
+it('mantiene todos los tamaños de texto en al menos 14 px', () => {
+  const small = sheets.flatMap(file => declarations(file)
+    .filter(([property]) => property === 'font-size' || property === 'font')
+    .filter(([property, value]) => (property === 'font' ? pxValues(value).slice(0, 1) : pxValues(value)).some(size => size < 14))
+    .map(([property, value]) => `${file}: ${property}:${value}`))
+  expect(small).toEqual([])
+})
+
+// Falla si un color decorativo vuelve a usarse directamente como tinta sobre fondos donde no tiene contraste.
+it('usa las tintas legibles para el acento y el destacado', () => {
+  const unsafe = sheets.flatMap(file => declarations(file)
+    .filter(([property, value]) => property === 'color' && /var\(--sm-(?:highlight|accent)\)/.test(value))
+    .map(([property, value]) => `${file}: ${property}:${value}`))
+  expect(unsafe).toEqual([])
+})

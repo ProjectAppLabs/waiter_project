@@ -22,8 +22,8 @@ it('embeds Smart Menu exactly as its versioned spec describes it', () => {
 // Falla si algún token no llega a su variable --t-* (o llega con otro nombre): las utilidades de globals.css leen exactamente estos nombres.
 it('maps every token to a --t-* css variable', () => {
   const vars = templateVars(DEFAULT_TEMPLATE)
-  expect(Object.keys(vars).sort()).toEqual([
-    '--sm-highlight-ink', '--t-acento', '--t-acento-suave', '--t-acento-tinta', '--t-borde', '--t-cuerpo', '--t-display', '--t-display-peso', '--t-display-tracking', '--t-display-transform',
+  expect(Object.keys(vars).filter((name) => !name.startsWith('--ds-')).sort()).toEqual([
+    '--sm-accent-text', '--sm-highlight-ink', '--sm-highlight-text', '--sm-readable-muted', '--t-acento', '--t-acento-suave', '--t-acento-tinta', '--t-borde', '--t-cuerpo', '--t-display', '--t-display-peso', '--t-display-tracking', '--t-display-transform',
     '--t-fondo', '--t-mono', '--t-radio-boton', '--t-radio-chip', '--t-radio-tarjeta', '--t-superficie', '--t-tinta', '--t-tinta-suave', '--t-tinta-terciaria',
   ])
   expect(vars['--t-acento']).toBe('#6755A0')

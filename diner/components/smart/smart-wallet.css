@@ -1,5 +1,5 @@
 .sm-wallet:not(.sm-wallet-embedded) { max-width:480px; padding-bottom:var(--ds-espacio-24); }
-.sm-wallet > .sm-note { margin:var(--ds-espacio-20) 0; padding:var(--ds-espacio-12) var(--ds-espacio-16); font-size:calc(12px * var(--ds-texto)); line-height:1.6; text-align:center; }
+.sm-wallet > .sm-note { margin:var(--ds-espacio-20) 0; padding:var(--ds-espacio-12) var(--ds-espacio-16); font-size:calc(14px * var(--ds-texto)); line-height:1.6; text-align:center; }
 .sm-wallet-empty { display:flex; flex-direction:column; align-items:center; gap:var(--ds-espacio-12); padding:var(--ds-espacio-28) var(--ds-espacio-16) var(--ds-espacio-32); }
 .sm-wallet-empty img { display:block; margin:0 auto var(--ds-espacio-8); width:144px; height:144px; }
 .sm-wallet-empty h2,.sm-wallet-empty p { margin:0; }

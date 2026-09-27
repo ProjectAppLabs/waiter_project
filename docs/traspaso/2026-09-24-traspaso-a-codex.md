@@ -3,6 +3,14 @@
 Estado del trabajo hecho con Claude Code entre el 22 y el 24 de septiembre de 2026, y lo que falta. Léelo antes de tocar el
 repo. El contexto del producto está en `docs/README.md`.
 
+**Actualización de Codex del 24 de septiembre:** J2 está cerrado en la rama local
+`feat/24092026-plan-j2-tema`, creada sobre J1 y guardada en un commit local, sin publicación. La migración `0025` está aplicada
+en esta máquina y experience reiniciado. El contrato, las pruebas y las correcciones de accesibilidad heredadas de J1 están en
+[`experience_app/diseno/README.md`](../../experience/experience_app/diseno/README.md). La copia previa de la base y la
+evidencia visual se guardaron en `test-reports/j2/` y `test-reports/j2-cierre/` (ignorados por Git). La revisión final
+comprueba 50 escenarios en cuatro temas, sin infracciones de los mínimos de J2; las suites del comensal y experience
+pasan. Ver [resultado y alcance](../revisiones/2026-09-24-plan-j2.md). El orden de fusión original se mantiene; J2 va después de J1.
+
 ## 1. Ramas y orden de fusión
 
 Hay tres ramas encadenadas, todas sin fusionar en `main`:
@@ -81,19 +89,10 @@ En esta máquina no hay `gh` ni credenciales HTTPS: se sube por SSH, con
 
 ## 2. Lo que falta
 
-### Plan J, fases J2 a J5 (el trabajo principal)
+### Plan J, fases J3 a J5 (el trabajo principal)
 
 Detalle en el plan. Resumen accionable:
 
-- **J2: tema v2 por sede** en experience.
-  - Esquema e inventario en `experience/experience_app/diseno/`. Hoy los tokens viven en `plantillas/` (`final_tokens`,
-    `validate`, `VenueMenuSettings.palette/typography`); reutilizarlos.
-  - Fundamentos con rango y valor por defecto: densidad (factor), `texto`, `titulo`, forma por rol, los 9 colores y la
-    fuente de cuerpo.
-  - Reglas: contraste de al menos 4,5, cuerpo de texto de al menos 14 px efectivos y zonas táctiles de al menos 44 px.
-  - Migrar los ajustes actuales al tema nuevo.
-  - En el diner, extender `diner/lib/domain/template.ts` (`templateVars`) para que emita las `--ds-*` del tema.
-  - Hoy los `--t-radio-*` se emiten pero no se usan; el radio sale de `--ds-forma-*`.
 - **J3: variantes de componente** con atributos `data-ds-*` en `<main>` y selectores CSS:
   - botón: relleno, contorno o suave;
   - tarjeta: con sombra, con borde o plana;
@@ -136,8 +135,7 @@ defecto, el menú debe verse igual que después de J1.
 
 - POS: 3 pruebas. `lib/domain/__tests__/roi.test.ts` (depende de la fecha), `lib/services/__tests__/openOrderFromKit.test.ts`
   y `components/kit/__tests__/KitShell.test.tsx` (`MISSING_MESSAGE: account.settings`).
-- experience: 11 pruebas en `experience_app/tests/plantillas/`. Esperan la plantilla `B1` y hoy la predeterminada es
-  `S1`.
+- experience: las 11 expectativas antiguas de B1 se corrigieron durante el cierre de J2; su suite pasa.
 - Lint del POS: `KitchenPaymentPolicyForm.tsx` y `PaymentGatewayForm.tsx` (`set-state-in-effect`).
 
 ## 3. Entorno de desarrollo (esta máquina)
@@ -188,7 +186,7 @@ defecto, el menú debe verse igual que después de J1.
   - Lanzar la captura:
     `AUDIT_TIMEOUT=5000 AUDIT_CONTINUE=1 CDP_URL=http://127.0.0.1:9333 EXPORTY_SOURCE=<dir con assets/images/*.png> EXPORTY_OUTPUT=<dir> node scripts/exporty-audit/capture.cjs`.
     Unos 9 minutos. 37 escenarios viejos fallan siempre porque sus pasos ya no existen en la interfaz. Hay que actualizarlos
-    algún día.
+    algún día. Para J2 ya existe `AUDIT_CASES=j2 AUDIT_ACCESSIBILITY=1`: 50 escenarios vigentes y comprobaciones de mínimos.
   - Para el «antes» de un cambio de CSS, guarda el cambio con `git stash push -u -- diner/components/smart`, captura y
     haz `git stash pop`. No guardes las capturas en `/tmp`: en un reinicio se borró todo `/tmp`.
   - Para saber qué regla movió algo: `AUDIT_BOXES=1` guarda la geometría de cada elemento en `evidence.json`.

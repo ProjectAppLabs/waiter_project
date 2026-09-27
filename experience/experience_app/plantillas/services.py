@@ -9,18 +9,20 @@ Cuando el acento final no es el del diseño se recalculan `acentoTinta` (utils/b
 `acentoSuave` (10 % del acento sobre el fondo de la plantilla; sobre blanco coincide con utils/brand.soft_for).
 
 La plantilla resuelta se cachea TEMPLATE_CACHE_SECONDS (60 s por defecto) por sede y se invalida al guardar desde el POS
-y con el aviso interno de "algo cambió en Odoo" (views/internal.py). Sin ajustes de sede se resuelve `B1`; sin B1 en el
-catálogo, la primera plantilla disponible; con el catálogo vacío, el spec embebido (defaults.FALLBACK_SPEC): el comensal
-nunca se queda sin tokens.
+y con el aviso interno de "algo cambió en Odoo" (views/internal.py). Sin ajustes de sede se resuelve `S1`; con el catálogo
+vacío, el spec embebido (defaults.FALLBACK_SPEC). En S1, el tema v2 añade los fundamentos y resuelve colores y fuentes;
+los campos paleta/tipografia se conservan para el POS y el MCP anteriores.
 """
 import re
 from copy import deepcopy
 
 from django.conf import settings
 from django.core.cache import cache
+from django.db import transaction
 from django.urls import reverse
 
 from experience_app.adapters.registry.client import Tenant
+from experience_app.diseno import services as design
 from experience_app.plantillas.defaults import (
     DEFAULT_CODE,
     FALLBACK_SPEC,
@@ -48,7 +50,7 @@ class InvalidSettings(Exception):
 
 
 def _key(restaurant: str, venue: str) -> str:
-    return f'template:{restaurant}/{venue}'
+    return f'template:v2:{restaurant}/{venue}'
 
 
 def invalidate(restaurant: str, venue: str) -> None:
@@ -145,13 +147,18 @@ def _layouts(spec: dict) -> dict:
     return {screen: layouts[screen] for screen in SCREENS}
 
 
-def build(spec: dict, brand_inputs: dict, palette: dict, typography: dict, percent: float) -> dict:
+def build(spec: dict, brand_inputs: dict, palette: dict, typography: dict, percent: float, theme=None) -> dict:
     tokens = final_tokens(spec, brand_inputs, palette, typography)
+    resolved_theme = design.resolve(theme, tokens) if spec['codigo'] == DEFAULT_CODE else None
+    if resolved_theme is not None:
+        tokens = design.apply_to_tokens(resolved_theme, tokens)
     return {
         'codigo': spec['codigo'], 'nombre': spec['nombre'], 'familia': spec['familia'],
         'tokens': tokens, 'layouts': _layouts(spec), 'fotos': dict(spec.get('fotos', {})),
-        'fuentesGoogle': _google_fonts(spec, tokens),
+        'fuentesGoogle': list(dict.fromkeys([tokens['displayFont'], tokens['cuerpoFont'], tokens['monoFont']]))
+        if resolved_theme is not None else _google_fonts(spec, tokens),
         'descuento': {'porcentaje': percent, 'activo': percent > 0},
+        **({'tema': resolved_theme} if resolved_theme is not None else {}),
     }
 
 
@@ -174,8 +181,13 @@ def resolve_template(tenant: Tenant) -> dict:
     cached = cache.get(key)
     if cached is not None:
         return cached
-    spec, palette, typography = _spec_for(tenant.restaurant_slug, tenant.venue_slug)
-    resolved = build(spec, brand.brand_inputs(tenant), palette, typography, discount.percent_for(tenant))
+    chosen = get_settings(tenant.restaurant_slug, tenant.venue_slug)
+    if chosen is not None and chosen.template_id == DEFAULT_CODE:
+        spec, palette, typography, theme = chosen.template.spec, chosen.palette, chosen.typography, chosen.theme
+    else:
+        template = default_template()
+        spec, palette, typography, theme = (template.spec if template else FALLBACK_SPEC), {}, {}, None
+    resolved = build(spec, brand.brand_inputs(tenant), palette, typography, discount.percent_for(tenant), theme)
     cache.set(key, resolved, settings.TEMPLATE_CACHE_SECONDS)
     return resolved
 
@@ -184,8 +196,10 @@ def settings_view(restaurant: str, venue: str) -> dict:
     """Los ajustes crudos (lo que el POS edita), no la plantilla resuelta."""
     chosen = get_settings(restaurant, venue)
     if chosen is None or chosen.template_id != DEFAULT_CODE:
-        return {'plantilla': default_code(), 'paleta': {}, 'tipografia': {}, 'actualizado': None, 'porDefecto': True}
+        return {'plantilla': default_code(), 'paleta': {}, 'tipografia': {}, 'tema': design.defaults(),
+                'actualizado': None, 'porDefecto': True}
     return {'plantilla': chosen.template_id, 'paleta': chosen.palette, 'tipografia': chosen.typography,
+            'tema': design.resolve(chosen.theme, final_tokens(chosen.template.spec, {}, chosen.palette, chosen.typography)),
             'actualizado': chosen.updated_at.isoformat(), 'porDefecto': False}
 
 
@@ -197,6 +211,16 @@ def validate(body: dict) -> tuple[MenuTemplate, dict, dict]:
     template = MenuTemplate.objects.filter(code=code).first() if isinstance(code, str) else None
     if template is None or code != DEFAULT_CODE:
         raise InvalidSettings(f'La plantilla {code!r} no está en el catálogo.')
+    if 'tema' in body:
+        if 'paleta' in body or 'tipografia' in body:
+            raise InvalidSettings('Envía tema o paleta/tipografia; no ambos contratos a la vez.')
+        try:
+            theme = design.validate(body['tema'])
+        except design.InvalidTheme as exc:
+            raise InvalidSettings(str(exc)) from exc
+        foundation = theme['fundamentos']
+        palette = {k: foundation['colores'][k] for k in template.spec['personalizable']['colores']}
+        return template, palette, {'display': foundation['tipografia']['display']}
     spec = template.spec
     customizable = spec.get('personalizable', {})
     palette = body.get('paleta') or {}
@@ -235,11 +259,41 @@ def validate(body: dict) -> tuple[MenuTemplate, dict, dict]:
     return template, palette, typography
 
 
-def save(restaurant: str, venue: str, body: dict) -> VenueMenuSettings:
+def prepare(restaurant: str, venue: str, body: dict, *, chosen=None) -> tuple[MenuTemplate, dict, dict, dict]:
+    """Valida ambos contratos; el POS anterior conserva fundamentos que no sabe editar."""
     template, palette, typography = validate(body)
+    if 'tema' in body:
+        return template, palette, typography, design.validate(body['tema'])
+    chosen = chosen if chosen is not None else get_settings(restaurant, venue)
+    old_palette = chosen.palette if chosen and chosen.template_id == DEFAULT_CODE else {}
+    old_typography = chosen.typography if chosen and chosen.template_id == DEFAULT_CODE else {}
+    old_tokens = final_tokens(template.spec, {}, old_palette, old_typography)
+    theme = design.resolve(chosen.theme if chosen and chosen.template_id == DEFAULT_CODE else None, old_tokens)
+    foundation = theme['fundamentos']
+    new_tokens = final_tokens(template.spec, {}, palette, typography)
+    for color in template.spec['personalizable']['colores']:
+        foundation['colores'][color] = new_tokens[color]
+    foundation['tipografia']['display'] = new_tokens['displayFont']
+    # Una fuente de cuerpo elegida por v2 es independiente; el contrato antiguo solo enlazaba ambas fuentes.
+    if foundation['tipografia']['cuerpo'] == old_tokens['cuerpoFont']:
+        foundation['tipografia']['cuerpo'] = new_tokens['cuerpoFont']
+    try:
+        theme = design.validate(theme)
+    except design.InvalidTheme as exc:
+        raise InvalidSettings(str(exc)) from exc
+    return template, palette, typography, theme
+
+
+@transaction.atomic
+def save(restaurant: str, venue: str, body: dict) -> VenueMenuSettings:
+    previous = VenueMenuSettings.objects.select_for_update().select_related('template').filter(
+        restaurant_slug=restaurant, venue_slug=venue).first()
+    template, palette, typography, theme = prepare(restaurant, venue, body, chosen=previous)
     chosen, _ = VenueMenuSettings.objects.update_or_create(
         restaurant_slug=restaurant, venue_slug=venue,
-        defaults={'template': template, 'palette': palette, 'typography': typography})
+        defaults={'template': template, 'palette': palette, 'typography': typography, 'theme': theme})
     brand.invalidate(restaurant, venue)
     invalidate(restaurant, venue)
+    # También al confirmar la transacción: una lectura concurrente podría haber repoblado la caché con datos viejos.
+    transaction.on_commit(lambda: (brand.invalidate(restaurant, venue), invalidate(restaurant, venue)))
     return chosen
