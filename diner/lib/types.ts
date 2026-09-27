@@ -75,7 +75,7 @@ export interface Context { restaurante: { slug: string; nombre: string }; sede: 
 export type PhotoOrigin = 'real' | 'ia' | 'placeholder'
 // Atributos opcionales por producto (contrato 2): una plantilla los pinta si existen y los omite si no; nunca los inventa.
 export interface DishAttributes { combo?: {producto:number;cantidad:number;nombre:string}[]; extras?: number[]; acompanamientos?: number[]; ingredientes?: string[]; nutricion?: { calorias?: number; peso?: number; proteina?: number; grasa?: number; carbohidratos?: number; fibra?: number }; piezas?: number; picante?: 0 | 1 | 2 | 3; etiquetas?: string[]; alergenos?: string[]; abv?: number; ibu?: number; tamanos?: { nombre: string; precio: number }[]; soloHoy?: boolean; tiempoPreparacion?: number; precioAntes?: number }
-export interface Dish { valoracion?: {promedio:number;cantidad:number}; id: number; nombre: string; precio: number; agotado: boolean; categorias: number[]; descripcion?: string; foto?: string | null; favorito?: boolean; fotoOrigen?: PhotoOrigin | null; atributos?: DishAttributes }
+export interface Dish { valoracion?: {promedio:number;cantidad:number}; id: number; nombre: string; precio: number; agotado: boolean; categorias: number[]; descripcion?: string; foto?: string | null; fotos?: string[]; favorito?: boolean; fotoOrigen?: PhotoOrigin | null; atributos?: DishAttributes }
 export interface Category { id: number; nombre: string; productos: Dish[] }
 // imagenesDeReferencia: algún plato con foto la tiene generada con IA. Opcional: una experience/ anterior no lo manda y la carta sigue igual, sin la nota.
 export interface Menu { restaurante: string; categorias: Category[]; imagenesDeReferencia?: boolean }

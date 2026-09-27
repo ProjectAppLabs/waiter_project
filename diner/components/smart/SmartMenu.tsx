@@ -307,7 +307,7 @@ export function DishHero({ dish }: { dish: Dish }) {
   const tiempo = <PrepTime dish={dish}/>
   const encabezado = <div className="sm-dish-heading"><h1>{dish.nombre}</h1>{precio}{rebaja}{tiempo}</div>
   const orbitas = <div className="sm-dish-orbits" aria-hidden="true" />
-  const foto = <FoodPhoto dish={dish} className="sm-dish-photo" />
+  const foto = <DishGallery dish={dish} />
   const valoracion = <DishRating dish={dish}/>
   const factory = <>{orbitas}{foto}{valoracion}{encabezado}</>
   return (
@@ -316,6 +316,28 @@ export function DishHero({ dish }: { dish: Dish }) {
     </header>
   )
 }
+// Plan M: galería de la ficha. La foto principal más las de galería (hasta 5 en total) en un carril con desplazamiento por
+// pasos dentro del marco .sm-dish-photo (que conserva tamaño, radio y variantes); los puntos dicen «Foto N de M» y llevan a
+// cada foto. Con una sola foto se ve igual que siempre.
+export function DishGallery({ dish }: { dish: Dish }) {
+  const photos = [dish.foto, ...(dish.fotos ?? [])].filter((src): src is string => typeof src === 'string' && src.length > 0).slice(0, 5)
+  const rail = useRef<HTMLDivElement>(null)
+  const [current, setCurrent] = useState(0)
+  if (photos.length < 2) return <FoodPhoto dish={dish} className="sm-dish-photo" />
+  const go = (index: number) => { const el = rail.current; if (el) el.scrollTo({ left: index * el.clientWidth, behavior: 'smooth' }) }
+  return <div className="sm-dish-photo sm-dish-gallery" role="region" aria-roledescription="carrusel" aria-label={`Fotos de ${dish.nombre}`}>
+    <div className="sm-dish-gallery-rail" ref={rail} onScroll={(e) => { const el = e.currentTarget; setCurrent(Math.round(el.scrollLeft / Math.max(1, el.clientWidth))) }}>
+      {photos.map((src, i) => <div className="sm-food-photo" key={src} aria-label={`Foto ${i + 1} de ${photos.length}`} role="group">
+        {/* Todas de entrada: son como mucho 5 WebP ligeros y así deslizar nunca muestra un hueco en blanco. */}
+        <img src={src} alt={i === 0 ? dish.nombre : `${dish.nombre}, foto ${i + 1}`} loading="eager" decoding="async" />
+      </div>)}
+    </div>
+    <div className="sm-dish-gallery-dots">
+      {photos.map((src, i) => <button key={src} type="button" aria-label={`Foto ${i + 1} de ${photos.length}`} aria-current={i === current ? 'true' : undefined} onClick={() => go(i)} />)}
+    </div>
+  </div>
+}
+
 // Exportada para la página viva del sistema de diseño (J5), que la muestra con cada variante.
 // Con una plantilla propia (Plan K2) la tarjeta real sigue siendo la dueña de las acciones: la plantilla solo las coloca.
 export function FoodCard({ dish }: { dish: Dish }) {

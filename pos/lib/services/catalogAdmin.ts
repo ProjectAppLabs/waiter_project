@@ -6,7 +6,24 @@ export interface AdminProduct { variantId?: number; id: number; name: string; pr
 export interface AdminCategory { id: number; name: string; sequence: number; station: string | null }
 export interface Tax { id: number; name: string; amount: number }
 // image: base64 sin prefijo para subir una foto nueva; undefined deja la que hay.
-export type ProductInput = Omit<AdminProduct, 'id' | 'hasImage'> & { image?: string }
+// gallery (Plan M): lista final ordenada de la galería (fotos existentes por id, nuevas en base64); undefined no la toca.
+export type ProductInput = Omit<AdminProduct, 'id' | 'hasImage'> & { image?: string; gallery?: GalleryItem[] }
+
+// Plan M · Galería del plato: la principal más hasta 4 fotos. Odoo las optimiza a WebP al guardarlas.
+export type GalleryItem = { id: number } | { image: string }
+export const GALLERY_MAX = 4
+export const PHOTO_TYPES = ['image/png', 'image/jpeg', 'image/webp']
+export const PHOTO_MAX_BYTES = 12 * 1024 * 1024
+export const catalogPhotoUrl = (id: number) => `/odoo/web/image/projectapp.product.photo/${id}/image`
+
+export async function listCatalogPhotos(templateId: number): Promise<{ id: number }[]> {
+  return callKw<{ id: number }[]>('projectapp.product.photo', 'search_read', [[['product_tmpl_id', '=', templateId]], ['id']], { order: 'sequence asc, id asc' })
+}
+
+export async function setCatalogPhotos(templateId: number, photos: GalleryItem[]): Promise<{ id: number; width: number; height: number; size: number }[]> {
+  const employee = useAuthStore.getState().employee
+  return callKw('product.template', 'waiter_set_catalog_photos', [templateId, photos, employee?.id, employee?.token])
+}
 
 interface RawTemplate { product_variant_id?: [number,string] | false; id: number; name: string; list_price: number; pos_categ_ids: number[]; taxes_id: number[]; available_in_pos: boolean; is_storable: boolean; is_favorite: boolean; description_sale: string | false; image_128: string | false; diner_attributes: string | false }
 interface RawCategory { id: number; name: string; sequence: number; kitchen_station: string | false }

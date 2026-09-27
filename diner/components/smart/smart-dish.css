@@ -168,3 +168,16 @@ body:has(.sm-recommendation-dialog[open]) { overflow:hidden; }
 /* La información nutricional cabe en una sola fila (hasta cinco datos). */
 .smart-menu .sm-dish-info .sm-nutrition { flex-wrap: nowrap; }
 .smart-menu .sm-nutrition > div { flex: 1 1 0; min-width: 0; }
+
+/* Plan M · Galería de la ficha: el marco .sm-dish-photo recorta y redondea; el carril se desliza por pasos y cada foto hereda
+ * el radio del marco (la regla de imágenes del verificador mide cada una). Los puntos son botones de 44 px de área. */
+.smart-menu .sm-dish-gallery { overflow: hidden; display: flex; flex-direction: column; }
+.smart-menu .sm-dish-gallery-rail { flex: 1 1 auto; min-height: 0; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; border-radius: inherit; }
+.smart-menu .sm-dish-gallery-rail::-webkit-scrollbar { display: none; }
+.smart-menu .sm-dish-gallery-rail > .sm-food-photo { flex: 0 0 100%; width: 100%; height: 100%; scroll-snap-align: start; border-radius: inherit; margin: 0; }
+.smart-menu .sm-dish-gallery-rail > .sm-food-photo img { width: 100%; height: 100%; }
+.smart-menu .sm-dish-gallery-dots { position: absolute; left: 0; right: 0; bottom: var(--ds-espacio-8); display: flex; justify-content: center; gap: 0; z-index: 2; }
+.smart-menu .sm-dish-gallery-dots button { padding: 0; border: 0; background: transparent; display: grid; place-items: center; }
+.smart-menu .sm-dish-gallery-dots button::before { content: ''; width: 8px; height: 8px; border-radius: 999px; background: color-mix(in srgb, #fff 60%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, #000 25%, transparent); }
+.smart-menu .sm-dish-gallery-dots button[aria-current='true']::before { width: 20px; background: #fff; }
+

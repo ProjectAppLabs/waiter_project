@@ -1,4 +1,4 @@
-import { listProducts, saveProduct } from '@/lib/services/catalogAdmin'
+import { catalogPhotoUrl, listCatalogPhotos, listProducts, saveProduct, setCatalogPhotos } from '@/lib/services/catalogAdmin'
 import { callKw } from '@/lib/services/odoo'
 
 jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn() }))
@@ -34,3 +34,17 @@ it('writes false to diner_attributes when the product has none', async () => {
   expect(m.mock.calls[0][2][0]).toBe(3)
   expect(m.mock.calls[0][2][1].diner_attributes).toBe(false)
 })
+
+// Falla si la galería se lee de otro modelo o en otro orden, si al guardarla no viaja la lista final (ids y nuevas) con el
+// empleado que firma, o si la miniatura no sale del proxy same-origin de Odoo.
+it('reads and saves the dish gallery through the gateway', async () => {
+  m.mockResolvedValueOnce([{ id: 7 }])
+  await expect(listCatalogPhotos(3)).resolves.toEqual([{ id: 7 }])
+  expect(m).toHaveBeenLastCalledWith('projectapp.product.photo', 'search_read', [[['product_tmpl_id', '=', 3]], ['id']], { order: 'sequence asc, id asc' })
+  m.mockResolvedValueOnce([])
+  await setCatalogPhotos(3, [{ id: 7 }, { image: 'AAAA' }])
+  expect(m.mock.lastCall.slice(0, 2)).toEqual(['product.template', 'waiter_set_catalog_photos'])
+  expect(m.mock.lastCall[2].slice(0, 2)).toEqual([3, [{ id: 7 }, { image: 'AAAA' }]])
+  expect(catalogPhotoUrl(7)).toBe('/odoo/web/image/projectapp.product.photo/7/image')
+})
+

@@ -92,11 +92,12 @@ def test_connection_error_becomes_unavailable():
         OdooClient(CREDS, Down()).authenticate()
 
 
+# // Falla si la lectura adicional de la galería altera los datos existentes de la carta.
 def test_load_catalog_reads_template_id_description_favorite_photo_flag_and_version():
     """Atrapa una descripción False, un favorito perdido, "tiene foto" con image_128 en False, una foto sin versión o un origen
     de foto que llegue como False en vez de vacío."""
     taxes = FakeResponse([{'id': 55, 'amount': 19.0, 'amount_type': 'percent', 'price_include': False}])
-    catalog = pos.load_catalog(OdooClient(CREDS, FakeSession([AUTH, LOAD_DATA, taxes])), 4)
+    catalog = pos.load_catalog(OdooClient(CREDS, FakeSession([AUTH, LOAD_DATA, taxes, FakeResponse([])])), 4)
     angus, limonada = catalog.products
     assert (angus.id, angus.template_id) == (3, 21)
     # El precio de lista viaja a Odoo; el final (con el 19% que Odoo suma encima) es el que ve el comensal.
@@ -107,6 +108,7 @@ def test_load_catalog_reads_template_id_description_favorite_photo_flag_and_vers
     assert (angus.image_origin, limonada.image_origin) == ('ai', '')
 
 
+# // Falla si la lectura adicional de la galería altera los datos existentes de la carta.
 def test_load_catalog_tolerates_an_odoo_without_the_image_origin_field():
     """Atrapa un KeyError con un Odoo donde projectapp_ops aún no se actualizó (-u): la carta debe salir igual, sin origen."""
     raw = FakeResponse({
@@ -114,7 +116,7 @@ def test_load_catalog_tolerates_an_odoo_without_the_image_origin_field():
         'product.template': [{**TEMPLATE, 'id': 21, 'name': 'Angus', 'is_favorite': False, 'description_sale': False, 'image_128': False}],
         'pos.category': [], 'res.company': [],
     })
-    catalog = pos.load_catalog(OdooClient(CREDS, FakeSession([AUTH, raw, FakeResponse([])])), 4)
+    catalog = pos.load_catalog(OdooClient(CREDS, FakeSession([AUTH, raw, FakeResponse([]), FakeResponse([])])), 4)
     assert catalog.products[0].image_origin == ''
 
 
@@ -193,6 +195,7 @@ def test_parse_attributes_tolerates_anything_that_is_not_a_json_object():
 
 # Falla si la tarjeta recibe minutos o precios anteriores inválidos (texto, negativos, decimales en minutos) o si el
 # precio anterior llega al comensal sin los impuestos que sí lleva el precio actual: el tachado compararía peras con manzanas.
+# // Falla si la lectura adicional de la galería altera los datos existentes de la carta.
 def test_prep_time_and_previous_price_are_sanitized_and_previous_price_carries_the_taxes():
     assert pos.parse_attributes('{"tiempoPreparacion": 15, "precioAntes": 42000}') == {'tiempoPreparacion': 15, 'precioAntes': 42000}
     assert pos.parse_attributes('{"tiempoPreparacion": "15", "precioAntes": "42000"}') == {}
@@ -205,12 +208,13 @@ def test_prep_time_and_previous_price_are_sanitized_and_previous_price_carries_t
                               'diner_attributes': '{"tiempoPreparacion": 15, "precioAntes": 42000}'}],
         'pos.category': [], 'res.company': [],
     })
-    catalog = pos.load_catalog(OdooClient(CREDS, FakeSession([AUTH, raw, taxes])), 4)
+    catalog = pos.load_catalog(OdooClient(CREDS, FakeSession([AUTH, raw, taxes, FakeResponse([])])), 4)
     assert catalog.products[0].final_price == 43911.0
     assert catalog.products[0].attributes == {'tiempoPreparacion': 15, 'precioAntes': 49980.0}
 
 
 # Falla si el porcentaje del POS no llega con la carta, si 0 (apagado) se confunde con "sin campo", o si un Odoo sin el addon rompe.
+# // Falla si la lectura adicional de la galería altera los datos existentes de la carta.
 def test_load_catalog_reads_the_signup_discount_and_the_attributes_from_load_data():
     with_config = FakeResponse({
         'product.product': [{'id': 3, 'product_tmpl_id': 21}],
@@ -218,7 +222,7 @@ def test_load_catalog_reads_the_signup_discount_and_the_attributes_from_load_dat
                               'diner_attributes': '{"picante": 3}'}],
         'pos.category': [], 'res.company': [], 'pos.config': [{'id': 1, 'signup_discount_percent': 0.0}],
     })
-    catalog = pos.load_catalog(OdooClient(CREDS, FakeSession([AUTH, with_config, FakeResponse([])])), 4)
+    catalog = pos.load_catalog(OdooClient(CREDS, FakeSession([AUTH, with_config, FakeResponse([]), FakeResponse([])])), 4)
     assert catalog.signup_discount_percent == 0.0
     assert catalog.products[0].attributes == {'picante': 3}
     assert pos.signup_discount_percent([]) == 5.0
@@ -256,6 +260,7 @@ def test_self_service_payment_gate_is_present_in_the_initial_sync():
     assert params(http.calls[1])['args'][0][0]['waiter_requires_payment'] is True
 
 
+# // Falla si la lectura adicional de la galería altera los datos existentes de la carta.
 def test_combo_availability_uses_recipe_status_without_mutating_frozen_products():
     import json
     from copy import deepcopy
@@ -264,7 +269,7 @@ def test_combo_availability_uses_recipe_status_without_mutating_frozen_products(
     for template in raw['product.template']: template['taxes_id']=[]
     raw['product.template'][0]['diner_attributes']=json.dumps({'combo':[{'producto':7,'cantidad':2,'nombre':'Limonada'}]})
     client=Mock()
-    client.call_kw.side_effect=[raw,{'3':False}]
+    client.call_kw.side_effect=[raw,[],{'3':False}]
     catalog=pos.load_catalog(client,4)
     assert catalog.products[0].sold_out is True
     assert catalog.products[1].sold_out is False

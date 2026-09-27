@@ -1,7 +1,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { Chip } from '@/components/kit/Chip'
 import { Icon } from '@/components/kit/Icon'
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button'
 import { Field, Select, TextInput } from '@/components/ui/Field'
 import { SPICY_LEVELS, listToText, textToList, type DinerAttributes, type SpicyLevel } from '@/lib/domain/dinerAttributes'
 import type { AdminCategory, ProductInput, Tax } from '@/lib/services/catalogAdmin'
+import { GALLERY_MAX, PHOTO_MAX_BYTES, PHOTO_TYPES, catalogPhotoUrl, listCatalogPhotos, type GalleryItem } from '@/lib/services/catalogAdmin'
 import { cn } from '@/lib/utils'
 
 type Step = 'info' | 'image' | 'attributes'
@@ -29,6 +30,24 @@ export function ProductForm({ extraProducts = [], initial, hasImage = false, tem
   const [saveError,setSaveError] = useState('')
   const [state, setState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const patch = (x: Partial<ProductInput>) => setP((c) => ({ ...c, ...x }))
+  // Plan M · Galería: fotos existentes (id) y nuevas (base64) en el orden final; solo se envía si cambia.
+  type Slot = { key: string; id?: number; image?: string }
+  const [gallery, setGallery] = useState<Slot[]>([])
+  const [photoError, setPhotoError] = useState('')
+  useEffect(() => {
+    if (!templateId) return
+    let alive = true
+    listCatalogPhotos(templateId).then((rows) => { if (alive) setGallery(rows.map((r) => ({ key: `id-${r.id}`, id: r.id }))) }).catch(() => undefined)
+    return () => { alive = false }
+  }, [templateId])
+  const setSlots = (next: Slot[]) => { setGallery(next); patch({ gallery: next.map((g): GalleryItem => (g.id ? { id: g.id } : { image: g.image! })) }) }
+  const readPhoto = (file: File, done: (b64: string) => void) => {
+    if (!PHOTO_TYPES.includes(file.type)) { setPhotoError(t('photoType')); return }
+    if (file.size > PHOTO_MAX_BYTES) { setPhotoError(t('photoSize')); return }
+    setPhotoError('')
+    const r = new FileReader(); r.onload = () => done(String(r.result).split(',')[1]); r.readAsDataURL(file)
+  }
+  const move = (i: number, by: number) => { const next = [...gallery]; const [x] = next.splice(i, 1); next.splice(i + by, 0, x); setSlots(next) }
   const attrs = p.dinerAttributes
   const patchAttr = (x: Partial<DinerAttributes>) => patch({ dinerAttributes: { ...attrs, ...x } })
   const toggleCategory = (id: number) => patch({ categoryIds: p.categoryIds.includes(id) ? p.categoryIds.filter((c) => c !== id) : [...p.categoryIds, id] })
@@ -93,10 +112,36 @@ export function ProductForm({ extraProducts = [], initial, hasImage = false, tem
                       : <span className="flex flex-col items-center gap-2 text-[13px]"><Icon name="photo" size={36} />{t('noImage')}</span>}
                 </div>
                 <label className="flex flex-col gap-2 text-[15px] font-medium text-ink">{t('image')}
-                  <input type="file" accept="image/*" aria-label={t('upload')} onChange={(e) => { const f = e.target.files?.[0]; if (!f) return; const r = new FileReader(); r.onload = () => patch({ image: String(r.result).split(',')[1] }); r.readAsDataURL(f) }} className="text-sm font-normal" />
+                  <input type="file" accept="image/png,image/jpeg,image/webp" aria-label={t('upload')} onChange={(e) => { const f = e.target.files?.[0]; if (f) readPhoto(f, (image) => patch({ image })) }} className="text-sm font-normal" />
                   <span className="text-[13px] text-soft font-normal">{t('imageHint')}</span>
                 </label>
               </div>
+            )}
+            {step === 'image' && (
+              <section aria-labelledby="galeria-titulo" className="mt-6 flex flex-col gap-3">
+                <h4 id="galeria-titulo" className="text-[15px] font-medium text-ink">{t('gallery')}</h4>
+                <p className="text-[13px] text-soft">{t('galleryHint')}</p>
+                {photoError && <p role="alert" className="text-[14px] text-busy-ink">{photoError}</p>}
+                <ul className="flex flex-wrap gap-3">
+                  {gallery.map((g, i) => (
+                    <li key={g.key} className="flex flex-col gap-1 items-center">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- miniatura de Odoo por el proxy same-origin o base64 recién elegido. */}
+                      <img src={g.image ? `data:image/*;base64,${g.image}` : catalogPhotoUrl(g.id!)} alt={t('galleryPhoto', { n: i + 1 })} className="w-[96px] h-[72px] rounded-md object-cover bg-muted" />
+                      <div className="flex gap-1">
+                        <button type="button" className="h-tap-min min-w-[44px] rounded-md border border-border text-sm" disabled={i === 0} aria-label={t('galleryLeft', { n: i + 1 })} onClick={() => move(i, -1)}>←</button>
+                        <button type="button" className="h-tap-min min-w-[44px] rounded-md border border-border text-sm" disabled={i === gallery.length - 1} aria-label={t('galleryRight', { n: i + 1 })} onClick={() => move(i, 1)}>→</button>
+                        <button type="button" className="h-tap-min min-w-[44px] rounded-md border border-border text-sm" aria-label={t('galleryRemove', { n: i + 1 })} onClick={() => setSlots(gallery.filter((_, j) => j !== i))}><Icon name="close" size={16} /></button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                {gallery.length < GALLERY_MAX && (
+                  <label className="flex flex-col gap-2 text-[15px] font-medium text-ink">{t('galleryAdd')}
+                    <input type="file" accept="image/png,image/jpeg,image/webp" aria-label={t('galleryAdd')} className="text-sm font-normal"
+                      onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) readPhoto(f, (image) => setSlots([...gallery, { key: `nueva-${Date.now()}`, image }])) }} />
+                  </label>
+                )}
+              </section>
             )}
             {step === 'attributes' && (
               <>

@@ -3,6 +3,7 @@ from . import config
 from . import employee
 from . import ops
 from . import product
+from . import product_photo
 from . import seed
 from . import users
 

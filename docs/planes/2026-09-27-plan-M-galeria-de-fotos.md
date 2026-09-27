@@ -40,3 +40,12 @@ galería se ve en la ficha del plato como un carrusel.
 | Experience: galería en el catálogo, endpoint, pruebas | Codex | `experience/experience_app/adapters/odoo/*`, `services/catalog.py`, `views/photos.py`, `urls`, pruebas |
 | Comensal: carrusel en la ficha, tipos, verificador | Claude | `diner/**` |
 | POS: galería en el formulario del plato | Claude | `pos/**` |
+
+## Estado (2026-09-27)
+
+Hecho. Odoo y experience por Codex (revisado); comensal y POS por Claude. Odoo 19 acepta WebP pero no lo redimensiona,
+así que el addon genera con Pillow las variantes 1024/512/256/128 de la foto principal. Pruebas: addon 126 (incluidas 16
+nuevas), experience sin contract/addon en verde salvo el bloqueo intermitente conocido de SQLite, comensal y POS en verde.
+Probado de punta a punta con tres fotos de galería en la Hamburguesa Clásica: 97 → 42 KB, 93 → 45 KB y 57 → 20 KB en
+WebP, servidas como `image/webp` con caché inmutable, y el carrusel verificado en Chromium. Las fotos de galería se cargan
+todas de entrada (son como mucho 5 WebP ligeros) para que deslizar no muestre huecos.
