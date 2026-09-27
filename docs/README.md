@@ -46,3 +46,4 @@ servicios ya implementados. El contrato ejecutado de H prevalece para sus flujos
 - [Revisión del código con Codex: 14 hallazgos verificados, 7 arreglados](decisiones/2026-09-21-revision-con-codex.md)
 - [¿Quitar el frontend de Odoo y meterlo dentro de Django? Análisis y hueco de seguridad del registro](arquitectura/2026-09-21-odoo-headless-y-django-orquestador.md)
 - [MCP de Waiter: la IA configura el menú con una clave por restaurante](../experience/experience_app/mcp/README.md)
+- [Traspaso a Codex (2026-09-24): estado, ramas, pendientes y entorno](traspaso/2026-09-24-traspaso-a-codex.md)

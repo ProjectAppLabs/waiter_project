@@ -1,30 +1,30 @@
 /* The checkout's card sheet keeps expiry and security code on the same row. */
-.sm-wallet-dialog form { grid-template-columns:1fr 1fr; gap:16px 12px; }
+.sm-wallet-dialog form { grid-template-columns:1fr 1fr; gap:var(--ds-espacio-16) var(--ds-espacio-12); }
 .sm-wallet-dialog form > .sm-segmented,
 .sm-wallet-dialog form > .sm-field:nth-of-type(-n+2),
 .sm-wallet-dialog form > .sm-primary,
 .sm-wallet-dialog form > .sm-error { grid-column:1 / -1; }
 .sm-wallet-dialog form > .sm-field { min-width:0; }
 .sm-wallet-dialog form input { width:100%; min-width:0; }
-.sm-wallet-embedded:has(.sm-wallet-empty) { display:flex; flex-direction:column; padding:20px; border-radius:16px; background:var(--sm-surface); }
-.sm-wallet-embedded:has(.sm-wallet-empty) .sm-checkout-method-heading { order:2; margin:20px 0 0; justify-content:center; }
+.sm-wallet-embedded:has(.sm-wallet-empty) { display:flex; flex-direction:column; padding:var(--ds-espacio-20); border-radius:calc(16px * var(--ds-forma-tarjeta)); background:var(--sm-surface); }
+.sm-wallet-embedded:has(.sm-wallet-empty) .sm-checkout-method-heading { order:2; margin:var(--ds-espacio-20) 0 0; justify-content:center; }
 .sm-wallet-embedded:has(.sm-wallet-empty) .sm-checkout-method-heading > span { display:none; }
 .sm-wallet-embedded .sm-wallet-empty { padding:0; }
-.sm-wallet-embedded .sm-wallet-empty img { width:56px; height:56px; display:block; margin:0 auto 16px; }
-.sm-wallet-embedded .sm-wallet-empty h2 { font:500 16px/24px var(--t-display); margin-bottom:8px; }
-.sm-wallet-embedded .sm-wallet-empty p { font:400 12px/20px var(--t-cuerpo); }
+.sm-wallet-embedded .sm-wallet-empty img { width:56px; height:56px; display:block; margin:0 auto var(--ds-espacio-16); }
+.sm-wallet-embedded .sm-wallet-empty h2 { font:500 calc(16px * var(--ds-texto) * var(--ds-titulo))/calc(24px * var(--ds-texto) * var(--ds-titulo)) var(--t-display); margin-bottom:var(--ds-espacio-8); }
+.sm-wallet-embedded .sm-wallet-empty p { font:400 calc(12px * var(--ds-texto))/calc(20px * var(--ds-texto)) var(--t-cuerpo); }
 .sm-wallet-dialog .sm-field { position:relative; gap:0; }
-.sm-wallet-dialog .sm-field > span { position:absolute; top:6px; left:14px; font-size:10px; line-height:16px; color:var(--sm-muted); }
-.sm-wallet-dialog .sm-field > input { height:54px; padding:22px 14px 6px; font-size:14px; }
-.sm-checkout .sm-checkout-method-heading { margin-bottom:16px; }
-.sm-checkout-prices dl { gap:12px; }
-.sm-checkout-prices dl:first-child { padding-bottom:12px; }
-.sm-checkout-prices dt,.sm-checkout-prices dd { font-size:13px; }
-.sm-checkout-prices .sm-coupon { margin:12px 0; }
-.sm-checkout-tip { padding:10px 12px; margin-bottom:16px; }
+.sm-wallet-dialog .sm-field > span { position:absolute; top:6px; left:14px; font-size:calc(10px * var(--ds-texto)); line-height:calc(16px * var(--ds-texto)); color:var(--sm-muted); }
+.sm-wallet-dialog .sm-field > input { height:54px; padding:var(--ds-espacio-22) var(--ds-espacio-14) var(--ds-espacio-6); font-size:calc(14px * var(--ds-texto)); }
+.sm-checkout .sm-checkout-method-heading { margin-bottom:var(--ds-espacio-16); }
+.sm-checkout-prices dl { gap:var(--ds-espacio-12); }
+.sm-checkout-prices dl:first-child { padding-bottom:var(--ds-espacio-12); }
+.sm-checkout-prices dt,.sm-checkout-prices dd { font-size:calc(13px * var(--ds-texto)); }
+.sm-checkout-prices .sm-coupon { margin:var(--ds-espacio-12) 0; }
+.sm-checkout-tip { padding:var(--ds-espacio-10) var(--ds-espacio-12); margin-bottom:var(--ds-espacio-16); }
 .sm-checkout-footer { position:sticky; bottom:0; z-index:2; }
-.sm-order-details { display:grid; gap:12px; margin:20px 0; text-align:left; }
-.sm-order-details h3 { font-size:16px; font-weight:600; }
+.sm-order-details { display:grid; gap:var(--ds-espacio-12); margin:var(--ds-espacio-20) 0; text-align:left; }
+.sm-order-details h3 { font-size:calc(16px * var(--ds-texto)); font-weight:600; }
 .sm-order-details .sm-field { min-width:0; }
 .sm-order-details textarea { width:100%; resize:vertical; min-height:72px; }
 .sm-fulfillment-dialog { max-height:calc(100dvh - 24px); overflow-y:auto; }

@@ -22,3 +22,17 @@ La inspección humana de assets se hizo con cuatro láminas de 20 PNG y seis lá
 Con el visor servido, `node diner/scripts/exporty-audit/verify-report.cjs` recorre las 99 referencias y valida imágenes, las comparaciones, filtros, 333 assets y los escenarios capturados y el ancho móvil. Se ejecutó con resultado correcto; también pasaron siete pruebas de componentes, TypeScript y ESLint.
 
 Las referencias 25, 64 y 66 tienen escenarios `location-share`, `checkout-coupon` y `points-earned`. Sus respuestas deterministas sirven para comparar el diseño; la integración real se prueba por separado con Django y el runner de Odoo. Los puntos del fixture no acreditan saldos reales. La captura de pago de prueba mantiene su identificación de demostración.
+
+### Comparar capturas antes/después (Plan J)
+
+Variables extra de `capture.cjs`:
+
+| Variable | Qué hace |
+|---|---|
+| `CDP_URL` | Usa un navegador ya abierto (p. ej. `http://127.0.0.1:9333`, un Edge de Windows con `--remote-debugging-port`) en lugar de lanzar Chrome. En WSL, Chrome de Linux no tiene sus bibliotecas. |
+| `AUDIT_CONTINUE=1` | Si un escenario falla (un paso que ya no existe en la interfaz), lo anota y sigue con el siguiente. |
+| `AUDIT_TIMEOUT` | Espera máxima por paso, en ms (5000 acelera los escenarios que fallan; por defecto 30 s). |
+| `AUDIT_BOXES=1` | Guarda en `evidence.json` la caja (y, alto, relleno, fuente) de cada elemento, para saber qué regla movió algo. |
+
+Para comparar, captura antes y después con los mismos escenarios. Repite las pantallas con diferencias con el mismo CSS:
+lo que también cambia entre dos capturas iguales es ruido (animaciones, reloj), no un cambio del CSS.

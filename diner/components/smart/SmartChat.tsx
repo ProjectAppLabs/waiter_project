@@ -9,6 +9,7 @@ import { addChatSelection, getChat, newChat, sendChat, type ChatTurn, type ChatS
 import { useDinerStore } from '@/lib/stores/dinerStore'
 import type { Entry } from '@/lib/types'
 import { ChatReply, ChatCarousel } from './ChatReply'
+import './smart-tokens.css'
 import './smart-chat.css'
 
 // crypto.randomUUID requires HTTPS; host-only development uses HTTP.

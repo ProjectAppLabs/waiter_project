@@ -1,0 +1,52 @@
+/* Plan J1 · Fundamentos del design system del menú.
+ * Variables que el CSS del menú usa en lugar de medidas fijas (las escribió scripts/design-system/tokenizar.py).
+ * Con estos valores por defecto el menú se ve igual que antes; el tema de cada sede (Plan J2) los cambia.
+ * Van en :root, como los --t-* del tema, para que también las lean los diálogos y lo que se pinta fuera de <main>. */
+:root {
+  /* Espaciado: pasos de 2 px multiplicados por la densidad (compacta < 1 < amplia). */
+  --ds-densidad: 1;
+  --ds-espacio-2: calc(2px * var(--ds-densidad));
+  --ds-espacio-4: calc(4px * var(--ds-densidad));
+  --ds-espacio-6: calc(6px * var(--ds-densidad));
+  --ds-espacio-8: calc(8px * var(--ds-densidad));
+  --ds-espacio-10: calc(10px * var(--ds-densidad));
+  --ds-espacio-12: calc(12px * var(--ds-densidad));
+  --ds-espacio-14: calc(14px * var(--ds-densidad));
+  --ds-espacio-16: calc(16px * var(--ds-densidad));
+  --ds-espacio-18: calc(18px * var(--ds-densidad));
+  --ds-espacio-20: calc(20px * var(--ds-densidad));
+  --ds-espacio-22: calc(22px * var(--ds-densidad));
+  --ds-espacio-24: calc(24px * var(--ds-densidad));
+  --ds-espacio-26: calc(26px * var(--ds-densidad));
+  --ds-espacio-28: calc(28px * var(--ds-densidad));
+  --ds-espacio-30: calc(30px * var(--ds-densidad));
+  --ds-espacio-32: calc(32px * var(--ds-densidad));
+  --ds-espacio-34: calc(34px * var(--ds-densidad));
+  --ds-espacio-36: calc(36px * var(--ds-densidad));
+  --ds-espacio-38: calc(38px * var(--ds-densidad));
+  --ds-espacio-40: calc(40px * var(--ds-densidad));
+  --ds-espacio-42: calc(42px * var(--ds-densidad));
+  --ds-espacio-44: calc(44px * var(--ds-densidad));
+  --ds-espacio-46: calc(46px * var(--ds-densidad));
+  --ds-espacio-48: calc(48px * var(--ds-densidad));
+  --ds-espacio-50: calc(50px * var(--ds-densidad));
+  --ds-espacio-52: calc(52px * var(--ds-densidad));
+  --ds-espacio-54: calc(54px * var(--ds-densidad));
+  --ds-espacio-56: calc(56px * var(--ds-densidad));
+  --ds-espacio-58: calc(58px * var(--ds-densidad));
+  --ds-espacio-60: calc(60px * var(--ds-densidad));
+  --ds-espacio-62: calc(62px * var(--ds-densidad));
+  --ds-espacio-64: calc(64px * var(--ds-densidad));
+
+  /* Texto: escala general y escala de títulos (reglas con la fuente --t-display). Multiplican tamaño e interlineado. */
+  --ds-texto: 1;
+  --ds-titulo: 1;
+
+  /* Forma: multiplicador del radio por rol. 0 = esquinas rectas; 1 = el diseño original; más = más redondeado. */
+  --ds-forma-tarjeta: 1;
+  --ds-forma-boton: 1;
+  --ds-forma-chip: 1;
+  --ds-forma-campo: 1;
+  --ds-forma-imagen: 1;
+  --ds-forma-hoja: 1;
+}

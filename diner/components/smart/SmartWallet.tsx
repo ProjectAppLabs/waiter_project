@@ -3,6 +3,7 @@
 import {useRef,useState,type FormEvent} from 'react'
 import {useDinerStore} from '@/lib/stores/dinerStore'
 import {Icon,Title} from './SmartMenu'
+import './smart-tokens.css'
 import './smart-wallet.css'
 type DemoCard={id:string;brand:'Visa'|'Mastercard';holder:string;last4:string;expiry:string}
 export function SmartWallet({embedded=false}: {embedded?:boolean}) {

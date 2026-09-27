@@ -1,23 +1,23 @@
 /* Enlace de pago del anticipo. Hereda los tokens del Smart Menu (--sm-*), así que toma los colores, la letra y el logo
    que el restaurante eligió en Diseño del menú. El «ticket» es lo único con carácter; lo demás es el panel de pago. */
-.sm-reservation{display:flex;flex-direction:column;gap:20px;max-width:520px;margin:0 auto;padding-bottom:40px}
-.sm-reservation-brand{display:flex;align-items:center;gap:12px;padding:4px 0 8px}
+.sm-reservation{display:flex;flex-direction:column;gap:var(--ds-espacio-20);max-width:520px;margin:0 auto;padding-bottom:var(--ds-espacio-40)}
+.sm-reservation-brand{display:flex;align-items:center;gap:var(--ds-espacio-12);padding:var(--ds-espacio-4) 0 var(--ds-espacio-8)}
 .sm-reservation-brand>img,.sm-reservation-brand>span{width:44px;height:44px;border-radius:50%;object-fit:cover;flex-shrink:0;display:grid;place-items:center;background:var(--sm-surface);color:var(--sm-muted)}
-.sm-reservation-brand strong{display:block;font:600 18px/24px var(--t-display);color:var(--sm-ink)}
-.sm-reservation-brand small{font-size:13px;color:var(--sm-muted)}
-.sm-reservation-ticket{position:relative;padding:24px 22px 18px;border-radius:20px;background:#212134;color:#fff;overflow:hidden}
+.sm-reservation-brand strong{display:block;font:600 calc(18px * var(--ds-texto) * var(--ds-titulo))/calc(24px * var(--ds-texto) * var(--ds-titulo)) var(--t-display);color:var(--sm-ink)}
+.sm-reservation-brand small{font-size:calc(13px * var(--ds-texto));color:var(--sm-muted)}
+.sm-reservation-ticket{position:relative;padding:var(--ds-espacio-24) var(--ds-espacio-22) var(--ds-espacio-18);border-radius:calc(20px * var(--ds-forma-tarjeta));background:#212134;color:#fff;overflow:hidden}
 .sm-reservation-ticket::after{content:'';position:absolute;right:-70px;top:-70px;width:210px;height:210px;border-radius:50%;background:#ffffff0c;box-shadow:0 0 0 26px #ffffff06}
-.sm-reservation-hello{position:relative;font-size:14px;color:#b8b8cb;margin:0 0 6px}
-.sm-reservation-ticket h1{position:relative;font:500 22px/28px var(--t-display);letter-spacing:-.02em;margin:0 0 18px}
-.sm-reservation-ticket dl{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0;padding:16px 0;border-top:1px dashed #ffffff33;border-bottom:1px dashed #ffffff33}
-.sm-reservation-ticket dt{display:flex;align-items:center;gap:6px;font-size:12px;color:#b8b8cb}
+.sm-reservation-hello{position:relative;font-size:calc(14px * var(--ds-texto));color:#b8b8cb;margin:0 0 var(--ds-espacio-6)}
+.sm-reservation-ticket h1{position:relative;font:500 calc(22px * var(--ds-texto) * var(--ds-titulo))/calc(28px * var(--ds-texto) * var(--ds-titulo)) var(--t-display);letter-spacing:-.02em;margin:0 0 var(--ds-espacio-18)}
+.sm-reservation-ticket dl{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--ds-espacio-10);margin:0;padding:var(--ds-espacio-16) 0;border-top:1px dashed #ffffff33;border-bottom:1px dashed #ffffff33}
+.sm-reservation-ticket dt{display:flex;align-items:center;gap:var(--ds-espacio-6);font-size:calc(12px * var(--ds-texto));color:#b8b8cb}
 .sm-reservation-ticket dt svg{width:14px;height:14px}
-.sm-reservation-ticket dd{margin:4px 0 0;font:600 20px/26px var(--t-cuerpo);color:var(--sm-highlight)}
-.sm-reservation-code{position:relative;margin:14px 0 0;font-size:12px;letter-spacing:.04em;color:#b8b8cb}
+.sm-reservation-ticket dd{margin:var(--ds-espacio-4) 0 0;font:600 calc(20px * var(--ds-texto))/calc(26px * var(--ds-texto)) var(--t-cuerpo);color:var(--sm-highlight)}
+.sm-reservation-code{position:relative;margin:var(--ds-espacio-14) 0 0;font-size:calc(12px * var(--ds-texto));letter-spacing:.04em;color:#b8b8cb}
 .sm-reservation .sm-online-pay{padding-bottom:0}
-.sm-reservation-done{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:32px 20px;border-radius:20px;background:var(--sm-surface)}
-.sm-reservation-done h2{font-size:20px;margin:0}
-.sm-reservation-done p{margin:0;color:var(--sm-muted);font-size:15px;line-height:24px}
+.sm-reservation-done{display:flex;flex-direction:column;align-items:center;gap:var(--ds-espacio-10);text-align:center;padding:var(--ds-espacio-32) var(--ds-espacio-20);border-radius:calc(20px * var(--ds-forma-tarjeta));background:var(--sm-surface)}
+.sm-reservation-done h2{font-size:calc(20px * var(--ds-texto));margin:0}
+.sm-reservation-done p{margin:0;color:var(--sm-muted);font-size:calc(15px * var(--ds-texto));line-height:calc(24px * var(--ds-texto))}
 .sm-reservation-mark{display:grid;place-items:center;width:56px;height:56px;border-radius:50%;background:color-mix(in srgb,var(--sm-highlight) 18%,var(--sm-surface));color:var(--sm-highlight)}
 .sm-reservation-mark[data-tone=muted]{background:var(--t-fondo);color:var(--sm-muted)}
 .sm-reservation-menu{align-self:center}

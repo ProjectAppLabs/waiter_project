@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import type {Dish,MenuBanner} from '@/lib/types'
 import {FoodPhoto,Icon,money,useSmartRoute} from './SmartMenu'
+import './smart-tokens.css'
 import './smart-banners.css'
 export function MenuBanners({banners,dishes,onCategory}:{banners:MenuBanner[];dishes:Dish[];onCategory:(id:number)=>void}){
  const {href}=useSmartRoute()

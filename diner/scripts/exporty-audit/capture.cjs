@@ -21,13 +21,18 @@ const history=[{id:'42',restaurante:'audit',sede:'demo',fecha:'2026-09-12T12:00:
  const {QRCodeWriter,BarcodeFormat}=require('@zxing/library');const qr=new QRCodeWriter().encode('demo-table',BarcodeFormat.QR_CODE,300,300,new Map());let svg='<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><rect width="300" height="300" fill="white"/>';
  for(let y=0;y<300;y++)for(let x=0;x<300;x++)if(qr.get(x,y))svg+=`<rect x="${x}" y="${y}" width="1" height="1"/>`;
  const qrFile=path.join(output,'qr-test.svg');await fs.writeFile(qrFile,svg+'</svg>');
- const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']}); const only=process.env.AUDIT_CASES?.split(','); const evidence=only?JSON.parse(await fs.readFile(path.join(output,'evidence.json'),'utf8')):[];
- async function scenario(name,route,options={},action){
+ // CDP_URL: usa un navegador ya abierto (p. ej. Edge de Windows desde WSL, donde Chrome de Linux no tiene sus bibliotecas).
+ const browser=process.env.CDP_URL?await chromium.connectOverCDP(process.env.CDP_URL):await chromium.launch({executablePath:process.env.CHROME_PATH||'/usr/bin/google-chrome',headless:true,args:['--no-sandbox']}); const only=process.env.AUDIT_CASES?.split(','); const evidence=only?JSON.parse(await fs.readFile(path.join(output,'evidence.json'),'utf8')):[];
+ // AUDIT_CONTINUE=1: un escenario que falla (p. ej. un paso que ya no existe en la interfaz) se anota y se sigue con el
+ // siguiente, en vez de cortar la corrida. Sirve para comparar capturas antes/después con los mismos escenarios.
+ const failures=[];
+ async function scenario(...args){if(!process.env.AUDIT_CONTINUE)return run(...args);try{await run(...args)}catch(e){failures.push(args[0]);console.log('FALLA',args[0],String(e.message).split('\n')[0])}}
+ async function run(name,route,options={},action){
   if(only&&!only.includes(name))return;
   const entryData=structuredClone(entry);if(options.detailed)entryData.carta.categorias[0].productos[0].atributos={ingredientes:['Huevo','Aguacate','Pan','Tomate'],nutricion:{calorias:400,peso:510,proteina:30,grasa:24,carbohidratos:56},extras:[2,4],acompanamientos:[3,5,6]};
   if(options.menuDish)entryData.carta.categorias[0].productos[0].atributos={ingredientes:['Huevo','Aguacate','Espinaca'],nutricion:{calorias:400,peso:510,proteina:30,carbohidratos:56,grasa:24},acompanamientos:[3,5,6]};
   const previous=evidence.findIndex(e=>e.name===name);if(previous>=0)evidence.splice(previous,1);
-  const context=await browser.newContext({viewport:options.viewport||{width:375,height:812},deviceScaleFactor:1});const page=await context.newPage();const errors=[];const unhandled=[];let state={filled:!!options.cart,authenticated:!!options.account,coupon:false};if(options.clock)await page.clock.install();
+  const context=await browser.newContext({viewport:options.viewport||{width:375,height:812},deviceScaleFactor:1});const page=await context.newPage();if(process.env.AUDIT_TIMEOUT)page.setDefaultTimeout(Number(process.env.AUDIT_TIMEOUT));const errors=[];const unhandled=[];let state={filled:!!options.cart,authenticated:!!options.account,coupon:false};if(options.clock)await page.clock.install();
   page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/audit-assets/*',async r=>{const f=path.basename(new URL(r.request().url()).pathname);await r.fulfill({contentType:'image/png',body:await fs.readFile(path.join(source,'assets/images',f))})});
   await page.route('**/api/v1/**',async r=>{const u=new URL(r.request().url()).pathname;const method=r.request().method();let data;
@@ -61,7 +66,9 @@ const history=[{id:'42',restaurante:'audit',sede:'demo',fecha:'2026-09-12T12:00:
   if(action)await action(page);
   await page.evaluate(async()=>{await Promise.race([document.fonts.ready,new Promise(r=>setTimeout(r,8000))]);await Promise.all([...document.images].map(i=>{i.loading='eager';return i.decode().catch(()=>{})}))});
   await page.screenshot({path:path.join(output,`${name}.png`),fullPage:!(await page.locator('dialog[open]').count())});
-  evidence.push({name,route,mode:'real-components/intercepted-api',viewport:options.viewport||{width:375,height:812},errors,unhandled,...await page.evaluate(()=>({overflow:document.documentElement.scrollWidth>innerWidth,fonts:{display:document.fonts.check('500 22px "DM Sans"'),body:document.fonts.check('400 14px Mulish')}}))});
+  // AUDIT_BOXES=1: anota la caja (y, alto, relleno) de cada elemento, para ubicar qué regla movió algo entre dos capturas.
+  const boxes=process.env.AUDIT_BOXES?await page.evaluate(()=>[...document.querySelectorAll('.smart-menu *')].slice(0,600).map(e=>{const r=e.getBoundingClientRect(),c=getComputedStyle(e);return {tag:e.tagName.toLowerCase(),cls:String(e.className&&e.className.baseVal!==undefined?e.className.baseVal:e.className).slice(0,60),y:Math.round(r.top*10)/10,h:Math.round(r.height*10)/10,pad:c.padding,mar:c.margin,fs:c.fontSize,lh:c.lineHeight}})):undefined;
+  evidence.push({name,route,boxes,mode:'real-components/intercepted-api',viewport:options.viewport||{width:375,height:812},errors,unhandled,...await page.evaluate(()=>({overflow:document.documentElement.scrollWidth>innerWidth,fonts:{display:document.fonts.check('500 22px "DM Sans"'),body:document.fonts.check('400 14px Mulish')}}))});
  
  await fs.writeFile(path.join(output,'evidence.json'),JSON.stringify(evidence,null,2));console.log(name,errors.length,unhandled.length);await context.close();
  }
@@ -149,5 +156,5 @@ const history=[{id:'42',restaurante:'audit',sede:'demo',fecha:'2026-09-12T12:00:
  await scenario('status-expanded','estado/42',{order:'en_cocina'},p=>p.locator('.sm-status-details summary').click());
  await scenario('recommendation-detail','asistente',{detailed:true},async p=>{await p.getByRole('button',{name:'Empezar',exact:true}).click();for(let i=0;i<7;i++)await p.getByRole('button',{name:'Continuar',exact:true}).click();await p.getByRole('button',{name:'Ver mi selección'}).click();await p.locator('.sm-recommendations .sm-food-link').first().click()});
  await scenario('bill','la-cuenta',{cart:true},p=>p.locator('.sm-total').first().waitFor());
- await fs.writeFile(path.join(output,'evidence.json'),JSON.stringify(evidence,null,2));await browser.close();if(evidence.some(e=>e.errors.length||e.unhandled.length||e.overflow))process.exitCode=1;
+ await fs.writeFile(path.join(output,'evidence.json'),JSON.stringify(evidence,null,2));if(failures.length)console.log('ESCENARIOS FALLIDOS',failures.length,failures.join(','));await browser.close();if(evidence.some(e=>e.errors.length||e.unhandled.length||e.overflow))process.exitCode=1;
 })().catch(e=>{console.error(e);process.exit(1)});

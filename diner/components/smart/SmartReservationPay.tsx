@@ -6,6 +6,7 @@ import type {Entry} from '@/lib/types'
 import {createReservationPayment,finishReservationPaymentTest,readReservationPayment,reservationPayContext,type PublicReservation} from '@/lib/services/payments'
 import {OnlinePayPanel,type PayAdapter,type PayTexts} from './OnlinePayPanel'
 import {Icon,useSmartRoute} from './SmartMenu'
+import './smart-tokens.css'
 import './smart-reservation.css'
 
 const longDate=(iso:string)=>{const text=new Date(`${iso}T00:00:00`).toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'});return text.charAt(0).toUpperCase()+text.slice(1)}

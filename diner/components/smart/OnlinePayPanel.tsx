@@ -4,6 +4,7 @@ import {useCallback,useEffect,useRef,useState} from 'react'
 import type {ReactNode} from 'react'
 import {tokenizeCard,type PaymentContext,type OnlinePayment,type OnlineMethod} from '@/lib/services/payments'
 import {money} from './SmartMenu'
+import './smart-tokens.css'
 import './smart-payments.css'
 
 const METHODS:{id:OnlineMethod;name:string;hint:string;icon:string}[]=[
