@@ -1,0 +1,149 @@
+/* J3: solo las opciones elegidas cambian el CSS. Las opciones predeterminadas usan las reglas de J2.
+ * Los atributos viven en <main>; alcanzan también los diálogos sin duplicar componentes ni lógica. */
+[data-ds-boton="contorno"] .smart-menu :is(.sm-primary, .sm-chat-add) {
+  background: var(--sm-surface);
+  color: var(--sm-accent-text);
+  border: 1px solid currentColor;
+  box-shadow: none;
+}
+[data-ds-boton="suave"] .smart-menu :is(.sm-primary, .sm-chat-add) {
+  background: var(--t-acento-suave);
+  color: var(--sm-accent-text);
+  border-color: transparent;
+  box-shadow: none;
+}
+[data-ds-forma-boton="pildora"] .smart-menu :is(.sm-primary, .sm-secondary, .sm-chat-add) { border-radius: 999px !important; }
+[data-ds-forma-boton="recta"] .smart-menu :is(.sm-primary, .sm-secondary, .sm-chat-add) { border-radius: 0 !important; }
+/* En la valoración, las acciones nuevas y el chat ocupan su espacio; ninguna tapa «Continuar» al ampliar texto. */
+:is([data-ds-boton="contorno"], [data-ds-boton="suave"]) .sm-screen-opinion .sm-action-dock {
+  position: static;
+  margin-bottom: max(var(--ds-espacio-20), env(safe-area-inset-bottom));
+}
+
+[data-ds-tarjeta="sombra"] .smart-menu .sm-food-card { box-shadow: 0 6px 18px color-mix(in srgb, var(--sm-ink) 18%, transparent); }
+[data-ds-tarjeta="borde"] .smart-menu .sm-food-card { border: 1px solid var(--sm-muted); box-shadow: none; }
+
+/* Las categorías se desplazan horizontalmente sin comprimir ni superponer sus nombres. */
+:is([data-ds-categorias="pestanas"], [data-ds-categorias="subrayado"], [data-ds-carta]:where(:not([data-ds-carta="actual"]))) .smart-menu .sm-categories button { flex: 0 0 auto; }
+[data-ds-categorias="pestanas"] .smart-menu .sm-categories { gap: var(--ds-espacio-4); border-bottom: 1px solid var(--sm-border); }
+[data-ds-categorias="pestanas"] .smart-menu .sm-categories button { border-radius: calc(12px * var(--ds-forma-chip)) calc(12px * var(--ds-forma-chip)) 0 0; }
+[data-ds-categorias="pestanas"] .smart-menu .sm-categories button[aria-pressed=true] { background: var(--t-acento-suave); color: var(--sm-accent-text); box-shadow: inset 0 -3px currentColor; }
+[data-ds-categorias="subrayado"] .smart-menu .sm-categories button { background: transparent; border-radius: 0; }
+[data-ds-categorias="subrayado"] .smart-menu .sm-categories button[aria-pressed=true] { color: var(--sm-accent-text); box-shadow: inset 0 -3px currentColor; }
+
+[data-ds-precio="normal"] .smart-menu :is(.sm-food-price > strong, .sm-dish-heading > .sm-price, .sm-cart-line-info > strong, .sm-side-info > strong, .sm-topping > label > strong, .sm-food-bottom > strong) { color: var(--sm-ink); }
+[data-ds-precio="pildora"] .smart-menu :is(.sm-food-price > strong, .sm-dish-heading > .sm-price, .sm-cart-line-info > strong, .sm-side-info > strong, .sm-topping > label > strong, .sm-food-bottom > strong) {
+  display: inline-block;
+  width: fit-content;
+  max-width: 100%;
+  padding: var(--ds-espacio-4) var(--ds-espacio-10);
+  border-radius: 999px;
+  background: var(--t-acento-suave);
+  color: var(--sm-accent-text);
+  white-space: normal;
+}
+
+[data-ds-cabecera="centrada"] .smart-menu .sm-location-header { position: relative; justify-content: center; min-height: 44px; }
+[data-ds-cabecera="centrada"] .smart-menu .sm-greeting-line { flex-direction: column; text-align: center; max-width: calc(100% - 88px); }
+[data-ds-cabecera="centrada"] .smart-menu .sm-greeting-line :is(strong, span) { white-space: normal; }
+[data-ds-cabecera="centrada"] .smart-menu .sm-location-header > button { position: absolute; right: 0; top: 0; }
+[data-ds-saludo="oculto"] .smart-menu .sm-greeting-line strong { display: none; }
+
+[data-ds-insignia="contorno"] .smart-menu :is(.sm-rating-pill, .sm-food-deal em, .sm-status-chip) {
+  background: var(--sm-surface);
+  color: var(--sm-accent-text);
+  border: 1px solid currentColor;
+  box-shadow: none;
+}
+
+/* Carta: la misma lista de productos, filtros, favoritos y acciones en todas las distribuciones. */
+[data-ds-carta]:where(:not([data-ds-carta="actual"])) .smart-menu .sm-featured {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(130px * var(--ds-texto))), 1fr));
+  height: auto;
+}
+[data-ds-carta]:where(:not([data-ds-carta="actual"])) .smart-menu .sm-featured > div:first-child { max-width: none; min-width: 0; }
+[data-ds-carta]:where(:not([data-ds-carta="actual"])) .smart-menu :is(.sm-food-rail, .sm-food-grid, .sm-food-list) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ds-espacio-16);
+  padding: 0;
+  margin: 0;
+  overflow: visible;
+  scroll-snap-type: none;
+}
+[data-ds-carta="cuadricula"] .smart-menu :is(.sm-food-rail, .sm-food-grid, .sm-food-list) {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, max(calc((100% - var(--ds-espacio-16)) / 2), calc(140px * var(--ds-texto)))), 1fr));
+}
+[data-ds-carta]:where(:not([data-ds-carta="actual"])) .smart-menu .sm-food-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: var(--ds-espacio-8);
+  width: auto;
+  min-width: 0;
+  max-width: none;
+}
+[data-ds-carta]:where(:not([data-ds-carta="actual"])) .smart-menu .sm-food-card > .sm-food-link {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: none;
+  gap: var(--ds-espacio-4);
+  grid-column: 1 / -1;
+  grid-row: 1;
+  min-width: 0;
+  min-height: 0;
+  text-align: left;
+  align-content: start;
+}
+[data-ds-carta]:where(:not([data-ds-carta="actual"])) .smart-menu .sm-food-card .sm-food-photo {
+  grid-column: auto;
+  grid-row: auto;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  max-width: 100%;
+  aspect-ratio: 1;
+  margin: 0 0 var(--ds-espacio-8);
+  box-shadow: none;
+}
+[data-ds-carta]:where(:not([data-ds-carta="actual"])) .smart-menu .sm-food-card :is(.sm-food-price, h3, .sm-food-bottom) {
+  grid-column: auto;
+  grid-row: auto;
+  padding-right: 0;
+  justify-content: flex-start;
+  align-self: start;
+}
+[data-ds-carta]:where(:not([data-ds-carta="actual"])) .smart-menu .sm-food-card .sm-rating-pill { position: static; justify-self: start; }
+[data-ds-carta]:where(:not([data-ds-carta="actual"])) .smart-menu .sm-food-card > .sm-heart { position: static; grid-column: 1; grid-row: 2; justify-self: start; }
+[data-ds-carta]:where(:not([data-ds-carta="actual"])) .smart-menu .sm-food-card > .sm-quick-add { display: grid; place-items: center; position: static; grid-column: 2; grid-row: 2; width: 44px; height: 44px; border: 0; border-radius: calc(12px * var(--ds-forma-boton)); background: var(--t-acento-suave); color: var(--sm-accent-text); }
+[data-ds-carta="lista"] .smart-menu .sm-food-card > .sm-food-link { grid-template-columns: minmax(0, 25%) minmax(0, 1fr); column-gap: var(--ds-espacio-16); align-content: center; }
+[data-ds-carta="lista"] .smart-menu .sm-food-card .sm-food-photo { grid-column: 1; grid-row: 1 / span 5; margin: 0; align-self: center; }
+[data-ds-carta="lista"] .smart-menu .sm-food-card :is(.sm-food-price, h3, .sm-food-bottom, .sm-rating-pill) { grid-column: 2; }
+[data-ds-carta="foto-grande"] .smart-menu .sm-food-card .sm-food-photo { aspect-ratio: 4 / 3; border-radius: calc(16px * var(--ds-forma-imagen)); }
+
+/* Ficha: el encabezado y los detalles conservan el mismo orden de lectura y la barra de pedido. */
+:is([data-ds-ficha="heroe"], [data-ds-ficha="dividida"]) .smart-menu .sm-dish-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--ds-espacio-24); padding-top: 0; }
+:is([data-ds-ficha="heroe"], [data-ds-ficha="dividida"]) .smart-menu .sm-dish-hero { display: flex; flex-direction: column; align-items: stretch; position: relative; top: auto; min-height: 0; padding-top: var(--ds-espacio-24); }
+:is([data-ds-ficha="heroe"], [data-ds-ficha="dividida"]) .smart-menu .sm-dish-orbits { display: none; }
+:is([data-ds-ficha="heroe"], [data-ds-ficha="dividida"]) .smart-menu .sm-dish-hero > .sm-dish-photo { position: relative; inset: auto; width: 100%; height: auto; min-height: 0; max-width: 100%; aspect-ratio: 4 / 3; margin: 0 auto var(--ds-espacio-12); border-radius: calc(16px * var(--ds-forma-imagen)); }
+:is([data-ds-ficha="heroe"], [data-ds-ficha="dividida"]) .smart-menu .sm-dish-hero > .sm-rating-pill { position: static; align-self: flex-start; }
+:is([data-ds-ficha="heroe"], [data-ds-ficha="dividida"]) .smart-menu .sm-dish-heading { width: 100%; padding: var(--ds-espacio-16) 0 0; text-align: left; }
+:is([data-ds-ficha="heroe"], [data-ds-ficha="dividida"]) .smart-menu .sm-dish-heading h1 { width: 100%; max-width: none; min-height: 0; margin-bottom: var(--ds-espacio-16); }
+:is([data-ds-ficha="heroe"], [data-ds-ficha="dividida"]) .smart-menu .sm-dish-info { min-width: 0; padding: 0; }
+[data-ds-ficha="dividida"] .smart-menu .sm-dish-hero > .sm-dish-photo { width: min(100%, 280px); aspect-ratio: 1; }
+@media (min-width: 760px) {
+  [data-ds-ficha="dividida"] .smart-menu .sm-dish-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--ds-espacio-32); align-items: start; }
+  [data-ds-ficha="dividida"] .smart-menu .sm-dish-hero { position: sticky; top: 24px; padding-top: 0; }
+}
+
+[data-ds-carrito="compacta"] .smart-menu .sm-cart-lines { gap: 0; }
+[data-ds-carrito="compacta"] .smart-menu .sm-cart-line { min-height: 0; padding: var(--ds-espacio-12); gap: var(--ds-espacio-12); border-radius: 0; border-bottom: 1px solid var(--sm-border); background: var(--t-fondo); }
+[data-ds-carrito="compacta"] .smart-menu .sm-cart-line > .sm-food-photo { width: 64px; height: 64px; flex: 0 0 64px; }
+[data-ds-carrito="compacta"] .smart-menu .sm-line-controls { flex-wrap: wrap; }
+
+/* El recorte elegido prevalece sobre la distribución; circular prevalece sobre 4:3. */
+[data-ds-imagen="cuadrada"] .smart-menu .sm-food-photo { height: auto !important; min-height: 0 !important; aspect-ratio: 1 !important; }
+[data-ds-imagen="4:3"] .smart-menu .sm-food-photo { height: auto !important; min-height: 0 !important; aspect-ratio: 4 / 3 !important; }
+[data-ds-forma-imagen="tema"] .smart-menu .sm-food-photo { border-radius: calc(16px * var(--ds-forma-imagen)) !important; }
+[data-ds-forma-imagen="circular"] .smart-menu .sm-food-photo { height: auto !important; min-height: 0 !important; aspect-ratio: 1 !important; border-radius: 50% !important; }
+:is([data-ds-imagen="cuadrada"], [data-ds-imagen="4:3"], [data-ds-forma-imagen="tema"], [data-ds-forma-imagen="circular"]) .smart-menu .sm-photo-empty { height: 100%; background: var(--sm-surface); border-radius: inherit; }

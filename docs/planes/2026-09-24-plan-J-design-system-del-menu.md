@@ -120,7 +120,7 @@ Los errores de validación dicen qué valor falló y por qué, para que la IA co
 |---|---|---|
 | **J1. Fundamentos** | Auditoría del CSS; escalas de espaciado, tipografía y radio; CSS por variables | Capturas antes/después idénticas con el tema por defecto |
 | **J2. Tema v2** | Esquema e inventario en experience, validación, resolución, migración de los ajustes actuales, `templateVars` extendido | Pruebas del esquema y de las reglas; conservar el diseño salvo los mínimos de accesibilidad aceptados en el cierre |
-| **J3. Variantes** | Botón, tarjeta, navegación de categorías, precio, imagen, cabecera; distribución de la carta y de la ficha del plato | Una captura por variante; pruebas inventario ↔ CSS |
+| **J3. Variantes** | Botón, tarjeta, navegación de categorías, precio, imagen, cabecera e insignias; distribución de carta, ficha y carrito | Una captura por variante; pruebas inventario ↔ CSS y combinaciones con los mínimos de J2 |
 | **J4. MCP y borradores** | Las 4 herramientas nuevas, el enlace `?borrador=`, y el POS pasado al mismo mecanismo | Prueba de punta a punta: la IA lee, prepara, se ve el borrador y se confirma |
 | **J5. Página viva** | `/<rest>/<sede>/design-system`: todos los componentes y variantes con el tema de la sede | Captura y revisión visual |
 
@@ -162,7 +162,25 @@ J1 es la base de todo y no cambia nada visible. Cada fase se fusiona por separad
 
 Contrato y reproducción de pruebas: [README del tema v2](../../experience/experience_app/diseno/README.md).
 Capturas, resultados y límites de la comprobación: [revisión de J2](../revisiones/2026-09-24-plan-j2.md).
-Las variantes, herramientas nuevas del MCP, borradores y página viva continúan en J3–J5.
+**J3 cerrado (2026-09-24).**
+
+- Catálogo cerrado de 13 campos y 36 valores: estilos y formas de botones, tarjetas, categorías, precios, recorte/forma
+  de fotos, cabecera, saludo e insignias; distribución de carta, ficha y carrito. Incluye 23 opciones nuevas además de
+  los valores predeterminados que conservan J2.
+- `variantes` y `distribucion` completadas al leer temas v2 anteriores, sin migración adicional. Guardar por el PUT
+  existente persiste ambas capas, invalida la caché y conserva el aislamiento por sede. Las ediciones antiguas del
+  POS/MCP preservan esas capas.
+- Atributos `data-ds-*` cerrados en `<main>` y `smart-variants.css`; mismos componentes y recorridos. El inventario
+  describe opciones, selectores y consumidores, con pruebas de correspondencia entre esquema, inventario, TypeScript y CSS.
+- Cuadrícula de hasta dos columnas adaptable al texto; lista y foto grande; ficha héroe/dividida adaptable a móvil;
+  carrito compacto. Recorte circular prevalece sobre 4:3, y las formas explícitas prevalecen sobre los radios locales.
+- Pruebas de contrato, persistencia y ruta real, capturas de cada opción y combinaciones extremas, incluida producción.
+  Los nuevos estilos mantienen los mínimos medidos de J2. La valoración con botones alternativos deja espacio para
+  el chat y «Continuar»; el destacado crece con el texto.
+
+Contrato, valores y reproducción: [README del tema v2](../../experience/experience_app/diseno/README.md).
+Resultados y límites: [revisión de J3](../revisiones/2026-09-24-plan-j3.md).
+Las herramientas nuevas del MCP, borradores y página viva continúan en **J4–J5**.
 
 ## Fuera de alcance
 

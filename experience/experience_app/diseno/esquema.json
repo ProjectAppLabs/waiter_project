@@ -174,6 +174,145 @@
           }
         }
       }
+    },
+    "variantes": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "boton": {
+          "type": "string",
+          "enum": [
+            "relleno",
+            "contorno",
+            "suave"
+          ],
+          "default": "relleno",
+          "description": "relleno: Fondo de acento y tinta contrastada, como en J2. contorno: Superficie del tema con borde y texto de acento legible. suave: Fondo de acento suave con texto contrastado."
+        },
+        "formaBoton": {
+          "type": "string",
+          "enum": [
+            "tema",
+            "pildora",
+            "recta"
+          ],
+          "default": "tema",
+          "description": "tema: Esquinas redondeadas según el fundamento forma.boton. pildora: Extremos completamente redondeados. recta: Esquinas rectas sin alterar el área táctil."
+        },
+        "tarjeta": {
+          "type": "string",
+          "enum": [
+            "plana",
+            "sombra",
+            "borde"
+          ],
+          "default": "plana",
+          "description": "plana: Superficie sin sombra ni borde, como en J2. sombra: Sombra suave alrededor de la tarjeta. borde: Borde visible de separación, sin sombra."
+        },
+        "categorias": {
+          "type": "string",
+          "enum": [
+            "chips",
+            "pestanas",
+            "subrayado"
+          ],
+          "default": "chips",
+          "description": "chips: Categoría elegida en una pastilla de color destacado. pestanas: Pestañas con fondo suave y esquinas superiores redondeadas. subrayado: Texto sobre fondo transparente con línea bajo la categoría elegida."
+        },
+        "precio": {
+          "type": "string",
+          "enum": [
+            "destacado",
+            "normal",
+            "pildora"
+          ],
+          "default": "destacado",
+          "description": "destacado: Precio en la tinta destacada actual. normal: Precio en la tinta principal del tema. pildora: Precio dentro de una pastilla de fondo suave."
+        },
+        "imagen": {
+          "type": "string",
+          "enum": [
+            "actual",
+            "cuadrada",
+            "4:3"
+          ],
+          "default": "actual",
+          "description": "actual: Conserva las proporciones de cada componente de J2. cuadrada: Fotografías con proporción 1:1. 4:3: Fotografías horizontales con proporción 4:3."
+        },
+        "formaImagen": {
+          "type": "string",
+          "enum": [
+            "actual",
+            "tema",
+            "circular"
+          ],
+          "default": "actual",
+          "description": "actual: Conserva la forma de cada fotografía de J2. tema: Esquinas según el fundamento forma.imagen. circular: Fotografía circular; usa proporción cuadrada incluso si se eligió 4:3."
+        },
+        "cabecera": {
+          "type": "string",
+          "enum": [
+            "izquierda",
+            "centrada"
+          ],
+          "default": "izquierda",
+          "description": "izquierda: Logo, saludo y sede alineados a la izquierda. centrada: Logo, saludo y sede centrados; la navegación sigue disponible a la derecha."
+        },
+        "saludo": {
+          "type": "string",
+          "enum": [
+            "visible",
+            "oculto"
+          ],
+          "default": "visible",
+          "description": "visible: Muestra el saludo del restaurante o el saludo personalizado. oculto: Oculta solo el saludo; conserva restaurante, sede, mesa y navegación."
+        },
+        "insignia": {
+          "type": "string",
+          "enum": [
+            "rellena",
+            "contorno"
+          ],
+          "default": "rellena",
+          "description": "rellena: Conserva el fondo de valoraciones, descuentos y estados. contorno: Usa la superficie del tema y un contorno con tinta legible."
+        }
+      }
+    },
+    "distribucion": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "carta": {
+          "type": "string",
+          "enum": [
+            "actual",
+            "cuadricula",
+            "lista",
+            "foto-grande"
+          ],
+          "default": "actual",
+          "description": "actual: Carruseles por categoría, lista al filtrar y cuadrícula de favoritos, como en J2. cuadricula: Dos columnas de platos; una cuando el texto ampliado necesita más ancho. lista: Una columna con foto a la izquierda y contenido a la derecha. foto-grande: Una columna con fotografía amplia sobre la información."
+        },
+        "ficha": {
+          "type": "string",
+          "enum": [
+            "actual",
+            "heroe",
+            "dividida"
+          ],
+          "default": "actual",
+          "description": "actual: Conserva la ficha adaptable de J2. heroe: Fotografía amplia y encabezado encima del detalle del plato. dividida: Fotografía y encabezado en una columna; detalles al lado cuando hay espacio."
+        },
+        "carrito": {
+          "type": "string",
+          "enum": [
+            "tarjetas",
+            "compacta"
+          ],
+          "default": "tarjetas",
+          "description": "tarjetas: Tarjetas separadas, como en J2. compacta: Filas con separadores y fotografías pequeñas; mantiene cantidades, notas y acciones."
+        }
+      }
     }
   }
 }

@@ -36,6 +36,8 @@ Variables extra de `capture.cjs`:
 | `AUDIT_CASES=j2` | Selecciona 50 escenarios vigentes de carta, pedido, cuenta, pagos, reserva, opinión y chat. Evita los recorridos históricos retirados. |
 | `AUDIT_ACCESSIBILITY=1` | Omite la introducción salvo en `first-visit`, estabiliza animaciones y registra controles <44 px, texto <14 px, contraste <4,5:1 y desbordamiento. Cualquier infracción provoca salida fallida. |
 | `AUDIT_TEMPLATE` | Ruta absoluta a la plantilla JSON resuelta por `experience_app.plantillas.services.build`; permite probar el tema v2. Sin ella se usa el fixture anterior. |
+| `AUDIT_VARIANTS=1` | Añade al fixture logo y descuento de plato para comprobar esas variantes. Guarda atributos `data-ds-*`, reglas activas, geometría y estilos calculados en `evidence.json`. |
+| `AUDIT_VIEWPORT` | JSON con ancho/alto base, por ejemplo `'{"width":320,"height":812}'`. Los escenarios con tamaño explícito, como `dish-desktop`, conservan ese tamaño. |
 
 Para comparar, captura antes y después con los mismos escenarios. Repite las pantallas con diferencias con el mismo CSS:
 lo que también cambia entre dos capturas iguales es ruido (animaciones, reloj), no un cambio del CSS.
@@ -54,3 +56,13 @@ AUDIT_CASES=j2 AUDIT_ACCESSIBILITY=1 AUDIT_CONTINUE=1 \
 revisión, sin darlo por aprobado. Incluye placeholders y etiquetas de checkbox/radio. Excluye del contraste los controles
 deshabilitados; si hay un diálogo modal, mide el diálogo. No certifica navegación por teclado ni otros requisitos WCAG.
 La salida falla también si un recorrido falla, aunque `AUDIT_CONTINUE=1` permita completar los demás.
+El detalle de cada fallo queda en `<escenario>-error.txt`; una repetición correcta elimina ese archivo.
+
+### Matriz de J3
+
+`scripts/design-system/exportar-variantes.py` genera 27 plantillas resueltas con el backend real y
+`scripts/design-system/verificar-variantes.cjs` ejecuta 138 capturas: cada opción nueva y combinaciones claras,
+oscuras y estrechas. Además de accesibilidad, comprueba que los selectores ganan la cascada y cambian el componente
+esperado; el tema predeterminado debe cargar la hoja sin activar ninguna regla de variantes.
+Los comandos, selección de casos y ubicación de la evidencia están en el
+[contrato del tema](../../../experience/experience_app/diseno/README.md#pruebas).

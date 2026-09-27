@@ -3,28 +3,33 @@
 Estado del trabajo hecho con Claude Code entre el 22 y el 24 de septiembre de 2026, y lo que falta. Léelo antes de tocar el
 repo. El contexto del producto está en `docs/README.md`.
 
-**Actualización de Codex del 24 de septiembre:** J2 está cerrado en la rama local
-`feat/24092026-plan-j2-tema`, creada sobre J1 y guardada en un commit local, sin publicación. La migración `0025` está aplicada
-en esta máquina y experience reiniciado. El contrato, las pruebas y las correcciones de accesibilidad heredadas de J1 están en
-[`experience_app/diseno/README.md`](../../experience/experience_app/diseno/README.md). La copia previa de la base y la
-evidencia visual se guardaron en `test-reports/j2/` y `test-reports/j2-cierre/` (ignorados por Git). La revisión final
-comprueba 50 escenarios en cuatro temas, sin infracciones de los mínimos de J2; las suites del comensal y experience
-pasan. Ver [resultado y alcance](../revisiones/2026-09-24-plan-j2.md). El orden de fusión original se mantiene; J2 va después de J1.
+**Actualización de Codex del 24 de septiembre:** J2 y J3 están cerrados en ramas locales, sin publicación.
+J2 está en `feat/24092026-plan-j2-tema` (`93929b0`), sobre J1; J3 continúa sobre ella en
+`feat/24092026-plan-j3-variantes`. La migración `0025` está aplicada y experience reiniciado con el contrato de J3.
+J3 completa las capas omitidas al leer temas v2 anteriores y no necesita migración adicional.
+El contrato, variantes y comandos están en
+[`experience_app/diseno/README.md`](../../experience/experience_app/diseno/README.md).
+La evidencia local está en `test-reports/j2/`, `test-reports/j2-cierre/` y `test-reports/j3/` (ignorados por Git).
+Ver [cierre de J2](../revisiones/2026-09-24-plan-j2.md) y [cierre de J3](../revisiones/2026-09-24-plan-j3.md).
+El siguiente trabajo es **J4: herramientas MCP y borradores**.
 
 ## 1. Ramas y orden de fusión
 
-Hay tres ramas encadenadas, todas sin fusionar en `main`:
+Hay cinco ramas encadenadas, todas sin fusionar en `main`:
 
 ```
 main (e5cdd63)
  └─ feat/23092026-caja-cerrada-plano-dashboard   PR 1 (en GitHub; falta abrir el PR)
      └─ feat/23092026-mcp-diseno-menu            PR 2 (en GitHub; falta abrir el PR)
          └─ feat/24092026-plan-j1-fundamentos    PR 3 (plan J y fase J1)
+             └─ feat/24092026-plan-j2-tema      J2 (solo local)
+                 └─ feat/24092026-plan-j3-variantes  J3 (solo local)
 ```
 
 1. Fusionar primero el PR 1 en `main`.
 2. Cambiar la base del PR 2 a `main` y fusionarlo.
 3. Hacer lo mismo con el PR 3.
+4. Publicar y fusionar J2 después de J1, y J3 después de J2, manteniendo una fase por PR.
 
 En esta máquina no hay `gh` ni credenciales HTTPS: se sube por SSH, con
 `git push git@github.com:gustavop-dev/waiter_project.git <rama>`, y el PR se abre en la web.
@@ -89,20 +94,10 @@ En esta máquina no hay `gh` ni credenciales HTTPS: se sube por SSH, con
 
 ## 2. Lo que falta
 
-### Plan J, fases J3 a J5 (el trabajo principal)
+### Plan J, fases J4 a J5 (el trabajo principal)
 
 Detalle en el plan. Resumen accionable:
 
-- **J3: variantes de componente** con atributos `data-ds-*` en `<main>` y selectores CSS:
-  - botón: relleno, contorno o suave;
-  - tarjeta: con sombra, con borde o plana;
-  - categorías: chips, pestañas o subrayado;
-  - carta: cuadrícula, lista o foto grande;
-  - ficha del plato;
-  - cabecera.
-
-  Mantener en `inventario.json` qué componente usa qué variable y sus variantes, con una prueba que cruce el inventario
-  con el CSS.
 - **J4: herramientas del MCP** `leer_design_system`, `describir_pantalla`, `preparar_tema` y `restablecer_tema`
   (el patrón de `mcp/tools.py`).
   - Borrador visible en `<diner>/<rest>/<sede>/carta?borrador=<token>`, leído desde un endpoint público de solo lectura
@@ -111,7 +106,9 @@ Detalle en el plan. Resumen accionable:
 - **J5**: página viva `/<rest>/<sede>/design-system` con todos los componentes y variantes.
 
 **Cómo verificar cada fase sin romper el menú.** Se hace con capturas antes/después (ver la sección 4). Con el tema por
-defecto, el menú debe verse igual que después de J1.
+defecto, el menú debe conservar el cierre de J2, incluidos sus mínimos de accesibilidad aceptados.
+J3 ya proporciona las 13 dimensiones de variantes/distribución y el inventario que deben exponer las herramientas de J4.
+El PUT de tema actual reemplaza las capas; el cambio parcial y los borradores siguen siendo trabajo de J4.
 
 ### Tareas pendientes del dueño
 
