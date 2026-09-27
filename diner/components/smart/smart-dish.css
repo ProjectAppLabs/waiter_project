@@ -158,3 +158,11 @@ body:has(.sm-recommendation-dialog[open]) { overflow:hidden; }
 .smart-menu .sm-dish-dock-action .sm-primary { width: 100%; min-height: 54px; }
 .smart-menu .sm-dish-dock-action .sm-added { display: flex; width: 100%; }
 .smart-menu .sm-dish-dock-action .sm-added > :not(.sm-primary) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Ingredientes en viñetas: no siempre hay un icono para cada ingrediente; la lista se lee siempre. */
+.smart-menu .sm-ingredient-list { margin: 0; padding: 0 0 0 var(--ds-espacio-20); display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); gap: var(--ds-espacio-6) var(--ds-espacio-16); list-style: disc; }
+.smart-menu .sm-ingredient-list li { font-size: calc(16px * var(--ds-texto)); line-height: calc(24px * var(--ds-texto)); overflow-wrap: anywhere; }
+.smart-menu .sm-ingredient-list li::marker { color: var(--sm-highlight-text); }
+/* La información nutricional cabe en una sola fila (hasta cinco datos). */
+.smart-menu .sm-dish-info .sm-nutrition { flex-wrap: nowrap; }
+.smart-menu .sm-nutrition > div { flex: 1 1 0; min-width: 0; }

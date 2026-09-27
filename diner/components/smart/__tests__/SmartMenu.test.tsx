@@ -26,14 +26,16 @@ it('uses personal favorites and the account name, independently of restaurant re
   expect(screen.queryByRole('heading', { name: dish.nombre })).not.toBeInTheDocument()
   expect(screen.getByRole('button', { name: 'Quitar de favoritos: Limonada' })).toHaveAttribute('aria-pressed', 'true')
 })
-it('sends real quantity and note and does not report success when the request fails', async () => {
+// Falla si se envía una cantidad distinta de la elegida o se anuncia el agregado cuando la petición falla. La nota para
+// cocina ya no se escribe en la ficha: va al confirmar el pedido (diálogo de modalidad), así que la línea sale sin nota.
+it('sends real quantity and does not report success when the request fails', async () => {
   const add = jest.fn().mockImplementation(async () => { useDinerStore.setState({ error: 'Sin conexión' }) })
   useDinerStore.setState({ add })
   render(<SmartDish entry={entry} rest="demo" venue="salon" token="mesa8" id="3"/>)
   fireEvent.click(screen.getByLabelText('Más unidades'))
-  fireEvent.change(screen.getByLabelText('¿Alguna indicación para cocina?'), { target: { value: 'Sin cebolla' } })
+  expect(screen.queryByLabelText('¿Alguna indicación para cocina?')).not.toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: /Agregar a mi pedido/ }))
-  await waitFor(() => expect(add).toHaveBeenCalledWith(3, 2, 'Sin cebolla'))
+  await waitFor(() => expect(add).toHaveBeenCalledWith(3, 2, ''))
   expect(screen.queryByText('Agregado a tu pedido')).not.toBeInTheDocument()
 })
 it('requires consent and clearly identifies the demo registration', () => {
@@ -92,7 +94,7 @@ it('does not promote allergy selections and excludes explicitly declared allerge
   expect(rankDishes([egg,dish],answers).map(d=>d.id)).toEqual([3])
 })
 
-it('adds configured extras atomically with the displayed quantity and kitchen note', async () => {
+it('adds configured extras atomically with the displayed quantity', async () => {
   const addBundle = jest.fn().mockResolvedValue(undefined)
   useDinerStore.setState({addBundle,error:null})
   const configured = JSON.parse(JSON.stringify(entry))
@@ -101,9 +103,8 @@ it('adds configured extras atomically with the displayed quantity and kitchen no
   fireEvent.click(screen.getByRole('checkbox',{name:/Limonada/}))
   fireEvent.click(screen.getByRole('button',{name:'Más Limonada'}))
   fireEvent.click(screen.getByRole('button',{name:'Más unidades'}))
-  fireEvent.change(screen.getByLabelText('¿Alguna indicación para cocina?'),{target:{value:'Sin sal'}})
   fireEvent.click(screen.getByRole('button',{name:/Agregar a mi pedido/}))
-  await waitFor(()=>expect(addBundle).toHaveBeenCalledWith([{producto_id:3,cantidad:2,nota:'Sin sal'},{producto_id:4,cantidad:2,nota:`Acompaña: ${dish.nombre}`}]))
+  await waitFor(()=>expect(addBundle).toHaveBeenCalledWith([{producto_id:3,cantidad:2,nota:''},{producto_id:4,cantidad:2,nota:`Acompaña: ${dish.nombre}`}]))
   expect(screen.getByText('Agregado a tu pedido')).toBeInTheDocument()
 })
 

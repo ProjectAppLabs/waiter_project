@@ -30,7 +30,6 @@ import {SmartWallet} from './SmartWallet'
 import { MenuBanners } from './MenuBanners'
 import { SmartChat } from './SmartChat'
 import { SmartReservationPay } from './SmartReservationPay'
-import { IngredientIllustration } from './SmartIngredients'
 import './smart-tokens.css'
 import './smart-menu.css'
 import './smart-dish.css'
@@ -483,7 +482,6 @@ export function SmartDish({ entry, id, onClose, actionTarget }: SmartProps & {on
   const { go } = useSmartRoute()
   const [extras,setExtras] = useState<Record<number,number>>({})
   const [qty, setQty] = useState(1),
-    [note, setNote] = useState(''),
     [added, setAdded] = useState(false)
   const [sending, setSending] = useState(false)
   const lock = useRef(false)
@@ -504,8 +502,8 @@ export function SmartDish({ entry, id, onClose, actionTarget }: SmartProps & {on
     setSending(true)
     try {
       const selected=Object.entries(extras).filter(([,count])=>count>0)
-      if(selected.length)await addBundle([{producto_id:dish.id,cantidad:qty,nota:note},...selected.map(([productId,count])=>({producto_id:Number(productId),cantidad:count,nota:`Acompaña: ${dish.nombre}`.slice(0,200)}))])
-      else await add(dish.id, qty, note)
+      if(selected.length)await addBundle([{producto_id:dish.id,cantidad:qty,nota:''},...selected.map(([productId,count])=>({producto_id:Number(productId),cantidad:count,nota:`Acompaña: ${dish.nombre}`.slice(0,200)}))])
+      else await add(dish.id, qty, '')
       if (!useDinerStore.getState().error) setAdded(true)
     } finally {
       lock.current = false
@@ -513,7 +511,7 @@ export function SmartDish({ entry, id, onClose, actionTarget }: SmartProps & {on
     }
   }
   const attrs = dish.atributos
-  const nutrition = ([['calorias','Calorías','kcal'],['peso','Porción','g'],['proteina','Proteína','g'],['carbohidratos','Carbos','g'],['grasa','Grasa','g'],['fibra','Fibra','g']] as const).filter(([key]) => typeof attrs?.nutricion?.[key] === 'number')
+  const nutrition = ([['calorias','Calorías','kcal'],['peso','Porción','g'],['proteina','Proteína','g'],['carbohidratos','Carbos','g'],['grasa','Grasa','g']] as const).filter(([key]) => typeof attrs?.nutricion?.[key] === 'number')
   const catalog = [...new Map(entry.carta.categorias.flatMap(c=>c.productos).map(d=>[d.id,d])).values()]
   const toppings = catalog.filter(d=>d.id!==dish.id && attrs?.extras?.includes(d.id))
   const sides = attrs?.acompanamientos
@@ -533,12 +531,9 @@ export function SmartDish({ entry, id, onClose, actionTarget }: SmartProps & {on
           {dish.descripcion && (
             <p className="sm-description">{dish.descripcion}</p>
           )}
-          {dish.foto && dish.fotoOrigen === 'ia' && (
-            <p className="sm-footnote">Imagen de referencia</p>
-          )}
           {!!nutrition.length && <dl className="sm-nutrition" aria-label="Información por porción">{nutrition.map(([key,label,unit])=><div key={key} aria-label={`${label}: ${attrs?.nutricion?.[key]} ${unit}`}><dt>{key==='calorias'?'kcal':key==='peso'?'gramos':label}</dt><dd>{attrs?.nutricion?.[key]}</dd></div>)}</dl>}
           {!!attrs?.combo?.length&&<section className="sm-ingredients"><h2>Este combo incluye</h2><ul>{attrs.combo.map(item=><li key={item.producto}>{item.cantidad} × {item.nombre}</li>)}</ul><p className="sm-note">El precio corresponde al combo completo.</p></section>}
-          {!!attrs?.ingredientes?.length && <section className="sm-ingredients"><h2>Ingredientes</h2><div>{attrs.ingredientes.map(ingredient=><span key={ingredient}><IngredientIllustration name={ingredient}/>{ingredient}</span>)}</div></section>}
+          {!!attrs?.ingredientes?.length && <section className="sm-ingredients"><h2>Ingredientes</h2><ul className="sm-ingredient-list">{attrs.ingredientes.map(ingredient=><li key={ingredient}>{ingredient}</li>)}</ul></section>}
           {!!attrs?.etiquetas?.length && (
             <div className="sm-tags">
               {attrs.etiquetas.map((tag) => (
@@ -555,9 +550,8 @@ export function SmartDish({ entry, id, onClose, actionTarget }: SmartProps & {on
           {!!toppings.length && <section className="sm-dish-toppings"><h2>Añade adicionales</h2><div>{toppings.map(extra=><div className="sm-topping" key={extra.id} data-selected={!!extras[extra.id]}><label><input type="checkbox" checked={!!extras[extra.id]} disabled={extra.agotado||sending||(atExtraLimit&&!extras[extra.id])} onChange={e=>changeExtra(extra.id,e.target.checked?1:0)}/><span>{extra.nombre}{extra.agotado&&<small>Agotado</small>}</span><strong>{money(extra.precio)}</strong></label>{!!extras[extra.id]&&counter(extra)}</div>)}</div></section>}
           {!!sides.length && <section className="sm-dish-sides"><h2>{attrs?.acompanamientos ? 'Acompañamientos recomendados' : 'También te puede gustar'}</h2><div>{sides.map(extra=><div className="sm-side" key={extra.id}><FoodPhoto dish={extra}/><div className="sm-side-info"><h3>{extra.nombre}</h3><DishRating dish={extra} reviews/>{extra.descripcion&&<p>{extra.descripcion}</p>}<strong>{money(extra.precio)}</strong>{extra.agotado&&<small>Agotado</small>}</div>{counter(extra)}</div>)}</div></section>}
           {atExtraLimit&&<p className="sm-footnote">Puedes elegir hasta 19 adicionales y acompañamientos distintos por plato.</p>}
-          <div className="sm-dish-request"><label className="sm-field" htmlFor={`dish-note-${dish.id}`}><span>¿Alguna indicación para cocina?</span></label><div><textarea id={`dish-note-${dish.id}`} rows={3} maxLength={200} value={note} placeholder="Por ejemplo: sin cebolla" onChange={e=>{setNote(e.target.value);setAdded(false)}}/><span aria-live="off">{note.length}/200</span></div></div>
           <div className={`sm-dish-purchase ${added ? 'is-added' : ''}${actionTarget ? ' is-inline' : ''}`}>
-          <div className="sm-quantity-row">
+          {!actionTarget && <div className="sm-quantity-row">
             <span>Cantidad</span>
             <div className="sm-stepper">
               <button
@@ -582,7 +576,7 @@ export function SmartDish({ entry, id, onClose, actionTarget }: SmartProps & {on
                 <Icon name="plus" />
               </button>
             </div>
-          </div>
+          </div>}
           {(() => { const action = <>
             {added ? (
             <div className="sm-added">
