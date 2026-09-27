@@ -14,3 +14,4 @@ from .channel_order import ChannelOrder
 from .agent_conversation import AgentConversation, AgentDailyUsage
 from .agent_conversation import AgentCartSelection
 from .payment import PaymentGateway, PaymentAttempt
+from experience_app.mcp.models import McpKey, McpPendingChange

@@ -8,7 +8,7 @@
     "author": "ProjectApp",
     "category": "Point of Sale",
     "depends": ["pos_restaurant", "pos_self_order", "pos_hr", "hr_attendance", "pos_loyalty", "account", "product", "stock", "mail", "projectapp_kitchen"],
-    "data": ["data/sequence.xml"],
+    "data": ["security/groups.xml", "data/sequence.xml"],
     "post_init_hook": "post_init_hook",
     "installable": True,
     "auto_install": False,

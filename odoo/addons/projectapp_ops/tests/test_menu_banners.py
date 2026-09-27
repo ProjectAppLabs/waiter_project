@@ -22,3 +22,18 @@ class TestMenuBanners(TransactionCase):
     def test_invalid_destination_image_and_limit(self):
         for banners in [[{**self.banner,'target':'product','targetId':999999999}],[{**self.banner,'layout':'image'}],[{**self.banner,'image':'data:image/svg+xml;base64,PHN2Zy8+'}],[self.banner]*9]:
             with self.assertRaises(ValidationError):self.config.waiter_banner_settings(self.employee.id,self.token,banners)
+
+    def test_integration_needs_its_group_validates_like_the_pos_and_dry_run_does_not_write(self):
+        # Sin el grupo de integraciones no hay atajo sin PIN, ni siquiera para un administrador.
+        group = self.env.ref('projectapp_ops.group_waiter_integration')
+        self.env.user.group_ids -= group
+        with self.assertRaises(AccessError):self.config.waiter_banner_settings_integration([self.banner],dry_run=True)
+        self.env.user.group_ids |= group
+        before = list(self.config.waiter_menu_banners or [])
+        preview = self.config.waiter_banner_settings_integration([{**self.banner,'title':'  Vista previa  '}],dry_run=True,actor='MCP wtr_prueba')
+        self.assertEqual(preview['banners'][0]['title'],'Vista previa')
+        self.assertEqual(list(self.config.waiter_menu_banners or []),before)
+        saved = self.config.waiter_banner_settings_integration([self.banner],dry_run=False,actor='MCP wtr_prueba')
+        self.assertEqual([b['title'] for b in saved['banners']],['Hoy abrimos'])
+        self.assertEqual(self.config.waiter_menu_banners[0]['title'],'Hoy abrimos')
+        with self.assertRaises(ValidationError):self.config.waiter_banner_settings_integration([self.banner]*9,dry_run=True)

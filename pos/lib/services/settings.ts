@@ -59,12 +59,14 @@ export async function saveBrand(b: BrandInfo, logo?: LogoChange): Promise<void> 
 }
 
 // Saludo de la cabecera del menú (Configuración › Diseño del menú). Solo toca ese campo: colores, fuente y logo siguen intactos.
-export async function saveBrandGreeting(companyId: number, greeting: string): Promise<void> {
-  await callKw('res.company', 'write', [[companyId], { brand_greeting: greeting.trim() || false }])
+// Por write_brand, como saveBrand: `res.company.write` exige un permiso (base.group_erp_manager) que el administrador del
+// POS no tiene, así que con su usuario fallaba. write_brand escribe en la compañía de quien llama.
+export async function saveBrandGreeting(greeting: string): Promise<void> {
+  await callKw('res.company', 'write_brand', [{ brand_greeting: greeting.trim() || false }])
 }
 
-export async function saveBrandLogo(companyId: number, logo: LogoChange): Promise<void> {
-  await callKw('res.company', 'write', [[companyId], { brand_logo: 'remove' in logo ? false : logo.base64 }])
+export async function saveBrandLogo(logo: LogoChange): Promise<void> {
+  await callKw('res.company', 'write_brand', [{ brand_logo: 'remove' in logo ? false : logo.base64 }])
 }
 
 export async function listFloors(): Promise<FloorInfo[]> {

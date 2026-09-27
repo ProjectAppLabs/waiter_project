@@ -50,7 +50,7 @@ it('removes the logo through the brand service without overwriting its other set
   wrap(); await screen.findByText('Tu restaurante, tu identidad')
   fireEvent.click(screen.getByRole('button', { name: 'Quitar logo' }))
   fireEvent.click(screen.getByRole('button', { name: /^Guardar$/ }))
-  await waitFor(() => expect(saveBrandLogo).toHaveBeenCalledWith(1, { remove: true }))
+  await waitFor(() => expect(saveBrandLogo).toHaveBeenCalledWith({ remove: true }))
 })
 // Falla si el saludo de la cabecera del menú no se guarda desde Diseño del menú o si se escribe sin haberlo cambiado.
 it('saves the menu greeting only when it changed', async () => {
@@ -60,5 +60,5 @@ it('saves the menu greeting only when it changed', async () => {
   fireEvent.change(screen.getByPlaceholderText('Hola'), { target: { value: 'Qué gusto verte' } })
   expect(screen.getByText(/Qué gusto verte, Camila/)).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: /^Guardar$/ }))
-  await waitFor(() => expect(saveBrandGreeting).toHaveBeenCalledWith(1, 'Qué gusto verte'))
+  await waitFor(() => expect(saveBrandGreeting).toHaveBeenCalledWith('Qué gusto verte'))
 })

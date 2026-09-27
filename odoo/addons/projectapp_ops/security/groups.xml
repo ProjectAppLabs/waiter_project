@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Identidad de servicio de las integraciones (el MCP de Waiter en experience/). Se asigna SOLO al usuario de servicio
+         con el que experience entra a este Odoo; quien lo tenga puede guardar banners sin el PIN de un empleado. -->
+    <record id="group_waiter_integration" model="res.groups">
+        <field name="name">Waiter · Integraciones (MCP)</field>
+        <field name="comment">Permite a las integraciones de Waiter (MCP) guardar la configuración del menú en nombre del restaurante.</field>
+    </record>
+</odoo>

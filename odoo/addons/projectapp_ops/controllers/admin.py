@@ -59,7 +59,7 @@ def _call(method, url, key, json=None):
         raise UserError(_("No se pudo contactar la experiencia del comensal (%s). Revisa projectapp.experience_url y que el servicio esté arriba.") % exc.__class__.__name__) from exc
     if response.status_code == 401:
         raise UserError(_("La experiencia del comensal rechazó la clave interna: projectapp.experience_internal_key no coincide con EXPERIENCE_INTERNAL_KEY."))
-    if response.status_code == 400:
+    if response.status_code in (400, 404):
         try:
             detail = response.json().get("detail")
         except ValueError:
@@ -88,6 +88,32 @@ class WaiterAdmin(http.Controller):
             body = {"plantilla": plantilla, "paleta": paleta or {}, "tipografia": tipografia or {}}
             return _call("PUT", url, p["internal_key"], json=body)
         raise UserError(_("Acción desconocida: %s (usa get o set).") % action)
+
+    @http.route("/waiter/admin/mcp_keys", type="jsonrpc", auth="user", methods=["POST"])
+    def mcp_keys(self, action="list", nombre=None, key_id=None, **kw):
+        """Claves MCP de esta sede (ver experience/experience_app/mcp). La sede sale de los parámetros de este Odoo, nunca
+        del navegador: un administrador solo crea o revoca claves de su propio restaurante.
+
+          list                → {claves: [...], mcpUrl}
+          create {nombre}     → {clave (en claro, una sola vez), id, nombre, prefijo, …, mcpUrl}
+          revoke {key_id}     → {revocada: id}
+        """
+        if not request.env.user.has_group("point_of_sale.group_pos_manager"):
+            raise AccessError(_("Solo un administrador del punto de venta puede administrar las claves de IA."))
+        if kw:
+            raise UserError(_("Parámetros desconocidos: %s") % ", ".join(sorted(kw)))
+        p = _params()
+        base = "%s/internal/v1/%s/%s/mcp/claves/" % (p["experience_url"].rstrip("/"), p["restaurant"], p["venue"])
+        mcp_url = "%s/mcp/" % p["experience_url"].rstrip("/")
+        if action == "list":
+            return {**_call("GET", base, p["internal_key"]), "mcpUrl": mcp_url}
+        if action == "create":
+            return {**_call("POST", base, p["internal_key"], json={"nombre": nombre or "", "creadaPor": request.env.user.name}), "mcpUrl": mcp_url}
+        if action == "revoke":
+            if type(key_id) is not int:
+                raise UserError(_("Indica qué clave revocar."))
+            return _call("POST", "%s%d/revocar/" % (base, key_id), p["internal_key"])
+        raise UserError(_("Acción desconocida: %s (usa list, create o revoke).") % action)
 
     @http.route("/waiter/admin/payment_gateways", type="jsonrpc", auth="user", methods=["POST"])
     def payment_gateways(self, action="get", configuration=None, environment="test", **kw):

@@ -1,10 +1,16 @@
 from django.urls import path
 
+from experience_app.mcp import views as mcp
 from experience_app.plantillas import views as templates
 from experience_app.views import agent_chat, channel_orders, payment_gateways
 from experience_app.views import benefits, password_reset, account, context, internal, logo, orders, payments, photos, sessions
 
 urlpatterns = [
+    path('mcp/', mcp.endpoint, name='mcp'),
+    path('mcp', mcp.endpoint),  # sin barra: un POST no puede redirigirse a /mcp/
+    path('mcp/<str:raw_key>/', mcp.endpoint, name='mcp-url-key'),
+    path('internal/v1/<slug:restaurant>/<slug:venue>/mcp/claves/', mcp.internal_keys, name='mcp-keys'),
+    path('internal/v1/<slug:restaurant>/<slug:venue>/mcp/claves/<int:key_id>/revocar/', mcp.internal_revoke, name='mcp-key-revoke'),
     path('internal/v1/<slug:restaurant>/<slug:venue>/pasarelas/', payment_gateways.configuration),
     path('api/v1/sesiones/<uuid:session_id>/pagos/', payment_gateways.payments),
     path('api/v1/sesiones/<uuid:session_id>/pagos/<uuid:payment_id>/', payment_gateways.detail),

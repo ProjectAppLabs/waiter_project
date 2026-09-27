@@ -138,13 +138,13 @@ export function MenuTemplateForm() {
       setError(null)
       try {
         if (logoChange) {
-          await saveBrandLogo(brand.companyId, logoChange)
+          await saveBrandLogo(logoChange)
           setLogo('remove' in logoChange ? null : logoChange.base64)
           setLogoChange(undefined)
           setBrand({ ...brand, hasLogo: !('remove' in logoChange) })
         }
         if (greeting.trim() !== (brand.greeting ?? '')) {
-          await saveBrandGreeting(brand.companyId, greeting)
+          await saveBrandGreeting(greeting)
           setBrand({ ...brand, greeting: greeting.trim() })
         }
         await gateway('set', JSON.parse(serialized) as MenuSettings)

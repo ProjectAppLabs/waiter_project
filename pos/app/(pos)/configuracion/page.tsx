@@ -13,6 +13,7 @@ import { ReservationHoursForm } from '@/components/settings/ReservationHoursForm
 import { PaymentGatewayForm } from '@/components/settings/PaymentGatewayForm'
 import { BenefitsForm } from '@/components/settings/BenefitsForm'
 import { MenuBannersForm } from '@/components/settings/MenuBannersForm'
+import { McpKeysForm } from '@/components/settings/McpKeysForm'
 import { MenuTemplateForm } from '@/components/settings/MenuTemplateForm'
 import { ThresholdsForm } from '@/components/settings/SettingsForms'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -21,8 +22,8 @@ import { useAuthStore } from '@/lib/stores/authStore'
 import { useCatalogStore } from '@/lib/stores/catalogStore'
 import { cn } from '@/lib/utils'
 
-const SECTIONS: [Section, KitIcon][] = [['restaurant', 'store'], ['menuTemplate', 'layout'], ['benefits', 'percentage'], ['floors', 'grid'], ['reservationHours', 'reservations'], ['payments', 'card'], ['taxes', 'percentage'], ['users', 'users'], ['permissions', 'lock'], ['alerts', 'alert'], ['roi', 'chartLine'], ['display', 'tablet']]
-type Section = 'permissions' | 'benefits' | 'reservationHours' | 'restaurant' | 'brand' | 'menuTemplate' | 'floors' | 'payments' | 'taxes' | 'users' | 'alerts' | 'roi' | 'display'
+const SECTIONS: [Section, KitIcon][] = [['restaurant', 'store'], ['menuTemplate', 'layout'], ['benefits', 'percentage'], ['floors', 'grid'], ['reservationHours', 'reservations'], ['payments', 'card'], ['taxes', 'percentage'], ['users', 'users'], ['permissions', 'lock'], ['alerts', 'alert'], ['roi', 'chartLine'], ['display', 'tablet'], ['integrations', 'sparkles']]
+type Section = 'integrations' | 'permissions' | 'benefits' | 'reservationHours' | 'restaurant' | 'brand' | 'menuTemplate' | 'floors' | 'payments' | 'taxes' | 'users' | 'alerts' | 'roi' | 'display'
 
 // Configuración con la estructura del modal "Setting" del kit (Account Setting / Profile.png): pestañas verticales con
 // icono a la izquierda y panel con cabecera a la derecha, para las secciones del restaurante.
@@ -61,6 +62,7 @@ function ConfiguracionInner() {
             <div className="flex-1 min-h-0 overflow-y-auto p-5">
               {section === 'restaurant' && company && <CompanyForm key={company.id} initial={company} />}
               {section === 'benefits' && <BenefitsForm configId={catalog.settings.configId} />}
+              {section === 'integrations' && <McpKeysForm />}
               {section === 'menuTemplate' && <><MenuTemplateForm /><MenuBannersForm configId={catalog.settings.configId}/></>}
               {section === 'floors' && <FloorsForm floors={floors} configId={catalog.settings.configId} onChanged={reloadFloors} />}
               {section === 'reservationHours' && <ReservationHoursForm configId={catalog.settings.configId} />}

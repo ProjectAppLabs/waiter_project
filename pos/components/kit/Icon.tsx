@@ -8,7 +8,7 @@ import { IconAddressBook, IconAdjustments, IconAlarm, IconAlertTriangle, IconArm
   IconLock, IconLogout, IconMail, IconMapPin, IconMarquee2, IconMinus, IconPackage, IconPalette, IconPencil, IconPercentage, IconPhone,
   IconPhoto, IconPhotoPlus, IconPlus, IconPointer, IconPrinter, IconProgress, IconQrcode, IconReceipt, IconRefresh, IconRotate, IconSearch,
   IconSettings, IconSettingsCog, IconShoppingBag, IconShoppingCart, IconStack2, IconStairs, IconStar, IconStarFilled, IconTag, IconToolsKitchen2,
-  IconTrash, IconTruckDelivery, IconUpload, IconUser, IconUsers, IconVolume, IconVolumeOff, IconWall, IconWallet, IconX, type IconProps,
+  IconTrash, IconTruckDelivery, IconUpload, IconUser, IconUsers, IconVolume, IconVolumeOff, IconSparkles, IconWall, IconWallet, IconX, type IconProps,
 } from '@tabler/icons-react'
 import type { ComponentType } from 'react'
 
@@ -26,7 +26,7 @@ const ICONS = {
   language: IconLanguage, babyChair: IconBabyCarriage, delivery: IconTruckDelivery, store: IconBuildingStore,
   moreHorizontal: IconDots, refresh: IconRefresh, upload: IconUpload, bag: IconShoppingBag, hash: IconHash,
   expand: IconArrowsMaximize, armchair: IconArmchair, terminal: IconDeviceMobile, banknote: IconCashBanknote,
-  mapPin: IconMapPin, phone: IconPhone, loader: IconLoader2, circleCheck: IconCircleCheck, wallet: IconWallet,
+  mapPin: IconMapPin, phone: IconPhone, loader: IconLoader2, circleCheck: IconCircleCheck, wallet: IconWallet, sparkles: IconSparkles,
   fileCheck: IconFileCheck, progress: IconProgress, exchange: IconArrowsExchange2, photoPlus: IconPhotoPlus,
   cog: IconSettingsCog, info: IconInfoCircle, checkFilled: IconCircleCheckFilled, checks: IconChecks, star: IconStar,
   starFilled: IconStarFilled, volume: IconVolume, volumeOff: IconVolumeOff, flame: IconFlame, tag: IconTag,

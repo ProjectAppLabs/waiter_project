@@ -57,11 +57,12 @@ it('trims the texts and sends whitespace-only ones as false', async () => {
   expect(m.mock.calls[0][2][0]).toEqual({ brand_color: '#7A2E2A', brand_font: 'Lora', brand_radius: '14', brand_tagline: false, brand_greeting: 'Buenas', brand_waiter_name: 'Alex', brand_welcome: false })
 })
 
-// Falla si el saludo del menú pisa el resto de la marca (color, fuente, logo) o si vacío viaja como '' en vez de false.
-it('saves only the menu greeting and clears it with false', async () => {
+// Falla si el saludo del menú pisa el resto de la marca (color, fuente, logo), si vacío viaja como '' en vez de false, o si
+// vuelve a usar res.company.write (el administrador del POS no tiene ese permiso; write_brand sí lo admite).
+it('saves only the menu greeting through write_brand and clears it with false', async () => {
   m.mockResolvedValue(true)
-  await saveBrandGreeting(1, '  Buenas noches  ')
-  expect(m.mock.calls[0]).toEqual(['res.company', 'write', [[1], { brand_greeting: 'Buenas noches' }]])
-  await saveBrandGreeting(1, '   ')
-  expect(m.mock.calls[1]).toEqual(['res.company', 'write', [[1], { brand_greeting: false }]])
+  await saveBrandGreeting('  Buenas noches  ')
+  expect(m.mock.calls[0]).toEqual(['res.company', 'write_brand', [{ brand_greeting: 'Buenas noches' }]])
+  await saveBrandGreeting('   ')
+  expect(m.mock.calls[1]).toEqual(['res.company', 'write_brand', [{ brand_greeting: false }]])
 })

@@ -29,6 +29,14 @@ docker compose -p odoo-spike restart odoo
 odoo/provisioning/seed-kit.sh projectapp odoo-spike
 ```
 
+Integraciones (MCP de Waiter, `experience/experience_app/mcp/README.md`): el usuario de servicio con el que `experience`
+entra a cada Odoo necesita el grupo **Waiter · Integraciones (MCP)** para guardar banners sin PIN de empleado. Se asigna
+solo a ese usuario (en la demo, `admin`):
+
+```
+env['res.users'].search([('login', '=', '<usuario de servicio>')]).group_ids |= env.ref('projectapp_ops.group_waiter_integration')
+```
+
 Pruebas (runner de Odoo, en una base de prueba propia, nunca en la compartida):
 
 ```
