@@ -154,10 +154,10 @@ function layoutCheck() {
   if (page) {
     let last = 0
     for (const el of page.querySelectorAll('*')) { if (!visible(el) || fixed(el)) continue; last = Math.max(last, el.getBoundingClientRect().bottom + scrollY) }
-    // Solo si la página se desplaza: en una pantalla corta, lo que queda abajo es el resto de la pantalla, no espacio sobrante.
-    const scrolls = document.documentElement.scrollHeight > innerHeight + 1
-    const empty = document.documentElement.scrollHeight - last
-    if (scrolls && last && empty > dockHeight + 96) problems.push(`maquetación: sobran ${Math.round(empty - dockHeight)} px vacíos al final de la pantalla (bajo el último contenido)`)
+    // Cuenta lo que queda por debajo del contenido y de una pantalla completa: una pantalla corta (o la franja de vista
+    // previa, que la alarga unos píxeles) no tiene espacio sobrante aunque el documento se desplace un poco.
+    const empty = document.documentElement.scrollHeight - Math.max(last, innerHeight)
+    if (last && empty > dockHeight + 96) problems.push(`maquetación: sobran ${Math.round(empty - dockHeight)} px vacíos al final de la pantalla (bajo el último contenido)`)
   }
   // 2. Contenido cortado por el borde: fotos y textos visibles que se salen de la pantalla (fuera de un carril desplazable).
   const cut = new Set()
