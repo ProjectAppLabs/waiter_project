@@ -49,3 +49,8 @@ nuevas), experience sin contract/addon en verde salvo el bloqueo intermitente co
 Probado de punta a punta con tres fotos de galería en la Hamburguesa Clásica: 97 → 42 KB, 93 → 45 KB y 57 → 20 KB en
 WebP, servidas como `image/webp` con caché inmutable, y el carrusel verificado en Chromium. Las fotos de galería se cargan
 todas de entrada (son como mucho 5 WebP ligeros) para que deslizar no muestre huecos.
+
+**Verificación en Chromium (Plan M):** galería con como mucho 5 fotos, un punto por foto, todas cargadas y cada una del ancho
+del marco; toda foto de plato de la página (principal y galería) se sirve como WebP y pesa menos de 400 KB. La primera
+pasada encontró las 49 fotos principales anteriores todavía en JPEG: la migración `19.0.2.3.0/post-migrate.py` las convierte
+al actualizar el módulo (49 de 49 en desarrollo).

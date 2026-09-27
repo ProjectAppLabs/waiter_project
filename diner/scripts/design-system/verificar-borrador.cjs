@@ -180,6 +180,18 @@ function layoutCheck() {
     const r = photo.getBoundingClientRect(), radius = parseFloat(getComputedStyle(photo).borderTopLeftRadius) || 0
     if (radius < Math.min(r.width, r.height) / 2 - 1) problems.push('maquetación: las órbitas decorativas de la ficha se ven con una foto no circular')
   }
+  // 6. Galería de la ficha (Plan M): como mucho 5 fotos, un punto por foto, todas cargadas y cada una del ancho del marco.
+  for (const gallery of document.querySelectorAll('.smart-menu .sm-dish-gallery')) {
+    const imgs = [...gallery.querySelectorAll('.sm-dish-gallery-rail img')], dots = gallery.querySelectorAll('.sm-dish-gallery-dots button')
+    const frame = gallery.getBoundingClientRect().width
+    if (imgs.length > 5) problems.push(`galería: el plato muestra ${imgs.length} fotos; el máximo es 5`)
+    if (dots.length !== imgs.length) problems.push(`galería: ${dots.length} puntos para ${imgs.length} fotos`)
+    imgs.forEach((img, i) => {
+      if (!img.complete || !img.naturalWidth) problems.push(`galería: la foto ${i + 1} no cargó (se vería un hueco al deslizar)`)
+      const w = img.closest('.sm-food-photo').getBoundingClientRect().width
+      if (Math.abs(w - frame) > 1) problems.push(`galería: la foto ${i + 1} mide ${Math.round(w)} px y el marco ${Math.round(frame)} px (el carrusel no avanza de una en una)`)
+    })
+  }
   // 5. Nutrición en una fila.
   const nutrition = [...document.querySelectorAll('.smart-menu .sm-nutrition > div')].filter(visible)
   if (nutrition.length > 1 && new Set(nutrition.map((el) => Math.round(el.getBoundingClientRect().top))).size > 1) problems.push('maquetación: la información nutricional no cabe en una fila')
@@ -310,6 +322,15 @@ async function main() {
       measured.problemas.push(...await page.evaluate(contrastCheck))
       measured.problemas.push(...await page.evaluate(imageCheck))
       if (spec.name !== 'sistema') measured.problemas.push(...await page.evaluate(layoutCheck))
+      // Plan M: toda foto de plato llega optimizada (WebP) y ligera (menos de 400 KB), la principal y las de galería.
+      const photos = await page.evaluate(() => [...new Set([...document.querySelectorAll('.smart-menu img')].map((i) => i.currentSrc || i.src).filter((u) => /\/fotos\/\d+/.test(u)))].slice(0, 12))
+      for (const url of photos) {
+        const res = await page.request.get(url).catch(() => null)
+        if (!res || !res.ok()) { measured.problemas.push(`fotos: ${new URL(url).pathname} no responde`); continue }
+        const type = res.headers()['content-type'] || '', size = (await res.body()).length
+        if (!type.startsWith('image/webp')) measured.problemas.push(`fotos: ${new URL(url).pathname} llega como ${type || 'sin tipo'}, no WebP`)
+        if (size > 400 * 1024) measured.problemas.push(`fotos: ${new URL(url).pathname} pesa ${Math.round(size / 1024)} KB (máximo 400 KB)`)
+      }
       measured.problemas.push(...[...foreign].map((origin) => `seguridad: la página pidió recursos a un origen no permitido: ${origin}`))
       Object.keys(measured.raices).forEach((id) => seen.add(id))
       result.medidas[`${spec.name} ${width}px`] = { raices: measured.raices, problemas: measured.problemas.length }
