@@ -46,7 +46,7 @@
 :root { --r-brand: #C1873A; --r-brand-ink: #FFFFFF; --r-brand-soft: #FDF6EA; --r-display: 'Instrument Serif'; --r-radius: 14px; }
 /* Valores de respaldo del menú S1; también se usan mientras llega la marca del restaurante. */
 :root {
-  --t-fondo: #F8F8FA; --t-superficie: #FFFFFF; --t-tinta: #32324D; --t-tinta-suave: #666687; --t-tinta-terciaria: #FFB01D;
+  --t-fondo: #F8F8FA; --t-superficie: #FFFFFF; --t-tinta: #32324D; --t-tinta-suave: #666687; --t-tinta-terciaria: #FFB01D; --t-tinta-fondo: var(--t-tinta);
   --t-borde: #EAEAEF; --t-acento: #6755A0; --t-acento-tinta: #FFFFFF; --t-acento-suave: #EEEBF5;
   --t-display: 'DM Sans', system-ui, sans-serif; --t-display-peso: 500; --t-display-tracking: -0.025em; --t-display-transform: none;
   --t-cuerpo: 'Mulish', system-ui, sans-serif; --t-mono: 'Mulish', ui-monospace, monospace;
@@ -55,6 +55,7 @@
   --sm-highlight-text: #8F6310;
   --sm-accent-text: #6755A0;
   --sm-readable-muted: #666687;
+  --sm-accent-text-fondo: #6755A0; --sm-accent-text-superficie: #6755A0; --sm-highlight-text-fondo: #8F6310; --sm-highlight-text-superficie: #8F6310; --sm-readable-muted-fondo: #666687; --sm-readable-muted-superficie: #666687;
 }
 html { font-family: var(--font-ui); background: var(--t-fondo); color: var(--t-tinta); -webkit-font-smoothing: antialiased; }
 .tabular { font-variant-numeric: tabular-nums; }

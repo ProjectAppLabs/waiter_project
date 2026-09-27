@@ -25,14 +25,36 @@
     "empty": "Ningún producto coincide",
     "emptyBody": "Cambia los filtros o crea un producto nuevo.",
     "uncategorized": "Sin categoría",
-    "filters": { "status": "Estado en carta", "favorite": "Favorito", "category": "Categoría" },
-    "status": { "all": "Todos", "available": "En carta", "hidden": "Ocultos" },
-    "fav": { "all": "Todos", "favorite": "Favoritos" },
-    "card": { "available": "En carta", "hidden": "Oculto", "favorite": "Favorito", "tax": "Impuesto", "noTax": "Sin impuesto", "storable": "Existencias" },
+    "filters": {
+      "status": "Estado en carta",
+      "favorite": "Favorito",
+      "category": "Categoría"
+    },
+    "status": {
+      "all": "Todos",
+      "available": "En carta",
+      "hidden": "Ocultos"
+    },
+    "fav": {
+      "all": "Todos",
+      "favorite": "Favoritos"
+    },
+    "card": {
+      "available": "En carta",
+      "hidden": "Oculto",
+      "favorite": "Favorito",
+      "tax": "Impuesto",
+      "noTax": "Sin impuesto",
+      "storable": "Existencias"
+    },
     "form": {
       "title": "Editar producto",
       "newTitle": "Nuevo producto",
-      "steps": { "info": "Información", "image": "Imagen", "attributes": "Atributos" },
+      "steps": {
+        "info": "Información",
+        "image": "Imagen",
+        "attributes": "Atributos"
+      },
       "infoTitle": "Información del producto",
       "imageTitle": "Foto del producto",
       "attributesTitle": "Atributos para el comensal",
@@ -57,7 +79,12 @@
       "pieces": "Piezas",
       "piecesHint": "Unidades por ración (p. ej. 8 alitas).",
       "spicy": "Picante",
-      "spicyLevels": { "0": "Sin picante", "1": "Suave", "2": "Medio", "3": "Fuerte" },
+      "spicyLevels": {
+        "0": "Sin picante",
+        "1": "Suave",
+        "2": "Medio",
+        "3": "Fuerte"
+      },
       "tags": "Etiquetas",
       "tagsHint": "Separadas por coma: popular, nuevo, sin gluten…",
       "allergens": "Alérgenos",
@@ -76,7 +103,16 @@
       "previousPrice": "Precio anterior (COP)",
       "previousPriceHint": "Se muestra tachado con el % de rebaja. Se cobra el precio de arriba.",
       "save": "Guardar",
-      "saved": "Guardado. La carta del comensal se actualiza en un minuto."
+      "saved": "Guardado. La carta del comensal se actualiza en un minuto.",
+      "gallery": "Galería de la ficha",
+      "galleryHint": "Hasta 4 fotos más (5 con la principal). Se ven en el detalle del plato; al guardar se optimizan a WebP.",
+      "galleryAdd": "Añadir foto a la galería",
+      "galleryRemove": "Quitar la foto {n}",
+      "galleryLeft": "Mover la foto {n} antes",
+      "galleryRight": "Mover la foto {n} después",
+      "galleryPhoto": "Foto {n} de la galería",
+      "photoType": "Usa una foto PNG, JPEG o WebP.",
+      "photoSize": "La foto pesa más de 12 MB."
     },
     "catForm": {
       "title": "Categorías",
@@ -93,8 +129,18 @@
     "subtitle": "{n} clientes",
     "search": "Buscar por nombre, documento o teléfono",
     "new": "Nuevo cliente",
-    "filters": { "all": "Todos", "withOrders": "Con pedidos", "invoiced": "Facturados" },
-    "cols": { "name": "Cliente", "doc": "Documento", "phone": "Teléfono", "orders": "Pedidos", "invoiced": "Facturado" },
+    "filters": {
+      "all": "Todos",
+      "withOrders": "Con pedidos",
+      "invoiced": "Facturados"
+    },
+    "cols": {
+      "name": "Cliente",
+      "doc": "Documento",
+      "phone": "Teléfono",
+      "orders": "Pedidos",
+      "invoiced": "Facturado"
+    },
     "empty": "Ningún cliente coincide",
     "emptyBody": "Cambia la búsqueda o crea un cliente nuevo.",
     "panel": {
@@ -297,23 +343,78 @@
       "users": "Usuarios",
       "alerts": "Umbrales de alerta",
       "roi": "Supuestos del ROI",
-      "display": "Pantalla y sonido", "integrations": "Integraciones IA",
+      "display": "Pantalla y sonido",
+      "integrations": "Integraciones IA",
       "benefits": "Cupones y puntos",
       "reservationHours": "Horario de reservas"
     },
-    "floors": { "tables": "{n, plural, one {# mesa} other {# mesas}}", "number": "Número", "seats": "Puestos", "active": "Activa", "newTable": "Agregar mesa", "newFloor": "Nuevo piso", "floorName": "Nombre del piso", "table": "Mesa {n}" },
-    "payments": { "hint": "Los métodos se crean en Odoo por el aprovisionamiento; aquí se ven los del canal.", "type": {"cash": "Efectivo", "bank": "Datáfono / banco", "pay_later": "Cuenta de cliente"} },
-    "taxes": { "hint": "Impuestos de venta disponibles para la carta." },
-    "users": { "list": "Usuarios del restaurante", "invite": "Invitar usuario", "active": "Activa", "pending": "Invitación pendiente", "lastLogin": "Último ingreso", "never": "Nunca", "resend": "Reenviar código", "resent": "Código reenviado", "role": "Rol", "name": "Nombre", "email": "Correo", "emailHint": "Le llegará un código para activar su cuenta y elegir su contraseña.", "roleHint": "Mesero: salón y pedidos. Cajero: además caja, ventas y facturación. Administrador: todo." },
-    "display": { "density": "Densidad de la interfaz", "compact": "Compacta", "balanced": "Equilibrada", "wide": "Amplia", "station": "Esta pantalla es", "kds": "Cocina (alto)", "tablet": "Tablet de mesero (medio)", "caja": "Caja (bajo)", "sounds": "Probar sonidos", "test": "Probar", "localHint": "La densidad y el volumen se guardan en este dispositivo.", "theme": "Modo de color", "themeHint": "Sistema, claro u oscuro. También se cambia desde el chip de usuario." }
+    "floors": {
+      "tables": "{n, plural, one {# mesa} other {# mesas}}",
+      "number": "Número",
+      "seats": "Puestos",
+      "active": "Activa",
+      "newTable": "Agregar mesa",
+      "newFloor": "Nuevo piso",
+      "floorName": "Nombre del piso",
+      "table": "Mesa {n}"
+    },
+    "payments": {
+      "hint": "Los métodos se crean en Odoo por el aprovisionamiento; aquí se ven los del canal.",
+      "type": {
+        "cash": "Efectivo",
+        "bank": "Datáfono / banco",
+        "pay_later": "Cuenta de cliente"
+      }
+    },
+    "taxes": {
+      "hint": "Impuestos de venta disponibles para la carta."
+    },
+    "users": {
+      "list": "Usuarios del restaurante",
+      "invite": "Invitar usuario",
+      "active": "Activa",
+      "pending": "Invitación pendiente",
+      "lastLogin": "Último ingreso",
+      "never": "Nunca",
+      "resend": "Reenviar código",
+      "resent": "Código reenviado",
+      "role": "Rol",
+      "name": "Nombre",
+      "email": "Correo",
+      "emailHint": "Le llegará un código para activar su cuenta y elegir su contraseña.",
+      "roleHint": "Mesero: salón y pedidos. Cajero: además caja, ventas y facturación. Administrador: todo."
+    },
+    "display": {
+      "density": "Densidad de la interfaz",
+      "compact": "Compacta",
+      "balanced": "Equilibrada",
+      "wide": "Amplia",
+      "station": "Esta pantalla es",
+      "kds": "Cocina (alto)",
+      "tablet": "Tablet de mesero (medio)",
+      "caja": "Caja (bajo)",
+      "sounds": "Probar sonidos",
+      "test": "Probar",
+      "localHint": "La densidad y el volumen se guardan en este dispositivo.",
+      "theme": "Modo de color",
+      "themeHint": "Sistema, claro u oscuro. También se cambia desde el chip de usuario."
+    }
   },
   "roi": {
     "title": "Retorno de inversión",
     "subtitle": "{period} · comparado con {previous}",
     "baseline": "antes de ProjectApp",
-    "periods": { "week": "Semana", "month": "Mes", "year": "Año" },
+    "periods": {
+      "week": "Semana",
+      "month": "Mes",
+      "year": "Año"
+    },
     "export": "Exportar",
-    "nav": { "roi": "Retorno", "ai": "Analítica IA", "config": "Configurar IA" },
+    "nav": {
+      "roi": "Retorno",
+      "ai": "Analítica IA",
+      "config": "Configurar IA"
+    },
     "hero": "Retorno del periodo",
     "months": "{n, plural, =0 {Primer mes de uso} one {# mes de uso} other {# meses de uso}}",
     "perHundred": "Por cada $100.000 pagados",
@@ -330,7 +431,12 @@
     "netHint": "Ahorro + ventas IA − coste",
     "sources": "De dónde sale el valor",
     "sourcesHint": "{period}, en pesos",
-    "source": { "autonomous": "Pedidos autónomos", "hours": "Menos horas de atención", "upsell": "Upsell aceptado", "errors": "Menos errores de pedido" },
+    "source": {
+      "autonomous": "Pedidos autónomos",
+      "hours": "Menos horas de atención",
+      "upsell": "Upsell aceptado",
+      "errors": "Menos errores de pedido"
+    },
     "unmeasured": "sin medir"
   }
 }

@@ -5,6 +5,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { pathFor, type Route, type Screen } from '@/lib/domain/route'
 import type { TemplateData, TemplateSlots } from '@/lib/domain/plantillas'
 import { Plantilla } from '@/components/plantillas/Renderizador'
@@ -29,7 +30,6 @@ import {SmartWallet} from './SmartWallet'
 import { MenuBanners } from './MenuBanners'
 import { SmartChat } from './SmartChat'
 import { SmartReservationPay } from './SmartReservationPay'
-import { IngredientIllustration } from './SmartIngredients'
 import './smart-tokens.css'
 import './smart-menu.css'
 import './smart-dish.css'
@@ -40,6 +40,7 @@ import './smart-motion.css'
 import './smart-accessibility.css'
 import './smart-variants.css'
 import './smart-utilities.css'
+import './smart-marca.css'
 import './smart-decoraciones.css'
 
 export type SmartProps = {
@@ -306,7 +307,7 @@ export function DishHero({ dish }: { dish: Dish }) {
   const tiempo = <PrepTime dish={dish}/>
   const encabezado = <div className="sm-dish-heading"><h1>{dish.nombre}</h1>{precio}{rebaja}{tiempo}</div>
   const orbitas = <div className="sm-dish-orbits" aria-hidden="true" />
-  const foto = <FoodPhoto dish={dish} className="sm-dish-photo" />
+  const foto = <DishGallery dish={dish} />
   const valoracion = <DishRating dish={dish}/>
   const factory = <>{orbitas}{foto}{valoracion}{encabezado}</>
   return (
@@ -315,6 +316,28 @@ export function DishHero({ dish }: { dish: Dish }) {
     </header>
   )
 }
+// Plan M: galería de la ficha. La foto principal más las de galería (hasta 5 en total) en un carril con desplazamiento por
+// pasos dentro del marco .sm-dish-photo (que conserva tamaño, radio y variantes); los puntos dicen «Foto N de M» y llevan a
+// cada foto. Con una sola foto se ve igual que siempre.
+export function DishGallery({ dish }: { dish: Dish }) {
+  const photos = [dish.foto, ...(dish.fotos ?? [])].filter((src): src is string => typeof src === 'string' && src.length > 0).slice(0, 5)
+  const rail = useRef<HTMLDivElement>(null)
+  const [current, setCurrent] = useState(0)
+  if (photos.length < 2) return <FoodPhoto dish={dish} className="sm-dish-photo" />
+  const go = (index: number) => { const el = rail.current; if (el) el.scrollTo({ left: index * el.clientWidth, behavior: 'smooth' }) }
+  return <div className="sm-dish-photo sm-dish-gallery" role="region" aria-roledescription="carrusel" aria-label={`Fotos de ${dish.nombre}`}>
+    <div className="sm-dish-gallery-rail" ref={rail} onScroll={(e) => { const el = e.currentTarget; setCurrent(Math.round(el.scrollLeft / Math.max(1, el.clientWidth))) }}>
+      {photos.map((src, i) => <div className="sm-food-photo" key={src} aria-label={`Foto ${i + 1} de ${photos.length}`} role="group">
+        {/* Todas de entrada: son como mucho 5 WebP ligeros y así deslizar nunca muestra un hueco en blanco. */}
+        <img src={src} alt={i === 0 ? dish.nombre : `${dish.nombre}, foto ${i + 1}`} loading="eager" decoding="async" />
+      </div>)}
+    </div>
+    <div className="sm-dish-gallery-dots">
+      {photos.map((src, i) => <button key={src} type="button" aria-label={`Foto ${i + 1} de ${photos.length}`} aria-current={i === current ? 'true' : undefined} onClick={() => go(i)} />)}
+    </div>
+  </div>
+}
+
 // Exportada para la página viva del sistema de diseño (J5), que la muestra con cada variante.
 // Con una plantilla propia (Plan K2) la tarjeta real sigue siendo la dueña de las acciones: la plantilla solo las coloca.
 export function FoodCard({ dish }: { dish: Dish }) {
@@ -474,12 +497,13 @@ export function SmartBrowse({
     </>
   )
 }
-export function SmartDish({ entry, id, onClose }: SmartProps & {onClose?:()=>void}) {
+// actionTarget: hueco del muelle inferior (junto a «Mi mesero») donde va la acción principal, como en el pedido. Sin él
+// (p. ej. la ficha dentro del asistente) la barra de compra sigue flotando abajo.
+export function SmartDish({ entry, id, onClose, actionTarget }: SmartProps & {onClose?:()=>void; actionTarget?: HTMLElement | null}) {
   const { add, addBundle, busy } = useDinerStore()
   const { go } = useSmartRoute()
   const [extras,setExtras] = useState<Record<number,number>>({})
   const [qty, setQty] = useState(1),
-    [note, setNote] = useState(''),
     [added, setAdded] = useState(false)
   const [sending, setSending] = useState(false)
   const lock = useRef(false)
@@ -500,8 +524,8 @@ export function SmartDish({ entry, id, onClose }: SmartProps & {onClose?:()=>voi
     setSending(true)
     try {
       const selected=Object.entries(extras).filter(([,count])=>count>0)
-      if(selected.length)await addBundle([{producto_id:dish.id,cantidad:qty,nota:note},...selected.map(([productId,count])=>({producto_id:Number(productId),cantidad:count,nota:`Acompaña: ${dish.nombre}`.slice(0,200)}))])
-      else await add(dish.id, qty, note)
+      if(selected.length)await addBundle([{producto_id:dish.id,cantidad:qty,nota:''},...selected.map(([productId,count])=>({producto_id:Number(productId),cantidad:count,nota:`Acompaña: ${dish.nombre}`.slice(0,200)}))])
+      else await add(dish.id, qty, '')
       if (!useDinerStore.getState().error) setAdded(true)
     } finally {
       lock.current = false
@@ -509,7 +533,7 @@ export function SmartDish({ entry, id, onClose }: SmartProps & {onClose?:()=>voi
     }
   }
   const attrs = dish.atributos
-  const nutrition = ([['calorias','Calorías','kcal'],['peso','Porción','g'],['proteina','Proteína','g'],['carbohidratos','Carbos','g'],['grasa','Grasa','g'],['fibra','Fibra','g']] as const).filter(([key]) => typeof attrs?.nutricion?.[key] === 'number')
+  const nutrition = ([['calorias','Calorías','kcal'],['peso','Porción','g'],['proteina','Proteína','g'],['carbohidratos','Carbos','g'],['grasa','Grasa','g']] as const).filter(([key]) => typeof attrs?.nutricion?.[key] === 'number')
   const catalog = [...new Map(entry.carta.categorias.flatMap(c=>c.productos).map(d=>[d.id,d])).values()]
   const toppings = catalog.filter(d=>d.id!==dish.id && attrs?.extras?.includes(d.id))
   const sides = attrs?.acompanamientos
@@ -529,12 +553,9 @@ export function SmartDish({ entry, id, onClose }: SmartProps & {onClose?:()=>voi
           {dish.descripcion && (
             <p className="sm-description">{dish.descripcion}</p>
           )}
-          {dish.foto && dish.fotoOrigen === 'ia' && (
-            <p className="sm-footnote">Imagen de referencia</p>
-          )}
           {!!nutrition.length && <dl className="sm-nutrition" aria-label="Información por porción">{nutrition.map(([key,label,unit])=><div key={key} aria-label={`${label}: ${attrs?.nutricion?.[key]} ${unit}`}><dt>{key==='calorias'?'kcal':key==='peso'?'gramos':label}</dt><dd>{attrs?.nutricion?.[key]}</dd></div>)}</dl>}
           {!!attrs?.combo?.length&&<section className="sm-ingredients"><h2>Este combo incluye</h2><ul>{attrs.combo.map(item=><li key={item.producto}>{item.cantidad} × {item.nombre}</li>)}</ul><p className="sm-note">El precio corresponde al combo completo.</p></section>}
-          {!!attrs?.ingredientes?.length && <section className="sm-ingredients"><h2>Ingredientes</h2><div>{attrs.ingredientes.map(ingredient=><span key={ingredient}><IngredientIllustration name={ingredient}/>{ingredient}</span>)}</div></section>}
+          {!!attrs?.ingredientes?.length && <section className="sm-ingredients"><h2>Ingredientes</h2><ul className="sm-ingredient-list">{attrs.ingredientes.map(ingredient=><li key={ingredient}>{ingredient}</li>)}</ul></section>}
           {!!attrs?.etiquetas?.length && (
             <div className="sm-tags">
               {attrs.etiquetas.map((tag) => (
@@ -551,9 +572,8 @@ export function SmartDish({ entry, id, onClose }: SmartProps & {onClose?:()=>voi
           {!!toppings.length && <section className="sm-dish-toppings"><h2>Añade adicionales</h2><div>{toppings.map(extra=><div className="sm-topping" key={extra.id} data-selected={!!extras[extra.id]}><label><input type="checkbox" checked={!!extras[extra.id]} disabled={extra.agotado||sending||(atExtraLimit&&!extras[extra.id])} onChange={e=>changeExtra(extra.id,e.target.checked?1:0)}/><span>{extra.nombre}{extra.agotado&&<small>Agotado</small>}</span><strong>{money(extra.precio)}</strong></label>{!!extras[extra.id]&&counter(extra)}</div>)}</div></section>}
           {!!sides.length && <section className="sm-dish-sides"><h2>{attrs?.acompanamientos ? 'Acompañamientos recomendados' : 'También te puede gustar'}</h2><div>{sides.map(extra=><div className="sm-side" key={extra.id}><FoodPhoto dish={extra}/><div className="sm-side-info"><h3>{extra.nombre}</h3><DishRating dish={extra} reviews/>{extra.descripcion&&<p>{extra.descripcion}</p>}<strong>{money(extra.precio)}</strong>{extra.agotado&&<small>Agotado</small>}</div>{counter(extra)}</div>)}</div></section>}
           {atExtraLimit&&<p className="sm-footnote">Puedes elegir hasta 19 adicionales y acompañamientos distintos por plato.</p>}
-          <div className="sm-dish-request"><label className="sm-field" htmlFor={`dish-note-${dish.id}`}><span>¿Alguna indicación para cocina?</span></label><div><textarea id={`dish-note-${dish.id}`} rows={3} maxLength={200} value={note} placeholder="Por ejemplo: sin cebolla" onChange={e=>{setNote(e.target.value);setAdded(false)}}/><span aria-live="off">{note.length}/200</span></div></div>
-          <div className={`sm-dish-purchase ${added ? 'is-added' : ''}`}>
-          <div className="sm-quantity-row">
+          <div className={`sm-dish-purchase ${added ? 'is-added' : ''}${actionTarget ? ' is-inline' : ''}`}>
+          {!actionTarget && <div className="sm-quantity-row">
             <span>Cantidad</span>
             <div className="sm-stepper">
               <button
@@ -578,8 +598,9 @@ export function SmartDish({ entry, id, onClose }: SmartProps & {onClose?:()=>voi
                 <Icon name="plus" />
               </button>
             </div>
-          </div>
-          {added ? (
+          </div>}
+          {(() => { const action = <>
+            {added ? (
             <div className="sm-added">
               <p role="status">
                 <Icon name="check" />
@@ -605,11 +626,12 @@ export function SmartDish({ entry, id, onClose }: SmartProps & {onClose?:()=>voi
                 'Agregando…'
               ) : (
                 <>
-                  Agregar a mi pedido <span>{money(purchaseTotal)}</span>
+                  {actionTarget ? 'Agregar' : 'Agregar a mi pedido'} <span>{money(purchaseTotal)}</span>
                 </>
               )}
             </button>
           )}
+          </>; return actionTarget ? createPortal(<div className="sm-dish-dock-action">{action}</div>, actionTarget) : action })()}
           </div>
         </div>
       </article>
@@ -630,6 +652,7 @@ export function SmartExperience({
     if (account && !preview) void loadFavorites()
   }, [account, loadFavorites, preview])
   const [cartActionTarget, setCartActionTarget] = useState<HTMLDivElement | null>(null)
+  const [dishActionTarget, setDishActionTarget] = useState<HTMLDivElement | null>(null)
   const screen = route.screen
   const count = (cart?.lineas ?? [])
     .filter((l) => l.mio)
@@ -651,7 +674,7 @@ export function SmartExperience({
         {screen === 'favoritos' && (
           <SmartBrowse entry={props.entry} favoritesOnly />
         )}
-        {screen === 'plato' && <SmartDish key={props.id} {...props} />}
+        {screen === 'plato' && <SmartDish key={props.id} {...props} actionTarget={dishActionTarget} />}
         {screen === 'pedido' && <SmartCart actionTarget={cartActionTarget} />}
         {screen === 'pago' && <SmartPay />}
         {screen === 'reserva' && <SmartReservationPay entry={props.entry} rest={props.rest} venue={props.venue} token={props.id} />}
@@ -675,9 +698,10 @@ export function SmartExperience({
         {screen === 'cuenta/registro' && <SmartSignup />}
         {screen === 'cuenta/codigo' && <SmartCode />}
       </div>
-      {screen !== 'reserva' && <div className={`sm-action-dock${showCart || showConfirm ? ' sm-action-dock-pair' : ''}`}>
+      {screen !== 'reserva' && <div className={`sm-action-dock${showCart || showConfirm || screen === 'plato' ? ' sm-action-dock-pair' : ''}`}>
         <SmartChat key={`${props.rest}/${props.venue}/${props.token}`} entry={props.entry} rest={props.rest} venue={props.venue} token={props.token}/>
         {showConfirm && <div className="sm-confirm-slot" ref={setCartActionTarget}/>}
+        {screen === 'plato' && <div className="sm-confirm-slot" ref={setDishActionTarget}/>}
         {showCart && <Link href={href('pedido')} className="sm-cart-float">
           <span className="sm-count">{count}</span>
           <span>Mi pedido<small>{money(cart?.mio ?? 0)}</small></span>

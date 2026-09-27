@@ -74,6 +74,8 @@
 
 /* Piezas */
 .smart-menu .ds-insignia { display: inline-flex; align-items: center; gap: var(--ds-espacio-4); padding: var(--ds-espacio-2) var(--ds-espacio-8); border-radius: calc(12px * var(--ds-forma-chip)); background: var(--t-acento-suave); color: var(--sm-accent-text); font-size: calc(14px * var(--ds-texto)); line-height: calc(20px * var(--ds-texto)); font-weight: 700; white-space: nowrap; }
+/* Una insignia destacada toma el destacado con su tinta legible (si no, ganaría el color de acento de la insignia). */
+.smart-menu .ds-insignia.ds-destacado { background: var(--sm-highlight); color: var(--sm-highlight-ink, #212134); }
 
 /* Piezas reales dentro de una plantilla propia: la foto no supera el ancho que le deje la plantilla. Solo se acota;
  * el ancho, la proporción y el margen siguen siendo los de la carta y de sus variantes (cuadrícula, foto grande). */
@@ -85,3 +87,25 @@
 .smart-menu .sm-dish-hero[data-plantilla] .sm-dish-photo { position: relative; inset: auto; width: min(100%, 280px); height: auto; max-width: 100%; aspect-ratio: 1; margin: 0 auto var(--ds-espacio-12); }
 .smart-menu .sm-dish-hero[data-plantilla] > .sm-rating-pill { position: static; align-self: flex-start; }
 .smart-menu .sm-dish-hero[data-plantilla] .sm-dish-heading { width: 100%; padding: var(--ds-espacio-16) 0 0; text-align: left; }
+
+/* Plan L · Marca: piezas de identidad que una plantilla puede combinar. Salen de los tokens (tinta, acento, destacado) y no
+ * bajan de 14 px de texto. La lista es la misma que experience/diseno/utilidades.json (grupo «Marca»). */
+.smart-menu .ds-sombra-dura { box-shadow: 4px 4px 0 var(--sm-ink); }
+.smart-menu .ds-borde-grueso { border: 2px solid var(--sm-ink); }
+.smart-menu .ds-tinta-fondo { color: var(--sm-ink-fondo); }
+.smart-menu .ds-fondo-reticula { background-color: var(--t-fondo); color: var(--sm-ink-fondo); --sm-muted: color-mix(in srgb, var(--sm-ink-fondo) 78%, var(--t-fondo)); background-image: linear-gradient(to right, color-mix(in srgb, var(--sm-ink-fondo) 7%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--sm-ink-fondo) 7%, transparent) 1px, transparent 1px); background-size: 16px 16px; }
+.smart-menu .ds-inclinado-izquierda { transform: rotate(-2.5deg); }
+.smart-menu .ds-inclinado-derecha { transform: rotate(2.5deg); }
+.smart-menu .ds-barra { display: block; flex: 0 0 auto; width: 36px; height: 4px; border-radius: calc(2px * var(--ds-forma-chip)); background: var(--sm-highlight); }
+.smart-menu .ds-texto-enorme { font: 400 calc(40px * var(--ds-texto) * var(--ds-titulo)) / 1 var(--t-display); text-transform: uppercase; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.smart-menu .ds-fuente-1 { font-family: var(--ds-fuente-1); }
+.smart-menu .ds-fuente-2 { font-family: var(--ds-fuente-2); }
+.smart-menu .ds-fuente-3 { font-family: var(--ds-fuente-3); }
+
+/* Plan L · Reglas de las fotos del sistema de diseño (fundamentos.imagenes y variantes.marcoImagen). Toda foto de plato
+ * (.sm-food-photo) usa el ajuste del tema y su marco; el radio lo da forma.imagen, que se deriva de imagenes.radio. */
+.smart-menu .sm-food-photo img { object-fit: var(--ds-imagen-ajuste, cover); }
+/* El marco es regla del sistema de diseño: gana a las variantes de carta que quitan la sombra (p. ej. .sm-food-list), sea cual
+ * sea el orden en que cargue el CSS. */
+[data-ds-marco-imagen="borde"] .smart-menu :is(.sm-page, .ds-stack, .ds-row) .sm-food-photo.sm-food-photo { box-shadow: 0 0 0 2px var(--sm-ink); }
+[data-ds-marco-imagen="sombra"] .smart-menu :is(.sm-page, .ds-stack, .ds-row) .sm-food-photo.sm-food-photo { box-shadow: 0 6px 18px color-mix(in srgb, var(--sm-ink) 22%, transparent); }

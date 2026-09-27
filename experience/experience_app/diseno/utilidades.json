@@ -1,78 +1,330 @@
 {
   "version": 1,
-  "nota": "Únicas clases que admite una plantilla. Todas salen de los tokens del tema: espaciado por densidad, texto por escala, radios por forma y colores del tema. No existe utilidad que baje de 14 px ni de 44 px.",
+  "nota": "Únicas clases que admite una plantilla. Todas salen de los tokens del tema: espaciado por densidad, texto por escala, radios por forma y colores del tema. El texto no baja de 14 px ni los controles de 44 px; las piezas decorativas, como ds-barra, tienen sus propias medidas.",
   "grupos": [
-    {"id": "disposicion", "nombre": "Disposición", "utilidades": [
-      {"clase": "ds-pila", "descripcion": "Columna vertical con separación (usa ds-espacio-N para el hueco)."},
-      {"clase": "ds-fila", "descripcion": "Fila horizontal con los elementos centrados verticalmente."},
-      {"clase": "ds-envolver", "descripcion": "Permite que una fila pase a la línea siguiente."},
-      {"clase": "ds-centro", "descripcion": "Centra el contenido en ambos ejes."},
-      {"clase": "ds-extremos", "descripcion": "Reparte el contenido a los extremos de la fila."},
-      {"clase": "ds-rejilla-2", "descripcion": "Dos columnas iguales; una sola cuando el texto ampliado lo necesita."},
-      {"clase": "ds-crecer", "descripcion": "Ocupa el espacio libre de la fila o la pila."},
-      {"clase": "ds-relativo", "descripcion": "Contenedor de referencia para las esquinas y las decoraciones."},
-      {"clase": "ds-esquina-arriba-izquierda", "descripcion": "Fija el elemento en la esquina superior izquierda del contenedor relativo."},
-      {"clase": "ds-esquina-arriba-derecha", "descripcion": "Fija el elemento en la esquina superior derecha."},
-      {"clase": "ds-esquina-abajo-izquierda", "descripcion": "Fija el elemento en la esquina inferior izquierda."},
-      {"clase": "ds-esquina-abajo-derecha", "descripcion": "Fija el elemento en la esquina inferior derecha."},
-      {"clase": "ds-ancho-completo", "descripcion": "Ocupa todo el ancho disponible."}
-    ]},
-    {"id": "espacio", "nombre": "Espacio", "utilidades": [
-      {"clase": "ds-espacio-4", "descripcion": "Hueco de 4 px × densidad entre hijos."},
-      {"clase": "ds-espacio-8", "descripcion": "Hueco de 8 px × densidad."},
-      {"clase": "ds-espacio-12", "descripcion": "Hueco de 12 px × densidad."},
-      {"clase": "ds-espacio-16", "descripcion": "Hueco de 16 px × densidad."},
-      {"clase": "ds-espacio-24", "descripcion": "Hueco de 24 px × densidad."},
-      {"clase": "ds-espacio-32", "descripcion": "Hueco de 32 px × densidad."},
-      {"clase": "ds-relleno-8", "descripcion": "Relleno interior de 8 px × densidad."},
-      {"clase": "ds-relleno-12", "descripcion": "Relleno interior de 12 px × densidad."},
-      {"clase": "ds-relleno-16", "descripcion": "Relleno interior de 16 px × densidad."},
-      {"clase": "ds-relleno-24", "descripcion": "Relleno interior de 24 px × densidad."}
-    ]},
-    {"id": "superficies", "nombre": "Superficies y bordes", "utilidades": [
-      {"clase": "ds-fondo", "descripcion": "Color de fondo del tema."},
-      {"clase": "ds-superficie", "descripcion": "Color de superficie (tarjetas) del tema."},
-      {"clase": "ds-acento", "descripcion": "Fondo de acento con su tinta contrastada."},
-      {"clase": "ds-acento-suave", "descripcion": "Fondo de acento suave con texto de acento legible."},
-      {"clase": "ds-destacado", "descripcion": "Fondo del color destacado con su tinta legible."},
-      {"clase": "ds-borde", "descripcion": "Borde fino con el color de borde del tema."},
-      {"clase": "ds-sombra-suave", "descripcion": "Sombra suave."},
-      {"clase": "ds-sombra-marcada", "descripcion": "Sombra marcada."}
-    ]},
-    {"id": "texto", "nombre": "Texto", "utilidades": [
-      {"clase": "ds-texto-pequeno", "descripcion": "Texto de 14 px × escala: el mínimo legible."},
-      {"clase": "ds-texto-cuerpo", "descripcion": "Texto de 16 px × escala."},
-      {"clase": "ds-texto-subtitulo", "descripcion": "Texto de 18 px × escala, con peso medio."},
-      {"clase": "ds-texto-titulo", "descripcion": "Título de 22 px × escala × títulos, con la fuente de títulos."},
-      {"clase": "ds-texto-grande", "descripcion": "Título de 28 px × escala × títulos, con la fuente de títulos."},
-      {"clase": "ds-tinta", "descripcion": "Tinta principal del tema."},
-      {"clase": "ds-tinta-suave", "descripcion": "Tinta secundaria legible."},
-      {"clase": "ds-acento-texto", "descripcion": "Texto en el acento, con la tinta legible del acento."},
-      {"clase": "ds-destacado-texto", "descripcion": "Texto en el color destacado, con la tinta legible del destacado."},
-      {"clase": "ds-negrita", "descripcion": "Peso 700."},
-      {"clase": "ds-centrado", "descripcion": "Texto centrado."},
-      {"clase": "ds-mayusculas", "descripcion": "Mayúsculas con espaciado de letras."},
-      {"clase": "ds-tachado", "descripcion": "Texto tachado, para precios anteriores."}
-    ]},
-    {"id": "forma", "nombre": "Forma", "utilidades": [
-      {"clase": "ds-radio-tarjeta", "descripcion": "Esquinas de tarjeta según el fundamento forma.tarjeta."},
-      {"clase": "ds-radio-boton", "descripcion": "Esquinas de botón según forma.boton."},
-      {"clase": "ds-radio-chip", "descripcion": "Esquinas de chip según forma.chip."},
-      {"clase": "ds-radio-campo", "descripcion": "Esquinas de campo según forma.campo."},
-      {"clase": "ds-radio-imagen", "descripcion": "Esquinas de imagen según forma.imagen."},
-      {"clase": "ds-radio-hoja", "descripcion": "Esquinas de hoja según forma.hoja."},
-      {"clase": "ds-redondo", "descripcion": "Completamente redondo (círculo o píldora)."}
-    ]},
-    {"id": "tamano", "nombre": "Tamaño y recorte", "utilidades": [
-      {"clase": "ds-foto-pequena", "descripcion": "Ancho de foto pequeña (64 px)."},
-      {"clase": "ds-foto-media", "descripcion": "Ancho de foto media (110 px)."},
-      {"clase": "ds-foto-grande", "descripcion": "Foto a todo el ancho."},
-      {"clase": "ds-cuadrado", "descripcion": "Proporción 1:1."},
-      {"clase": "ds-4-3", "descripcion": "Proporción 4:3."},
-      {"clase": "ds-recorte", "descripcion": "Recorta lo que sobresale del contenedor."}
-    ]},
-    {"id": "piezas", "nombre": "Piezas", "utilidades": [
-      {"clase": "ds-insignia", "descripcion": "Chip pequeño con fondo de acento suave, texto legible y esquinas de chip."}
-    ]}
+    {
+      "id": "disposicion",
+      "nombre": "Disposición",
+      "utilidades": [
+        {
+          "clase": "ds-pila",
+          "descripcion": "Columna vertical con separación (usa ds-espacio-N para el hueco)."
+        },
+        {
+          "clase": "ds-fila",
+          "descripcion": "Fila horizontal con los elementos centrados verticalmente."
+        },
+        {
+          "clase": "ds-envolver",
+          "descripcion": "Permite que una fila pase a la línea siguiente."
+        },
+        {
+          "clase": "ds-centro",
+          "descripcion": "Centra el contenido en ambos ejes."
+        },
+        {
+          "clase": "ds-extremos",
+          "descripcion": "Reparte el contenido a los extremos de la fila."
+        },
+        {
+          "clase": "ds-rejilla-2",
+          "descripcion": "Dos columnas iguales; una sola cuando el texto ampliado lo necesita."
+        },
+        {
+          "clase": "ds-crecer",
+          "descripcion": "Ocupa el espacio libre de la fila o la pila."
+        },
+        {
+          "clase": "ds-relativo",
+          "descripcion": "Contenedor de referencia para las esquinas y las decoraciones."
+        },
+        {
+          "clase": "ds-esquina-arriba-izquierda",
+          "descripcion": "Fija el elemento en la esquina superior izquierda del contenedor relativo."
+        },
+        {
+          "clase": "ds-esquina-arriba-derecha",
+          "descripcion": "Fija el elemento en la esquina superior derecha."
+        },
+        {
+          "clase": "ds-esquina-abajo-izquierda",
+          "descripcion": "Fija el elemento en la esquina inferior izquierda."
+        },
+        {
+          "clase": "ds-esquina-abajo-derecha",
+          "descripcion": "Fija el elemento en la esquina inferior derecha."
+        },
+        {
+          "clase": "ds-ancho-completo",
+          "descripcion": "Ocupa todo el ancho disponible."
+        }
+      ]
+    },
+    {
+      "id": "espacio",
+      "nombre": "Espacio",
+      "utilidades": [
+        {
+          "clase": "ds-espacio-4",
+          "descripcion": "Hueco de 4 px × densidad entre hijos."
+        },
+        {
+          "clase": "ds-espacio-8",
+          "descripcion": "Hueco de 8 px × densidad."
+        },
+        {
+          "clase": "ds-espacio-12",
+          "descripcion": "Hueco de 12 px × densidad."
+        },
+        {
+          "clase": "ds-espacio-16",
+          "descripcion": "Hueco de 16 px × densidad."
+        },
+        {
+          "clase": "ds-espacio-24",
+          "descripcion": "Hueco de 24 px × densidad."
+        },
+        {
+          "clase": "ds-espacio-32",
+          "descripcion": "Hueco de 32 px × densidad."
+        },
+        {
+          "clase": "ds-relleno-8",
+          "descripcion": "Relleno interior de 8 px × densidad."
+        },
+        {
+          "clase": "ds-relleno-12",
+          "descripcion": "Relleno interior de 12 px × densidad."
+        },
+        {
+          "clase": "ds-relleno-16",
+          "descripcion": "Relleno interior de 16 px × densidad."
+        },
+        {
+          "clase": "ds-relleno-24",
+          "descripcion": "Relleno interior de 24 px × densidad."
+        }
+      ]
+    },
+    {
+      "id": "superficies",
+      "nombre": "Superficies y bordes",
+      "utilidades": [
+        {
+          "clase": "ds-fondo",
+          "descripcion": "Color de fondo del tema."
+        },
+        {
+          "clase": "ds-superficie",
+          "descripcion": "Color de superficie (tarjetas) del tema."
+        },
+        {
+          "clase": "ds-acento",
+          "descripcion": "Fondo de acento con su tinta contrastada."
+        },
+        {
+          "clase": "ds-acento-suave",
+          "descripcion": "Fondo de acento suave con texto de acento legible."
+        },
+        {
+          "clase": "ds-destacado",
+          "descripcion": "Fondo del color destacado con su tinta legible."
+        },
+        {
+          "clase": "ds-borde",
+          "descripcion": "Borde fino con el color de borde del tema."
+        },
+        {
+          "clase": "ds-sombra-suave",
+          "descripcion": "Sombra suave."
+        },
+        {
+          "clase": "ds-sombra-marcada",
+          "descripcion": "Sombra marcada."
+        }
+      ]
+    },
+    {
+      "id": "texto",
+      "nombre": "Texto",
+      "utilidades": [
+        {
+          "clase": "ds-texto-pequeno",
+          "descripcion": "Texto de 14 px × escala: el mínimo legible."
+        },
+        {
+          "clase": "ds-texto-cuerpo",
+          "descripcion": "Texto de 16 px × escala."
+        },
+        {
+          "clase": "ds-texto-subtitulo",
+          "descripcion": "Texto de 18 px × escala, con peso medio."
+        },
+        {
+          "clase": "ds-texto-titulo",
+          "descripcion": "Título de 22 px × escala × títulos, con la fuente de títulos."
+        },
+        {
+          "clase": "ds-texto-grande",
+          "descripcion": "Título de 28 px × escala × títulos, con la fuente de títulos."
+        },
+        {
+          "clase": "ds-tinta",
+          "descripcion": "Tinta principal del tema."
+        },
+        {
+          "clase": "ds-tinta-suave",
+          "descripcion": "Tinta secundaria legible."
+        },
+        {
+          "clase": "ds-acento-texto",
+          "descripcion": "Texto en el acento, con la tinta legible del acento."
+        },
+        {
+          "clase": "ds-destacado-texto",
+          "descripcion": "Texto en el color destacado, con la tinta legible del destacado."
+        },
+        {
+          "clase": "ds-negrita",
+          "descripcion": "Peso 700."
+        },
+        {
+          "clase": "ds-centrado",
+          "descripcion": "Texto centrado."
+        },
+        {
+          "clase": "ds-mayusculas",
+          "descripcion": "Mayúsculas con espaciado de letras."
+        },
+        {
+          "clase": "ds-tachado",
+          "descripcion": "Texto tachado, para precios anteriores."
+        }
+      ]
+    },
+    {
+      "id": "forma",
+      "nombre": "Forma",
+      "utilidades": [
+        {
+          "clase": "ds-radio-tarjeta",
+          "descripcion": "Esquinas de tarjeta según el fundamento forma.tarjeta."
+        },
+        {
+          "clase": "ds-radio-boton",
+          "descripcion": "Esquinas de botón según forma.boton."
+        },
+        {
+          "clase": "ds-radio-chip",
+          "descripcion": "Esquinas de chip según forma.chip."
+        },
+        {
+          "clase": "ds-radio-campo",
+          "descripcion": "Esquinas de campo según forma.campo."
+        },
+        {
+          "clase": "ds-radio-imagen",
+          "descripcion": "Esquinas de imagen según forma.imagen."
+        },
+        {
+          "clase": "ds-radio-hoja",
+          "descripcion": "Esquinas de hoja según forma.hoja."
+        },
+        {
+          "clase": "ds-redondo",
+          "descripcion": "Completamente redondo (círculo o píldora)."
+        }
+      ]
+    },
+    {
+      "id": "tamano",
+      "nombre": "Tamaño y recorte",
+      "utilidades": [
+        {
+          "clase": "ds-foto-pequena",
+          "descripcion": "Ancho de foto pequeña (64 px)."
+        },
+        {
+          "clase": "ds-foto-media",
+          "descripcion": "Ancho de foto media (110 px)."
+        },
+        {
+          "clase": "ds-foto-grande",
+          "descripcion": "Foto a todo el ancho."
+        },
+        {
+          "clase": "ds-cuadrado",
+          "descripcion": "Proporción 1:1."
+        },
+        {
+          "clase": "ds-4-3",
+          "descripcion": "Proporción 4:3."
+        },
+        {
+          "clase": "ds-recorte",
+          "descripcion": "Recorta lo que sobresale del contenedor."
+        }
+      ]
+    },
+    {
+      "id": "marca",
+      "nombre": "Marca",
+      "utilidades": [
+        {
+          "clase": "ds-sombra-dura",
+          "descripcion": "Sombra desplazada 4 px en ambos ejes, sin desenfoque, color tinta."
+        },
+        {
+          "clase": "ds-borde-grueso",
+          "descripcion": "Borde de 2 px color tinta."
+        },
+        {
+          "clase": "ds-tinta-fondo",
+          "descripcion": "Texto con tintaFondo, la tinta que se lee directo sobre el fondo de la página (títulos fuera de tarjetas)."
+        },
+        {
+          "clase": "ds-fondo-reticula",
+          "descripcion": "Color de fondo de la página con su tintaFondo y retícula de 16 px."
+        },
+        {
+          "clase": "ds-inclinado-izquierda",
+          "descripcion": "Giro de −2.5° hacia la izquierda."
+        },
+        {
+          "clase": "ds-inclinado-derecha",
+          "descripcion": "Giro de 2.5° hacia la derecha."
+        },
+        {
+          "clase": "ds-barra",
+          "descripcion": "Barra decorativa de acento de 36 × 4 px, color tintaTerciaria; admite un elemento vacío."
+        },
+        {
+          "clase": "ds-texto-enorme",
+          "descripcion": "Texto display de 40 px × escala, en mayúsculas, interlineado 1."
+        },
+        {
+          "clase": "ds-fuente-1",
+          "descripcion": "Primera familia global de tipografia.fuentes; sin esa posición usa la fuente de títulos (display)."
+        },
+        {
+          "clase": "ds-fuente-2",
+          "descripcion": "Segunda familia global de tipografia.fuentes; sin esa posición usa la fuente de títulos (display)."
+        },
+        {
+          "clase": "ds-fuente-3",
+          "descripcion": "Tercera familia global de tipografia.fuentes; sin esa posición usa la fuente de títulos (display)."
+        }
+      ]
+    },
+    {
+      "id": "piezas",
+      "nombre": "Piezas",
+      "utilidades": [
+        {
+          "clase": "ds-insignia",
+          "descripcion": "Chip pequeño con fondo de acento suave, texto legible y esquinas de chip."
+        }
+      ]
+    }
   ]
 }

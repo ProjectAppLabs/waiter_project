@@ -72,3 +72,29 @@ it('builds a fixed combo from catalog products and keeps its own selling price',
  fireEvent.click(screen.getByRole('button',{name:'Guardar'}))
  await waitFor(()=>expect(onSave).toHaveBeenCalledWith(expect.objectContaining({price:45000,dinerAttributes:{combo:[{producto:3,cantidad:1},{producto:7,cantidad:1}]}})))
 })
+
+// Plan M · Galería de la ficha.
+jest.mock('@/lib/services/catalogAdmin', () => ({ ...jest.requireActual('@/lib/services/catalogAdmin'), listCatalogPhotos: jest.fn().mockResolvedValue([{ id: 7 }, { id: 8 }]) }))
+const file = (name: string, type: string, size = 10) => new File([new Uint8Array(size)], name, { type })
+
+// Falla si la galería no carga las fotos existentes, si quitar o mover no cambia el orden que se guarda, si deja pasar un
+// tipo que no es foto o si permite más de 4 fotos además de la principal.
+it('edits the dish gallery and saves its final order', async () => {
+  const onSave = jest.fn().mockResolvedValue(undefined)
+  wrap(<ProductForm initial={initial} templateId={3} isNew={false} categories={categories} taxes={taxes} onSave={onSave} onClose={jest.fn()} />)
+  fireEvent.click(screen.getByRole('tab', { name: /Foto|Imagen/ }))
+  expect(await screen.findByRole('img', { name: 'Foto 2 de la galería' })).toHaveAttribute('src', '/odoo/web/image/projectapp.product.photo/8/image')
+  fireEvent.click(screen.getByRole('button', { name: 'Mover la foto 2 antes' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+  await waitFor(() => expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ gallery: [{ id: 8 }, { id: 7 }] })))
+  fireEvent.change(screen.getByLabelText('Añadir foto a la galería'), { target: { files: [file('menu.gif', 'image/gif')] } })
+  expect(await screen.findByRole('alert')).toHaveTextContent('PNG, JPEG o WebP')
+  for (const n of [1, 2]) {
+    fireEvent.change(screen.getByLabelText('Añadir foto a la galería'), { target: { files: [file(`f${n}.webp`, 'image/webp')] } })
+    await screen.findByRole('img', { name: `Foto ${2 + n} de la galería` })
+  }
+  expect(screen.queryByLabelText('Añadir foto a la galería')).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Quitar la foto 1' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+  await waitFor(() => { const gallery = onSave.mock.lastCall[0].gallery; expect(gallery).toHaveLength(3); expect(gallery[0]).toEqual({ id: 7 }); expect(gallery[1]).toHaveProperty('image') })
+})

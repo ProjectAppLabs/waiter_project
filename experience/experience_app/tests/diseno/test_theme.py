@@ -43,9 +43,9 @@ def test_defaults_preserve_j1_and_do_not_share_mutable_state():
     (theme(forma={'boton': 2.1}), 'máximo'), (theme(forma={'boton': -1}), 'mínimo'),
     (theme(tipografia={'cuerpo': 'Comic Sans'}), 'lista'),
     (theme(colores={'acento': '#FFFFFF\n'}), '#RRGGBB'),
-    (theme(colores={'tinta': '#FFFFFF'}), 'tinta sobre fondo'),
+    (theme(colores={'tinta': '#FFFFFF'}), 'tintaFondo sobre fondo'),
     (theme(colores={'tinta': '#727272'}), 'tinta sobre acentoSuave'),
-    (theme(colores={'tintaSuave': '#BBBBBB'}), 'tintaSuave sobre fondo'),
+    (theme(colores={'tintaSuave': '#BBBBBB'}), 'tintaSuave sobre superficie'),
     (theme(colores={'superficie': '#32324D'}), 'tinta sobre superficie'),
 ])
 def test_invalid_themes_are_rejected(body, message):
@@ -62,8 +62,8 @@ def test_dark_theme_and_independent_fonts():
     foundation = clean['fundamentos']
     assert foundation['colores']['acento'] == '#DDDDDD'
     assert foundation['colores']['acentoTinta'] == '#1A1815'
-    assert foundation['colores']['acentoSuave'] == '#252525'
-    assert foundation['tipografia'] == {'display': 'DM Sans', 'cuerpo': 'Lato'}
+    assert foundation['colores']['acentoSuave'] == '#353535'
+    assert foundation['tipografia'] == {'display': 'DM Sans', 'cuerpo': 'Lato', 'fuentes': []}
     assert design.validate(clean) == clean
     assert body['fundamentos']['colores']['acento'] == '#dddddd'
 
@@ -130,6 +130,8 @@ def test_data_migration_preserves_legacy_customization():
     migration.migrate_themes(apps, SimpleNamespace(connection=connection))
     row.refresh_from_db()
     legacy.refresh_from_db()
+    # El Plan L recalcula el acento suave sobre superficie; los demás tokens migrados se conservan.
+    expected['acentoSuave'] = '#E7EBEE'
     assert services.build(template.spec, {}, row.palette, row.typography, 5, row.theme)['tokens'] == expected
     assert row.palette == {'acento': '#123456', 'tintaTerciaria': '#ffaa22'}
     assert row.typography == {'display': 'Lora'}
@@ -146,7 +148,7 @@ def test_legacy_mcp_validates_against_current_theme_before_creating_draft():
         'fondo': '#111111', 'superficie': '#222222', 'tinta': '#FFFFFF', 'tintaSuave': '#AAAAAA',
     })})
     key, _ = keys.create('burger-house', 'poblado', 'Prueba v2')
-    with pytest.raises(tools.ToolError, match='tintaSuave sobre fondo'):
+    with pytest.raises(tools.ToolError, match='tintaFondo sobre fondo'):
         tools.preparar_diseno_menu(key, {'colores': {'fondo': '#FFFFFF', 'superficie': '#FFFFFF', 'tinta': '#000000'}})
     assert McpPendingChange.objects.count() == 0
     assert services.get_settings('burger-house', 'poblado').theme == chosen.theme

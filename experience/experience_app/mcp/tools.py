@@ -21,6 +21,10 @@ from experience_app.services import brand
 
 CHANGE_TTL = timedelta(minutes=30)
 GREETING_MAX = 40
+FONT_RULE = ('fundamentos.tipografia.fuentes declara de 0 a 3 familias globales de Google Fonts para toda la sede, '
+             'por nombre exacto y sin repetir; se comprueban al preparar y se cargan una sola vez. '
+             'display y cuerpo admiten la lista fija o esas familias. En plantillas, ds-fuente-1, ds-fuente-2 y '
+             'ds-fuente-3 eligen su posición (ds-fuente-N); si no existe, usan la fuente de títulos (display).')
 BANNER_FIELDS = ('layout', 'title', 'subtitle', 'button', 'target', 'targetId', 'theme', 'active')
 COLOR_ROLES = {'acento': 'botones y color de acción', 'tintaTerciaria': 'textos secundarios y etiquetas', 'fondo': 'fondo del menú',
                'superficie': 'tarjetas de los platos', 'tinta': 'texto principal'}
@@ -65,7 +69,17 @@ def leer_design_system(key: McpKey, args: dict) -> dict:
             'tema': templates.settings_view(key.restaurant_slug, key.venue_slug)['tema'],
             'pagina': borradores.design_system_url(key.restaurant_slug, key.venue_slug),
             'plantillas': plantillas.contract(),
-            'reglas': ['Cambia solo los campos del esquema. Los colores derivados son de solo lectura.',
+            'orden': ['1. Sistema de diseño: preparar_tema con fundamentos (colores, tipografía y fuentes globales, forma, '
+                      'imágenes, textura) y variantes; verificar_borrador y confirmar_cambio.',
+                      '2. Componentes: preparar_componente (o tema.componentes) sobre ese sistema, usando sus utilidades ds-*.',
+                      'Sin sistema de diseño propio el MCP rechaza las plantillas de componente.'],
+            'reglas': ['Cambia solo los campos del esquema. Los colores derivados y forma.imagen son de solo lectura.',
+                       'Imágenes: fundamentos.imagenes.radio (8 a 40 px, nunca esquinas en punta), imagenes.ajuste (cubrir o contener) y '
+                       'variantes.marcoImagen (ninguno, borde o sombra) son reglas del sistema: el navegador falla si una foto se dibuja con '
+                       'menos radio (salvo circular), deformada o sin el ajuste o el marco del tema.',
+                       FONT_RULE,
+                       'Contraste mínimo 4.5:1: tintaFondo sobre fondo; tinta y tintaSuave sobre superficie; tinta sobre acentoSuave; acentoTinta sobre acento. tintaFondo omitida usa tinta; acentoSuave se mezcla con superficie.',
+                       'variantes.banners: actual conserva los colores fijos; tema usa acento, acentoTinta y tintaTerciaria.',
                        'preparar_tema mezcla los campos enviados con el tema guardado; restablecer_tema prepara los valores por defecto.',
                        'El borrador caduca a los 30 minutos. Revisa el enlace antes de confirmar_cambio.',
                        'pagina muestra todos los componentes y variantes con el tema publicado; url_design_system de un borrador los muestra con ese borrador.',
@@ -114,17 +128,32 @@ def leer_componente(key: McpKey, args: dict) -> dict:
     component_id = _component_id(args)
     data = plantillas.contract()
     contract = data['componentes'][component_id]
-    saved = templates.settings_view(key.restaurant_slug, key.venue_slug)['tema'].get('componentes', {}).get(component_id)
+    theme = templates.settings_view(key.restaurant_slug, key.venue_slug)['tema']
+    saved = theme.get('componentes', {}).get(component_id)
     current = ({'origen': 'propia', 'version': saved['version'], 'html': plantillas.to_html(saved['arbol'])} if saved
                else {'origen': 'fabrica', 'version': contract['version'], 'html': contract['plantilla_fabrica']['html']})
     return {'componente': component_id, 'contrato': contract, 'plantilla_actual': current,
+            'tipografia': deepcopy(theme['fundamentos']['tipografia']),
             'utilidades': data['utilidades'], 'limites': data['limites'],
             'decoraciones': {**data['decoraciones'], 'sede': decoraciones.listing(key.restaurant_slug, key.venue_slug),
                              'nota': 'Usa cualquier id de fabrica o de sede en <decoracion id="…"/>. Las de la sede se suben desde el POS (Diseño del menú › Decoraciones).'},
             'reglas': ['Solo las etiquetas y clases del catálogo; nada de style, script, enlaces ni imágenes propias.',
+                       FONT_RULE,
+                       'El grupo Marca incluye ds-barra, que admite un elemento vacío.',
                        'Los datos obligatorios y las ranuras obligatorias deben aparecer; las ranuras son las acciones y medios reales.',
                        'Parte de plantilla_actual.html, cambia la estructura y envíala a preparar_componente. html null vuelve a la de fábrica.',
                        'Después de preparar, llama verificar_borrador con el token borrador antes de confirmar_cambio.']}
+
+
+DESIGN_FIRST = ('Define primero el sistema de diseño: llama preparar_tema con fundamentos (colores, tipografía, forma, '
+                'imágenes y textura) y confírmalo; después diseña los componentes sobre ese sistema.')
+
+
+def _require_design_system(theme: dict) -> None:
+    """El MCP diseña de fuera hacia dentro: sin sistema de diseño propio no acepta plantillas de componente."""
+    has_templates = any(value for value in theme.get('componentes', {}).values())
+    if has_templates and theme['fundamentos'] == design.defaults()['fundamentos']:
+        raise ToolError(DESIGN_FIRST)
 
 
 def preparar_componente(key: McpKey, args: dict) -> dict:
@@ -139,6 +168,7 @@ def preparar_componente(key: McpKey, args: dict) -> dict:
         theme = borradores.merge(current, patch)
     except design.InvalidTheme as exc:
         raise ToolError(str(exc)) from exc
+    _require_design_system(theme)
     result = _prepare_theme(key, theme, current)
     saved = theme['componentes'][component_id]
     result['advertencias'] = plantillas.warnings(component_id, saved['arbol']) if saved else []
@@ -171,6 +201,7 @@ def preparar_tema(key: McpKey, args: dict) -> dict:
         theme = borradores.merge(current, patch)
     except design.InvalidTheme as exc:
         raise ToolError(str(exc)) from exc
+    _require_design_system(theme)
     return _prepare_theme(key, theme, current)
 
 
@@ -351,7 +382,10 @@ TOOLS = [
      'inputSchema': {'type': 'object', 'additionalProperties': False, 'required': ['pantalla'],
                      'properties': {'pantalla': {'type': 'string', 'enum': list(design.INVENTORY['pantallas'])}}}},
     {'name': 'preparar_tema', 'handler': preparar_tema,
-     'description': 'Mezcla cambios parciales del tema con lo guardado, valida y prepara un borrador de 30 minutos. Devuelve cambios, enlace y token; NO publica.',
+     'description': 'Mezcla cambios parciales del tema con lo guardado, valida y prepara un borrador de 30 minutos. '
+                    f'Devuelve cambios, enlace y token; NO publica. {FONT_RULE} '
+                    'Google Fonts debe responder HTTP 200 por familia; sin red se rechaza con un error. '
+                    'tintaFondo permite texto sobre el fondo independiente de las tarjetas; variantes.banners=tema aplica la paleta a los banners.',
      'inputSchema': {'type': 'object', 'additionalProperties': False, 'required': ['tema'],
                      'properties': {'tema': design.public_schema()}}},
     {'name': 'restablecer_tema', 'handler': restablecer_tema,
@@ -368,7 +402,7 @@ TOOLS = [
                      'properties': {'componente': {'type': 'string', 'enum': list(plantillas.COMPONENTS['componentes'])},
                                     'html': {'type': ['string', 'null'], 'maxLength': 20000}}}},
     {'name': 'verificar_borrador', 'handler': verificar_borrador,
-     'description': 'Inicia la verificación del borrador en un navegador en segundo plano y responde en_curso con inicio. Espera unos segundos y vuelve a llamar con el mismo borrador para consultar el resultado guardado. Mide desbordes, solapes, palabras partidas y mínimos de texto y controles. Una plantilla propia solo se confirma con la última verificación en verde; para reintentar tras un error prepara otro borrador.',
+     'description': 'Inicia la verificación del borrador en un navegador en segundo plano y responde en_curso con inicio. Espera unos segundos y vuelve a llamar con el mismo borrador para consultar el resultado guardado. Mide desbordes, solapes, palabras partidas y mínimos de texto y controles; comprueba contenido activo, orígenes de recursos y carga de fuentes globales. Una plantilla propia solo se confirma con la última verificación en verde; para reintentar tras un error prepara otro borrador.',
      'inputSchema': {'type': 'object', 'additionalProperties': False, 'required': ['borrador'], 'properties': {'borrador': {'type': 'string'}}}},
     {'name': 'leer_diseno_menu', 'handler': leer_diseno_menu, 'annotations': {'readOnlyHint': True},
      'description': 'Lee el diseño del menú del restaurante: colores editables (con su uso), tipografía y las permitidas, saludo, logo y reglas de contraste.',

@@ -1,5 +1,6 @@
 """La carta y las fotos por sede, desde caché. Odoo no está en el camino caliente del comensal."""
 from collections.abc import Callable
+from urllib.parse import urlsplit, urlunsplit
 
 from django.conf import settings
 from django.core.cache import cache
@@ -59,6 +60,23 @@ def get_photo(tenant: Tenant, product: pos.Product, size: str = DEFAULT_PHOTO_SI
                             PHOTO_CACHE_SECONDS)
 
 
+def get_gallery_photo(tenant: Tenant, product: pos.Product, photo_id: int) -> tuple[bytes, str] | None:
+    """La pertenencia se comprueba antes de usar una caché aislada por sede, plantilla, foto y versión."""
+    photo = next((p for p in product.gallery if p['id'] == photo_id), None)
+    if photo is None:
+        return None
+    key = f"gallery:{tenant.restaurant_slug}/{tenant.venue_slug}/{product.template_id}/{photo_id}/{photo['version']}"
+    return cache.get_or_set(key, lambda: pos.fetch_gallery_image(OdooClient(tenant.odoo), product.template_id, photo_id),
+                            PHOTO_CACHE_SECONDS)
+
+
+def _gallery_url(photo_url: Callable[[int, str], str], product_id: int, photo: dict) -> str:
+    # Conserva la sede y la versión de la URL pública que recibe menu_view; así ambas entradas
+    # (mesa y domicilio) usan la misma ruta sin conocer la dirección interna de Odoo.
+    parts = urlsplit(photo_url(product_id, photo['version']))
+    return urlunsplit(parts._replace(path=f"{parts.path.rstrip('/')}/galeria/{photo['id']}/"))
+
+
 def menu_view(catalog: pos.Catalog, photo_url: Callable[[int, str], str]) -> dict:
     """Carta normalizada para el comensal: categorías con sus productos, en el orden del POS.
 
@@ -73,6 +91,7 @@ def menu_view(catalog: pos.Catalog, photo_url: Callable[[int, str], str]) -> dic
     items = [{'id': p.id, 'nombre': p.name, 'precio': p.final_price, 'agotado': p.sold_out, 'categorias': p.category_ids,
               'descripcion': p.description, 'favorito': p.favorite,
               'foto': photo_url(p.id, p.image_version) if p.has_image else None,
+              'fotos': [_gallery_url(photo_url, p.id, photo) for photo in p.gallery],
               'fotoOrigen': PHOTO_ORIGINS.get(p.image_origin), 'atributos': dict(p.attributes)}
              for p in catalog.products]
     # Límite legal (docs/diseno/2026-09-05-imagenes-menu.md): una imagen generada no representa la porción servida, así que

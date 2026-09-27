@@ -54,7 +54,7 @@
 .sm-wallet-details { padding:var(--ds-espacio-20); border-radius:calc(16px * var(--ds-forma-tarjeta)); background:var(--sm-surface); }
 .sm-wallet-details p { padding:var(--ds-espacio-16) 0; border-bottom:1px solid var(--sm-border); }
 .sm-dish-hero > .sm-dish-photo { position:absolute; top:26px; right:-88px; width:230px; height:230px; max-width:none; margin:0; box-shadow:0 14px 40px #32324d0d; }
-.sm-dish-orbits { position:absolute; top:4px; right:-110px; width:274px; height:274px; border:1px solid #ffffffa0; border-radius:50%; box-shadow:0 0 0 18px #ffffff45,0 0 0 20px #ffffff70,0 0 0 38px #ffffff25; pointer-events:none; z-index:-1; }
+.sm-dish-orbits { position:absolute; top:4px; right:-110px; width:274px; height:274px; border:1px solid color-mix(in srgb, var(--t-superficie, #fff) 63%, transparent); border-radius:50%; box-shadow:0 0 0 18px color-mix(in srgb, var(--t-superficie, #fff) 27%, transparent),0 0 0 20px color-mix(in srgb, var(--t-superficie, #fff) 44%, transparent),0 0 0 38px color-mix(in srgb, var(--t-superficie, #fff) 15%, transparent); pointer-events:none; z-index:-1; }
 .sm-dish-info { display:flex; flex-direction:column; gap:var(--ds-espacio-28); min-width:0; }
 .sm-dish-info > .sm-description { margin:0; color:var(--sm-muted); font-size:calc(14px * var(--ds-texto)); line-height:calc(24px * var(--ds-texto)); }
 .sm-dish-info > .sm-footnote { margin-top:calc(-1 * var(--ds-espacio-20)); }
@@ -144,3 +144,40 @@ body:has(.sm-recommendation-dialog[open]) { overflow:hidden; }
  .sm-recommendation-dialog[open] { animation:sm-dish-enter .2s ease-out; }
  @keyframes sm-dish-enter { from { opacity:0; translate:0 24px; } to { opacity:1; translate:0 0; } }
 }
+
+/* Las órbitas acompañan a una foto circular (fotos «actual» o «circular»); con fotos del radio del sistema de diseño no
+ * tienen sentido y se ocultan. Su color sale de la superficie del tema, no de un blanco fijo. */
+[data-ds-forma-imagen="tema"] .smart-menu .sm-dish-orbits { display: none; }
+/* Sin órbitas, la foto no sangra fuera de la pantalla: queda dentro del margen, a la derecha del nombre. */
+[data-ds-forma-imagen="tema"][data-ds-ficha="actual"] .smart-menu .sm-dish-hero:not([data-plantilla]) > .sm-dish-photo { right: 0; width: 150px; height: 150px; }
+
+/* La acción principal de la ficha va al muelle inferior junto a «Mi mesero» (como en el pedido); la cantidad y el aviso
+ * de agregado quedan dentro de la ficha, sin franja flotante. */
+.smart-menu .sm-dish-purchase.is-inline { position: static; inset: auto; z-index: auto; box-shadow: none; background: transparent; border-radius: 0; padding: 0; }
+/* Sin barra de compra flotante, la ficha solo reserva el alto del muelle (como el pedido), no el de la barra más el muelle. */
+.smart-menu.sm-screen-plato:has(.sm-dish-purchase.is-inline) .sm-page { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+.smart-menu .sm-dish-dock-action { display: flex; min-width: 0; width: 100%; }
+.smart-menu .sm-dish-dock-action .sm-primary { width: 100%; min-height: 54px; }
+.smart-menu .sm-dish-dock-action .sm-added { display: flex; width: 100%; }
+.smart-menu .sm-dish-dock-action .sm-added > :not(.sm-primary) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Ingredientes en viñetas: no siempre hay un icono para cada ingrediente; la lista se lee siempre. */
+.smart-menu .sm-ingredient-list { margin: 0; padding: 0 0 0 var(--ds-espacio-20); display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); gap: var(--ds-espacio-6) var(--ds-espacio-16); list-style: disc; }
+.smart-menu .sm-ingredient-list li { font-size: calc(16px * var(--ds-texto)); line-height: calc(24px * var(--ds-texto)); overflow-wrap: anywhere; }
+.smart-menu .sm-ingredient-list li::marker { color: var(--sm-highlight-text); }
+/* La información nutricional cabe en una sola fila (hasta cinco datos). */
+.smart-menu .sm-dish-info .sm-nutrition { flex-wrap: nowrap; }
+.smart-menu .sm-nutrition > div { flex: 1 1 0; min-width: 0; }
+
+/* Plan M · Galería de la ficha: el marco .sm-dish-photo recorta y redondea; el carril se desliza por pasos y cada foto hereda
+ * el radio del marco (la regla de imágenes del verificador mide cada una). Los puntos son botones de 44 px de área. */
+.smart-menu .sm-dish-gallery { overflow: hidden; display: flex; flex-direction: column; }
+.smart-menu .sm-dish-gallery-rail { flex: 1 1 auto; min-height: 0; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; border-radius: inherit; }
+.smart-menu .sm-dish-gallery-rail::-webkit-scrollbar { display: none; }
+.smart-menu .sm-dish-gallery-rail > .sm-food-photo { flex: 0 0 100%; width: 100%; height: 100%; scroll-snap-align: start; border-radius: inherit; margin: 0; }
+.smart-menu .sm-dish-gallery-rail > .sm-food-photo img { width: 100%; height: 100%; }
+.smart-menu .sm-dish-gallery-dots { position: absolute; left: 0; right: 0; bottom: var(--ds-espacio-8); display: flex; justify-content: center; gap: 0; z-index: 2; }
+.smart-menu .sm-dish-gallery-dots button { padding: 0; border: 0; background: transparent; display: grid; place-items: center; }
+.smart-menu .sm-dish-gallery-dots button::before { content: ''; width: 8px; height: 8px; border-radius: 999px; background: color-mix(in srgb, #fff 60%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, #000 25%, transparent); }
+.smart-menu .sm-dish-gallery-dots button[aria-current='true']::before { width: 20px; background: #fff; }
+

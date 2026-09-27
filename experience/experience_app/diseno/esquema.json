@@ -71,7 +71,8 @@
               "default": 1,
               "minimum": 0,
               "maximum": 2,
-              "description": "Multiplica el radio original del componente; 0 deja esquinas rectas."
+              "description": "Se calcula de fundamentos.imagenes.radio (radio / 16); no se edita.",
+              "readOnly": true
             },
             "hoja": {
               "type": "number",
@@ -132,6 +133,13 @@
               "pattern": "^#[0-9A-Fa-f]{6}$",
               "default": "#EEEBF5",
               "readOnly": true
+            },
+            "tintaFondo": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "default": "#32324D",
+              "x-defaultFrom": "tinta",
+              "description": "Texto directo sobre el fondo: títulos, saludo, encabezados de sección y pestañas. Si se omite, usa tinta. Contraste mínimo 4.5:1 sobre fondo."
             }
           }
         },
@@ -141,35 +149,121 @@
           "properties": {
             "display": {
               "type": "string",
-              "enum": [
-                "Instrument Serif",
-                "Playfair Display",
-                "Fraunces",
-                "DM Serif Display",
-                "Lora",
-                "Cormorant Garamond",
-                "Mulish",
-                "DM Sans",
-                "Nunito Sans",
-                "Lato"
+              "default": "DM Sans",
+              "anyOf": [
+                {
+                  "enum": [
+                    "Instrument Serif",
+                    "Playfair Display",
+                    "Fraunces",
+                    "DM Serif Display",
+                    "Lora",
+                    "Cormorant Garamond",
+                    "Mulish",
+                    "DM Sans",
+                    "Nunito Sans",
+                    "Lato"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "pattern": "^[A-Z][A-Za-z0-9 ]{1,39}$"
+                }
               ],
-              "default": "DM Sans"
+              "description": "Familia de la lista fija o de tipografia.fuentes; el servidor valida la pertenencia a esa lista global."
             },
             "cuerpo": {
               "type": "string",
-              "enum": [
-                "Instrument Serif",
-                "Playfair Display",
-                "Fraunces",
-                "DM Serif Display",
-                "Lora",
-                "Cormorant Garamond",
-                "Mulish",
-                "DM Sans",
-                "Nunito Sans",
-                "Lato"
+              "default": "Mulish",
+              "anyOf": [
+                {
+                  "enum": [
+                    "Instrument Serif",
+                    "Playfair Display",
+                    "Fraunces",
+                    "DM Serif Display",
+                    "Lora",
+                    "Cormorant Garamond",
+                    "Mulish",
+                    "DM Sans",
+                    "Nunito Sans",
+                    "Lato"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "pattern": "^[A-Z][A-Za-z0-9 ]{1,39}$"
+                }
               ],
-              "default": "Mulish"
+              "description": "Familia de la lista fija o de tipografia.fuentes; el servidor valida la pertenencia a esa lista global."
+            },
+            "fuentes": {
+              "type": "array",
+              "default": [],
+              "minItems": 0,
+              "maxItems": 3,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Z][A-Za-z0-9 ]{1,39}$"
+              },
+              "description": "De 0 a 3 familias de Google Fonts, por nombre exacto y sin repetir. Globales para toda la sede, se comprueban al preparar y se cargan una sola vez. ds-fuente-1, ds-fuente-2 y ds-fuente-3 eligen la posición; sin familia en esa posición usan display."
+            }
+          }
+        },
+        "textura": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Plan L: textura de todo el fondo de la página, dibujada con la tinta del fondo. Sin imágenes ni CSS libre: un patrón del catálogo con su tamaño e intensidad.",
+          "properties": {
+            "patron": {
+              "type": "string",
+              "enum": [
+                "ninguna",
+                "reticula",
+                "cuaderno",
+                "puntos",
+                "diagonal"
+              ],
+              "default": "ninguna",
+              "description": "ninguna, reticula (cuadrícula), cuaderno (renglones), puntos o diagonal (rayado a 45°)."
+            },
+            "tamano": {
+              "type": "number",
+              "minimum": 8,
+              "maximum": 48,
+              "default": 16,
+              "description": "Separación del patrón en píxeles."
+            },
+            "intensidad": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 0.25,
+              "default": 0.07,
+              "description": "Opacidad de las líneas o puntos sobre el fondo (0 a 0.25)."
+            }
+          }
+        },
+        "imagenes": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Reglas de las fotografías del menú, parte del sistema de diseño y verificadas en el navegador: ninguna foto se dibuja con un radio menor que radio (salvo las circulares), ni deformada, y todas usan el ajuste y el marco del tema. No hay esquinas en punta: el mínimo es 8 px.",
+          "properties": {
+            "radio": {
+              "type": "number",
+              "minimum": 8,
+              "maximum": 40,
+              "default": 16,
+              "description": "Radio de las esquinas de las fotos en píxeles (8 a 40)."
+            },
+            "ajuste": {
+              "type": "string",
+              "enum": [
+                "cubrir",
+                "contener"
+              ],
+              "default": "cubrir",
+              "description": "cubrir recorta la foto para llenar su caja; contener la muestra entera dentro de la caja."
             }
           }
         }
@@ -275,6 +369,25 @@
           ],
           "default": "rellena",
           "description": "rellena: Conserva el fondo de valoraciones, descuentos y estados. contorno: Usa la superficie del tema y un contorno con tinta legible."
+        },
+        "banners": {
+          "type": "string",
+          "enum": [
+            "actual",
+            "tema"
+          ],
+          "default": "actual",
+          "description": "actual: Conserva los colores fijos violeta, ámbar y oscuro. tema: Todos los banners usan acento, acentoTinta y tintaTerciaria. Atributo data-ds-banners."
+        },
+        "marcoImagen": {
+          "type": "string",
+          "enum": [
+            "ninguno",
+            "borde",
+            "sombra"
+          ],
+          "default": "ninguno",
+          "description": "Tratamiento de las fotos: sin marco, con borde de 2 px color tinta o con sombra suave."
         }
       }
     },

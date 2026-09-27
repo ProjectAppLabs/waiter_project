@@ -27,6 +27,15 @@ CATALOG = Catalog(company_name='Burger House', products=[ANGUS, LIMONADA], categ
 
 
 @pytest.fixture(autouse=True)
+def design_system_defined(request, monkeypatch):
+    """Las pruebas anteriores a la regla «primero el sistema de diseño» preparan plantillas sobre el tema de fábrica; la
+    regla se prueba aparte (marca `sistema_de_diseno_real`) con la función real."""
+    if 'sistema_de_diseno_real' not in request.keywords:
+        from experience_app.mcp import tools
+        monkeypatch.setattr(tools, '_require_design_system', lambda theme: None)
+
+
+@pytest.fixture(autouse=True)
 def clear_cache():
     cache.clear()
 

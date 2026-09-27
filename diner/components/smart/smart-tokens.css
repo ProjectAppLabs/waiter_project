@@ -17,6 +17,18 @@
   --ds-forma-campo: 1;
   --ds-forma-imagen: 1;
   --ds-forma-hoja: 1;
+  /* Plan L: tinta del fondo y fuentes globales (sin fuentes, ds-fuente-N usa la de títulos). */
+  --t-tinta-fondo: var(--t-tinta);
+  --ds-fuente-1: var(--t-display);
+  --ds-fuente-2: var(--t-display);
+  --ds-fuente-3: var(--t-display);
+  /* Plan L: textura del fondo (sin patrón por defecto). */
+  --ds-textura: none;
+  --ds-textura-tamano: 16px;
+  --ds-textura-intensidad: 7%;
+  /* Plan L: reglas de las fotos. */
+  --ds-imagen-radio: 16px;
+  --ds-imagen-ajuste: cover;
 }
 
 /* Las variables derivadas se calculan donde se hereda la densidad de <main>.

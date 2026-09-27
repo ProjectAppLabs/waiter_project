@@ -10,6 +10,10 @@ export const COMPONENT_VARIANTS = {
   cabecera: { attribute: 'data-ds-cabecera', default: 'izquierda', values: ['izquierda', 'centrada'] },
   saludo: { attribute: 'data-ds-saludo', default: 'visible', values: ['visible', 'oculto'] },
   insignia: { attribute: 'data-ds-insignia', default: 'rellena', values: ['rellena', 'contorno'] },
+  // Plan L: con «tema», todos los banners toman acento, acentoTinta y tintaTerciaria en vez de sus colores fijos.
+  banners: { attribute: 'data-ds-banners', default: 'actual', values: ['actual', 'tema'] },
+  // Plan L: tratamiento de las fotos (regla del sistema de diseño, verificada en el navegador).
+  marcoImagen: { attribute: 'data-ds-marco-imagen', default: 'ninguno', values: ['ninguno', 'borde', 'sombra'] },
 } as const
 
 export const SCREEN_LAYOUTS = {

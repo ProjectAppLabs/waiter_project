@@ -57,6 +57,8 @@ class Product:
     # product.template.diner_attributes (addon projectapp_ops): JSON con piezas, picante, etiquetas, abv… (Contrato 2 del
     # Plan H). Ya parseado y tolerante: JSON inválido, no-objeto o campo ausente ⇒ {}.
     attributes: dict = field(default_factory=dict)
+    # Fotos adicionales de la plantilla, ordenadas por sequence e id, sin descargar sus binarios.
+    gallery: list[dict] = field(default_factory=list)
 
     def __post_init__(self):
         if self.final_price is None:
@@ -165,11 +167,13 @@ def load_catalog(client: OdooClient, pos_session_id: int) -> Catalog:
     # description_sale, image_128 e image_origin llegan como False cuando están vacíos (no como '' ni None); image_origin
     # ni siquiera llega si projectapp_ops no se ha actualizado en ese Odoo, y la carta debe salir igual.
     taxes = _taxes_by_id(client, {tid for t in base.values() for tid in t['taxes_id']})
+    galleries = _catalog_galleries(client, {t['id'] for t in base.values()})
     products = [Product(id=pid, name=t['name'], price=t['list_price'], category_ids=t['pos_categ_ids'], tax_ids=t['taxes_id'],
                         sold_out=pid in sold_out, template_id=t['id'], description=t.get('description_sale') or '',
                         favorite=bool(t.get('is_favorite')), has_image=bool(t.get('image_128')),
                         image_version=_version(t.get('write_date')), image_origin=t.get('image_origin') or '',
                         final_price=price_with_taxes(t['list_price'], [taxes[i] for i in t['taxes_id'] if i in taxes]),
+                        gallery=list(galleries.get(t['id'], [])),
                         attributes=_with_taxed_previous_price(parse_attributes(t.get('diner_attributes')),
                                                               [taxes[i] for i in t['taxes_id'] if i in taxes]))
                 for pid, t in base.items()]
@@ -181,6 +185,20 @@ def load_catalog(client: OdooClient, pos_session_id: int) -> Catalog:
     company = raw['res.company'][0]['name'] if raw.get('res.company') else ''
     return Catalog(company_name=company, products=products, categories=categories,
                    signup_discount_percent=signup_discount_percent(raw.get('pos.config') or []))
+
+
+def _catalog_galleries(client: OdooClient, template_ids: set[int]) -> dict[int, list[dict]]:
+    """Una lectura para toda la carta, compartida también por variantes de la misma plantilla."""
+    galleries: dict[int, list[dict]] = {}
+    if template_ids:
+        rows = client.call_kw('projectapp.product.photo', 'search_read',
+                              [[['product_tmpl_id', 'in', sorted(template_ids)]], ['product_tmpl_id', 'write_date']],
+                              {'order': 'sequence, id'})
+        for row in rows:
+            # search_read devuelve un many2one como [id, nombre], a diferencia de load_data.
+            template_id = row['product_tmpl_id'][0]
+            galleries.setdefault(template_id, []).append({'id': row['id'], 'version': _version(row.get('write_date'))})
+    return galleries
 
 
 def parse_attributes(raw) -> dict:
@@ -287,6 +305,18 @@ def fetch_product_image(client: OdooClient, template_id: int, size: str = DEFAUL
         return None
     data = base64.b64decode(encoded)
     return data, image_content_type(data)
+
+
+def fetch_gallery_image(client: OdooClient, template_id: int, photo_id: int) -> tuple[bytes, str] | None:
+    """La foto debe seguir perteneciendo a la plantilla, incluso si la carta en caché es anterior."""
+    rows = client.call_kw('projectapp.product.photo', 'search_read',
+                          [[['id', '=', photo_id], ['product_tmpl_id', '=', template_id]], ['image']])
+    encoded = rows[0].get('image') if rows else None
+    if not encoded:
+        return None
+    data = base64.b64decode(encoded)
+    content_type = image_content_type(data)
+    return (data, content_type) if content_type == 'image/webp' else None
 
 
 def ensure_open_session(client: OdooClient, config_id: int) -> int:

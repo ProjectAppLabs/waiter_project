@@ -104,7 +104,7 @@ def prepare(request, restaurant, venue):
         return no_store({'detail': 'Envía solo los ajustes del menú.'}, status=400)
     try:
         _, _, _, theme = templates.prepare(restaurant, venue, request.data)
-    except templates.InvalidSettings as exc:
+        change = borradores.create(resolve(restaurant, venue), theme)
+    except (templates.InvalidSettings, design.InvalidTheme) as exc:
         return no_store({'detail': str(exc)}, status=400)
-    change = borradores.create(resolve(restaurant, venue), theme)
     return no_store(borradores.result(change), status=201)

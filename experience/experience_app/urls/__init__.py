@@ -72,6 +72,7 @@ urlpatterns = [
     path('api/v1/plantillas/', templates.catalog, name='template-catalog'),
     path('api/v1/plantillas/<slug:code>/miniatura/', templates.thumbnail, name='template-thumbnail'),
     path('api/v1/<slug:restaurant>/<slug:venue>/fotos/<int:product_id>/', photos.photo, name='product-photo'),
+    path('api/v1/<slug:restaurant>/<slug:venue>/fotos/<int:product_id>/galeria/<int:photo_id>/', photos.gallery_photo, name='product-gallery-photo'),
     path('api/v1/<slug:restaurant>/<slug:venue>/logo/', logo.logo, name='company-logo'),
     path('api/v1/<slug:restaurant>/<slug:venue>/', context.entry, name='entry-delivery'),
     path('api/v1/<slug:restaurant>/<slug:venue>/t/<str:token>/', context.entry, name='entry-table'),

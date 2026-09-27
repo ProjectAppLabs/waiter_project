@@ -8,7 +8,7 @@ import { ProductForm } from '@/components/catalog/ProductForm'
 import { Icon } from '@/components/kit/Icon'
 import { Modal } from '@/components/kit/Modal'
 import { formatCop } from '@/lib/domain/money'
-import { listCategories, listProducts, listTaxes, saveCategory, saveProduct, type AdminCategory, type AdminProduct, type ProductInput, type Tax } from '@/lib/services/catalogAdmin'
+import { setCatalogPhotos, listCategories, listProducts, listTaxes, saveCategory, saveProduct, type AdminCategory, type AdminProduct, type ProductInput, type Tax } from '@/lib/services/catalogAdmin'
 
 export type MenuAdminRequest = { kind: 'product'; id: number } | { kind: 'categories' } | { kind: 'offMenu' }
 
@@ -37,7 +37,7 @@ export function MenuAdmin({ request, onClose, onChanged }: { request: MenuAdminR
       favorite: editing.favorite, description: editing.description, dinerAttributes: editing.dinerAttributes }
     return <ProductForm key={editing.id} initial={initial} hasImage={editing.hasImage} templateId={editing.id} isNew={false} categories={data.categories} taxes={data.taxes}
       extraProducts={data.products.filter((p) => p.available && p.variantId && p.id !== editing.id).map((p) => ({ id: p.variantId!, name: p.name }))}
-      onSave={async (input) => { await saveProduct(editing.id, input); await load(); onChanged() }}
+      onSave={async (input) => { await saveProduct(editing.id, input); if (input.gallery) await setCatalogPhotos(editing.id, input.gallery); await load(); onChanged() }}
       onClose={() => (request.kind === 'offMenu' ? setPicked(null) : onClose())} />
   }
   if (request.kind === 'product') return <Modal open onClose={onClose} title={t('title')} size="center"><p role="alert" className="p-8 text-center text-soft">{t('notFound')}</p></Modal>

@@ -45,8 +45,14 @@ export interface MenuTheme {
   fundamentos: {
     densidad: number; texto: number; titulo: number
     forma: Record<'tarjeta' | 'boton' | 'chip' | 'campo' | 'imagen' | 'hoja', number>
-    colores: Pick<TemplateTokens, 'fondo' | 'superficie' | 'tinta' | 'tintaSuave' | 'tintaTerciaria' | 'borde' | 'acento' | 'acentoTinta' | 'acentoSuave'>
-    tipografia: { display: string; cuerpo: string }
+    // Plan L: tintaFondo es el texto que va directo sobre el fondo de la página (por defecto, igual que tinta).
+    colores: Pick<TemplateTokens, 'fondo' | 'superficie' | 'tinta' | 'tintaSuave' | 'tintaTerciaria' | 'borde' | 'acento' | 'acentoTinta' | 'acentoSuave'> & { tintaFondo?: string }
+    // Plan L: hasta tres familias de Google Fonts importadas una vez para toda la sede; las plantillas las usan con ds-fuente-N.
+    tipografia: { display: string; cuerpo: string; fuentes?: string[] }
+    // Plan L: textura de todo el fondo de la página (patrón del catálogo, tamaño en px e intensidad 0–0.25).
+    textura?: { patron: string; tamano: number; intensidad: number }
+    // Plan L: reglas de las fotos (radio 8–40 px, cubrir o contener); forma.imagen se deriva del radio.
+    imagenes?: { radio: number; ajuste: 'cubrir' | 'contener' }
   }
 }
 // `contexto.plantilla`: la plantilla resuelta (catálogo + paleta y tipografía de la sede + marca). Es lo único que el motor necesita.
@@ -69,7 +75,7 @@ export interface Context { restaurante: { slug: string; nombre: string }; sede: 
 export type PhotoOrigin = 'real' | 'ia' | 'placeholder'
 // Atributos opcionales por producto (contrato 2): una plantilla los pinta si existen y los omite si no; nunca los inventa.
 export interface DishAttributes { combo?: {producto:number;cantidad:number;nombre:string}[]; extras?: number[]; acompanamientos?: number[]; ingredientes?: string[]; nutricion?: { calorias?: number; peso?: number; proteina?: number; grasa?: number; carbohidratos?: number; fibra?: number }; piezas?: number; picante?: 0 | 1 | 2 | 3; etiquetas?: string[]; alergenos?: string[]; abv?: number; ibu?: number; tamanos?: { nombre: string; precio: number }[]; soloHoy?: boolean; tiempoPreparacion?: number; precioAntes?: number }
-export interface Dish { valoracion?: {promedio:number;cantidad:number}; id: number; nombre: string; precio: number; agotado: boolean; categorias: number[]; descripcion?: string; foto?: string | null; favorito?: boolean; fotoOrigen?: PhotoOrigin | null; atributos?: DishAttributes }
+export interface Dish { valoracion?: {promedio:number;cantidad:number}; id: number; nombre: string; precio: number; agotado: boolean; categorias: number[]; descripcion?: string; foto?: string | null; fotos?: string[]; favorito?: boolean; fotoOrigen?: PhotoOrigin | null; atributos?: DishAttributes }
 export interface Category { id: number; nombre: string; productos: Dish[] }
 // imagenesDeReferencia: algún plato con foto la tiene generada con IA. Opcional: una experience/ anterior no lo manda y la carta sigue igual, sin la nota.
 export interface Menu { restaurante: string; categorias: Category[]; imagenesDeReferencia?: boolean }

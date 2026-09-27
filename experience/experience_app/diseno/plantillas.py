@@ -210,6 +210,7 @@ class _Checker:
         unknown = [c for c in classes if c not in UTILITY_CLASSES]
         if unknown:
             raise InvalidTemplate(f'<{tag}>: clase desconocida «{unknown[0]}»; usa solo las utilidades ds-* del catálogo.')
+        # Los elementos decorativos, incluida ds-barra, admiten hijos vacíos.
         return {'tipo': 'elemento', 'etiqueta': tag, 'clases': list(dict.fromkeys(classes)),
                 'hijos': self.walk(node.get('hijos', []), depth + 1, scope, f'<{tag}>')}
 

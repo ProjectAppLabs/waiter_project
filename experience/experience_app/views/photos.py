@@ -38,3 +38,22 @@ def photo(request, restaurant, venue, product_id):
     data, content_type = found
     requested = request.GET.get('v')
     return image_response(data, content_type, immutable=not requested or requested == product.image_version, filename='foto')
+
+
+@api_view(['GET'])
+def gallery_photo(request, restaurant, venue, product_id, photo_id):
+    """GET /api/v1/<rest>/<sede>/fotos/<producto>/galeria/<foto>/?v=<versión>."""
+    tenant = resolve(restaurant, venue)
+    try:
+        product = catalog.find_product(tenant, product_id)
+    except ProductNotFound:
+        return Response(NO_PHOTO, status=404)
+    photo = next((p for p in product.gallery if p['id'] == photo_id), None)
+    if photo is None:
+        return Response(NO_PHOTO, status=404)
+    found = catalog.get_gallery_photo(tenant, product, photo_id)
+    if found is None:
+        return Response(NO_PHOTO, status=404)
+    data, content_type = found
+    requested = request.GET.get('v')
+    return image_response(data, content_type, immutable=not requested or requested == photo['version'], filename='foto')
