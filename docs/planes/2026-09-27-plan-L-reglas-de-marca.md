@@ -53,3 +53,8 @@ Rama única `feat/27092026-plan-l-reglas-de-marca`; cada uno toca solo sus carpe
   sin deformación y con el ajuste y el marco del tema.
 - **Orden del MCP**: primero el sistema de diseño, después los componentes. `preparar_componente` y `preparar_tema` rechazan
   plantillas mientras los fundamentos sigan siendo los de fábrica; `leer_design_system` devuelve el `orden`.
+- **Maquetación verificada en Chromium** (reglas del código, que el MCP no cambia): espacio vacío al final (solo si la
+  página se desplaza) no mayor que el muelle más 96 px; fotos y textos no cortados por el borde (salvo carriles
+  desplazables); botones del muelle en una fila y sin texto partido; órbitas de la ficha solo con foto circular; nutrición
+  en una fila. Se comprobó reproduciendo los defectos anteriores de la ficha: los cinco se detectan.
+

@@ -139,6 +139,53 @@ function imageCheck() {
   return [...problems.values()]
 }
 
+// Se ejecuta dentro de la página: reglas de maquetación de las pantallas, que son del código y no del tema (el MCP no las
+// cambia), para que ninguna regresión pase sin verse. Espacio vacío al final, contenido cortado por el borde, muelle en una
+// fila, adornos fijos visibles sin sentido y nutrición en una fila.
+function layoutCheck() {
+  const problems = []
+  const visible = (el) => { const r = el.getBoundingClientRect(), cs = getComputedStyle(el); return r.width > 2 && r.height > 2 && cs.visibility !== 'hidden' && cs.display !== 'none' && Number(cs.opacity) > 0.05 }
+  const fixed = (el) => { for (let n = el; n && n !== document.body; n = n.parentElement) { const p = getComputedStyle(n).position; if (p === 'fixed' || p === 'sticky') return true } return false }
+  const inRail = (el) => { for (let n = el.parentElement; n && n !== document.body; n = n.parentElement) { const o = getComputedStyle(n).overflowX; if (o === 'auto' || o === 'scroll') return true } return false }
+  const page = document.querySelector('.smart-menu .sm-page')
+  const dock = document.querySelector('.smart-menu .sm-action-dock')
+  const dockHeight = dock && visible(dock) ? innerHeight - dock.getBoundingClientRect().top : 0
+  // 1. Espacio vacío al final: lo que queda bajo el último contenido no debe pasar del muelle más 96 px de respiro.
+  if (page) {
+    let last = 0
+    for (const el of page.querySelectorAll('*')) { if (!visible(el) || fixed(el)) continue; last = Math.max(last, el.getBoundingClientRect().bottom + scrollY) }
+    // Solo si la página se desplaza: en una pantalla corta, lo que queda abajo es el resto de la pantalla, no espacio sobrante.
+    const scrolls = document.documentElement.scrollHeight > innerHeight + 1
+    const empty = document.documentElement.scrollHeight - last
+    if (scrolls && last && empty > dockHeight + 96) problems.push(`maquetación: sobran ${Math.round(empty - dockHeight)} px vacíos al final de la pantalla (bajo el último contenido)`)
+  }
+  // 2. Contenido cortado por el borde: fotos y textos visibles que se salen de la pantalla (fuera de un carril desplazable).
+  const cut = new Set()
+  for (const el of document.querySelectorAll('.smart-menu img, .smart-menu h1, .smart-menu h2, .smart-menu h3, .smart-menu p, .smart-menu strong')) {
+    if (!visible(el) || inRail(el) || el.closest('.ds-decoracion, .sm-orbit-hero, [aria-hidden="true"]')) continue
+    const r = el.getBoundingClientRect()
+    if (r.right > innerWidth + 1 || r.left < -1) cut.add((el.getAttribute('alt') || el.textContent || el.tagName).trim().slice(0, 30) || el.tagName)
+  }
+  for (const name of cut) problems.push(`maquetación: «${name}» queda cortado por el borde de la pantalla`)
+  // 3. Muelle: sus botones van en una sola fila y ninguno parte su texto en más de dos líneas.
+  if (dock && visible(dock)) {
+    const items = [...dock.children].filter(visible)
+    const tops = items.map((el) => Math.round(el.getBoundingClientRect().top))
+    if (items.length > 1 && Math.max(...tops) - Math.min(...tops) > 4) problems.push('maquetación: los botones del muelle no comparten fila')
+    for (const b of dock.querySelectorAll('a, button')) if (visible(b) && b.getBoundingClientRect().height > 72) problems.push(`maquetación: el botón «${b.textContent.trim().slice(0, 24)}» del muelle parte su texto en varias líneas`)
+  }
+  // 4. Adornos fijos: las órbitas de la ficha solo acompañan a una foto circular.
+  const orbits = document.querySelector('.smart-menu .sm-dish-orbits'), photo = document.querySelector('.smart-menu .sm-dish-hero .sm-dish-photo')
+  if (orbits && photo && visible(orbits)) {
+    const r = photo.getBoundingClientRect(), radius = parseFloat(getComputedStyle(photo).borderTopLeftRadius) || 0
+    if (radius < Math.min(r.width, r.height) / 2 - 1) problems.push('maquetación: las órbitas decorativas de la ficha se ven con una foto no circular')
+  }
+  // 5. Nutrición en una fila.
+  const nutrition = [...document.querySelectorAll('.smart-menu .sm-nutrition > div')].filter(visible)
+  if (nutrition.length > 1 && new Set(nutrition.map((el) => Math.round(el.getBoundingClientRect().top))).size > 1) problems.push('maquetación: la información nutricional no cabe en una fila')
+  return [...new Set(problems)]
+}
+
 // Se ejecuta dentro de la página: devuelve los problemas de cada raíz con plantilla propia, agrupados por componente.
 function measureRoots() {
   const problems = [], counts = {}
@@ -262,6 +309,7 @@ async function main() {
       measured.problemas.push(...await page.evaluate(securityCheck, fonts))
       measured.problemas.push(...await page.evaluate(contrastCheck))
       measured.problemas.push(...await page.evaluate(imageCheck))
+      if (spec.name !== 'sistema') measured.problemas.push(...await page.evaluate(layoutCheck))
       measured.problemas.push(...[...foreign].map((origin) => `seguridad: la página pidió recursos a un origen no permitido: ${origin}`))
       Object.keys(measured.raices).forEach((id) => seen.add(id))
       result.medidas[`${spec.name} ${width}px`] = { raices: measured.raices, problemas: measured.problemas.length }
