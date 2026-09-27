@@ -4,6 +4,7 @@ import { memo, useEffect, useRef, useState } from 'react'
 
 import { Icon } from '@/components/kit/Icon'
 import { KIND_ICON, KIND_TITLE, PanelTitle, type SelectionKind } from '@/components/tables/editor/parts'
+import { DECOR_INFO, type Decor } from '@/lib/domain/decor'
 import { CELL, WALL_COLOR, type FloorDocument, type PlanRect, type PlanTable, type TableProblem, type Wall, type Zone } from '@/lib/domain/floorPlan'
 import { cn } from '@/lib/utils'
 
@@ -60,14 +61,14 @@ const LayerList = memo(function LayerList({ layers, activeKey, busy, onSelect }:
 
 interface Props {
   plan: FloorDocument; selection: { kind: SelectionKind; id: string } | null; current: PlanRect | null | undefined
-  table?: PlanTable; zone?: Zone; wall?: Wall; problems: TableProblem[]; zoneColors: string[]; wallColors: string[]; layers: Layer[]; busy: boolean
+  table?: PlanTable; zone?: Zone; wall?: Wall; decor?: Decor; problems: TableProblem[]; zoneColors: string[]; wallColors: string[]; layers: Layer[]; busy: boolean
   onPatch: (values: Record<string, unknown>) => void; onRotate: () => void; onDuplicate: () => void; onRemove: () => void; onSelectLayer: (layer: Layer) => void
   open: boolean; onClose: () => void
 }
 
 // Columna derecha. Arriba, las propiedades de lo seleccionado con sus tres acciones (rotar, duplicar, eliminar); sin
 // selección, explica por dónde empezar. Abajo, las capas: la forma de elegir algo que quedó tapado por otra cosa.
-export function EditorInspector({ plan, selection, current, table, zone, wall, problems, zoneColors, wallColors, layers, busy, onPatch, onRotate, onDuplicate, onRemove, onSelectLayer, open, onClose }: Props) {
+export function EditorInspector({ plan, selection, current, table, zone, wall, decor, problems, zoneColors, wallColors, layers, busy, onPatch, onRotate, onDuplicate, onRemove, onSelectLayer, open, onClose }: Props) {
   // La etiqueta apunta al campo por id: los botones van fuera del <label>, porque un label con varios controles dentro
   // se asocia al primero (el botón de restar) y no al número.
   const stepper = (key: 'seats' | 'number', value: number, min: number, max: number, label: string, less: string, more: string) => (
@@ -101,6 +102,7 @@ export function EditorInspector({ plan, selection, current, table, zone, wall, p
             <p className="text-[12px] text-dim">{plan.tables.filter((t) => t.zone === zone.id).length} mesas en esta zona.</p>
           </>}
           {selection.kind === 'walls' && wall && <ColorField label="Color de pared" value={wall.color ?? WALL_COLOR} colors={wallColors} onChange={(color) => onPatch({ color })} />}
+          {selection.kind === 'decor' && decor && <p className="text-[13px] leading-relaxed text-soft"><span className="font-semibold text-ink">{DECOR_INFO[decor.asset].label}</span>. Rotar la gira de a 90 grados; la esquina blanca cambia su tamaño.</p>}
           {(selection.kind === 'images' || selection.kind === 'background') && <p className="text-[13px] leading-relaxed text-soft">Arrástrala hasta su lugar, por ejemplo sobre la zona que representa. Cambia de tamaño sin deformarse.</p>}
           <details className="rounded-md border border-border">
             <summary className="h-10 px-3 flex items-center gap-2 cursor-pointer text-[13px] font-semibold text-soft">Configuración avanzada</summary>

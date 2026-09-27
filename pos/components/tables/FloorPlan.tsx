@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 
+import { DecorArt } from '@/components/tables/decor/DecorArt'
 import { PlanViewport } from '@/components/tables/PlanViewport'
 import { BACKGROUND_OPACITY, WALL_COLOR, contentBounds, planImageSrc, type FloorDocument, type PlanRect } from '@/lib/domain/floorPlan'
 import { KitEmptyState } from '@/components/kit/KitEmptyState'
@@ -40,11 +41,11 @@ export function pillFor(state: TableState, t: (key: string) => string): TablePil
 export function FloorPlan({ views, selectedId, selectedIds, onSelect, onOpenTable, background = null, pickFree = false, codeFor, reserved = {}, plan, visibleIds, blockedIds, blockedLabel, zoneStaff }: Props) {
   const t = useTranslations('tables')
   const ts = useTranslations('tables.state')
-  const empty = views.length === 0 && !plan?.zones.length && !plan?.walls.length && !background && !plan?.images?.length
+  const empty = views.length === 0 && !plan?.zones.length && !plan?.walls.length && !plan?.decor?.length && !background && !plan?.images?.length
   if (empty) return <KitEmptyState icon="tables" title={t('emptyFloor.title')} body={t('emptyFloor.body')} />
   // La imagen ocupa el rectángulo guardado con el plano (o 1200×800 en planos anteriores al control de tamaño).
   const image: PlanRect | null = background ? { x: plan?.backgroundSize?.x ?? 0, y: plan?.backgroundSize?.y ?? 0, width: plan?.backgroundSize?.width ?? 1200, height: plan?.backgroundSize?.height ?? 800 } : null
-  const operated: PlanRect[] = [...views.map((v) => v.table), ...(plan?.zones ?? []), ...(plan?.walls ?? [])]
+  const operated: PlanRect[] = [...views.map((v) => v.table), ...(plan?.zones ?? []), ...(plan?.walls ?? []), ...(plan?.decor ?? [])]
   const extras = plan?.images ?? []
   const bounds = contentBounds([...operated, ...(image ? [image] : []), ...extras])
   const core = operated.length ? contentBounds(operated) : bounds
@@ -55,6 +56,7 @@ export function FloorPlan({ views, selectedId, selectedIds, onSelect, onOpenTabl
           {image && <img src={background!} alt="" className="absolute max-w-none object-contain object-left-top pointer-events-none" style={{ left: image.x, top: image.y, width: image.width, height: image.height, opacity: BACKGROUND_OPACITY }} />}
           {extras.map((extra) => <img key={extra.id} src={planImageSrc(extra)} alt="" className="absolute max-w-none object-contain object-left-top pointer-events-none" style={{ left: extra.x, top: extra.y, width: extra.width, height: extra.height, opacity: BACKGROUND_OPACITY }} />)}
           {plan?.zones.map(z=><div key={z.id} className="absolute border-2 border-dashed rounded pointer-events-none" style={{left:z.x,top:z.y,width:z.width,height:z.height,borderColor:z.color,backgroundColor:z.color+'18'}}><span className="inline-block origin-top-left whitespace-nowrap px-2 py-1 text-sm font-semibold" style={{color:z.color,transform:'scale(calc(1 / var(--plan-zoom, 1)))'}}>{z.name}{zoneStaff?.[z.id]?.length ? <span className="font-normal"> · {zoneStaff[z.id].join(', ')}</span> : null}</span></div>)}
+          {plan?.decor?.map(d=><svg key={d.id} aria-hidden className="absolute pointer-events-none overflow-visible" style={{left:d.x,top:d.y,width:d.width,height:d.height}} viewBox={`0 0 ${d.width} ${d.height}`}><DecorArt item={d}/></svg>)}
           {plan?.walls.map(w=><div key={w.id} className="absolute border border-black/40 pointer-events-none" style={{left:w.x,top:w.y,width:w.width,height:w.height,backgroundColor:w.color??WALL_COLOR}}/>)}
           {views.map((v) => {
             const booking = reserved[v.table.id] ?? null

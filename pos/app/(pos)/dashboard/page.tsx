@@ -21,6 +21,7 @@ import { useKitOrders } from '@/lib/hooks/useKitOrders'
 import { getSalesHistory } from '@/lib/services/insights'
 import { listIngredients } from '@/lib/services/pantry'
 import { getTimeline } from '@/lib/services/reservations'
+import { useAuthStore } from '@/lib/stores/authStore'
 import { useCatalogStore } from '@/lib/stores/catalogStore'
 
 const REFRESH_MS = 60_000
@@ -35,6 +36,9 @@ export default function DashboardPage() {
   // Se saluda a quien marcó su PIN, no a la credencial con la que se abrió la tablet.
   const { firstName, role } = useIdentity()
   const catalog = useCatalogStore((s) => s.catalog)
+  // Con la caja cerrada el Dashboard sigue vivo (informes, reservas, inventario); el saludo invita a abrirla (el botón
+  // está en la barra superior).
+  const registerClosed = useAuthStore((s) => !s.session)
   const { orders } = useKitOrders()
   const [reservations, setReservations] = useState<ReservationCard[] | null>(null)
   const [ingredients, setIngredients] = useState<Ingredient[] | null>(null)
@@ -97,7 +101,7 @@ export default function DashboardPage() {
         <div className="shrink-0 px-2 py-4 sm:px-3 flex flex-wrap items-start justify-between gap-4">
           <div className="flex flex-col gap-2">
             <h1 className="text-[24px] sm:text-[28px] font-semibold tracking-tight text-ink">{t(`greeting.${greetingFor(new Date().getHours())}`, { name: firstName })}</h1>
-            <p className="text-[15px] text-soft">{t('motto')}</p>
+            <p className="text-[15px] text-soft">{registerClosed ? t('mottoClosed') : t('motto')}</p>
           </div>
           <LiveClock label={t('clock')} />
         </div>

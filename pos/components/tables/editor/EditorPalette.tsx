@@ -3,7 +3,9 @@
 import { memo } from 'react'
 
 import { Icon } from '@/components/kit/Icon'
+import { DecorGlyph } from '@/components/tables/decor/DecorArt'
 import { PanelTitle, TableGlyph } from '@/components/tables/editor/parts'
+import { DECOR_ASSETS, DECOR_CATEGORIES, DECOR_INFO, type DecorAsset } from '@/lib/domain/decor'
 
 // Mesas que se pueden agregar. `label` es el nombre accesible (lo usan las pruebas); `detail` lo que se lee debajo.
 export const TABLE_PRESETS = [
@@ -14,14 +16,14 @@ export const TABLE_PRESETS = [
 ] as const
 
 interface Props {
-  name: string; onName: (name: string) => void; onAddTable: (width: number, height: number, seats: number) => void
+  name: string; onName: (name: string) => void; onAddTable: (width: number, height: number, seats: number) => void; onAddDecor: (asset: DecorAsset) => void
   hasImage: boolean; imageCount: number; canAddImage: boolean; imagePercent: number; onImageFile: (file: File) => void; onImageScale: (percent: number) => void; onImageRemove: () => void; onImageSelect: () => void
   busy: boolean
 }
 
 // Columna izquierda: lo que se agrega al plano. Cada mesa se ve dibujada antes de tocarla y cae en el centro de lo que
 // se está mirando. La imagen de referencia es un calco: una foto o un plano del local para dibujar encima.
-export const EditorPalette = memo(function EditorPalette({ name, onName, onAddTable, hasImage, imageCount, canAddImage, imagePercent, onImageFile, onImageScale, onImageRemove, onImageSelect, busy }: Props) {
+export const EditorPalette = memo(function EditorPalette({ name, onName, onAddTable, onAddDecor, hasImage, imageCount, canAddImage, imagePercent, onImageFile, onImageScale, onImageRemove, onImageSelect, busy }: Props) {
   return (
     <aside className="w-[220px] xl:w-[272px] shrink-0 border-r border-border bg-surface overflow-y-auto flex flex-col" aria-label="Agregar al plano">
       <div className="p-4 border-b border-border">
@@ -42,6 +44,24 @@ export const EditorPalette = memo(function EditorPalette({ name, onName, onAddTa
             </button>
           ))}
         </div>
+      </section>
+      <section className="p-4 border-b border-border flex flex-col gap-3" aria-label="Decoración">
+        <PanelTitle icon="palette">Decoración</PanelTitle>
+        <p className="text-[12px] leading-relaxed text-dim">Dibuja el espacio: cocina, barra, baños, escaleras. El mesero las ve detrás de las mesas.</p>
+        {DECOR_CATEGORIES.map((category) => (
+          <div key={category.key} className="flex flex-col gap-1.5">
+            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-dim">{category.label}</h3>
+            <div className="grid grid-cols-3 gap-1.5">
+              {DECOR_ASSETS.filter((asset) => DECOR_INFO[asset].category === category.key).map((asset) => (
+                <button key={asset} type="button" aria-label={`Agregar ${DECOR_INFO[asset].label}`} title={DECOR_INFO[asset].label} disabled={busy} onClick={() => onAddDecor(asset)}
+                  className="p-1.5 rounded-md border border-border flex flex-col items-center gap-1 text-center hover:border-primary hover:bg-primary-soft disabled:opacity-40">
+                  <DecorGlyph asset={asset} width={DECOR_INFO[asset].width} height={DECOR_INFO[asset].height} size={44} />
+                  <span className="text-[11px] font-medium text-ink leading-tight break-words">{DECOR_INFO[asset].label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
       </section>
       <section className="p-4 flex flex-col gap-3">
         <PanelTitle icon="photo" aside={imageCount > 0 ? <span className="text-[12px] font-normal text-dim">{imageCount}</span> : undefined}>Imágenes de referencia</PanelTitle>

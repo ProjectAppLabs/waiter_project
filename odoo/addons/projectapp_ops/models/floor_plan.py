@@ -38,6 +38,28 @@ def image_bytes(image):
 
 
 MAX_EXTRA_IMAGES = 8
+# Piezas de la galería del editor (cocina, salón, baños, estructura). Misma lista que pos/lib/domain/decor.ts.
+DECOR_ASSETS = ('stove', 'range', 'fridge', 'sink', 'counter', 'island', 'bar', 'stool', 'register', 'sofa', 'plant',
+                'toilet', 'washbasin', 'door', 'window', 'stairs', 'spiral', 'column')
+DECOR_ROTATIONS = (0, 90, 180, 270)
+
+
+def checked_decor(items):
+    """Valida las piezas de decoración y devuelve solo sus campos conocidos. No chocan con las mesas: solo dibujan."""
+    if not isinstance(items, list) or len(items) > 500:
+        raise UserError(_('El plano tiene demasiadas piezas de decoración.'))
+    clean, seen = [], set()
+    for item in items:
+        if not isinstance(item, dict) or not isinstance(item.get('id'), str) or not item['id'] or len(item['id']) > 80 or item['id'] in seen:
+            raise UserError(_('Cada pieza de decoración necesita un identificador único.'))
+        seen.add(item['id'])
+        rectangle(item)
+        rotation = item.get('rotation', 0)
+        if item.get('asset') not in DECOR_ASSETS or type(rotation) is not int or rotation not in DECOR_ROTATIONS:
+            raise UserError(_('Una pieza de decoración no es válida.'))
+        clean.append({'id': item['id'], 'asset': item['asset'], 'rotation': rotation,
+                      **{k: item[k] for k in ('x', 'y', 'width', 'height')}})
+    return clean
 # Lo que el POS llama «caja abierta» (pos/lib/services/session.ts, OPEN_STATES): recién creada o ya con efectivo inicial.
 OPEN_STATES = ('opened', 'opening_control')
 
@@ -82,6 +104,7 @@ class Floor(models.Model):
                 'backgroundSize': (self.waiter_plan or {}).get('backgroundSize'),
                 'images': (self.waiter_plan or {}).get('images', []),
                 'walls': (self.waiter_plan or {}).get('walls', []), 'zones': (self.waiter_plan or {}).get('zones', []),
+                'decor': (self.waiter_plan or {}).get('decor', []),
                 'tables': [{'id': t.id, 'key': str(t.id), 'number': t.table_number, 'seats': t.seats,
                             'x': t.position_h, 'y': t.position_v, 'width': t.width, 'height': t.height,
                             'zone': t.waiter_zone or ''} for t in self.table_ids.filtered('active')]}
@@ -124,6 +147,8 @@ class Floor(models.Model):
             # El color es opcional (los planos anteriores no lo traen); si viene, debe ser un hexadecimal de seis cifras.
             if wall.get('color') is not None and not re.fullmatch(r'#[0-9a-fA-F]{6}', str(wall['color'])):
                 raise UserError(_('El color de una pared no es válido.'))
+        # Sin la clave `decor` (clientes anteriores) se conservan las piezas que hubiera.
+        decor = checked_decor(plan['decor']) if 'decor' in plan else ((floor.waiter_plan or {}).get('decor', []) if floor else [])
         ids, numbers = set(), set()
         for i, table in enumerate(tables):
             rectangle(table)
@@ -190,7 +215,7 @@ class Floor(models.Model):
         dropped = owned - {i['attachmentId'] for i in images}
         if dropped:
             self.env['ir.attachment'].browse(list(dropped)).exists().unlink()
-        floor.write({**image_values, 'name': name, 'waiter_plan': {'walls': walls, 'zones': zones, 'backgroundSize': background_size, 'images': images}, 'waiter_plan_revision': floor.waiter_plan_revision + 1})
+        floor.write({**image_values, 'name': name, 'waiter_plan': {'walls': walls, 'zones': zones, 'decor': decor, 'backgroundSize': background_size, 'images': images}, 'waiter_plan_revision': floor.waiter_plan_revision + 1})
         removed.write({'active': False})
         staff = floor.waiter_zone_staff or {}
         if set(staff) - zone_ids:

@@ -27,7 +27,8 @@ jest.mock('next/link', () => ({
   default: ({ href, children, ...rest }: NextLinkProps) => React.createElement('a', { href, ...rest }, children),
 }));
 
-Object.defineProperty(window, 'matchMedia', {
+// Las pruebas de rutas del servidor (`@jest-environment node`) no tienen window.
+if (typeof window !== 'undefined') Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: jest.fn((query: string) => ({
     matches: false,

@@ -4,6 +4,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { BACKGROUND_OPACITY, CELL, extent, invalidTable, MAX_EXTRA_IMAGES, normalizePlan, planFits, planImageSrc, snap, tableProblems, WALL_COLOR, zoneAt, type FloorDocument, type PlanImage, type PlanRect, type PlanTable } from '@/lib/domain/floorPlan'
 import { Icon } from '@/components/kit/Icon'
 import { AuroraBackground } from '@/components/kit/Aurora'
+import { DecorArt } from '@/components/tables/decor/DecorArt'
 import { EditorInspector, type Layer } from '@/components/tables/editor/EditorInspector'
 import { EditorPalette } from '@/components/tables/editor/EditorPalette'
 import { EditorHint, EditorToolbar } from '@/components/tables/editor/EditorToolbar'
@@ -13,13 +14,14 @@ import { savePlan } from '@/lib/services/floorPlan'
 import { checkPin } from '@/lib/services/employees'
 import { useStableCallback } from '@/lib/hooks/useStableCallback'
 import { useAuthStore } from '@/lib/stores/authStore'
+import { DECOR_INFO, rotateDecor, type Decor, type DecorAsset } from '@/lib/domain/decor'
 import { uuid } from '@/lib/domain/uuid'
 import { cn } from '@/lib/utils'
 
-type Selection = { kind: 'tables' | 'walls' | 'zones' | 'images' | 'background'; id: string } | null
-// Borrador del editor: igual que el documento, pero con `images` siempre como lista para tratarla como a mesas,
-// paredes y zonas. `background` es la primera imagen del piso, que conserva su campo propio por compatibilidad.
-type Draft = FloorDocument & { images: PlanImage[] }
+type Selection = { kind: 'tables' | 'walls' | 'zones' | 'images' | 'background' | 'decor'; id: string } | null
+// Borrador del editor: igual que el documento, pero con `images` y `decor` siempre como listas para tratarlas como a
+// mesas, paredes y zonas. `background` es la primera imagen del piso, que conserva su campo propio por compatibilidad.
+type Draft = FloorDocument & { images: PlanImage[]; decor: Decor[] }
 type Camera = { x: number; y: number; zoom: number }
 type Gesture = { type: 'pan' | 'move' | 'resize' | 'draw'; start: {x: number; y: number}; camera: Camera; original?: PlanRect; selection?: Selection; before: Draft }
 const keyOf = (item: {key?: string; id?: string | number | null}) => item.key ?? String(item.id)
@@ -40,7 +42,7 @@ const EditorTable = memo(function EditorTable({ table, bad, selected, onStart }:
 })
 
 export function FloorEditor({ initial, configId, background, onCancel, onSaved }: { initial: FloorDocument; configId: number; background?: string | null; onCancel: () => void; onSaved: (plan: FloorDocument) => Promise<void> }) {
- const [plan, setPlan] = useState<Draft>(()=>({...initial,images:initial.images??[],...(background&&!initial.backgroundSize?{backgroundSize:{x:0,y:0,width:1200,height:800}}:{})}))
+ const [plan, setPlan] = useState<Draft>(()=>({...initial,images:initial.images??[],decor:initial.decor??[],...(background&&!initial.backgroundSize?{backgroundSize:{x:0,y:0,width:1200,height:800}}:{})}))
  const [camera, setCamera] = useState<Camera>({ x: 50, y: 50, zoom: 0.8 })
  const [selection, setSelection] = useState<Selection>(null)
  const [tool, setTool] = useState<Tool>('select')
@@ -53,6 +55,7 @@ export function FloorEditor({ initial, configId, background, onCancel, onSaved }
  const [needsPin, setNeedsPin] = useState(false)
  const [pin, setPin] = useState('')
  const [panel, setPanel] = useState(false)
+ const [panning, setPanning] = useState(false)
  const svg = useRef<SVGSVGElement>(null)
  const gesture = useRef<Gesture | null>(null)
  const pointers = useRef(new Map<number, {x: number; y: number}>())
@@ -62,6 +65,7 @@ export function FloorEditor({ initial, configId, background, onCancel, onSaved }
  const currentTable = selection?.kind === 'tables' ? plan.tables.find(t=>t.key===selection.id) : undefined
  const currentZone = selection?.kind === 'zones' ? plan.zones.find(z => z.id === selection.id) : undefined
  const currentWall = selection?.kind === 'walls' ? plan.walls.find(w => w.id === selection.id) : undefined
+ const currentDecor = selection?.kind === 'decor' ? plan.decor.find(d => d.id === selection.id) : undefined
  // La validez depende solo de mesas y paredes: se calcula una vez por cambio de esas listas, no en cada render ni por
  // cada sitio que la consulta (lienzo, capas y cabecera).
  const invalid = useMemo(() => plan.tables.filter((table) => invalidTable(table, plan)), [plan.tables, plan.walls]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -108,8 +112,10 @@ export function FloorEditor({ initial, configId, background, onCancel, onSaved }
   return () => el.removeEventListener('wheel', wheel)
  }, [])
  function start(e: React.PointerEvent, chosen: Selection = null, resize = false) {
-  if (busy || e.button > 0) return
+  if (busy || e.button > 1) return
   e.preventDefault(); e.stopPropagation(); svg.current?.setPointerCapture(e.pointerId)
+  // Rueda pulsada: siempre mueve el plano, con cualquier herramienta y aunque empiece encima de una mesa o pared.
+  if (e.button === 1) { gesture.current = {type:'pan', start:{x:e.clientX,y:e.clientY},camera,before:plan}; setPanning(true); return }
   pointers.current.set(e.pointerId, {x: e.clientX, y: e.clientY})
   if (pointers.current.size === 2) {
    if (gesture.current) setPlan(gesture.current.before)
@@ -129,7 +135,7 @@ export function FloorEditor({ initial, configId, background, onCancel, onSaved }
    setDrawing({x:snap(point.x),y:snap(point.y),width:CELL,height:CELL})
   } else {
    setSelection(null)
-   gesture.current = {type:'pan', start:{x:e.clientX,y:e.clientY},camera,before:plan}
+   gesture.current = {type:'pan', start:{x:e.clientX,y:e.clientY},camera,before:plan}; setPanning(true)
   }
  }
  // Manejador estable para las mesas memoizadas: siempre llama a la versión de `start` del último render.
@@ -165,7 +171,7 @@ export function FloorEditor({ initial, configId, background, onCancel, onSaved }
   }
  }
  function end(e: React.PointerEvent, cancelled = false) {
-  pointers.current.delete(e.pointerId); setSourceRect(null)
+  pointers.current.delete(e.pointerId); setSourceRect(null); setPanning(false)
   if (pinch.current) { if (pointers.current.size < 2) pinch.current=null; return }
   const g=gesture.current; gesture.current=null
   if (!g) return
@@ -184,6 +190,12 @@ export function FloorEditor({ initial, configId, background, onCancel, onSaved }
   const key=uuid(), rect={x:snap(center.x-width/2),y:snap(center.y-height/2),width,height}
   commit({...plan,tables:[...plan.tables,{...rect,key,id:null,number:Math.max(0,...plan.tables.map(t=>t.number))+1,seats,zone:zoneAt(rect,plan.zones)}]})
   setSelection({kind:'tables',id:key});setTool('select')
+ }
+ // Una pieza de la galería cae en el centro de lo que se está mirando, con su tamaño por defecto, lista para acomodarla.
+ function addDecor(asset: DecorAsset) {
+  const {width,height}=DECOR_INFO[asset], r=svg.current!.getBoundingClientRect(), center=world(r.left+r.width/2,r.top+r.height/2), id=uuid()
+  commit({...plan,decor:[...plan.decor,{id,asset,rotation:0,x:snap(center.x-width/2),y:snap(center.y-height/2),width,height}]})
+  setSelection({kind:'decor',id});setTool('select')
  }
  function remove() {
   if (!selection) return
@@ -219,7 +231,10 @@ export function FloorEditor({ initial, configId, background, onCancel, onSaved }
 
  function undoStep() { if (!undo.length || busy) return; lastEdit.current = null; setRedo(h=>[...h,plan]); setPlan(undo[undo.length-1]); setUndo(h=>h.slice(0,-1)) }
  function redoStep() { if (!redo.length || busy) return; lastEdit.current = null; setUndo(h=>[...h,plan]); setPlan(redo[redo.length-1]); setRedo(h=>h.slice(0,-1)) }
- function rotate() { if (current && selection && selection.kind !== 'background' && selection.kind !== 'images') patch({width:current.height,height:current.width}) }
+ function rotate() {
+  if (currentDecor) { patch(rotateDecor(currentDecor)); return }
+  if (current && selection && selection.kind !== 'background' && selection.kind !== 'images') patch({width:current.height,height:current.width})
+ }
  // Mueve lo seleccionado una celda (o cinco con Mayús). Una mesa cambia de zona si cruza el borde, igual que al arrastrar.
  function nudge(dx: number, dy: number) {
   if (!current || !selection) return
@@ -235,6 +250,8 @@ export function FloorEditor({ initial, configId, background, onCancel, onSaved }
    commit({...plan, tables: [...plan.tables, {...currentTable, ...rect, id: null, key: id, number: Math.max(0, ...plan.tables.map(t=>t.number)) + 1, zone: zoneAt(rect, plan.zones)}]})
   } else if (selection.kind === 'zones' && currentZone) {
    commit({...plan, zones: [...plan.zones, {...currentZone, id, name: `${currentZone.name} copia`.slice(0, 80), x: currentZone.x + 40, y: currentZone.y + 40}]})
+  } else if (selection.kind === 'decor' && currentDecor) {
+   commit({...plan, decor: [...plan.decor, {...currentDecor, id, x: currentDecor.x + 40, y: currentDecor.y + 40}]})
   } else {
    commit({...plan, walls: [...plan.walls, {...current, id, x: current.x + 40, y: current.y + 40}]})
   }
@@ -289,12 +306,14 @@ export function FloorEditor({ initial, configId, background, onCancel, onSaved }
   ...plan.tables.map(t=>({kind:'tables' as const,id:t.key,label:`Mesa ${t.number}`,invalid:invalidKeys.has(t.key)})),
   ...plan.walls.map((w,i)=>({kind:'walls' as const,id:w.id,label:`Pared ${i+1}`})),
   ...plan.zones.map(z=>({kind:'zones' as const,id:z.id,label:`Zona ${z.name}`})),
+  ...plan.decor.map(d=>({kind:'decor' as const,id:d.id,label:DECOR_INFO[d.asset].label})),
   ...(shownBackground?[{kind:'background' as const,id:'background',label:'Imagen de referencia'}]:[]),
   ...plan.images.map((image,i)=>({kind:'images' as const,id:image.id,label:`Imagen ${i+2}`})),
  ]
  // Identidad fija para los paneles memoizados: así un cambio que no les toca (el color de una zona) no los redibuja.
  const onName = useStableCallback((name: string) => commit({...plan,name},'name'))
  const onAddTable = useStableCallback(addTable)
+ const onAddDecor = useStableCallback(addDecor)
  const onImageFile = useStableCallback(loadImage)
  const onImageScale = useStableCallback((percent: number) => { const scale=percent/100; commit({...plan,backgroundSize:{...backgroundSize,width:1200*scale,height:800*scale}},'background:scale') })
  const onImageRemove = useStableCallback(() => { commit({...plan,background:null,backgroundSize:null}); if(selection?.kind==='background') setSelection(null) })
@@ -304,9 +323,12 @@ export function FloorEditor({ initial, configId, background, onCancel, onSaved }
  const onSelectLayer = useStableCallback((layer: Layer) => { setSelection({kind:layer.kind,id:layer.id}); setTool('select') })
  const activeTool = TOOLS.find(t => t.key === tool)!
  const hint = tool === 'select' && selection ? 'Arrastra para mover. La esquina blanca cambia el tamaño. Las propiedades están a la derecha.' : activeTool.hint
- const counts = `${plan.tables.length} ${plan.tables.length === 1 ? 'mesa' : 'mesas'} · ${plan.walls.length} ${plan.walls.length === 1 ? 'pared' : 'paredes'} · ${plan.zones.length} ${plan.zones.length === 1 ? 'zona' : 'zonas'}`
+ const counts = `${plan.tables.length} ${plan.tables.length === 1 ? 'mesa' : 'mesas'} · ${plan.walls.length} ${plan.walls.length === 1 ? 'pared' : 'paredes'} · ${plan.zones.length} ${plan.zones.length === 1 ? 'zona' : 'zonas'}${plan.decor.length ? ` · ${plan.decor.length} ${plan.decor.length === 1 ? 'pieza' : 'piezas'}` : ''}`
  const blocker = !fits ? 'El plano es demasiado grande' : invalid.length ? `${invalid.length} ${invalid.length === 1 ? 'mesa por corregir' : 'mesas por corregir'}` : !plan.name.trim() ? 'Falta el nombre del piso' : plan.zones.some(z => !z.name.trim()) ? 'Hay una zona sin nombre' : ''
- return <main className="pos-ambient h-screen flex flex-col text-ink" aria-label="Editor del restaurante">
+ // Vive dentro del armazón del POS (barra superior y, con la caja cerrada, la franja de administración): ocupa lo que
+ // queda debajo, no una pantalla entera. Con h-screen la página entera se desplazaba y el editor se iba hacia arriba.
+ // Cada columna se desplaza por su cuenta dentro de ese alto.
+ return <main className="pos-ambient flex-1 min-h-0 flex flex-col overflow-hidden text-ink" aria-label="Editor del restaurante">
   <AuroraBackground />
   <header className="shrink-0 h-[68px] flex items-center gap-3 px-4 border-b border-border bg-surface">
    <span className="w-10 h-10 shrink-0 grid place-items-center rounded-md bg-primary-soft text-primary"><Icon name="edit" size={20}/></span>
@@ -321,20 +343,21 @@ export function FloorEditor({ initial, configId, background, onCancel, onSaved }
    <button type="submit" disabled={busy||pin.length!==6} className="h-10 px-4 rounded-md bg-primary text-primary-ink font-semibold disabled:opacity-40">Validar y guardar</button>
   </form>}
   <div className="relative flex flex-1 min-h-0">
-   <EditorPalette name={plan.name} onName={onName} onAddTable={onAddTable} busy={busy}
+   <EditorPalette name={plan.name} onName={onName} onAddTable={onAddTable} onAddDecor={onAddDecor} busy={busy}
     hasImage={Boolean(shownBackground)} imageCount={(shownBackground?1:0)+plan.images.length} canAddImage={!shownBackground||plan.images.length<MAX_EXTRA_IMAGES} imagePercent={Math.round(backgroundSize.width/12)} onImageFile={onImageFile}
     onImageScale={onImageScale} onImageRemove={onImageRemove} onImageSelect={onImageSelect}/>
    <div className="relative flex-1 min-w-0">
     <EditorToolbar tool={tool} onTool={setTool} canUndo={undo.length>0} canRedo={redo.length>0} onUndo={onUndo} onRedo={onRedo} busy={busy} onLayers={onLayers}/>
-    <svg ref={svg} aria-label="Cuadrícula del restaurante" data-camera-x={camera.x} data-camera-y={camera.y} data-camera-zoom={camera.zoom} className={cn('w-full h-full touch-none select-none',tool==='pan'?'cursor-grab':tool==='select'?'cursor-default':'cursor-crosshair')} onPointerDown={e=>start(e)} onPointerMove={move} onPointerUp={e=>end(e)} onPointerCancel={e=>end(e,true)}>
+    <svg ref={svg} aria-label="Cuadrícula del restaurante" data-camera-x={camera.x} data-camera-y={camera.y} data-camera-zoom={camera.zoom} className={cn('w-full h-full touch-none select-none',panning?'cursor-grabbing':tool==='pan'||tool==='select'?'cursor-grab':'cursor-crosshair')} onPointerDown={e=>start(e)} onPointerMove={move} onPointerUp={e=>end(e)} onPointerCancel={e=>end(e,true)}>
      <defs><pattern id="floor-editor-grid" width={CELL} height={CELL} patternUnits="userSpaceOnUse" patternTransform={`translate(${camera.x} ${camera.y}) scale(${camera.zoom})`}><path d={`M ${CELL} 0 L 0 0 0 ${CELL}`} fill="none" stroke="#93c5fd" strokeOpacity={0.55} strokeWidth="1"/></pattern></defs>
      <rect width="100%" height="100%" fill="#eff6ff" pointerEvents="none"/>
      <rect width="100%" height="100%" fill="url(#floor-editor-grid)" pointerEvents="none"/>
      <g transform={`translate(${camera.x} ${camera.y}) scale(${camera.zoom})`}>
       {shownBackground&&<image x={backgroundSize.x} y={backgroundSize.y} href={shownBackground} width={backgroundSize.width} height={backgroundSize.height} preserveAspectRatio="xMinYMin meet" opacity={BACKGROUND_OPACITY} pointerEvents="none"/>}
       {plan.images.map(image=><image key={image.id} x={image.x} y={image.y} href={planImageSrc(image)} width={image.width} height={image.height} preserveAspectRatio="xMinYMin meet" opacity={BACKGROUND_OPACITY} pointerEvents="none"/>)}
-      {plan.zones.map(z=><g key={z.id} onPointerDown={e=>start(e,{kind:'zones',id:z.id})} role="button" aria-label={`Zona ${z.name}`}><rect {...{x:z.x,y:z.y,width:z.width,height:z.height}} fill={z.color} fillOpacity={0.12} stroke={z.color} strokeWidth={2} strokeDasharray="8 4"/><text x={z.x+12} y={z.y+25} fill={z.color} fontSize={18} fontWeight="600">{z.name}</text></g>)}
-      {plan.walls.map(w=><rect key={w.id} {...{x:w.x,y:w.y,width:w.width,height:w.height}} fill={w.color??WALL_COLOR} stroke="#0f172a" strokeOpacity={0.45} strokeWidth={2} role="button" aria-label="Pared" onPointerDown={e=>start(e,{kind:'walls',id:w.id})}/>)}
+      {plan.zones.map(z=><g key={z.id} onPointerDown={e=>start(e,{kind:'zones',id:z.id})} role="button" aria-label={`Zona ${z.name}`} className={tool==='select'&&!panning?'cursor-move':undefined}><rect {...{x:z.x,y:z.y,width:z.width,height:z.height}} fill={z.color} fillOpacity={0.12} stroke={z.color} strokeWidth={2} strokeDasharray="8 4"/><text x={z.x+12} y={z.y+25} fill={z.color} fontSize={18} fontWeight="600">{z.name}</text></g>)}
+      {plan.decor.map(d=><g key={d.id} transform={`translate(${d.x} ${d.y})`} role="button" aria-label={DECOR_INFO[d.asset].label} className={tool==='select'&&!panning?'cursor-move':undefined} onPointerDown={e=>start(e,{kind:'decor',id:d.id})}><DecorArt item={d}/></g>)}
+      {plan.walls.map(w=><rect key={w.id} {...{x:w.x,y:w.y,width:w.width,height:w.height}} fill={w.color??WALL_COLOR} stroke="#0f172a" strokeOpacity={0.45} strokeWidth={2} role="button" aria-label="Pared" className={tool==='select'&&!panning?'cursor-move':undefined} onPointerDown={e=>start(e,{kind:'walls',id:w.id})}/>)}
       {sourceRect&&<rect {...{x:sourceRect.x,y:sourceRect.y,width:sourceRect.width,height:sourceRect.height}} fill="#94a3b8" fillOpacity={0.2} stroke="#64748b" strokeDasharray="6 4" pointerEvents="none"/>}
       {plan.tables.map(t=><EditorTable key={t.key} table={t} bad={invalidKeys.has(t.key)} selected={selection?.kind==='tables'&&selection.id===t.key} onStart={startTable}/>)}
       {drawing&&<rect {...drawing} fill={tool==='wall'?'#475569':'#3b82f6'} opacity={0.4} stroke="#2563eb" strokeWidth={2} pointerEvents="none"/>}
@@ -350,7 +373,7 @@ export function FloorEditor({ initial, configId, background, onCancel, onSaved }
      <button type="button" className="h-11 px-3 flex items-center gap-2 border-l border-border rounded-r-md font-semibold hover:bg-muted" onClick={fit}><Icon name="expand" size={18}/>Ver todo</button>
     </div>
    </div>
-   <EditorInspector plan={plan} selection={selection} current={current} table={currentTable} zone={currentZone} wall={currentWall} wallColors={WALL_COLORS} problems={currentTable?tableProblems(currentTable,plan):[]}
+   <EditorInspector plan={plan} selection={selection} current={current} table={currentTable} zone={currentZone} wall={currentWall} decor={currentDecor} wallColors={WALL_COLORS} problems={currentTable?tableProblems(currentTable,plan):[]}
     zoneColors={COLORS} layers={layers} busy={busy} onPatch={patch} onRotate={rotate} onDuplicate={duplicate} onRemove={remove}
     onSelectLayer={onSelectLayer}
     open={panel||Boolean(selection)} onClose={()=>{setPanel(false);setSelection(null)}}/>

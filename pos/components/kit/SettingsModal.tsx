@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react'
 
 import { ChangePinModal } from '@/components/account/ChangePinModal'
 import { EmployeeInfoPanel } from '@/components/account/EmployeeInfoPanel'
-import { ACTIVE_LANGUAGE, LANGUAGES, LanguageModal } from '@/components/account/LanguageModal'
 import { ShiftClock } from '@/components/account/ShiftClock'
 import { Icon, type KitIcon } from '@/components/kit/Icon'
 import { Modal } from '@/components/kit/Modal'
@@ -42,7 +41,6 @@ export function SettingsModal({ open, onClose, onLogout }: { open: boolean; onCl
   const [tab, setTab] = useState<Tab>('profile')
   const [confirming, setConfirming] = useState(false)
   const [changingPin, setChangingPin] = useState(false)
-  const [choosingLanguage, setChoosingLanguage] = useState(false)
   const { mode, setMode } = useTheme()
   const employee = useAuthStore((s) => s.employee)
   const uid = useAuthStore((s) => s.user?.uid ?? null)
@@ -59,7 +57,6 @@ export function SettingsModal({ open, onClose, onLogout }: { open: boolean; onCl
     if (uid) void setNotifyPrefs(uid, { [key]: v }).catch(() => undefined)
   }
   const on = (key: NotifyKey) => notify?.[key] ?? true
-  const language = LANGUAGES.find((l) => l.code === ACTIVE_LANGUAGE)?.name ?? ''
 
   return (
     <>
@@ -74,11 +71,13 @@ export function SettingsModal({ open, onClose, onLogout }: { open: boolean; onCl
                 </button>
               ))}
             </div>
-            <div className="mt-auto p-3 rounded-md border border-border bg-muted flex flex-col gap-3">
-              <div className="flex items-center justify-between"><span className="text-[13px] font-semibold text-ink">{t('time')}</span><ShiftClock checkIn={employee?.checkIn ?? null} /></div>
-              <Button onClick={() => setConfirming(true)}
-                className={cn('w-full', employee ? 'bg-muted text-soft border-border' : 'bg-danger text-primary-ink border-danger hover:bg-danger/90')}>
-                <Icon name="logout" size={18} />{t('logout')}</Button>
+            {/* Pie de la columna: cuánto lleva el turno (desde que marcó el PIN) y cerrar sesión, con la misma forma que las
+                pestañas (icono y texto en un renglón) para que no parezca otro tipo de control. */}
+            <div className="mt-auto pt-3 border-t border-border flex flex-col gap-1">
+              <div className="h-9 px-3 flex items-center justify-between gap-2 text-[13px] text-soft"><span className="whitespace-nowrap">{t('time')}</span><ShiftClock checkIn={employee?.checkIn ?? null} /></div>
+              <button type="button" onClick={() => setConfirming(true)} className="flex items-center gap-3 h-11 px-3 rounded-md text-[16px] font-semibold text-danger-ink hover:bg-danger-soft">
+                <Icon name="logout" size={20} /><span>{t('logout')}</span>
+              </button>
             </div>
           </aside>
           <section className="flex-1 min-w-0 p-4 pl-0">
@@ -104,10 +103,6 @@ export function SettingsModal({ open, onClose, onLogout }: { open: boolean; onCl
                 )}
                 {tab === 'display' && (
                   <div className="flex flex-col gap-5">
-                    <div className="flex items-center justify-between pb-5 border-b border-border">
-                      <div><p className="text-[16px] font-semibold text-ink">{t('display.language')}</p><p className="text-[13px] text-soft">{t('display.languageBody')}</p></div>
-                      <Button size="compact" onClick={() => setChoosingLanguage(true)}><Icon name="language" size={18} />{language}<Icon name="chevronDown" size={16} /></Button>
-                    </div>
                     <div>
                       <p className="text-[16px] font-semibold text-ink">{t('display.colorMode')}</p><p className="text-[13px] text-soft mb-3">{t('display.colorModeBody')}</p>
                       <div role="radiogroup" aria-label={t('display.colorMode')} className="flex gap-4">
@@ -129,7 +124,6 @@ export function SettingsModal({ open, onClose, onLogout }: { open: boolean; onCl
         </div>
       </Modal>
       {employee && <ChangePinModal open={changingPin} employeeId={employee.id} token={employee.token} onClose={() => setChangingPin(false)} />}
-      <LanguageModal open={choosingLanguage} onClose={() => setChoosingLanguage(false)} />
       <Modal open={confirming} onClose={() => setConfirming(false)} footer={
         <div className="flex gap-3"><Button className="flex-1 h-12" onClick={() => setConfirming(false)}>{t('logoutNo')}</Button><Button variant="primary" className="flex-1 h-12" onClick={() => { setConfirming(false); void onLogout() }}>{t('logoutYes')}</Button></div>
       }>

@@ -6,7 +6,7 @@ from experience_app.tests.conftest import ANGUS, CATALOG, LIMONADA, TABLE
 
 
 @patch('experience_app.services.catalog.pos.load_catalog', return_value=CATALOG)
-@patch('experience_app.services.catalog.pos.ensure_open_session', return_value=4)
+@patch('experience_app.services.catalog.pos.catalog_session', return_value=4)
 @patch('experience_app.services.catalog.OdooClient')
 def test_catalog_hits_odoo_once_until_invalidated(client, ensure, load):
     """Atrapa una carta que golpea Odoo en cada comensal, o una invalidación que no invalida."""

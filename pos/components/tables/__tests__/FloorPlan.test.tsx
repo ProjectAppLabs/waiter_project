@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { NextIntlClientProvider } from 'next-intl'
 
@@ -72,4 +72,46 @@ it('opens the table detail on double click and exposes simultaneous service noti
   expect(within(table).getByTitle('Sin enviar a cocina')).toBeInTheDocument()
   await userEvent.dblClick(table)
   expect(onOpenTable).toHaveBeenCalledWith(2)
+})
+
+// Falla si arrastrar con el ratón no mueve el plano cuando cabe entero en pantalla (se veía la mano y nada se movía),
+// si arrastrar desde una mesa la abre al soltar, o si la rueda pulsada no arrastra. Un clic corto sigue abriendo la mesa.
+it('pans the plan with the mouse from a table or with the wheel pressed, without opening the table', async () => {
+  Object.defineProperty(window, 'PointerEvent', { value: MouseEvent, configurable: true })
+  HTMLElement.prototype.setPointerCapture = jest.fn()
+  HTMLElement.prototype.scrollTo = jest.fn()
+  // jsdom no maqueta: el visor mide lo que mediría una tablet apaisada.
+  const size = jest.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(1000)
+  const height = jest.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(700)
+  const onSelect = jest.fn()
+  wrap(<FloorPlan views={[view(1, 'free')]} selectedId={null} onSelect={onSelect} />)
+  const plan = screen.getByTestId('floor-plan'), canvas = screen.getByTestId('plan-canvas'), table = screen.getByRole('button', { name: 'Mesa 1: Disponible' })
+  fireEvent.pointerDown(table, { button: 0, clientX: 200, clientY: 200 })
+  fireEvent.pointerMove(plan, { clientX: 150, clientY: 170 })
+  expect(plan).toHaveClass('cursor-grabbing')
+  fireEvent.pointerUp(plan)
+  fireEvent.click(table)
+  expect(onSelect).not.toHaveBeenCalled()
+  const moved = canvas.style.transform
+  expect(moved).toMatch(/^translate\(/)
+  fireEvent.pointerDown(plan, { button: 1, clientX: 200, clientY: 200 })
+  fireEvent.pointerMove(plan, { clientX: 180, clientY: 200 })
+  fireEvent.pointerUp(plan)
+  expect(canvas.style.transform).not.toBe(moved)
+  await userEvent.click(screen.getByRole('button', { name: /Ver todo/ }))
+  expect(canvas.style.transform).toBe('')
+  await userEvent.click(table)
+  expect(onSelect).toHaveBeenCalledWith(1)
+  size.mockRestore(); height.mockRestore()
+})
+
+// Falla si el salón no dibuja las piezas del plano o si una pieza tapa el clic de la mesa que tiene encima.
+it('draws the decor pieces behind the tables without blocking them', async () => {
+  const onSelect = jest.fn()
+  const plan = { id: 1, name: 'Sala', revision: 0, tables: [], walls: [], zones: [], decor: [{ id: 'd', asset: 'plant' as const, rotation: 0 as const, x: 150, y: 40, width: 110, height: 110 }] }
+  const { container } = wrap(<FloorPlan plan={plan} views={[view(1, 'free')]} selectedId={null} onSelect={onSelect} />)
+  const piece = container.querySelector('svg[aria-hidden].pointer-events-none')
+  expect(piece).toHaveStyle({ left: '150px', top: '40px', width: '110px' })
+  await userEvent.click(screen.getByRole('button', { name: 'Mesa 1: Disponible' }))
+  expect(onSelect).toHaveBeenCalledWith(1)
 })

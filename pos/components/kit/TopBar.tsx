@@ -38,7 +38,7 @@ export function TopBar({ active, role, policy, userName, unread, activeSubtab, o
     return () => ro.disconnect()
   }, [active, role, administrationOnly, policy])
   const tr = useTranslations('pos.nav.roles')
-  const tabs = tabsFor(role, policy).filter((tab) => !administrationOnly || !['dashboard', 'orders', 'kitchen'].includes(tab))
+  const tabs = tabsFor(role, policy).filter((tab) => !administrationOnly || !['orders', 'kitchen'].includes(tab))
   const subtabs = adminSubtabsFor(role, policy)
   return (
     <header className="kit-topbar shrink-0">
@@ -53,6 +53,13 @@ export function TopBar({ active, role, policy, userName, unread, activeSubtab, o
             </Link>
           ))}
         </nav>
+        {/* Con la caja cerrada, la acción de abrirla va junto a los módulos, separada: es una acción, no una pantalla. */}
+        {administrationOnly && <>
+          <span aria-hidden className="shrink-0 w-px h-8 bg-border" />
+          <Link href="/caja" className="shrink-0 h-11 px-4 flex items-center gap-2 rounded-md bg-primary text-primary-ink text-[15px] font-semibold whitespace-nowrap shadow-sm hover:opacity-90 focus-visible:outline-2 focus-visible:outline-primary">
+            <Icon name="wallet" size={20} />{t('openRegister')}
+          </Link>
+        </>}
         <div className="ml-auto shrink-0 flex items-center gap-3 relative">
           <button type="button" aria-label={t('bell', { count })} aria-expanded={bell} onClick={() => setBell((v) => !v)} className={cn('relative w-12 h-12 rounded-md border border-border grid place-items-center', bell ? 'text-primary border-primary/40' : 'text-soft')}>
             <Icon name="bell" size={22} />

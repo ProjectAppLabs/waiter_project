@@ -37,11 +37,11 @@ export default function ReservasPage() {
       <header className="shrink-0 min-h-[88px] px-5 py-4 flex flex-wrap items-center gap-x-6 gap-y-3">
         <PageTitle>{t('title')}</PageTitle>
 
-        <label className="ml-auto flex items-center gap-2 h-11 px-3 rounded-md border border-border text-[15px] text-ink">
+        <label className="ml-auto flex items-center gap-2 h-12 px-3 rounded-md border border-border text-[15px] text-ink">
           <Icon name="reservations" size={18} className="text-soft" />
           <input type="date" aria-label={t('day')} value={r.date} onChange={(e) => r.setDate(e.target.value)} className="bg-transparent text-ink focus:outline-none" />
         </label>
-        <Button variant="primary" size="money" disabled={!configId} onClick={r.openWizard}><Icon name="plus" size={18} />{t('add')}</Button>
+        <Button variant="primary" size="compact" disabled={!configId} onClick={r.openWizard}><Icon name="plus" size={18} />{t('add')}</Button>
       </header>
 
       {!r.error && (!timelineCurrent || r.loading)

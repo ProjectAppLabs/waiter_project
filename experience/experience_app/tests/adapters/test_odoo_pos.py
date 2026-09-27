@@ -44,6 +44,21 @@ def test_create_order_syncs_with_uuid_then_recomputes_prices():
     assert order.total == 87822
 
 
+def test_catalog_session_reads_the_menu_from_a_closed_register_without_opening_one():
+    """Atrapa una carta que abre caja: con la caja cerrada dejaba una sesión en opening_control y el plano no se guardaba."""
+    http = FakeSession([AUTH, FakeResponse([]), FakeResponse([{'id': 3}])])
+    assert pos.catalog_session(OdooClient(CREDS, http), 1) == 3
+    assert [params(c)['method'] for c in http.calls[1:]] == ['search_read', 'search_read']
+
+
+def test_catalog_session_prefers_the_open_register_and_only_opens_one_on_a_new_terminal():
+    """Atrapa una carta leída de una sesión vieja habiendo caja abierta, o un terminal nuevo sin carta."""
+    assert pos.catalog_session(OdooClient(CREDS, FakeSession([AUTH, FakeResponse([{'id': 8}])])), 1) == 8
+    http = FakeSession([AUTH, FakeResponse([]), FakeResponse([]), FakeResponse([]), FakeResponse(9), FakeResponse(True)])
+    assert pos.catalog_session(OdooClient(CREDS, http), 1) == 9
+    assert params(http.calls[-1])['method'] == 'action_pos_session_open'
+
+
 def test_delivery_order_carries_no_table():
     """Atrapa un pedido a domicilio que Odoo ate a una mesa inexistente."""
     payload = pos.sync_payload(pos_session_id=4, table_id=None, order_uuid='u', guests=1, lines=[], date_order='d')

@@ -299,6 +299,18 @@ def ensure_open_session(client: OdooClient, config_id: int) -> int:
     return session_id
 
 
+def catalog_session(client: OdooClient, config_id: int) -> int:
+    """Sesión para leer la carta con load_data, SIN abrir caja: la abierta si la hay, si no la última del terminal (Odoo
+    sirve load_data también sobre una cerrada). Abrir una aquí dejaba una caja en opening_control cada vez que alguien
+    miraba la carta con la caja cerrada, y eso bloqueaba lo que exige caja cerrada (p. ej. guardar el plano).
+    Solo un terminal que nunca tuvo sesión abre una."""
+    for domain in ([['state', 'in', OPEN_SESSION_STATES], ['config_id', '=', config_id]], [['config_id', '=', config_id]]):
+        rows = client.call_kw('pos.session', 'search_read', [domain, ['id']], {'limit': 1, 'order': 'id desc'})
+        if rows:
+            return rows[0]['id']
+    return ensure_open_session(client, config_id)
+
+
 def _read_order(client: OdooClient, order_id: int) -> OdooOrder:
     raw = client.call_kw('pos.order', 'read', [[order_id], ['pos_reference', 'state', 'amount_total', 'amount_tax', 'amount_paid']])[0]
     return OdooOrder(id=raw['id'], reference=raw['pos_reference'], state=raw['state'], total=raw['amount_total'], tax=raw['amount_tax'], paid=raw['amount_paid'])

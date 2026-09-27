@@ -136,3 +136,33 @@ it('duplicates, nudges, deletes and switches tools from the keyboard, but never 
  fireEvent.keyDown(window,{key:'Escape'})
  expect(screen.getByRole('button',{name:'Seleccionar elementos'})).toHaveAttribute('aria-pressed','true')
 })
+// Falla si la rueda pulsada no mueve el plano o si, empezando encima de una mesa, la selecciona en vez de arrastrar.
+it('pans with the wheel pressed even when it starts on a table',()=>{
+ render(<FloorEditor initial={initial} configId={1} onCancel={jest.fn()} onSaved={jest.fn()}/> )
+ const svg=screen.getByLabelText('Cuadrícula del restaurante')
+ const x=Number(svg.getAttribute('data-camera-x'))
+ fireEvent.pointerDown(screen.getByRole('button',{name:'Mesa 1, 6 personas'}),{button:1,clientX:100,clientY:100})
+ expect(svg).toHaveClass('cursor-grabbing')
+ fireEvent.pointerMove(svg,{clientX:160,clientY:100})
+ fireEvent.pointerUp(svg,{clientX:160,clientY:100})
+ expect(Number(svg.getAttribute('data-camera-x'))).toBe(x+60)
+ expect(screen.queryByLabelText('Capacidad (personas)')).toBeNull()
+ expect(svg).toHaveClass('cursor-grab')
+})
+// Falla si una pieza de la galería no aparece en el plano, no gira con Rotar o no viaja a Odoo al guardar.
+it('adds a gallery piece at the center, rotates it and saves it with the plan',async()=>{
+ ;(savePlan as jest.Mock).mockImplementation(async(_c:number,p:FloorDocument)=>p)
+ ;(useAuthStore.getState as jest.Mock).mockReturnValue({employee:{id:1,token:'t'}})
+ const saved=jest.fn()
+ render(<FloorEditor initial={initial} configId={1} onCancel={jest.fn()} onSaved={saved}/> )
+ const svg=screen.getByLabelText('Cuadrícula del restaurante')
+ svg.getBoundingClientRect=()=>({left:0,top:0,right:1000,bottom:800,width:1000,height:800,x:0,y:0,toJSON:()=>null})
+ fireEvent.click(screen.getByRole('button',{name:'Agregar Escalera'}))
+ expect(screen.getByRole('button',{name:'Escalera'})).toBeInTheDocument()
+ expect(screen.getByText('Pieza seleccionada')).toBeInTheDocument()
+ fireEvent.click(screen.getByText('Rotar'))
+ fireEvent.click(screen.getByRole('button',{name:'Guardar'}))
+ await waitFor(()=>expect(saved).toHaveBeenCalled())
+ const sent=(savePlan as jest.Mock).mock.calls[0][1] as FloorDocument
+ expect(sent.decor).toEqual([expect.objectContaining({asset:'stairs',rotation:90,width:200,height:100})])
+})

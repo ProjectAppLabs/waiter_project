@@ -9,11 +9,17 @@
 # servicio ya responde, no se vuelve a lanzar. Registros en $LOGS; PID de cada proceso en $LOGS/<servicio>.pid, para
 # detenerlos sin buscar procesos por nombre (un `pkill -f` puede coincidir con la propia shell que lo lanza).
 #
-# Variables: HOST (192.168.56.10), REST y SEDE (burger-house / poblado: el restaurante demo del chequeo del comensal).
+# Variables: HOST (192.168.56.10 si la máquina tiene esa interfaz host-only; si no, su IP en la red local, p. ej. en WSL,
+# para que otro equipo de la red llegue a los servicios), REST y SEDE (burger-house / poblado: el restaurante demo del chequeo del comensal).
 set -uo pipefail
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-HOST=${HOST:-192.168.56.10}
+if [[ -z ${HOST:-} ]]; then
+  if ip -4 addr show 2>/dev/null | grep -q ' 192.168.56.10/'; then HOST=192.168.56.10
+  else HOST=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for (i = 1; i < NF; i++) if ($i == "src") print $(i + 1)}'); fi
+fi
+# docker-compose.yml y `npm run dev` del comensal leen la IP de aquí.
+export WAITER_HOST=$HOST
 REST=${REST:-burger-house}
 SEDE=${SEDE:-poblado}
 LOGS=${LOGS:-/tmp/waiter-dev}
@@ -36,7 +42,10 @@ pid_alive() { local f="$LOGS/$1.pid"; [[ -f $f ]] && kill -0 "$(cat "$f")" 2>/de
 # Lanza un proceso en segundo plano, desde su carpeta, fuera de esta shell, y guarda su PID.
 launch() {
   local name=$1 dir=$2; shift 2
-  (cd "$dir" && setsid nohup "$@" >>"$LOGS/$name.log" 2>&1 & echo $! >"$LOGS/$name.pid")
+  # El PID lo escribe el propio líder de la sesión nueva: `$!` apuntaba a un bash intermedio y `down` no mataba nada.
+  # La redirección va sobre toda la subshell: si no, el bash intermedio se queda con la salida de quien llamó y un
+  # `scripts/dev.sh up | tail` no termina nunca.
+  (cd "$dir" && setsid bash -c 'echo $$ >"$0"; exec nohup "$@"' "$LOGS/$name.pid" "$@" &) >>"$LOGS/$name.log" 2>&1 < /dev/null
 }
 
 odoo_up()       { [[ $(code "http://$HOST:8069/web/login" 30) == 200 ]]; }

@@ -54,7 +54,7 @@ export default function CajaPage() {
         <div className="flex">
           <section className="w-[400px] shrink-0 p-6 border-r border-border flex flex-col gap-4">
             <p className="text-[15px] text-soft leading-relaxed">{t('body')}</p>
-            {effectiveRole(user.role, employee.role) === 'admin' && <Link href="/configuracion" className="rounded-md border border-primary p-3 text-primary font-semibold">Entrar a administración sin abrir caja</Link>}
+            {effectiveRole(user.role, employee.role) === 'admin' && <Link href="/dashboard" className="rounded-md border border-primary p-3 text-primary font-semibold">Entrar a administración sin abrir caja</Link>}
             <Select label={t('config')} value={configId ?? ''} onChange={(e) => setConfigId(Number(e.target.value))}>{configs.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select>
             <TextInput label={t('notes')} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </section>

@@ -32,7 +32,7 @@ def get_catalog(tenant: Tenant) -> pos.Catalog:
     if cached is not None:
         return cached
     client = OdooClient(tenant.odoo)
-    session_id = pos.ensure_open_session(client, tenant.odoo.pos_config_id)
+    session_id = pos.catalog_session(client, tenant.odoo.pos_config_id)
     catalog = pos.load_catalog(client, session_id)
     cache.set(_key(tenant), catalog, settings.MENU_CACHE_SECONDS)
     return catalog

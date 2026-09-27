@@ -130,6 +130,24 @@ class TestFloorPlan(TransactionCase):
             self.save(broken)
         self.assertEqual(self.Floor.browse(saved['id']).waiter_read_plan()['walls'][0]['color'], '#9a3412')
 
+    def test_decor_pieces_are_persisted_kept_by_older_clients_and_validated(self):
+        plan = deepcopy(self.plan)
+        plan['decor'] = [{'id': 'stairs', 'asset': 'stairs', 'rotation': 90, 'x': 400, 'y': 80, 'width': 200, 'height': 100, 'extra': 'x'},
+                         {'id': 'plant', 'asset': 'plant', 'rotation': 0, 'x': 80, 'y': 80, 'width': 60, 'height': 60}]
+        saved = self.save(plan)
+        # Una planta encima de una mesa no la invalida: la decoración no choca, solo dibuja. Lo desconocido no se guarda.
+        self.assertEqual([d['asset'] for d in saved['decor']], ['stairs', 'plant'])
+        self.assertNotIn('extra', saved['decor'][0])
+        older = deepcopy(saved)
+        del older['decor']
+        self.assertEqual(len(self.save(older)['decor']), 2)
+        for broken in ({'asset': 'rocket'}, {'rotation': 45}, {'rotation': True}, {'width': 5}):
+            bad = self.Floor.browse(saved['id']).waiter_read_plan()
+            bad['decor'][0].update(broken)
+            with self.assertRaises(UserError):
+                self.save(bad)
+        self.assertEqual(self.Floor.browse(saved['id']).waiter_read_plan()['decor'][0]['rotation'], 90)
+
     def delete(self, floor_id, token=None):
         return self.Floor.waiter_delete_floor(self.config.id, floor_id, self.employee.id, token or self.token)
 

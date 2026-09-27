@@ -17,8 +17,8 @@ services:
     depends_on:
       - db
     ports:
-      - "192.168.56.10:8069:8069"
-      - "192.168.56.10:8072:8072"
+      - "${WAITER_HOST:-192.168.56.10}:8069:8069"
+      - "${WAITER_HOST:-192.168.56.10}:8072:8072"
     volumes:
       - odoo-data:/var/lib/odoo
       - ../addons:/mnt/extra-addons:ro

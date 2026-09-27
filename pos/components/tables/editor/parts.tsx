@@ -6,7 +6,7 @@ import { Icon, type KitIcon } from '@/components/kit/Icon'
 import { cn } from '@/lib/utils'
 
 export type Tool = 'select' | 'pan' | 'wall' | 'zone'
-export type SelectionKind = 'tables' | 'walls' | 'zones' | 'images' | 'background'
+export type SelectionKind = 'tables' | 'walls' | 'zones' | 'images' | 'background' | 'decor'
 
 // Herramientas del lienzo: nombre accesible (lo usan las pruebas), etiqueta corta, icono, atajo y la pista que se
 // muestra abajo mientras está activa. Una herramienta nueva se agrega aquí y aparece en la barra.
@@ -16,8 +16,8 @@ export const TOOLS: { key: Tool; name: string; short: string; icon: KitIcon; sho
   { key: 'wall', name: 'Dibujar pared', short: 'Pared', icon: 'wall', shortcut: 'P', hint: 'Arrastra sobre la cuadrícula para dibujar una pared. Deja huecos para puertas y pasillos.' },
   { key: 'zone', name: 'Dibujar zona', short: 'Zona', icon: 'zone', shortcut: 'Z', hint: 'Arrastra para marcar el área de la zona. Las mesas que queden dentro se asignan solas.' },
 ]
-export const KIND_ICON: Record<SelectionKind, KitIcon> = { tables: 'armchair', walls: 'wall', zones: 'zone', images: 'photo', background: 'photo' }
-export const KIND_TITLE: Record<SelectionKind, string> = { tables: 'Mesa seleccionada', walls: 'Pared seleccionada', zones: 'Zona seleccionada', images: 'Imagen seleccionada', background: 'Imagen seleccionada' }
+export const KIND_ICON: Record<SelectionKind, KitIcon> = { tables: 'armchair', walls: 'wall', zones: 'zone', images: 'photo', background: 'photo', decor: 'palette' }
+export const KIND_TITLE: Record<SelectionKind, string> = { tables: 'Mesa seleccionada', walls: 'Pared seleccionada', zones: 'Zona seleccionada', images: 'Imagen seleccionada', background: 'Imagen seleccionada', decor: 'Pieza seleccionada' }
 
 export function Kbd({ children }: { children: ReactNode }) {
   return <kbd className="min-w-5 h-5 px-1 grid place-items-center rounded-[5px] border border-border bg-muted font-mono text-[11px] font-medium text-soft">{children}</kbd>

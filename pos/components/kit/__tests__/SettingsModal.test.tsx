@@ -50,17 +50,26 @@ it('security tab changes the PIN with the keypad and confirms', async () => {
   expect(screen.queryByText('¡PIN cambiado!')).toBeNull()
 })
 
-// Falla si Pantalla pierde el tema oscuro o si la rejilla de idiomas deja elegir uno que no existe todavía.
-it('display tab switches the theme and lists the languages with only Spanish enabled', async () => {
+// Falla si Pantalla pierde el tema oscuro o si vuelve el selector de idioma (solo hay español: era un adorno sin función).
+it('display tab switches the theme and has no language picker', async () => {
   wrap(modal())
   await userEvent.click(screen.getByRole('tab', { name: 'Pantalla' }))
   await userEvent.click(screen.getByRole('radio', { name: 'Oscuro' }))
   expect(document.documentElement.dataset.theme).toBe('dark')
-  await userEvent.click(screen.getByRole('button', { name: /Español/ }))
-  const grid = screen.getByRole('radiogroup', { name: 'Elige un idioma' })
-  expect(grid.querySelectorAll('[role="radio"]')).toHaveLength(11)
-  expect(grid.querySelector('[role="radio"][aria-checked="true"]')).toHaveTextContent('Español')
-  expect(grid.querySelector('[lang="en"]')).toBeDisabled()
+  expect(screen.queryByText('Idioma')).toBeNull()
+})
+
+// Falla si «Cerrar sesión» deja de ser un renglón de icono y texto (como las pestañas) o si pierde su confirmación, o si
+// el cronómetro pierde el nombre que dice qué mide.
+it('shows the shift time and a one-row logout that asks before closing', async () => {
+  const onLogout = jest.fn(async () => undefined)
+  wrap(modal(onLogout))
+  expect(screen.getByText('En turno')).toBeInTheDocument()
+  const logout = screen.getByRole('button', { name: 'Cerrar sesión' })
+  expect(logout.querySelector('svg')).toBeInTheDocument()
+  expect(logout).toHaveClass('h-11')
+  await userEvent.click(logout)
+  expect(onLogout).not.toHaveBeenCalled()
 })
 
 // Falla si un toggle de notificaciones no guarda la preferencia en res.users (set_waiter_notify).

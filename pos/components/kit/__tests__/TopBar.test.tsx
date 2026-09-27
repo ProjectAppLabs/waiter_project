@@ -27,3 +27,15 @@ it('shows the administration row with the subtabs of the role', () => {
   expect(screen.getAllByRole('link', { name: 'Retorno' })).toHaveLength(1)
   expect(screen.queryByRole('link', { name: 'Catálogo' })).not.toBeInTheDocument()
 })
+
+// Falla si el Dashboard desaparece con la caja cerrada (sus informes no dependen de la caja), si Pedidos sigue ahí sin
+// caja, o si «Abrir caja» no está en la barra con la caja cerrada (o aparece con la caja abierta).
+it('keeps the dashboard with the register closed, hides orders and offers to open the register', () => {
+  const { unmount } = wrap(<TopBar active="dashboard" role="admin" userName="Laura" administrationOnly onOpenSettings={() => undefined} />)
+  expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/dashboard')
+  expect(screen.queryByRole('link', { name: 'Pedidos' })).toBeNull()
+  expect(screen.getByRole('link', { name: 'Abrir caja' })).toHaveAttribute('href', '/caja')
+  unmount()
+  wrap(<TopBar active="dashboard" role="admin" userName="Laura" onOpenSettings={() => undefined} />)
+  expect(screen.queryByRole('link', { name: 'Abrir caja' })).toBeNull()
+})

@@ -529,7 +529,17 @@
         "phone": "Teléfono",
         "email": "Correo",
         "street": "Dirección",
-        "city": "Ciudad"
+        "city": "Ciudad",
+        "addressHint": "La dirección aparece en el menú.",
+        "mapsLink": "Enlace de Google Maps",
+        "mapsPlaceholder": "https://maps.app.goo.gl/…",
+        "mapsHelp": "En Google Maps busca el restaurante, toca Compartir y copia el enlace. El comensal verá la distancia y el botón «Cómo llegar».",
+        "mapsResolving": "Buscando la ubicación del enlace…",
+        "mapsFound": "Ubicación: {lat}, {lng}",
+        "mapsSee": "Ver en el mapa",
+        "mapsInvalid": "Pega un enlace de Google Maps, por ejemplo maps.app.goo.gl/…",
+        "mapsNoPoint": "Ese enlace no trae la ubicación exacta. Abre Google Maps en el computador, busca el restaurante y copia la dirección de la barra del navegador.",
+        "mapsUnreachable": "No se pudo consultar Google Maps. Revisa la conexión e inténtalo de nuevo."
       },
       "floors": {
         "floor": "Piso",
@@ -795,7 +805,7 @@
       "nav": {
         "main": "Navegación principal",
         "adminRow": "Administración",
-        "dashboard": "Inicio",
+        "dashboard": "Dashboard", "openRegister": "Abrir caja",
         "orders": "Pedidos",
         "tables": "Mesas",
         "reservations": "Reservas",
@@ -865,7 +875,7 @@
       },
       "soon": {
         "body": "Esta pantalla llega en su oleada del Plan I.",
-        "dashboard": "Inicio",
+        "dashboard": "Dashboard",
         "orders": "Pedidos",
         "reservations": "Reservas",
         "history": "Historial"

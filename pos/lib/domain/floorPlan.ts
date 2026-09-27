@@ -1,3 +1,5 @@
+import type { Decor } from '@/lib/domain/decor'
+
 export const CELL = 20
 export interface PlanRect { x: number; y: number; width: number; height: number }
 export interface PlanTable extends PlanRect { id: number | null; key: string; number: number; seats: number; zone: string }
@@ -10,7 +12,8 @@ export interface Zone extends PlanRect { id: string; name: string; color: string
 export interface PlanImage extends PlanRect { id: string; attachmentId?: number; data?: string }
 export const MAX_EXTRA_IMAGES = 8
 export const planImageSrc = (image: PlanImage): string => image.data ? `data:${image.data.startsWith('/9j/') ? 'image/jpeg' : 'image/png'};base64,${image.data}` : `/odoo/web/image/${image.attachmentId}`
-export interface FloorDocument { images?: PlanImage[]; background?: string | null; backgroundSize?: { x?: number; y?: number; width: number; height: number } | null; id: number | null; name: string; revision: number; tables: PlanTable[]; walls: Wall[]; zones: Zone[] }
+// `decor`: piezas de la galería (cocina, baños, escaleras…); opcional porque los planos anteriores no la traen.
+export interface FloorDocument { decor?: Decor[]; images?: PlanImage[]; background?: string | null; backgroundSize?: { x?: number; y?: number; width: number; height: number } | null; id: number | null; name: string; revision: number; tables: PlanTable[]; walls: Wall[]; zones: Zone[] }
 // La imagen de referencia acompaña, no compite: misma opacidad en el editor y en el salón.
 export const BACKGROUND_OPACITY = 0.35
 // Margen alrededor del contenido al encuadrar: las sillas sobresalen 24 px de cada mesa.
@@ -31,24 +34,24 @@ export function tableProblems(t: PlanTable, plan: FloorDocument): TableProblem[]
  return out
 }
 export const zoneAt = (t: PlanRect, zones: Zone[]) => zones.find((z) => t.x + t.width / 2 >= z.x && t.x + t.width / 2 <= z.x + z.width && t.y + t.height / 2 >= z.y && t.y + t.height / 2 <= z.y + z.height)?.id ?? ''
-export function extent(plan: Pick<FloorDocument, 'tables' | 'walls' | 'zones' | 'backgroundSize' | 'images'>) {
- const all = [...plan.tables, ...plan.walls, ...plan.zones, ...(plan.images ?? []), ...(plan.backgroundSize ? [{x:0,y:0,...plan.backgroundSize}] : [])]
+export function extent(plan: Pick<FloorDocument, 'tables' | 'walls' | 'zones' | 'backgroundSize' | 'images' | 'decor'>) {
+ const all = [...plan.tables, ...plan.walls, ...plan.zones, ...(plan.images ?? []), ...(plan.decor ?? []), ...(plan.backgroundSize ? [{x:0,y:0,...plan.backgroundSize}] : [])]
  const x=Math.min(0,...all.map(r=>r.x)), y=Math.min(0,...all.map(r=>r.y))
  return { x, y, width: Math.max(1200, ...all.map((r) => r.x + r.width + 100-x)), height: Math.max(800, ...all.map((r) => r.y + r.height + 100-y)) }
 }
 
 // Reubica el origen al guardar sin alterar distancias ni asociaciones entre elementos.
 export function normalizePlan(plan: FloorDocument): FloorDocument {
- const rects = [...plan.tables,...plan.walls,...plan.zones,...(plan.images??[]),...(plan.backgroundSize?[{x:0,y:0,...plan.backgroundSize}]:[])]
+ const rects = [...plan.tables,...plan.walls,...plan.zones,...(plan.images??[]),...(plan.decor??[]),...(plan.backgroundSize?[{x:0,y:0,...plan.backgroundSize}]:[])]
  const dx=-Math.min(0,...rects.map(r=>r.x)), dy=-Math.min(0,...rects.map(r=>r.y))
  if (!dx&&!dy) return plan
  const shift=<T extends PlanRect>(r:T):T=>({...r,x:r.x+dx,y:r.y+dy})
- return {...plan,tables:plan.tables.map(shift),walls:plan.walls.map(shift),zones:plan.zones.map(shift),...(plan.images?{images:plan.images.map(shift)}:{}),
+ return {...plan,tables:plan.tables.map(shift),walls:plan.walls.map(shift),zones:plan.zones.map(shift),...(plan.images?{images:plan.images.map(shift)}:{}),...(plan.decor?{decor:plan.decor.map(shift)}:{}),
   ...(plan.backgroundSize?{backgroundSize:shift({x:0,y:0,...plan.backgroundSize})}:{})}
 }
 export function planFits(plan: FloorDocument): boolean {
  const normalized=normalizePlan(plan)
- return [...normalized.tables,...normalized.walls,...normalized.zones,...(normalized.images??[]),...(normalized.backgroundSize?[{x:0,y:0,...normalized.backgroundSize}]:[])].every(r=>
+ return [...normalized.tables,...normalized.walls,...normalized.zones,...(normalized.images??[]),...(normalized.decor??[]),...(normalized.backgroundSize?[{x:0,y:0,...normalized.backgroundSize}]:[])].every(r=>
   [r.x,r.y,r.width,r.height].every(Number.isFinite)&&r.width>=CELL&&r.height>=CELL&&r.x+r.width<=20000&&r.y+r.height<=20000)
 }
 

@@ -45,7 +45,7 @@
     "greeting": "Buenos días",
     "motto": "Da lo mejor de ti a los clientes, ¡feliz jornada!",
     "tabs": [
-      "Inicio",
+      "Dashboard",
       "Pedidos",
       "Mesas",
       "Reservas",
@@ -70,7 +70,7 @@
       "security": "Seguridad",
       "display": "Pantalla"
     },
-    "time": "Tiempo",
+    "time": "En turno",
     "logout": "Cerrar sesión",
     "logoutTitle": "¿Cerrar sesión?",
     "logoutBody": "¿Seguro que quieres salir de la aplicación?",
@@ -126,10 +126,6 @@
     },
     "display": {
       "heading": "Pantalla",
-      "language": "Idioma",
-      "languageBody": "Idioma de la aplicación",
-      "chooseLanguage": "Elige un idioma",
-      "soon": "Próximamente",
       "colorMode": "Modo de color",
       "colorModeBody": "Cambia entre los modos Sistema, Claro y Oscuro",
       "system": "Sistema",

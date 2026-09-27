@@ -2,6 +2,7 @@
   "greeting": { "morning": "Buenos días, {name}", "afternoon": "Buenas tardes, {name}", "evening": "Buenas noches, {name}" },
   "motto": "Da lo mejor de ti con los clientes, ¡feliz jornada! ☺️",
   "createOrder": "Crear pedido",
+  "mottoClosed": "Da lo mejor de ti hoy: la caja está cerrada, pulsa Abrir caja para iniciar la jornada.",
   "clock": "Hora actual",
   "kpi": { "earning": "Total ventas del turno", "inProgress": "En progreso", "ready": "Listos para servir", "completed": "Completados", "open": "Pedidos abiertos", "reservationsToday": "Reservas de hoy" },
   "seeOrders": "Ver pedidos", "seeSales": "Ver el detalle en Ventas",
