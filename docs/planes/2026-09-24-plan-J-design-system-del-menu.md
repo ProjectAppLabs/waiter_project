@@ -206,6 +206,11 @@ Resultados y límites: [revisión de J3](../revisiones/2026-09-24-plan-j3.md).
 - Pruebas de comensal, experience y POS; verificación en Edge real a 375 y 1024 px con tema publicado y con borrador.
   Ver [revisión de J5](../revisiones/2026-09-25-plan-j5.md).
 
+**Después de J5 (2026-09-25):** el [inventario completo del menú](../inventario/2026-09-25-inventario-menu-comensal.md)
+muestra que `inventario.json` tiene incongruencias (pone `cabecera` en 20 pantallas que usan `.sm-title`, omite el chat,
+lista `hoja` en `pago` y `plato` en `historial`, cubre un solo diálogo de ocho) y que 6 de las 31 pantallas del tipo
+`Screen` nunca se despachan. Las corrige el **Plan K** (plantillas HTML por componente), que parte de ese inventario.
+
 ## Fuera de alcance
 
 - HTML o CSS libres por restaurante: riesgo de suplantar el botón de pago, rastreo con imágenes externas y roturas con

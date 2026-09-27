@@ -103,6 +103,14 @@ En esta máquina no hay `gh` ni credenciales HTTPS: se sube por SSH, con
 
 ## 2. Lo que falta
 
+### Siguiente desarrollo: Plan K (plantillas HTML por componente)
+
+El dueño quiere rediseñar cada componente con una plantilla HTML propia por restaurante que mantenga enlazados sus
+datos y las variables del design system, con validación de datos y de márgenes, y una galería de decoraciones PNG.
+Su base es el [inventario de pantallas y componentes](../inventario/2026-09-25-inventario-menu-comensal.md)
+(rama `docs/25092026-inventario-menu`, sobre J5): 25 pantallas reales, ≈70 componentes y piezas con datos y ranuras,
+y las incongruencias del inventario v2 que K debe corregir. El plan K todavía no está escrito.
+
 ### Plan J: completo
 
 J1 a J5 están hechos (detalle y estado en el plan). J5 añadió la página viva `/<rest>/<sede>/design-system`, el contrato
