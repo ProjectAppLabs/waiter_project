@@ -76,7 +76,7 @@ export function MenuTemplateForm() {
     void Promise.all([gateway('get'), getBrand()])
       .then(async ([c, b]) => {
         const [catalog, image] = await Promise.all([
-          listTemplates(c.experienceUrl, c.restaurante, c.sede),
+          listTemplates(c.restaurante, c.sede),
           b.hasLogo ? getBrandLogo(b.companyId) : Promise.resolve(null),
         ])
         if (!alive) return

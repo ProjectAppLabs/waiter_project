@@ -78,7 +78,7 @@ export function MenuDecorationsForm() {
             <ul className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {data.decoraciones.map((d) => (
                 <li key={d.id} className="rounded-lg border border-border p-3 flex flex-col gap-2">
-                  <img src={decorationUrl(data.experienceUrl, d.archivo)} alt={d.nombre} className="w-full h-24 object-contain bg-muted rounded-md" />
+                  <img src={decorationUrl(d.archivo)} alt={d.nombre} className="w-full h-24 object-contain bg-muted rounded-md" />
                   <p className="text-[14px] font-semibold text-ink truncate">{d.nombre}</p>
                   <p className="text-[12px] text-soft"><code className="font-mono text-ink">{d.id}</code> · {d.ancho}×{d.alto} · {kb(d.peso)}</p>
                   {confirming === d.id ? (

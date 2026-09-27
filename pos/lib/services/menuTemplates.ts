@@ -73,9 +73,14 @@ export function gateway(action: 'get' | 'set' | 'preview' | 'verify', payload: P
 
 const trimSlash = (url: string) => url.replace(/\/+$/, '')
 
+// Lo público de experience (catálogo, miniaturas, decoraciones) se pide por el propio origen del POS: next.config reescribe
+// /experience/* hacia EXPERIENCE_ORIGIN. Así el navegador no necesita alcanzar la URL pública que Odoo guarda para sus
+// propias llamadas (en WSL2 con red en espejo, Windows solo llega a localhost).
+export const EXPERIENCE_PROXY = '/experience'
+
 // Catálogo público de experience: no pasa por Odoo ni necesita sesión.
-export async function listTemplates(experienceUrl: string, restaurante?: string, sede?: string): Promise<TemplateCatalog> {
-  const res = await fetch(trimSlash(experienceUrl) + '/api/v1/plantillas/' + (restaurante && sede ? '?' + new URLSearchParams({ restaurante, sede }) : ''))
+export async function listTemplates(restaurante?: string, sede?: string): Promise<TemplateCatalog> {
+  const res = await fetch(EXPERIENCE_PROXY + '/api/v1/plantillas/' + (restaurante && sede ? '?' + new URLSearchParams({ restaurante, sede }) : ''))
   if (!res.ok) throw new Error(`plantillas: HTTP ${res.status}`)
   return (await res.json()) as TemplateCatalog
 }

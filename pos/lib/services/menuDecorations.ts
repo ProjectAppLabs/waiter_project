@@ -1,3 +1,4 @@
+import { EXPERIENCE_PROXY } from '@/lib/services/menuTemplates'
 import { jsonRpc } from '@/lib/services/odoo'
 
 // Galería de decoraciones del menú (Plan K4). El POS pasa por la pasarela del addon (/waiter/admin/menu_decorations),
@@ -13,8 +14,8 @@ export const addMenuDecoration = (nombre: string, imagen: string) => jsonRpc<Men
 export const removeMenuDecoration = (decoracionId: string) => jsonRpc<{ eliminada: string }>(PATH, { action: 'remove', decoracion_id: decoracionId })
 
 export const DECORATION_TYPES = ['image/png', 'image/webp']
-// URL absoluta de la imagen que sirve experience: `archivo` llega relativa a su origen.
-export const decorationUrl = (experienceUrl: string, archivo: string) => `${experienceUrl.replace(/\/+$/, '')}${archivo}`
+// La imagen que sirve experience, por el proxy del POS: `archivo` llega relativa al origen de experience.
+export const decorationUrl = (archivo: string) => `${EXPERIENCE_PROXY}${archivo}`
 
 // Lee el archivo como data URL (lo que acepta la galería) tras comprobar tipo y peso en el navegador.
 export function readDecoration(file: File, limits: DecorationLimits): Promise<string> {

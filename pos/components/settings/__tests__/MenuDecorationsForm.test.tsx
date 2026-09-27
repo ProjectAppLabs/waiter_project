@@ -31,7 +31,7 @@ it('sube una decoración como data URL y muestra su id', async () => {
   await userEvent.click(screen.getByRole('button', { name: /Subir decoración/ }))
   await waitFor(() => expect(addMenuDecoration).toHaveBeenCalledWith('Hoja de menta', expect.stringMatching(/^data:image\/png;base64,/)))
   expect(await screen.findByText('Decoración subida. En las plantillas se usa como id «hoja-de-menta».')).toBeInTheDocument()
-  expect(screen.getByRole('img', { name: 'Hoja de menta' })).toHaveAttribute('src', 'http://192.168.1.13:8001/api/v1/burger-house/poblado/decoraciones/hoja-de-menta/?v=20260925')
+  expect(screen.getByRole('img', { name: 'Hoja de menta' })).toHaveAttribute('src', '/experience/api/v1/burger-house/poblado/decoraciones/hoja-de-menta/?v=20260925')
   expect(screen.getByText('hoja-de-menta')).toBeInTheDocument()
   // Un SVG no pasa: podría ejecutar script si alguna vez se sirviera en línea.
   await userEvent.type(screen.getByLabelText('Nombre de la decoración'), 'Vector')

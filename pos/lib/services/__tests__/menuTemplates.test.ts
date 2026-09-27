@@ -40,15 +40,19 @@ it('reenvía el borrador al guardar los ajustes', async () => {
   expect(rpc).toHaveBeenCalledWith('/waiter/admin/menu_settings', { action: 'set', ...SETTINGS, borrador: 'token-publico' })
 })
 
-// Falla si el catálogo se pide a otra ruta, si una barra final duplica el separador o si un HTTP de error se devuelve como catálogo.
-it('fetches the public catalog from experience and rejects HTTP errors', async () => {
+// Falla si el catálogo deja de pedirse por el proxy del propio POS (/experience), si la sede no viaja en la consulta o si un
+// HTTP de error se devuelve como catálogo.
+it('fetches the public catalog through the POS proxy and rejects HTTP errors', async () => {
   const f = globalThis.fetch as jest.Mock
   const catalog = { familias: { A: 'Alta cocina' }, plantillas: [] }
   f.mockResolvedValueOnce({ ok: true, status: 200, json: async () => catalog })
-  await expect(listTemplates('http://192.168.56.10:8001/')).resolves.toEqual(catalog)
-  expect(f).toHaveBeenCalledWith('http://192.168.56.10:8001/api/v1/plantillas/')
+  await expect(listTemplates()).resolves.toEqual(catalog)
+  expect(f).toHaveBeenCalledWith('/experience/api/v1/plantillas/')
+  f.mockResolvedValueOnce({ ok: true, status: 200, json: async () => catalog })
+  await listTemplates('burger-house', 'poblado')
+  expect(f).toHaveBeenLastCalledWith('/experience/api/v1/plantillas/?restaurante=burger-house&sede=poblado')
   f.mockResolvedValueOnce({ ok: false, status: 503, json: async () => ({}) })
-  await expect(listTemplates('http://192.168.56.10:8001')).rejects.toThrow('HTTP 503')
+  await expect(listTemplates()).rejects.toThrow('HTTP 503')
 })
 
 // Falla si previsualizar evita la autorización del addon o manda el tema crudo en la URL pública.
