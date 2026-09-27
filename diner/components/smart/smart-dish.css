@@ -149,7 +149,7 @@ body:has(.sm-recommendation-dialog[open]) { overflow:hidden; }
  * tienen sentido y se ocultan. Su color sale de la superficie del tema, no de un blanco fijo. */
 [data-ds-forma-imagen="tema"] .smart-menu .sm-dish-orbits { display: none; }
 /* Sin órbitas, la foto no sangra fuera de la pantalla: queda dentro del margen, a la derecha del nombre. */
-[data-ds-forma-imagen="tema"] .smart-menu .sm-dish-hero:not([data-plantilla]) > .sm-dish-photo { right: 0; width: 150px; height: 150px; }
+[data-ds-forma-imagen="tema"][data-ds-ficha="actual"] .smart-menu .sm-dish-hero:not([data-plantilla]) > .sm-dish-photo { right: 0; width: 150px; height: 150px; }
 
 /* La acción principal de la ficha va al muelle inferior junto a «Mi mesero» (como en el pedido); la cantidad y el aviso
  * de agregado quedan dentro de la ficha, sin franja flotante. */
