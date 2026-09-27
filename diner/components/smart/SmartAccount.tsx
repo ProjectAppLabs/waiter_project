@@ -3,10 +3,10 @@
 import Link from 'next/link'
 import {PasswordField} from './SmartPassword'
 import { updateAccount } from '@/lib/services/api'
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { initials } from '@/lib/domain/template'
 import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { AccountOrder, Dish, RegisterForm } from '@/lib/types'
+import type { Account, AccountOrder, Dish, RegisterForm } from '@/lib/types'
 import { Plantilla } from '@/components/plantillas/Renderizador'
 import { usePlantilla } from '@/components/plantillas/usePlantilla'
 import type { TemplateData } from '@/lib/domain/plantillas'
@@ -322,58 +322,42 @@ export function SmartAccount() {
       icon: 'heart',
     },
   ]
+  const enlaces = <>
+    <h2>General</h2>
+    {links.map((l) => (
+      <Link key={l.to} href={href(l.to)} className="sm-profile-link">
+        <span className="sm-empty-icon"><Icon name={l.icon} /></span>
+        <span><strong>{l.title}</strong><small>{l.detail}</small></span>
+        <Icon name="arrow" />
+      </Link>
+    ))}
+  </>
+  const notificaciones = <><h2>Notificaciones</h2><label className="sm-profile-notification"><span><strong>Novedades y promociones</strong><small>Recibe novedades del restaurante</small></span><input type="checkbox" role="switch" aria-label="Novedades y promociones" checked={!!account.novedades} disabled={savingMarketing||!!preview} onChange={async e=>{if(savingMarketing)return;setSavingMarketing(true);setMarketingError('');try{const response=await updateAccount({novedades:e.target.checked});useDinerStore.setState({account:response.cuenta})}catch(error){setMarketingError(error instanceof Error?error.message:'No pudimos guardar tu preferencia')}finally{setSavingMarketing(false)}}}/></label>{marketingError&&<p className="sm-error" role="alert">{marketingError}</p>}</>
+  const salir = <button className="sm-secondary" disabled={busy} onClick={async () => { await logout(); if (!useDinerStore.getState().error) go('carta') }}><Icon name="logout" />Cerrar sesión</button>
   return (
     <>
       <Title title="Mi perfil" />
-      <section className="sm-profile">
-        <div className="sm-profile-head">
-          <span className="sm-avatar sm-avatar-large">
-            {initials(account.nombre)}
-          </span>
-          <div>
-            <h1>{account.nombre}</h1>
-            <p>{account.correo}</p>
-            {account.celular && <p>{account.celular}</p>}
-          </div>
-        </div>
-        <div className="sm-profile-stats">
-          <div>
-            <strong>{accountOrders.length}</strong>
-            <span>Pedidos</span>
-          </div>
-          <div>
-            <strong>{favorites.length}</strong>
-            <span>Favoritos</span>
-          </div>
-        </div>
-        <h2>General</h2>
-        {links.map((l) => (
-          <Link key={l.to} href={href(l.to)} className="sm-profile-link">
-            <span className="sm-empty-icon">
-              <Icon name={l.icon} />
-            </span>
-            <span>
-              <strong>{l.title}</strong>
-              <small>{l.detail}</small>
-            </span>
-            <Icon name="arrow" />
-          </Link>
-        ))}
-        <h2>Notificaciones</h2><label className="sm-profile-notification"><span><strong>Novedades y promociones</strong><small>Recibe novedades del restaurante</small></span><input type="checkbox" role="switch" aria-label="Novedades y promociones" checked={!!account.novedades} disabled={savingMarketing||!!preview} onChange={async e=>{if(savingMarketing)return;setSavingMarketing(true);setMarketingError('');try{const response=await updateAccount({novedades:e.target.checked});useDinerStore.setState({account:response.cuenta})}catch(error){setMarketingError(error instanceof Error?error.message:'No pudimos guardar tu preferencia')}finally{setSavingMarketing(false)}}}/></label>{marketingError&&<p className="sm-error" role="alert">{marketingError}</p>}
-        <button
-          className="sm-secondary"
-          disabled={busy}
-          onClick={async () => {
-            await logout()
-            if (!useDinerStore.getState().error) go('carta')
-          }}
-        >
-          <Icon name="logout" />
-          Cerrar sesión
-        </button>
-      </section>
+      <ProfileSection account={account} pedidos={accountOrders.length} favoritos={favorites.length} enlaces={enlaces} notificaciones={notificaciones} salir={salir} />
     </>
   )
+}
+// Datos que una plantilla del perfil puede enlazar (contrato «perfil»).
+export function profileTemplateData(account: Account, pedidos: number, favoritos: number) {
+  return { 'cuenta.nombre': account.nombre, 'cuenta.iniciales': initials(account.nombre), 'cuenta.correo': account.correo, 'cuenta.celular': account.celular ?? '',
+    'cuenta.pedidos': pedidos, 'cuenta.favoritos': favoritos }
+}
+
+// Plan K, paquete D: la pantalla de la cuenta con plantilla propia. Los enlaces, el interruptor y cerrar sesión llegan
+// del código como ranuras obligatorias; el avatar, la cabecera y las estadísticas se arman aquí.
+export function ProfileSection({ account, pedidos, favoritos, enlaces, notificaciones, salir }: { account: Account; pedidos: number; favoritos: number; enlaces: ReactNode; notificaciones: ReactNode; salir: ReactNode }) {
+  const { arbol, marker } = usePlantilla('perfil')
+  const avatar = <span className="sm-avatar sm-avatar-large">{initials(account.nombre)}</span>
+  const cabecera = <div className="sm-profile-head">{avatar}<div><h1>{account.nombre}</h1><p>{account.correo}</p>{account.celular && <p>{account.celular}</p>}</div></div>
+  const estadisticas = <div className="sm-profile-stats"><div><strong>{pedidos}</strong><span>Pedidos</span></div><div><strong>{favoritos}</strong><span>Favoritos</span></div></div>
+  const factory = <>{cabecera}{estadisticas}{enlaces}{notificaciones}{salir}</>
+  return <section className="sm-profile" {...marker}>
+    {arbol ? <Plantilla arbol={arbol} datos={profileTemplateData(account, pedidos, favoritos)} ranuras={{ cabecera, avatar, estadisticas, enlaces, notificaciones, salir }} fallback={factory} /> : factory}
+  </section>
 }
 const historyStatus: Record<AccountOrder['estado'], string> = {
   pendiente_pago: 'Pendiente de pago', enviado: 'Recibido', en_cocina: 'En preparación', listo: 'Listo',

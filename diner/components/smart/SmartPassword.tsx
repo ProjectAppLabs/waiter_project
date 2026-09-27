@@ -1,9 +1,9 @@
 'use client'
-/* eslint-disable @next/next/no-img-element -- Original registration illustration. */
 import {useId,useRef,useState,type FormEvent} from 'react'
 import Link from 'next/link'
 import {useSearchParams} from 'next/navigation'
 import {http} from '@/lib/services/api'
+import {Recorrido} from './Recorrido'
 import {useDinerStore} from '@/lib/stores/dinerStore'
 import type {AccountSummary} from '@/lib/types'
 import {Empty,Icon,Title,useSmartRoute} from './SmartMenu'
@@ -62,25 +62,25 @@ export function SmartPasswordReset({request=false}: {request?:boolean}) {
    else {await http.post('/api/v1/cuenta/restablecer/',{token:search.get('token'),nueva:password});setPassword('');setConfirmation('');setSuccess(true)}
   }catch(e){setMessage(e instanceof Error?e.message:'No pudimos completar la solicitud')}finally{lock.current=false;setBusy(false)}
  }
- return <><Title title={request?'Recupera tu cuenta':'Nueva contraseña'} back="cuenta/entrar"/>{success?<section className="sm-journey sm-intro"><div className="sm-orbit-hero"><img src="/smart-menu/password.png" alt=""/></div><h1>Contraseña restablecida</h1><p>Ya puedes entrar con tu nueva contraseña.</p><div className="sm-journey-footer"><button className="sm-primary" onClick={()=>go('cuenta/entrar')}>Entrar a mi cuenta</button></div></section>:<form className="sm-auth-form sm-narrow sm-account-edit" onSubmit={e=>void submit(e)}><h1>{request?'¿Olvidaste tu contraseña?':'Crea una nueva contraseña'}</h1><p>{request?'Escribe tu correo para solicitar un enlace de recuperación.':'El enlace solo puede utilizarse una vez.'}</p>{request?<label className="sm-field"><span>Correo electrónico</span><input type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)}/></label>:<><PasswordField label="Nueva contraseña" value={password} onChange={setPassword} autoComplete="new-password"/><PasswordField label="Confirmar contraseña" value={confirmation} onChange={setConfirmation} autoComplete="new-password"/></>}{message&&<p role="status">{message}</p>}<button className="sm-primary" disabled={busy||!!preview}>{busy?'Un momento…':request?'Enviar enlace':'Guardar contraseña'}</button></form>}</>
+ return <><Title title={request?'Recupera tu cuenta':'Nueva contraseña'} back="cuenta/entrar"/>{success?<section className="sm-journey sm-intro"><Recorrido ilustracion="/smart-menu/password.png" titulo="Contraseña restablecida" texto="Ya puedes entrar con tu nueva contraseña." acciones={<button className="sm-primary" onClick={()=>go('cuenta/entrar')}>Entrar a mi cuenta</button>}/></section>:<form className="sm-auth-form sm-narrow sm-account-edit" onSubmit={e=>void submit(e)}><h1>{request?'¿Olvidaste tu contraseña?':'Crea una nueva contraseña'}</h1><p>{request?'Escribe tu correo para solicitar un enlace de recuperación.':'El enlace solo puede utilizarse una vez.'}</p>{request?<label className="sm-field"><span>Correo electrónico</span><input type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)}/></label>:<><PasswordField label="Nueva contraseña" value={password} onChange={setPassword} autoComplete="new-password"/><PasswordField label="Confirmar contraseña" value={confirmation} onChange={setConfirmation} autoComplete="new-password"/></>}{message&&<p role="status">{message}</p>}<button className="sm-primary" disabled={busy||!!preview}>{busy?'Un momento…':request?'Enviar enlace':'Guardar contraseña'}</button></form>}</>
 }
 
 export function SmartEmailEntry() {
  const {go}=useSmartRoute()
  const [email,setEmail]=useState('')
- return <section className="sm-journey sm-intro"><Title title="Tu correo" back="bienvenida"/><h1>Empecemos por tu correo</h1><p>Lo usarás para identificar tu cuenta.</p><form className="sm-auth-form" onSubmit={e=>{e.preventDefault();try{sessionStorage.setItem('smart-menu:signup-email',email.trim())}catch{}go('cuenta/registro')}}><label className="sm-field"><span>Correo electrónico</span><input type="email" value={email} onChange={e=>setEmail(e.target.value)} required maxLength={120} autoComplete="email"/></label><button className="sm-primary">Continuar<Icon name="arrow"/></button></form></section>
+ return <section className="sm-journey sm-intro"><Title title="Tu correo" back="bienvenida"/><Recorrido titulo="Empecemos por tu correo" texto="Lo usarás para identificar tu cuenta." cuerpo={<form className="sm-auth-form" onSubmit={e=>{e.preventDefault();try{sessionStorage.setItem('smart-menu:signup-email',email.trim())}catch{}go('cuenta/registro')}}><label className="sm-field"><span>Correo electrónico</span><input type="email" value={email} onChange={e=>setEmail(e.target.value)} required maxLength={120} autoComplete="email"/></label><button className="sm-primary">Continuar<Icon name="arrow"/></button></form>}/></section>
 }
 export function SmartVerificationChannel() {
  const {pendingAccount}=useDinerStore()
  const {go}=useSmartRoute()
  const [channel,setChannel]=useState('correo')
  if(!pendingAccount)return <Empty icon="user" title="Crea tu cuenta primero" action="Crear cuenta" onAction={()=>go('cuenta/registro')}/>
- return <section className="sm-journey sm-intro"><Title title="Verifica tu cuenta" back="cuenta/registro"/><h1>¿Cómo prefieres verificarte?</h1><p className="sm-note">Registro de demostración: no se envían correos ni SMS. Puedes continuar con un código demo de seis dígitos.</p><div className="sm-help-list">{[['correo','Por correo',pendingAccount.form.correo],['sms','Por SMS',pendingAccount.form.celular||'Sin celular registrado']].map(([value,label,detail])=><button key={value} disabled={value==='sms'&&!pendingAccount.form.celular} aria-pressed={channel===value} onClick={()=>setChannel(value)}><Icon name="user"/><span>{label}<small>{detail}</small></span>{channel===value&&<Icon name="check"/>}</button>)}</div><div className="sm-journey-footer"><button className="sm-primary" onClick={()=>go('cuenta/codigo')}>Continuar con código demo</button></div></section>
+ return <section className="sm-journey sm-intro"><Title title="Verifica tu cuenta" back="cuenta/registro"/><Recorrido titulo="¿Cómo prefieres verificarte?" texto="Registro de demostración: no se envían correos ni SMS. Puedes continuar con un código demo de seis dígitos." textoAtributos={{className:'sm-note'}} cuerpo={<div className="sm-help-list">{[['correo','Por correo',pendingAccount.form.correo],['sms','Por SMS',pendingAccount.form.celular||'Sin celular registrado']].map(([value,label,detail])=><button key={value} disabled={value==='sms'&&!pendingAccount.form.celular} aria-pressed={channel===value} onClick={()=>setChannel(value)}><Icon name="user"/><span>{label}<small>{detail}</small></span>{channel===value&&<Icon name="check"/>}</button>)}</div>} acciones={<button className="sm-primary" onClick={()=>go('cuenta/codigo')}>Continuar con código demo</button>}/></section>
 }
 
 export function SmartRegisteredAccount() {
  const {account}=useDinerStore()
  const {go}=useSmartRoute()
  if(!account)return <Empty icon="user" title="Crea tu cuenta primero" action="Crear cuenta" onAction={()=>go('cuenta/registro')}/>
- return <section className="sm-journey sm-intro"><div className="sm-orbit-hero"><img src="/smart-menu/stars.png" alt=""/></div><h1>¡Tu cuenta está lista!</h1><p>Hola, {account.nombre}. Ya puedes guardar tus favoritos y recordar tus pedidos.</p><div className="sm-journey-footer"><button className="sm-primary" onClick={()=>go('cuenta')}>Ver mi perfil</button><button className="sm-secondary" onClick={()=>go('cuenta/clave')}>Crear contraseña</button></div></section>
+ return <section className="sm-journey sm-intro"><Recorrido ilustracion="/smart-menu/stars.png" titulo="¡Tu cuenta está lista!" texto={`Hola, ${account.nombre}. Ya puedes guardar tus favoritos y recordar tus pedidos.`} acciones={<><button className="sm-primary" onClick={()=>go('cuenta')}>Ver mi perfil</button><button className="sm-secondary" onClick={()=>go('cuenta/clave')}>Crear contraseña</button></>}/></section>
 }

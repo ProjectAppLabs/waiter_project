@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "nombre": "Perfil de la cuenta",
+  "selector": ".sm-profile",
+  "pantallas": [
+    "cuenta"
+  ],
+  "descripcion": "La pantalla de la cuenta: avatar con iniciales, nombre y contacto, estadísticas, enlaces, notificaciones y cerrar sesión. Los enlaces, el interruptor y el botón de salir son del código.",
+  "datos": {
+    "cuenta.nombre": {
+      "tipo": "texto",
+      "descripcion": "Nombre de la persona."
+    },
+    "cuenta.iniciales": {
+      "tipo": "texto",
+      "descripcion": "Iniciales para el avatar."
+    },
+    "cuenta.correo": {
+      "tipo": "texto",
+      "descripcion": "Correo electrónico."
+    },
+    "cuenta.celular": {
+      "tipo": "texto",
+      "descripcion": "Celular; vacío si no lo dio."
+    },
+    "cuenta.pedidos": {
+      "tipo": "numero",
+      "descripcion": "Cuántos pedidos tiene."
+    },
+    "cuenta.favoritos": {
+      "tipo": "numero",
+      "descripcion": "Cuántos platos guardó."
+    }
+  },
+  "ranuras": {
+    "cabecera": {
+      "descripcion": "Cabecera de fábrica: avatar, nombre, correo y celular."
+    },
+    "avatar": {
+      "descripcion": "Solo el avatar con las iniciales."
+    },
+    "estadisticas": {
+      "descripcion": "Tarjeta de fábrica con pedidos y favoritos."
+    },
+    "enlaces": {
+      "obligatoria": true,
+      "descripcion": "Título «General» y los enlaces de la cuenta."
+    },
+    "notificaciones": {
+      "obligatoria": true,
+      "descripcion": "Título «Notificaciones» y el interruptor de novedades."
+    },
+    "salir": {
+      "obligatoria": true,
+      "descripcion": "Botón de cerrar sesión."
+    }
+  },
+  "requisitos": [
+    {
+      "cualquiera": [
+        "dato:cuenta.nombre",
+        "ranura:cabecera"
+      ],
+      "mensaje": "el nombre de la persona (dato cuenta.nombre o ranura cabecera)"
+    }
+  ],
+  "limites": {
+    "ancho_minimo": 272
+  },
+  "plantilla_fabrica": "<ranura nombre=\"cabecera\"/>\n<ranura nombre=\"estadisticas\"/>\n<ranura nombre=\"enlaces\"/>\n<ranura nombre=\"notificaciones\"/>\n<ranura nombre=\"salir\"/>"
+}

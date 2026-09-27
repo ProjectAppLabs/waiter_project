@@ -58,6 +58,18 @@ Para que esté siempre:
 
 Criterio: `verificar_borrador` por MCP devuelve `ok`/`problemas` sin intervención manual, también tras reiniciar el equipo.
 
+**Estado de B (2026-09-26).** Hecho: `scripts/verificador/puente.js` y la unidad `scripts/verificador/waiter-puente.service`
+(instalación en su cabecera: copiar a `~/.config/systemd/user/` y `systemctl --user enable --now waiter-puente`); la tarea
+de Windows «WSL Waiter Edge» registrada (Programador de tareas, al iniciar sesión, estado Ready); `DESIGN_VERIFIER_CMD`,
+`CDP_URL`, `DINER_URL` y `DESIGN_EVIDENCE` en `experience/.env`. La unidad está instalada y activa (`systemctl --user status waiter-puente`; systemd
+no carga nvm, por eso lleva la ruta absoluta de node). Queda para el dueño `hostAddressLoopback=true` bajo `[wsl2]` en
+`%USERPROFILE%\.wslconfig` seguido de `wsl --shutdown` (cierra todas las sesiones de WSL; hacerlo con calma).
+
+Ojo con la IP: los `.env` locales (`experience/.env`, `registry/.env`, `diner/.env.local`, `pos/.env.local`) fijan la IP de la
+máquina en la LAN (`REGISTRY_URL`, `EXPERIENCE_ORIGIN`, `ODOO_ORIGIN`, `ALLOWED_HOSTS`, `CORS`). El 2026-09-26 el DHCP cambió
+192.168.1.13 por 192.168.1.8 y los servicios dejaron de encontrarse (503 en experience, comensal sin API). Reserva la IP en
+el router o, tras un cambio, actualiza esas líneas y reinicia con `scripts/dev.sh down && scripts/dev.sh up`.
+
 ### C. Recorridos (Claude)
 
 Extraer un componente `Recorrido` (ilustración `sm-orbit-hero`, título, texto, pie con una o dos acciones, puntos de
@@ -92,7 +104,6 @@ de menú y **3** del cliente Odoo. TypeScript, Ruff, ESLint y comprobación de m
 `TestMenuSettingsGateway`: **11 pruebas, 0 fallos** (las corrió Claude sobre una copia desechable de la base; el sandbox de
 Codex no llega a Docker). Commit hecho por Claude desde fuera del sandbox de Codex.
 Detalle, decisiones y comandos en el [traspaso](../traspaso/2026-09-26-traspaso-codex-plan-k-cierre.md#cierre-de-a--2026-09-26).
-C continúa con Claude. Sin publicación ni fusión de ramas.
 
 **E (2026-09-26):** implementado en `feat/26092026-plan-k-e-verificacion-segundo-plano`, sobre A (`45743f2`),
 revisado y confirmado por Claude. MCP y POST interno responden `en_curso` y consultan el resultado
@@ -102,5 +113,25 @@ Odoo y POS vuelven a las esperas normales. Se reutiliza el JSON existente, sin m
 
 Verificación de E: **17** pruebas específicas de segundo plano, **251** de diseño/MCP y **553** de experience sin
 contract/addon; POS: **7 + 3** pruebas en 2 suites. TypeScript, Ruff, ESLint y comprobación de migraciones sin errores.
-Pruebas de Odoo adaptadas y pendientes de Claude (11 pasaron, 0 fallos (Claude). El flujo y las
+Pruebas de Odoo: 11 pasaron, 0 fallos (Claude). El flujo y las
 decisiones están documentados en los tres README y en el [cierre de E del traspaso](../traspaso/2026-09-26-traspaso-codex-plan-k-cierre.md#cierre-de-e--2026-09-26).
+
+**C hecho** (rama `feat/26092026-plan-k-c-recorridos`): componente `Recorrido`
+(`diner/components/smart/Recorrido.tsx`) en las nueve pantallas, contrato `componentes/recorrido.json` (datos
+`recorrido.titulo/texto/paso/pasos/ilustrado`; ranuras `ilustracion`, `cuerpo` y `acciones` obligatorias, `puntos`, `titulo`,
+`texto`), muestra en la página viva, inventario, verificador (excluye la ilustración orbital y los puntos de diapositiva) y
+pruebas: la genérica de plantillas y una por pantalla. Cambio visual mínimo: los enlaces del pie del recorrido pasan a 44 px de
+alto. Medido en Edge con un borrador de plantilla propia: sin problemas en la página viva (375 y 1024) ni en la carta
+(320, 375 y 1024).
+**D hecho** (misma rama que C): `buscador`, `categorias`, `seccion`, `resumen`, `cupon`, `perfil`, `saldo-puntos` y
+`banner-recompensa`, cada uno con contrato, componente extraído (`SearchBox`, `CategoryNav`, `SectionHeading`, `OrderSummary`,
+`CouponField`, `ProfileSection`, `PointsBalanceView`, `RewardBanner`), plantilla de fábrica idéntica, muestra en la página viva,
+inventario y caso en la prueba genérica. Con C suman diecisiete componentes plantillables. Medido en Edge junto con el
+recorrido: un borrador con plantillas propias de los nueve, 25 raíces en cinco anchos, cero problemas, y la verificación
+lanzada desde el propio experience con `DESIGN_VERIFIER_CMD` devuelve `ok`. La medición afinó tres cosas: el verificador no
+cuenta como desborde un carril con desplazamiento horizontal (categorías) ni los adornos recortados de una raíz con
+`overflow: hidden` (banner de recompensa), y oculta la barra de desplazamiento del Edge de Windows (15 px) para medir el
+ancho de un teléfono; la página viva sangra las muestras hasta el borde en anchos de teléfono (375 px de ventana = 327 px
+de contenido, como la pantalla real); y la ilustración de los puntos conserva sus 96 px aunque una plantilla la anide.
+
+**Fusión (2026-09-27):** las ramas de K1 a K5, A, E y C/D/B están en `main`, en ese orden, con un commit de fusión por rama.

@@ -29,8 +29,11 @@ function measureRoots() {
   const box = (el) => el.getBoundingClientRect()
   const visible = (el) => { const r = box(el); return r.width > 0 && r.height > 0 }
   const name = (el) => (el.getAttribute('aria-label') || el.textContent || el.className || el.tagName).trim().slice(0, 40)
-  // Piezas que se colocan encima a propósito (y todo lo que llevan dentro): no cuentan como desborde ni como solape.
-  const floating = '.ds-decoracion, .sm-heart, .sm-quick-add, .sm-rating-pill, .sm-dish-orbits, .sm-swipe-delete, .sm-status-art span'
+  // Piezas que se colocan encima o sobresalen a propósito (y todo lo que llevan dentro): no cuentan como desborde ni como
+  // solape. La ilustración orbital del recorrido se sale de la columna por diseño (margen negativo).
+  const floating = '.ds-decoracion, .sm-heart, .sm-quick-add, .sm-rating-pill, .sm-dish-orbits, .sm-swipe-delete, .sm-status-art span, .sm-orbit-hero'
+  // Los puntos de diapositiva del recorrido son un indicador de 6 px; la misma acción está en el botón «Continuar».
+  const paginator = '.sm-slide-dots'
   const floats = (el) => !!el.closest(floating)
   // Ancho disponible para el texto: el del elemento si es de bloque, si no el del ancestro de bloque más cercano.
   const blockWidth = (el) => { let node = el; while (node && node !== document.body) { if (getComputedStyle(node).display !== 'inline' && node.clientWidth > 0) return node.clientWidth; node = node.parentElement } return innerWidth }
@@ -43,8 +46,13 @@ function measureRoots() {
     const heading = root.querySelector('h1,h2,h3')?.textContent.trim().slice(0, 30)
     const label = `${component} ${counts[component]}${heading ? ` («${heading}»)` : ''}`
     const rb = box(root)
-    if (root.scrollWidth > root.clientWidth + 1) problems.push(`${label}: el contenido desborda ${root.scrollWidth - root.clientWidth} px a lo ancho`)
-    for (const el of root.querySelectorAll('*')) {
+    // Un carril que se desplaza a lo ancho a propósito (categorías, tarjetas en fila) no desborda: su contenido sigue.
+    // Una raíz que recorta (overflow hidden) esconde adornos que se salen por diseño; lo que importa allí es que ningún
+    // elemento real quede fuera de su caja, y eso lo mira la comprobación siguiente.
+    const overflowX = getComputedStyle(root).overflowX
+    const rail = ['auto', 'scroll'].includes(overflowX), clipped = overflowX === 'hidden'
+    if (!rail && !clipped && root.scrollWidth > root.clientWidth + 1) problems.push(`${label}: el contenido desborda ${root.scrollWidth - root.clientWidth} px a lo ancho`)
+    if (!rail) for (const el of root.querySelectorAll('*')) {
       if (!visible(el) || floats(el)) continue
       const r = box(el)
       if (r.right > rb.right + 1 || r.left < rb.left - 1) { problems.push(`${label}: «${name(el)}» sobresale del componente`); break }
@@ -62,7 +70,7 @@ function measureRoots() {
       if (longest && canvas.measureText(longest).width > available + 3) problems.push(`${label}: la palabra «${longest}» (${Math.round(canvas.measureText(longest).width)} px) no cabe en ${Math.round(available)} px y se parte`)
     }
     for (const el of root.querySelectorAll('a, button')) {
-      if (!visible(el)) continue
+      if (!visible(el) || el.closest(paginator)) continue
       const r = box(el)
       if (r.width < 44 || r.height < 44) problems.push(`${label}: el control «${name(el)}» mide ${Math.round(r.width)}×${Math.round(r.height)} px (mínimo 44×44)`)
     }
@@ -113,6 +121,8 @@ async function main() {
       page.on('request', (request) => { if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method())) writes.push(`${request.method()} ${request.url()}`) })
       await page.goto(`${base}/${encodeURIComponent(rest)}/${encodeURIComponent(venue)}/${spec.path}/?borrador=${encodeURIComponent(token)}`, { waitUntil: 'networkidle', timeout: 120000 })
       await page.locator(spec.wait).first().waitFor({ timeout: 60000 })
+      // Un teléfono no reserva sitio para la barra de desplazamiento; el Edge de Windows sí (15 px). Se oculta para medir el ancho real.
+      await page.addStyleTag({ content: 'html { scrollbar-width: none } ::-webkit-scrollbar { display: none }' })
       await page.evaluate(() => document.fonts.ready)
       await page.waitForTimeout(600)
       const measured = await page.evaluate(measureRoots)

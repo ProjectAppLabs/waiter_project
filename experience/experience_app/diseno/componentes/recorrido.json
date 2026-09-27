@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "nombre": "Recorrido con ilustración",
+  "selector": ".sm-recorrido",
+  "pantallas": [
+    "carta",
+    "ubicacion",
+    "estado",
+    "opinion",
+    "cuenta/lista",
+    "cuenta/canal",
+    "cuenta/correo",
+    "cuenta/restablecer"
+  ],
+  "descripcion": "Pantalla de paso a paso: ilustración orbital, título, frase, contenido propio de la pantalla y pie con una o dos acciones. La arman la introducción de la primera visita, la ubicación (código de mesa, local y nueva mesa), la cuenta lista, el correo, el canal de verificación, el éxito al restablecer la contraseña, el éxito de la opinión y la celebración del pago. La sección real sigue siendo del código; la plantilla se dibuja dentro.",
+  "datos": {
+    "recorrido.titulo": {
+      "tipo": "texto",
+      "descripcion": "Título de la pantalla: «¡Tu cuenta está lista!», «Conoce tu menú», el nombre del local…"
+    },
+    "recorrido.texto": {
+      "tipo": "texto",
+      "descripcion": "Frase que acompaña al título; vacía en las pantallas que no la tienen."
+    },
+    "recorrido.paso": {
+      "tipo": "numero",
+      "descripcion": "Diapositiva actual (desde 1) cuando el recorrido tiene varias, como la introducción; 0 si es una sola pantalla."
+    },
+    "recorrido.pasos": {
+      "tipo": "numero",
+      "descripcion": "Cuántas diapositivas tiene el recorrido; 0 si es una sola pantalla."
+    },
+    "recorrido.ilustrado": {
+      "tipo": "booleano",
+      "descripcion": "Verdadero si la pantalla trae ilustración."
+    }
+  },
+  "ranuras": {
+    "ilustracion": {
+      "obligatoria": true,
+      "descripcion": "La ilustración orbital de la pantalla; queda vacía en el correo y el canal, que no la tienen."
+    },
+    "puntos": {
+      "descripcion": "Puntos de diapositiva de la introducción; vacía en las demás pantallas."
+    },
+    "titulo": {
+      "descripcion": "Título de fábrica (h1)."
+    },
+    "texto": {
+      "descripcion": "Frase de fábrica (p)."
+    },
+    "cuerpo": {
+      "obligatoria": true,
+      "descripcion": "Contenido propio de la pantalla: el formulario del correo o del código de mesa, las opciones del canal, «Cómo llegar» y el lema del local, el botón de los puntos ganados. Sin él la pantalla no funciona."
+    },
+    "acciones": {
+      "obligatoria": true,
+      "descripcion": "Pie con la acción principal y, en algunas pantallas, una secundaria o un enlace."
+    }
+  },
+  "requisitos": [
+    {
+      "cualquiera": [
+        "dato:recorrido.titulo",
+        "ranura:titulo"
+      ],
+      "mensaje": "el título del recorrido (dato recorrido.titulo o ranura titulo)"
+    }
+  ],
+  "limites": {
+    "ancho_minimo": 272
+  },
+  "plantilla_fabrica": "<ranura nombre=\"ilustracion\"/>\n<ranura nombre=\"puntos\"/>\n<ranura nombre=\"titulo\"/>\n<ranura nombre=\"texto\"/>\n<ranura nombre=\"cuerpo\"/>\n<ranura nombre=\"acciones\"/>"
+}

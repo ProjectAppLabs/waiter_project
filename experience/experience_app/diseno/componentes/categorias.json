@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "nombre": "Navegación de categorías",
+  "selector": ".sm-categories",
+  "pantallas": [
+    "carta",
+    "favoritos"
+  ],
+  "descripcion": "La fila de categorías de la carta («Todos los platos» y una por categoría). Los botones son del código y llevan su estilo de variante; la plantilla puede rodearlos o añadir un rótulo.",
+  "datos": {
+    "categorias.total": {
+      "tipo": "numero",
+      "descripcion": "Cuántas categorías tiene la carta."
+    },
+    "categorias.elegida": {
+      "tipo": "texto",
+      "descripcion": "Nombre de la categoría elegida, o «Todos los platos»."
+    }
+  },
+  "ranuras": {
+    "opciones": {
+      "obligatoria": true,
+      "descripcion": "Todos los botones de categoría, con la elegida marcada."
+    }
+  },
+  "requisitos": [],
+  "limites": {
+    "ancho_minimo": 272
+  },
+  "plantilla_fabrica": "<ranura nombre=\"opciones\"/>"
+}

@@ -9,9 +9,10 @@ const nextConfig: NextConfig = {
   skipTrailingSlashRedirect: true,
   experimental: { useTypeScriptCli: false },
   transpilePackages: ['next-intl', 'use-intl', 'intl-messageformat', '@formatjs/fast-memoize', '@formatjs/icu-messageformat-parser', '@formatjs/icu-skeleton-parser', '@formatjs/intl-localematcher', '@schummar/icu-type-parser'],
-  // El servidor de desarrollo se abre desde la IP de la red local (y el POS mete al comensal en un iframe):
-  // sin esto Next responde 403 a sus propios chunks cuando el origen no es localhost.
-  allowedDevOrigins: [process.env.WAITER_HOST || '192.168.56.10'],
+  // El servidor de desarrollo se abre desde la IP de la red local (y el POS mete al comensal en un iframe) y, en WSL2 con
+  // red en espejo, desde Windows por localhost a través del puente (scripts/verificador/puente.js): sin esto Next
+  // responde 403 a sus propios chunks cuando el origen no coincide con el que escucha.
+  allowedDevOrigins: [process.env.WAITER_HOST || '192.168.56.10', 'localhost', '127.0.0.1'],
   devIndicators: false,
   images: { unoptimized: true },
   async rewrites() {

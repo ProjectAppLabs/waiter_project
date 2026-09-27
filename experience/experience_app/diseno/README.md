@@ -306,15 +306,24 @@ resolver, leer y preparar el tema y a toda herramienta MCP) y guarda en el nodo 
 acepta si es una ruta del propio origen. Borrar una decoración invalida la caché y las plantillas que la usaban vuelven a
 fábrica al releerse. `leer_componente` lista `decoraciones.sede` junto a las de fábrica.
 
-**Componentes plantillables (K5).** Ocho contratos en `componentes/`: `plato` (tarjeta de plato), `banners`, `cabecera`,
-`ficha-heroe` (cabecera de la ficha), `linea-pedido`, `tarjeta-historial`, `tarjeta-estado` y `recibo-papel`. En todos, la
-raíz real (enlace, cabecera, artículo…) sigue siendo del código con sus variantes y acciones; la plantilla se dibuja dentro.
+**Componentes plantillables (K5 y cierre C y D).** Diecisiete contratos en `componentes/`: `plato` (tarjeta de plato), `banners`,
+`cabecera`, `ficha-heroe` (cabecera de la ficha), `linea-pedido`, `tarjeta-historial`, `tarjeta-estado`, `recibo-papel`,
+`buscador`, `categorias`, `seccion` (encabezado de sección), `resumen` (totales del pedido), `cupon`, `perfil`, `saldo-puntos`,
+`banner-recompensa` y `recorrido` (la pantalla ilustrada de paso a paso: introducción, ubicación, cuenta lista, correo, canal, éxito al restablecer,
+éxito de la opinión y celebración del pago; nueve pantallas con un solo componente `Recorrido` en el comensal, cuyo
+envoltorio `.sm-recorrido` es la raíz de la plantilla y cuya sección `.sm-journey` sigue siendo de cada pantalla). En todos,
+la raíz real (enlace, cabecera, artículo…) sigue siendo del código con sus variantes y acciones; la plantilla se dibuja dentro.
 Cada contrato ofrece dos formas de componer: **ranuras de fábrica** (bloques enteros del diseño actual, p. ej. `copia`,
 `saludo`, `encabezado`, `info`, `cabecera`, `total`) y **datos sueltos** (`banner.titulo`, `marca.nombre`, `linea.subtotal`,
 `pedido.lineas` con `<cada>`), con las obligaciones expresadas como alternativas en `requisitos` (el título como dato o como
 ranura de fábrica). La plantilla de fábrica de cada uno reproduce el diseño actual exactamente, y una prueba del comensal lo
-exige para los ocho. La página viva muestra los ocho con datos de muestra y marca `data-componente` en cada raíz con
-plantilla propia; el verificador mide allí todos los componentes (y en la carta la tarjeta, los banners y la cabecera).
+exige para los diecisiete (y otra, pantalla por pantalla, para los nueve recorridos). La página viva muestra los diecisiete con datos
+de muestra y marca `data-componente` en cada raíz con plantilla propia; el verificador mide allí todos los componentes (y en
+la carta la tarjeta, los banners y la cabecera). En el recorrido, la ilustración orbital sobresale de la columna a propósito
+y los puntos de diapositiva miden 6 px: el verificador los excluye del desborde y del mínimo de 44 px. Tampoco cuenta como
+desborde un carril con desplazamiento horizontal (categorías) ni los adornos recortados de una raíz con `overflow: hidden`,
+y oculta la barra de desplazamiento del navegador al medir para que 375 px de ventana sean 375 px de pantalla; la página viva
+sangra las muestras hasta el borde en teléfonos para que midan lo mismo que la pantalla real.
 Los contratos viven en `componentes/<id>.json`; `componentes.json` guarda las reglas comunes y la capa `componentes` del
 esquema se completa al cargar.
 

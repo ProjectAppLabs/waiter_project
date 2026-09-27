@@ -4,6 +4,7 @@ import {useEffect, useRef, useState} from 'react'
 import {http} from '@/lib/services/api'
 import {useDinerStore} from '@/lib/stores/dinerStore'
 import {FoodPhoto, Icon, Title, useSmartRoute} from './SmartMenu'
+import {Recorrido} from './Recorrido'
 
 type Feedback = {rating:number; comment:string; dishes:Record<string,number>}
 type Item = {product_id:number; name:string; qty:number}
@@ -82,8 +83,7 @@ export function SmartFeedback({id}: {id:string|null}) {
    </article>)}</div>
    <div className="sm-journey-footer"><button className="sm-text-button" disabled={saving} onClick={()=>setStep(2)}>Agregar un comentario</button><button className="sm-primary" disabled={saving||!!preview} onClick={()=>void submit()}>{saving?'Guardando…':'Enviar mi opinión'}</button></div>
   </> : <>
-   <div className="sm-orbit-hero"><img src="/smart-menu/stars.png" alt=""/></div><h1>¡Gracias por compartir!</h1><p role="status">Tu opinión quedó guardada para este pedido.</p>
-   <div className="sm-journey-footer"><button className="sm-primary" onClick={()=>go('historial')}>Ver mis pedidos</button><button className="sm-text-button" onClick={()=>go('ubicacion','otra')}>Escanear otra mesa</button></div>
+   <Recorrido ilustracion="/smart-menu/stars.png" titulo="¡Gracias por compartir!" texto="Tu opinión quedó guardada para este pedido." textoAtributos={{role:'status'}} acciones={<><button className="sm-primary" onClick={()=>go('historial')}>Ver mis pedidos</button><button className="sm-text-button" onClick={()=>go('ubicacion','otra')}>Escanear otra mesa</button></>}/>
   </>}
  </section>
 }

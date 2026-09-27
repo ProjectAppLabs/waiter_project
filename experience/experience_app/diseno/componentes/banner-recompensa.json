@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "nombre": "Banner de recompensa",
+  "selector": ".sm-reward-banner",
+  "pantallas": [
+    "recompensas"
+  ],
+  "descripcion": "El banner de la primera compra en Mis recompensas: etiqueta, título con el porcentaje, botón «Ver beneficio» e ilustración. Solo se muestra cuando el descuento está activo.",
+  "datos": {
+    "recompensa.porcentaje": {
+      "tipo": "numero",
+      "descripcion": "Porcentaje del descuento."
+    },
+    "recompensa.titulo": {
+      "tipo": "texto",
+      "descripcion": "Título ya escrito: «15% de descuento en tu pedido»."
+    },
+    "recompensa.etiqueta": {
+      "tipo": "texto",
+      "descripcion": "Etiqueta: «Primera compra»."
+    }
+  },
+  "ranuras": {
+    "copia": {
+      "envoltorio": true,
+      "descripcion": "Bloque de texto de fábrica (envoltorio): dentro van etiqueta, título y acción."
+    },
+    "etiqueta": {
+      "descripcion": "Etiqueta de fábrica."
+    },
+    "titulo": {
+      "descripcion": "Título de fábrica."
+    },
+    "accion": {
+      "obligatoria": true,
+      "descripcion": "Botón «Ver beneficio» que abre el detalle."
+    },
+    "imagen": {
+      "descripcion": "Ilustración de fábrica."
+    }
+  },
+  "requisitos": [
+    {
+      "cualquiera": [
+        "dato:recompensa.titulo",
+        "dato:recompensa.porcentaje",
+        "ranura:titulo"
+      ],
+      "mensaje": "el beneficio (dato recompensa.titulo o recompensa.porcentaje, o ranura titulo)"
+    }
+  ],
+  "limites": {
+    "ancho_minimo": 272
+  },
+  "plantilla_fabrica": "<ranura nombre=\"copia\"><ranura nombre=\"etiqueta\"/><ranura nombre=\"titulo\"/><ranura nombre=\"accion\"/></ranura>\n<ranura nombre=\"imagen\"/>"
+}

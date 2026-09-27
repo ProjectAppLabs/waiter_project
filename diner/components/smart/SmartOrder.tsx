@@ -1,13 +1,13 @@
 'use client'
 /* eslint-disable @next/next/no-img-element -- Original local status illustrations. */
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { createPortal } from 'react-dom'
 import {CouponField,PaidCelebration} from './SmartBenefits'
 import {SmartWallet} from './SmartWallet'
 import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { CartLine, Dish, OrderState, OrderStatus, PayMethod, PayScope } from '@/lib/types'
+import type { Cart, CartLine, Dish, OrderState, OrderStatus, PayMethod, PayScope } from '@/lib/types'
 import { Plantilla } from '@/components/plantillas/Renderizador'
 import { usePlantilla } from '@/components/plantillas/usePlantilla'
 import type { TemplateData } from '@/lib/domain/plantillas'
@@ -89,41 +89,8 @@ export function SmartCart({ actionTarget }: { actionTarget?: HTMLElement | null 
               Agregar algo más
             </Link>
           </section>
-          <aside className="sm-summary"><CouponField/>
-            <h2>Resumen del pedido</h2>
-            <div>
-              <span>Subtotal de la mesa</span>
-              <strong>{money(cart.total)}</strong>
-            </div>
-            <div>
-              <span>Tu consumo</span>
-              <strong>{money(cart.mio)}</strong>
-            </div>
-            {!!cart.descuento?.monto && (
-              <div>
-                <span>Descuento {cart.descuento.porcentaje}%</span>
-                <strong>− {money(cart.descuento.monto)}</strong>
-              </div>
-            )}
-            <div className="sm-total">
-              <span>Total estimado</span>
-              <strong>
-                {money(Math.max(0, cart.total - (cart.descuento?.monto ?? 0)))}
-              </strong>
-            </div>
-            <p>
-              Revisaremos disponibilidad y precios al confirmar. Los pedidos de
-              tu mesa se enviarán juntos después de pagar.
-            </p>
-            {actionTarget ? createPortal(confirmAction, actionTarget) : confirmAction}
-            <button
-              className="sm-text-button"
-              disabled={busy || sending}
-              onClick={() => go('pago')}
-            >
-              Ver opciones de pago
-            </button>
-          </aside>
+          <OrderSummary cart={cart} confirmar={actionTarget ? createPortal(confirmAction, actionTarget) : confirmAction}
+            pago={<button className="sm-text-button" disabled={busy || sending} onClick={() => go('pago')}>Ver opciones de pago</button>} />
         </div>
       ) : (
         <Empty
@@ -418,4 +385,29 @@ export function StatusCard({ order, current }: { order: OrderStatus; current: nu
       {arbol ? <Plantilla arbol={arbol} datos={statusTemplateData(order)} ranuras={{ titulo, texto, arte }} fallback={factory} /> : factory}
     </div>
   )
+}
+
+// Datos que una plantilla del resumen puede enlazar (contrato «resumen»).
+export function orderSummaryTemplateData(cart: Cart) {
+  const monto = cart.descuento?.monto ?? 0
+  return { 'pedido.subtotal': cart.total, 'pedido.consumo': cart.mio, 'pedido.descuento': !!monto, 'pedido.descuento.porcentaje': cart.descuento?.porcentaje ?? 0,
+    'pedido.descuento.monto': monto, 'pedido.total': Math.max(0, cart.total - monto) }
+}
+
+// Plan K, paquete D: la tarjeta de totales del pedido. El cupón, confirmar y el enlace al pago son del código.
+export function OrderSummary({ cart, confirmar, pago }: { cart: Cart; confirmar: ReactNode; pago: ReactNode }) {
+  const { arbol, marker } = usePlantilla('resumen')
+  const cupon = <CouponField />
+  const titulo = <h2>Resumen del pedido</h2>
+  const filas = <>
+    <div><span>Subtotal de la mesa</span><strong>{money(cart.total)}</strong></div>
+    <div><span>Tu consumo</span><strong>{money(cart.mio)}</strong></div>
+    {!!cart.descuento?.monto && <div><span>Descuento {cart.descuento.porcentaje}%</span><strong>− {money(cart.descuento.monto)}</strong></div>}
+  </>
+  const total = <div className="sm-total"><span>Total estimado</span><strong>{money(Math.max(0, cart.total - (cart.descuento?.monto ?? 0)))}</strong></div>
+  const nota = <p>Revisaremos disponibilidad y precios al confirmar. Los pedidos de tu mesa se enviarán juntos después de pagar.</p>
+  const factory = <>{cupon}{titulo}{filas}{total}{nota}{confirmar}{pago}</>
+  return <aside className="sm-summary" {...marker}>
+    {arbol ? <Plantilla arbol={arbol} datos={orderSummaryTemplateData(cart)} ranuras={{ cupon, titulo, filas, total, nota, confirmar, pago }} fallback={factory} /> : factory}
+  </aside>
 }

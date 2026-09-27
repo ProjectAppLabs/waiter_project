@@ -4,6 +4,7 @@ import { useRef, useState } from 'react'
 import Link from 'next/link'
 import type { Dish, Entry } from '@/lib/types'
 import { SmartDish, DishRating, FoodPhoto, Icon, money, Title, useSmartRoute } from './SmartMenu'
+import {Recorrido} from './Recorrido'
 
 const questions = [
   { title: '¿Cómo te sientes ahora?', options: ['🥵 Tengo sed', '😋 Tengo hambre', '🥱 Cansado', '😤 Enojado', '😑 Aburrido', '🤒 Enfermo', '⚡ Con energía', '😊 Otro'] },
@@ -131,7 +132,7 @@ export function SmartAbout({onDone}: {onDone?:()=>void}) {
   const [slide,setSlide] = useState(0)
   const { href } = useSmartRoute()
   const current = slides[slide]
-  return <section className="sm-journey sm-intro"><h2 className="sm-home-title">Conoce tu menú</h2><div className="sm-orbit-hero"><img src={`/smart-menu/${current[0]}`} alt=""/></div><nav className="sm-slide-dots" aria-label="Introducción">{slides.map((s,i) => <button key={s[0]} aria-label={`Página ${i + 1}`} aria-current={slide === i ? 'step' : undefined} onClick={() => setSlide(i)}/>)}</nav><h1>{current[1]}</h1><p>{current[2]}</p><div className="sm-journey-footer">{slide < 3 ? <button className="sm-primary" onClick={() => setSlide(slide + 1)}>Continuar<Icon name="arrow"/></button> : <button className="sm-primary" onClick={onDone}>Explorar el menú<Icon name="arrow"/></button>}<button className="sm-text-button" onClick={onDone}>Omitir introducción</button></div></section>
+  return <section className="sm-journey sm-intro"><h2 className="sm-home-title">Conoce tu menú</h2><Recorrido ilustracion={`/smart-menu/${current[0]}`} diapositivas={{actual:slide,total:slides.length,ir:setSlide}} titulo={current[1]} texto={current[2]} acciones={<>{slide < 3 ? <button className="sm-primary" onClick={() => setSlide(slide + 1)}>Continuar<Icon name="arrow"/></button> : <button className="sm-primary" onClick={onDone}>Explorar el menú<Icon name="arrow"/></button>}<button className="sm-text-button" onClick={onDone}>Omitir introducción</button></>}/></section>
 }
 const help = [
   { name: 'Mi cuenta', icon: 'user' as const, articles: [['¿Para qué sirve mi cuenta?', 'Tu cuenta permite guardar favoritos y consultar el historial de pedidos realizados con ella. Puedes registrarte desde Mi cuenta.'], ['¿Cómo cierro mi sesión?', 'Entra a Mi cuenta y selecciona Cerrar sesión. Puedes volver a entrar cuando quieras.']] },

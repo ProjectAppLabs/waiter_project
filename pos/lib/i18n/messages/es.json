@@ -525,7 +525,7 @@
       "new": "Nuevo",
       "decorations": {
         "title": "Decoraciones del menú",
-        "intro": "Imágenes pequeñas (PNG o WebP con transparencia, hasta {kb} y {side} px de lado, máximo {max}) que la IA o una plantilla colocan sobre los componentes del menú con <decoracion id=\"…\"/>. Solo se ven en este restaurante.",
+        "intro": "Imágenes pequeñas (PNG o WebP con transparencia, hasta {kb} y {side} px de lado, máximo {max}) que la IA o una plantilla colocan sobre los componentes del menú con '<decoracion id=\"…\"/>'. Solo se ven en este restaurante.",
         "loading": "Cargando…",
         "name": "Nombre de la decoración",
         "namePlaceholder": "Por ejemplo: Hoja de menta",
