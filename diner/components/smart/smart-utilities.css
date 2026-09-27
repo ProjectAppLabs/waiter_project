@@ -74,6 +74,8 @@
 
 /* Piezas */
 .smart-menu .ds-insignia { display: inline-flex; align-items: center; gap: var(--ds-espacio-4); padding: var(--ds-espacio-2) var(--ds-espacio-8); border-radius: calc(12px * var(--ds-forma-chip)); background: var(--t-acento-suave); color: var(--sm-accent-text); font-size: calc(14px * var(--ds-texto)); line-height: calc(20px * var(--ds-texto)); font-weight: 700; white-space: nowrap; }
+/* Una insignia destacada toma el destacado con su tinta legible (si no, ganaría el color de acento de la insignia). */
+.smart-menu .ds-insignia.ds-destacado { background: var(--sm-highlight); color: var(--sm-highlight-ink, #212134); }
 
 /* Piezas reales dentro de una plantilla propia: la foto no supera el ancho que le deje la plantilla. Solo se acota;
  * el ancho, la proporción y el margen siguen siendo los de la carta y de sus variantes (cuadrícula, foto grande). */

@@ -2,8 +2,8 @@
 .smart-menu {
   --sm-accent: var(--t-acento, #6755a0);
   --sm-ink: var(--t-tinta, #32324d);
-  /* Plan L: texto directo sobre el fondo de la página; las superficies vuelven a --sm-ink (smart-marca.css). */
-  --sm-ink-fondo: var(--t-tinta-fondo, var(--sm-ink));
+  /* Plan L: texto directo sobre el fondo de la página; smart-marca.css hace que --sm-ink valga esto fuera de las superficies. */
+  --sm-ink-fondo: var(--t-tinta-fondo, var(--t-tinta, #32324d));
   --sm-muted: color-mix(in srgb, var(--sm-ink) 78%, var(--t-fondo));
   --sm-highlight: var(--t-tinta-terciaria, #ffb01d);
   --sm-surface: var(--t-superficie, #fff);

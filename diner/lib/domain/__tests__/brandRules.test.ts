@@ -68,3 +68,10 @@ it('traduce la textura del fondo a un patrón del catálogo con su tamaño e int
   const css = readFileSync(join(__dirname, '../../../components/smart/smart-marca.css'), 'utf8')
   expect(css).toMatch(/\.smart-menu \{[^}]*background-image: var\(--ds-textura\)/)
 })
+
+// Falla si una regla del CSS cambia el fondo de un elemento (tarjeta, fondo de página o transparente) y el bloque de
+// contexto de tinta de smart-marca.css no la recoge: su texto quedaría con la tinta del otro contexto e ilegible.
+it('mantiene al día el contexto de tinta generado desde el CSS', () => {
+  const { execFileSync } = require('node:child_process')
+  expect(() => execFileSync('node', [join(__dirname, '../../../scripts/design-system/superficies.cjs'), '--check'], { stdio: 'pipe' })).not.toThrow()
+})

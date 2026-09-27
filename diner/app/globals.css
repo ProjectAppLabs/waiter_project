@@ -55,6 +55,7 @@
   --sm-highlight-text: #8F6310;
   --sm-accent-text: #6755A0;
   --sm-readable-muted: #666687;
+  --sm-accent-text-fondo: #6755A0; --sm-accent-text-superficie: #6755A0; --sm-highlight-text-fondo: #8F6310; --sm-highlight-text-superficie: #8F6310; --sm-readable-muted-fondo: #666687; --sm-readable-muted-superficie: #666687;
 }
 html { font-family: var(--font-ui); background: var(--t-fondo); color: var(--t-tinta); -webkit-font-smoothing: antialiased; }
 .tabular { font-variant-numeric: tabular-nums; }

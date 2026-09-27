@@ -20,6 +20,10 @@ const evidence = process.env.DESIGN_EVIDENCE ? path.resolve(process.env.DESIGN_E
 const PAGES = [
   { name: 'sistema', path: 'design-system', widths: [375, 1024], wait: '.ds-option', shot: '#componentes' },
   { name: 'carta', path: 'carta', widths: [320, 375, 1024], wait: 'article.sm-food-card', shot: '.sm-menu-sections section, .sm-food-list, .sm-food-grid' },
+  // El contraste depende de los colores del tema en todas las pantallas, no solo donde hay plantillas propias: sin sesión
+  // se ven los estados vacíos, formularios y títulos que más sufren con un fondo oscuro.
+  ...['favoritos', 'pedido', 'la-cuenta', 'historial', 'recompensas', 'ubicacion', 'cuenta', 'cuenta/entrar', 'cuenta/registro']
+    .map((screen) => ({ name: screen, path: screen, widths: [375], wait: '.smart-menu .sm-page', shot: '.smart-menu' })),
 ]
 
 // Orígenes a los que la carta puede pedir recursos: el propio (incluidos los proxys /api y /experience) y Google Fonts.
@@ -48,6 +52,55 @@ async function securityCheck(fonts) {
     if (!faces.length) problems.push(`la fuente global «${font}» no cargó desde Google Fonts`)
   }
   return [...new Set(problems)]
+}
+
+// Se ejecuta dentro de la página: contraste real de cada texto y cada icono visible contra el fondo que tiene detrás
+// (WCAG AA: 4.5:1 para texto, 3:1 para texto grande e iconos). El fondo se compone subiendo por los ancestros hasta uno
+// opaco; si detrás hay una foto (url()) no se puede medir y se omite. Los controles deshabilitados están exentos.
+function contrastCheck() {
+  const parse = (c) => { const m = c.match(/rgba?\(([^)]+)\)/); if (!m) return null; const [r, g, b, a = 1] = m[1].split(/[\s,/]+/).filter(Boolean).map(Number); return { r, g, b, a } }
+  const over = (top, under) => ({ r: top.r * top.a + under.r * (1 - top.a), g: top.g * top.a + under.g * (1 - top.a), b: top.b * top.a + under.b * (1 - top.a), a: 1 })
+  const lum = ({ r, g, b }) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4 }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b) }
+  const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05) }
+  const hex = ({ r, g, b }) => '#' + [r, g, b].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('').toUpperCase()
+  function background(el) {
+    const layers = []
+    for (let node = el; node; node = node.parentElement) {
+      const cs = getComputedStyle(node)
+      if (/url\(/.test(cs.backgroundImage) && !node.matches('.smart-menu, main')) return null
+      const c = parse(cs.backgroundColor)
+      if (c && c.a > 0) { layers.push(c); if (c.a >= 1) break }
+    }
+    return layers.reduceRight((under, top) => over(top, under), { r: 255, g: 255, b: 255, a: 1 })
+  }
+  const visible = (el) => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return r.width > 2 && r.height > 2 && cs.visibility !== 'hidden' && Number(cs.opacity) > 0.1 }
+  const exempt = (el) => el.closest('[disabled], [aria-disabled="true"], .ds-decoracion, [aria-hidden="true"] img')
+  const problems = new Map()
+  const report = (el, got, need, fg, bg) => {
+    const label = (el.getAttribute('aria-label') || el.textContent || el.closest('[aria-label]')?.getAttribute('aria-label') || el.tagName).trim().replace(/\s+/g, ' ').slice(0, 40)
+    const key = `contraste ${got.toFixed(2)}:1 (mínimo ${need}:1) en «${label}»: ${hex(fg)} sobre ${hex(bg)}`
+    problems.set(`${hex(fg)}|${hex(bg)}|${label}`, key)
+  }
+  for (const el of document.querySelectorAll('.smart-menu *')) {
+    if (!visible(el) || exempt(el)) continue
+    const isIcon = el.tagName.toLowerCase() === 'svg'
+    const hasText = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())
+    if (!isIcon && !hasText) continue
+    if (el.closest('svg') && !isIcon) continue
+    const bg = background(el)
+    if (!bg) continue
+    const cs = getComputedStyle(el)
+    let paint = cs.color
+    if (isIcon) { const stroke = cs.stroke, fill = cs.fill; paint = stroke && stroke !== 'none' ? stroke : fill && fill !== 'none' ? fill : cs.color }
+    const fgRaw = parse(paint) || parse(cs.color)
+    if (!fgRaw || fgRaw.a === 0) continue
+    const fg = over({ ...fgRaw, a: fgRaw.a * Math.min(1, Number(cs.opacity)) }, bg)
+    const size = parseFloat(cs.fontSize), bold = Number(cs.fontWeight) >= 700
+    const need = isIcon || size >= 24 || (size >= 18.66 && bold) ? 3 : 4.5
+    const got = ratio(fg, bg)
+    if (got < need) report(el, got, need, fg, bg)
+  }
+  return [...problems.values()]
 }
 
 // Se ejecuta dentro de la página: devuelve los problemas de cada raíz con plantilla propia, agrupados por componente.
@@ -129,21 +182,18 @@ function measureRoots() {
 }
 
 async function main() {
-  if (!token) throw new Error('Falta DRAFT_TOKEN')
   const result = { ok: true, problemas: [], medidas: {}, capturas: [] }
-  // Un borrador que no trae ninguna plantilla propia (p. ej. vuelve a fábrica) no tiene nada que medir aquí.
-  const draft = await fetch(`${base}/api/v1/${encodeURIComponent(rest)}/${encodeURIComponent(venue)}/borradores/${encodeURIComponent(token)}/`)
-  if (!draft.ok) throw new Error(`el borrador no responde (${draft.status})`)
-  const theme = (await draft.json()).plantilla?.tema || {}
+  // Sin DRAFT_TOKEN se verifica lo publicado (contraste, seguridad y medidas del tema que ya ve el comensal).
+  let theme = {}
+  if (token) {
+    const draft = await fetch(`${base}/api/v1/${encodeURIComponent(rest)}/${encodeURIComponent(venue)}/borradores/${encodeURIComponent(token)}/`)
+    if (!draft.ok) throw new Error(`el borrador no responde (${draft.status})`)
+    theme = (await draft.json()).plantilla?.tema || {}
+  }
   const components = theme.componentes || {}
   const targets = Object.keys(components).filter((id) => components[id])
   // Plan L: las fuentes globales del borrador también se comprueban (que carguen desde Google Fonts).
   const fonts = (theme.fundamentos?.tipografia?.fuentes || []).filter((f) => typeof f === 'string')
-  if (!targets.length && !fonts.length) {
-    result.medidas.nota = 'el borrador no trae plantillas propias; nada que medir'
-    process.stdout.write(JSON.stringify(result))
-    return
-  }
   const browser = process.env.CDP_URL ? await chromium.connectOverCDP(process.env.CDP_URL) : await chromium.launch({ headless: true })
   const seen = new Set()
   try {
@@ -163,7 +213,7 @@ async function main() {
         const url = request.url()
         if (/^https?:/.test(url) && !ALLOWED_ORIGINS.has(new URL(url).origin)) foreign.add(new URL(url).origin)
       })
-      await page.goto(`${base}/${encodeURIComponent(rest)}/${encodeURIComponent(venue)}/${spec.path}/?borrador=${encodeURIComponent(token)}`, { waitUntil: 'networkidle', timeout: 120000 })
+      await page.goto(`${base}/${encodeURIComponent(rest)}/${encodeURIComponent(venue)}/${spec.path}/${token ? `?borrador=${encodeURIComponent(token)}` : ''}`, { waitUntil: 'networkidle', timeout: 120000 })
       await page.locator(spec.wait).first().waitFor({ timeout: 60000 })
       // Un teléfono no reserva sitio para la barra de desplazamiento; el Edge de Windows sí (15 px). Se oculta para medir el ancho real.
       await page.addStyleTag({ content: 'html { scrollbar-width: none } ::-webkit-scrollbar { display: none }' })
@@ -171,8 +221,10 @@ async function main() {
       await page.waitForTimeout(600)
       const measured = await page.evaluate(measureRoots)
       if (errors.length) measured.problemas.push(...errors.map((e) => `error de JavaScript: ${e}`))
-      if (writes.length) measured.problemas.push(...writes.map((w) => `la página intentó escribir: ${w}`))
+      // Con borrador la página no debe escribir nada; lo publicado sí abre la sesión de mesa (POST /sesiones), que es lo normal.
+      if (token && writes.length) measured.problemas.push(...writes.map((w) => `la página intentó escribir: ${w}`))
       measured.problemas.push(...await page.evaluate(securityCheck, fonts))
+      measured.problemas.push(...await page.evaluate(contrastCheck))
       measured.problemas.push(...[...foreign].map((origin) => `seguridad: la página pidió recursos a un origen no permitido: ${origin}`))
       Object.keys(measured.raices).forEach((id) => seen.add(id))
       result.medidas[`${spec.name} ${width}px`] = { raices: measured.raices, problemas: measured.problemas.length }
@@ -193,7 +245,7 @@ async function main() {
   for (const id of targets) if (!seen.has(id)) result.problemas.push(`ningún «${id}» se dibujó con la plantilla del borrador (¿el token caducó o la página viva no muestra ese componente?)`)
   result.ok = result.problemas.length === 0
   process.stdout.write(JSON.stringify(result))
-  process.stderr.write(`\n${result.ok ? 'Sin problemas' : `${result.problemas.length} problema(s)`} en ${targets.join(', ')}.\n`)
+  process.stderr.write(`\n${result.ok ? 'Sin problemas' : `${result.problemas.length} problema(s)`}${targets.length ? ` en ${targets.join(', ')}` : ''}.\n`)
 }
 // ok null: el navegador no pudo medir (infraestructura), que no es lo mismo que una plantilla con problemas.
 main().catch((error) => { process.stdout.write(JSON.stringify({ ok: null, problemas: [`la verificación falló: ${error.message}`] })); process.exitCode = 1 })

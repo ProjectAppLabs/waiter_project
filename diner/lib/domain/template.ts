@@ -58,6 +58,22 @@ const FAMILIES: TemplateFamily[] = ['A', 'B', 'C', 'D', 'E', 'F']
 
 const quote = (font: string) => `'${font.replace(/'/g, '')}'`
 
+// Textos legibles por contexto: sobre el fondo de la página (con su tinta) y sobre las superficies (con la tinta normal).
+function contextTexts(k: TemplateTokens, tintaFondo?: string): Record<string, string> {
+  const inkFondo = typeof tintaFondo === 'string' && /^#[0-9A-Fa-f]{6}$/.test(tintaFondo) ? tintaFondo.toUpperCase() : k.tinta
+  const all = [k.fondo, k.superficie, k.acentoSuave], onFondo = [k.fondo], onSurface = [k.superficie, k.acentoSuave]
+  // El valor global (legible sobre todo) se conserva donde ya se lee: sin tema oscuro, nada cambia.
+  const pick = (preferred: string, backgrounds: string[], fallback: string) => {
+    const global = readableText(preferred, all, k.tinta)
+    return backgrounds.every((b) => contrastRatio(global, b) >= 4.5) ? global : readableText(preferred, backgrounds, fallback)
+  }
+  return {
+    '--sm-accent-text-fondo': pick(k.acento, onFondo, inkFondo), '--sm-accent-text-superficie': pick(k.acento, onSurface, k.tinta),
+    '--sm-highlight-text-fondo': pick(k.tintaTerciaria, onFondo, inkFondo), '--sm-highlight-text-superficie': pick(k.tintaTerciaria, onSurface, k.tinta),
+    '--sm-readable-muted-fondo': pick(k.tintaSuave, onFondo, inkFondo), '--sm-readable-muted-superficie': pick(k.tintaSuave, onSurface, k.tinta),
+  }
+}
+
 // Todos los tokens como variables CSS --t-*: se ponen en <main> y las utilidades de globals.css (bg-t-fondo, t-title…) las leen.
 export function templateVars(t: Template): Record<string, string> {
   const k = t.tokens
@@ -69,6 +85,9 @@ export function templateVars(t: Template): Record<string, string> {
     '--sm-highlight-text': readableText(k.tintaTerciaria, surfaces, k.tinta),
     '--sm-accent-text': readableText(k.acento, surfaces, k.tinta),
     '--sm-readable-muted': readableText(k.tintaSuave, surfaces, k.tinta),
+    // Plan L: con fondo oscuro y tarjetas claras ningún color se lee sobre ambos a la vez; cada contexto toma el suyo
+    // (smart-marca.css usa -fondo fuera de las superficies y -superficie dentro).
+    ...contextTexts(k, t.tema?.version === 2 ? t.tema.fundamentos?.colores?.tintaFondo : undefined),
     '--t-fondo': k.fondo, '--t-superficie': k.superficie, '--t-tinta': k.tinta, '--t-tinta-suave': k.tintaSuave, '--t-tinta-terciaria': k.tintaTerciaria,
     '--t-borde': k.borde, '--t-acento': k.acento, '--t-acento-tinta': k.acentoTinta, '--t-acento-suave': k.acentoSuave,
     '--t-display': `${quote(k.displayFont)}, system-ui, sans-serif`, '--t-display-peso': String(k.displayPeso), '--t-display-tracking': k.displayTracking, '--t-display-transform': k.displayTransform,
