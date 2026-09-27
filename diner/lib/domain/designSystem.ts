@@ -21,15 +21,18 @@ export function themeFonts(theme?: MenuTheme): string[] {
 }
 
 // Plan L: textura del fondo. Cada patrón es un fondo CSS fijo del catálogo; el tema solo elige cuál, su tamaño y su
-// intensidad (validados de nuevo aquí). La tinta sale de --sm-textura-tinta, que mezcla la tinta del fondo con transparente.
+// intensidad (validados de nuevo aquí). El valor no puede depender de otras variables: se declara en <main> y CSS lo
+// resuelve allí. Por eso la tinta es currentColor, que se resuelve donde se pinta (.smart-menu, con la tinta del fondo).
 export const TEXTURE = { patrones: ['ninguna', 'reticula', 'cuaderno', 'puntos', 'diagonal'], tamano: { min: 8, max: 48, default: 16 }, intensidad: { min: 0, max: .25, default: .07 } } as const
-const INK = 'var(--sm-textura-tinta)'
-const PATTERNS: Record<string, string> = {
-  ninguna: 'none',
-  reticula: `linear-gradient(to right, ${INK} 1px, transparent 1px), linear-gradient(to bottom, ${INK} 1px, transparent 1px)`,
-  cuaderno: `linear-gradient(to bottom, ${INK} 1px, transparent 1px)`,
-  puntos: `radial-gradient(circle, ${INK} 1.2px, transparent 1.6px)`,
-  diagonal: `repeating-linear-gradient(45deg, ${INK} 0 1px, transparent 1px var(--ds-textura-tamano))`,
+function pattern(name: string, size: number, pct: string): string {
+  const ink = `color-mix(in srgb, currentColor ${pct}, transparent)`
+  switch (name) {
+    case 'reticula': return `linear-gradient(to right, ${ink} 1px, transparent 1px), linear-gradient(to bottom, ${ink} 1px, transparent 1px)`
+    case 'cuaderno': return `linear-gradient(to bottom, ${ink} 1px, transparent 1px)`
+    case 'puntos': return `radial-gradient(circle, ${ink} 1.2px, transparent 1.6px)`
+    case 'diagonal': return `repeating-linear-gradient(45deg, ${ink} 0 1px, transparent 1px ${size}px)`
+    default: return 'none'
+  }
 }
 function textureVars(theme?: MenuTheme): Record<string, string> {
   const t = theme?.version === 2 ? theme.fundamentos?.textura : undefined
@@ -37,7 +40,8 @@ function textureVars(theme?: MenuTheme): Record<string, string> {
   const patron = typeof t?.patron === 'string' && (TEXTURE.patrones as readonly string[]).includes(t.patron) ? t.patron : 'ninguna'
   const size = inRange(t?.tamano, TEXTURE.tamano) ? t!.tamano : TEXTURE.tamano.default
   const alpha = inRange(t?.intensidad, TEXTURE.intensidad) ? t!.intensidad : TEXTURE.intensidad.default
-  return { '--ds-textura': PATTERNS[patron], '--ds-textura-tamano': `${size}px`, '--ds-textura-intensidad': `${Math.round(alpha * 1000) / 10}%` }
+  const pct = `${Math.round(alpha * 1000) / 10}%`
+  return { '--ds-textura': pattern(patron, size, pct), '--ds-textura-tamano': `${size}px`, '--ds-textura-intensidad': pct }
 }
 
 // Plan L: la tinta del fondo y las tres fuentes globales como variables CSS. ds-fuente-N sin fuente usa la de títulos.
