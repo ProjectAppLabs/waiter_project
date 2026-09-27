@@ -105,5 +105,7 @@
 /* Plan L · Reglas de las fotos del sistema de diseño (fundamentos.imagenes y variantes.marcoImagen). Toda foto de plato
  * (.sm-food-photo) usa el ajuste del tema y su marco; el radio lo da forma.imagen, que se deriva de imagenes.radio. */
 .smart-menu .sm-food-photo img { object-fit: var(--ds-imagen-ajuste, cover); }
-[data-ds-marco-imagen="borde"] .smart-menu .sm-food-photo { box-shadow: 0 0 0 2px var(--sm-ink); }
-[data-ds-marco-imagen="sombra"] .smart-menu .sm-food-photo { box-shadow: 0 6px 18px color-mix(in srgb, var(--sm-ink) 22%, transparent); }
+/* El marco es regla del sistema de diseño: gana a las variantes de carta que quitan la sombra (p. ej. .sm-food-list), sea cual
+ * sea el orden en que cargue el CSS. */
+[data-ds-marco-imagen="borde"] .smart-menu :is(.sm-page, .ds-stack, .ds-row) .sm-food-photo.sm-food-photo { box-shadow: 0 0 0 2px var(--sm-ink); }
+[data-ds-marco-imagen="sombra"] .smart-menu :is(.sm-page, .ds-stack, .ds-row) .sm-food-photo.sm-food-photo { box-shadow: 0 6px 18px color-mix(in srgb, var(--sm-ink) 22%, transparent); }
