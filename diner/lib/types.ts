@@ -87,5 +87,16 @@ export type PayMethod = 'tarjeta' | 'pse' | 'nequi' | 'efectivo'
 export type PayState = 'idle' | 'authorizing' | 'paid' | 'declined'
 export interface PayResult { estado: 'aprobado' | 'rechazado'; referencia: string; demo: boolean; metodo?: PayMethod; monto?: number }
 
+// ---- Sistema de diseño (Plan J5): contrato público GET /api/v1/diseno/, el mismo que sirve el MCP ----------------
+export interface DesignRule { type?: string; description?: string; minimum?: number; maximum?: number; default?: unknown; enum?: string[]; readOnly?: boolean; properties?: Record<string, DesignRule> }
+export interface DesignOption { valor: string; descripcion: string; selector: string }
+export interface DesignVariantField { ruta: string; atributo: string; predeterminada: string; opciones: DesignOption[] }
+export interface DesignComponent { id: string; nombre: string; selectores: string[]; fundamentos: string[]; variantes: string[] }
+export interface DesignContract {
+  version: number
+  esquema: { properties: Record<string, DesignRule> }
+  inventario: { fundamentos: Record<string, string[]>; derivadas: Record<string, string>; componentes: DesignComponent[]; pantallas: Record<string, string[]>; variantes: Record<string, DesignVariantField> }
+}
+
 export interface DinerRewards {tarjeta:number|null;codigo:string;puntos:number;ganados:number;programa:string;valorPunto:number;minimoCanje:number}
 export interface VenueLocation {direccion:string;latitud:number|null;longitud:number|null}

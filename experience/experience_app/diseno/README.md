@@ -1,10 +1,11 @@
-# Tema del menú v2 (Plan J2–J4)
+# Tema del menú v2 (Plan J2–J5)
 
 `esquema.json` es el contrato cerrado y versionado. `services.validate` completa los valores omitidos, normaliza colores,
 calcula los derivados y rechaza campos, versiones, tipos, fuentes o rangos desconocidos. No admite HTML ni CSS.
 `inventario.json` relaciona fundamentos, variables CSS y los componentes compartidos de las pantallas actuales.
 J3 añade variantes de componente y distribución mediante atributos `data-ds-*` en `<main>` y selectores CSS.
 J4 expone el contrato por MCP y comparte los borradores con la vista previa del POS.
+J5 añade la página viva del comensal, que muestra todos los componentes y variantes con el tema de la sede o de un borrador.
 
 ## Contrato
 
@@ -181,3 +182,26 @@ También prepara un borrador; no aplica el restablecimiento inmediatamente.
 Configuración: `DINER_PUBLIC_URL` debe ser la dirección pública del comensal. Reiniciar experience tras actualizar el
 contrato y Odoo tras cambiar la pasarela. Los borradores caducados se limpian al preparar otros de la misma sede.
 Esquema y catálogo de herramientas: [README del MCP](../mcp/README.md).
+
+## Página viva del sistema de diseño (J5)
+
+`<diner>/<rest>/<sede>/design-system` dibuja, con el tema publicado de la sede, los fundamentos (colores con derivados
+marcados, tipografía, escalas, espaciado y formas), los 15 componentes del inventario con los componentes reales de la
+carta, cada opción de las 13 variantes y distribuciones con la elegida enmarcada, y las pantallas con sus componentes en
+orden. Con `?borrador=<token público>` muestra ese borrador en todos los componentes, avisa de que nada está publicado y
+enlaza la carta con el borrador y el tema publicado.
+
+- `GET /api/v1/diseno/` devuelve `{version, esquema, inventario}`: el mismo contrato que sirve el MCP, sin clave, con
+  `Cache-Control: public, max-age=3600` y solo lectura. La página lo usa para describir cada componente y opción; si no
+  responde, dibuja igual todos los componentes y opciones a partir del catálogo cerrado de `designVariants.ts`.
+- `leer_design_system` devuelve `pagina` (la página con el tema publicado). `preparar_tema`, `restablecer_tema` y la
+  pasarela `preview` del POS devuelven `url_design_system` (la página con el borrador). El POS enlaza «Sistema de diseño ↗».
+- Cada muestra lleva los atributos `data-ds-*` completos del tema con la opción demostrada encima, dentro de `.smart-menu`
+  y `.sm-page` reales; el `<main>` no lleva atributos para que una opción no alcance a la vecina. Las muestras son `inert`:
+  la página no abre sesiones ni escribe. La copia local de la lista de componentes (`components/design-system/samples.tsx`)
+  tiene una prueba de paridad con `inventario.json`.
+
+`diner/scripts/design-system/verificar-pagina.cjs` abre la página en Edge/Chromium a 375 y 1024 px, con el tema publicado y,
+si se pasa `DRAFT_TOKEN`, con un borrador. Comprueba componentes y opciones, atributos e inercia de cada muestra, el estilo
+calculado que distingue cada opción, ausencia de elementos fijos, desbordamiento, errores JS y escrituras, y guarda capturas
+y recortes en `DESIGN_EVIDENCE` (`test-reports/j5`). Admite `DINER_URL`, `CDP_URL`, `REST` y `SEDE`. Solo lee.

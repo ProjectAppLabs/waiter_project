@@ -281,7 +281,8 @@ export function PrepTime({ dish }: { dish: Dish }) {
   if (!minutes) return null
   return <span className="sm-food-time"><Icon name="clock" />{minutes} min</span>
 }
-function FoodCard({ dish }: { dish: Dish }) {
+// Exportada para la página viva del sistema de diseño (J5), que la muestra con cada variante.
+export function FoodCard({ dish }: { dish: Dish }) {
   const { href } = useSmartRoute()
   const {add,busy} = useDinerStore()
   const [quickAdded,setQuickAdded] = useState(false)

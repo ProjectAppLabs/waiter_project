@@ -1,5 +1,10 @@
 # J4 · Estado y cierre para continuar con Codex o Claude
 
+**Cerrado el 25 de septiembre de 2026 por Claude:** commit `74972fa` en `feat/24092026-plan-j4-borradores`, tras repetir
+TypeScript, las pruebas focalizadas de diner y POS, las 108 de diseño/MCP, `makemigrations --check`, Ruff, `git diff --check`
+y los enlaces de la documentación. J5 siguió en `feat/25092026-plan-j5-pagina-viva`
+([revisión de J5](../revisiones/2026-09-25-plan-j5.md)). El resto de este archivo es el estado en el momento del traspaso.
+
 El usuario pidió implementar J4 y después solicitó expresamente dejar la documentación para continuar con Claude.
 Leer primero el [traspaso general](2026-09-24-traspaso-a-codex.md).
 

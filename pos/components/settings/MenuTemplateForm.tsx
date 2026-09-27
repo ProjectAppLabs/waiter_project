@@ -22,6 +22,7 @@ import {
   type LogoChange,
 } from '@/lib/services/settings'
 import {
+  designSystemUrl,
   gateway,
   listTemplates,
   previewUrl,
@@ -368,6 +369,7 @@ export function MenuTemplateForm() {
           {previewError && <p role="alert">No pudimos preparar la vista previa. {previewError}</p>}
           <div className="mt-3 flex flex-wrap items-center gap-3">
             {src && <a href={src} target="_blank" rel="noreferrer" className="text-sm font-medium text-primary">Abrir borrador ↗</a>}
+            <a href={designSystemUrl(ctx.dinerUrl, ctx.restaurante, ctx.sede, preview?.borrador)} target="_blank" rel="noreferrer" className="text-sm font-medium text-primary">Sistema de diseño ↗</a>
             <Button size="compact" disabled={previewBusy} onClick={() => setPreviewVersion(v => v + 1)}>Actualizar vista previa</Button>
           </div>
           <p className="mt-3 text-xs text-soft">

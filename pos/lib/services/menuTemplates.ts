@@ -71,3 +71,8 @@ export async function listTemplates(experienceUrl: string, restaurante?: string,
 export function previewUrl(dinerUrl: string, restaurante: string, sede: string, token: string): string {
   return `${trimSlash(dinerUrl)}/${encodeURIComponent(restaurante)}/${encodeURIComponent(sede)}/carta?borrador=${encodeURIComponent(token)}`
 }
+// Página viva del sistema de diseño (J5): todos los componentes con el tema publicado o, con token, con el borrador.
+export function designSystemUrl(dinerUrl: string, restaurante: string, sede: string, token?: string | null): string {
+  const url = `${trimSlash(dinerUrl)}/${encodeURIComponent(restaurante)}/${encodeURIComponent(sede)}/design-system`
+  return token ? `${url}?borrador=${encodeURIComponent(token)}` : url
+}

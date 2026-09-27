@@ -46,6 +46,17 @@ def test_read_contract_and_describe_screens(client, owner):
         assert described['tema'] == design.defaults()
     assert call(client, raw, 'describir_pantalla', {'pantalla': 'inventada'})['isError']
     assert call(client, raw, 'leer_design_system', {'sede': 'otra'})['isError']
+    assert data['pagina'] == 'https://menu.test/burger-house/poblado/design-system'
+
+
+# // Falla si la página viva no puede leer el mismo contrato que el MCP sin clave, o si el endpoint admite escrituras.
+def test_public_contract_matches_mcp_and_is_read_only(client):
+    response = client.get('/api/v1/diseno/')
+    assert response.status_code == 200 and response['Cache-Control'] == 'public, max-age=3600'
+    data = response.json()
+    assert data == {'version': 2, 'esquema': design.SCHEMA, 'inventario': design.INVENTORY}
+    for method in (client.post, client.put, client.delete):
+        assert method('/api/v1/diseno/', {}, content_type='application/json').status_code == 405
 
 
 # // Falla si preparar publica, pierde campos no enviados, filtra el token de confirmación o no invalida la caché al confirmar.
@@ -56,6 +67,7 @@ def test_read_prepare_preview_confirm_end_to_end(client, owner):
     draft = prepare(client, raw, {'variantes': {'boton': 'contorno'}, 'distribucion': {'carta': 'lista'}})
     assert draft['token'] != draft['borrador']
     assert draft['url'] == f'https://menu.test/burger-house/poblado/carta?borrador={draft["borrador"]}'
+    assert draft['url_design_system'] == f'https://menu.test/burger-house/poblado/design-system?borrador={draft["borrador"]}'
     assert {v['campo'] for v in draft['vista_previa']} == {'variantes.boton', 'distribucion.carta'}
     assert templates.resolve_template(TABLE) == before
     response = client.get(url(draft))
@@ -145,6 +157,7 @@ def test_pos_uses_same_public_preview_without_mcp_confirmation(api_client, clien
     assert response.status_code == 201 and response['Cache-Control'] == 'no-store'
     draft = response.json()
     assert 'token' not in draft
+    assert draft['url_design_system'].endswith(f'/design-system?borrador={draft["borrador"]}')
     change = McpPendingChange.objects.get(preview_token=draft['borrador'])
     assert change.key_id is None and change.kind == 'preview'
     preview = client.get(url(draft)).json()['plantilla']
