@@ -52,8 +52,11 @@ export function metrics(orders: PaidOrder[], s: Settings, days: number): RoiMetr
 
 export function monthsOfUse(startDate: string | null, now: Date): number {
   if (!startDate) return 0
-  const s = new Date(startDate)
-  return Math.max(0, (now.getFullYear() - s.getFullYear()) * 12 + now.getMonth() - s.getMonth())
+  // La fecha llega como AAAA-MM-DD: se lee como fecha local. `new Date('2026-05-01')` la toma en UTC y, al oeste de
+  // Greenwich (Colombia), cae en el 30 de abril: un mes de más.
+  const [year, month] = startDate.slice(0, 10).split('-').map(Number)
+  if (!year || !month) return 0
+  return Math.max(0, (now.getFullYear() - year) * 12 + now.getMonth() - (month - 1))
 }
 
 export function pctChange(current: number, previous: number): number | null {
