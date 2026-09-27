@@ -113,9 +113,13 @@ async function main() {
   const seen = new Set()
   try {
     for (const spec of PAGES) for (const width of spec.widths) {
-      const context = await browser.newContext({ viewport: { width, height: 900 } })
+      // VERIFIER_VISIBLE=1: usa la ventana ya abierta de un navegador con ventana (para ver la medición en vivo); un Edge con
+      // ventana no admite bien contextos aislados por CDP, así que solo se cambia el tamaño de la pestaña.
+      const visible = process.env.VERIFIER_VISIBLE === '1'
+      const context = visible ? browser.contexts()[0] : await browser.newContext({ viewport: { width, height: 900 } })
       await context.addCookies([{ name: `waiter_intro_${encodeURIComponent(rest)}_v1`, value: '1', url: base }])
-      const page = await context.newPage()
+      const page = visible ? (context.pages()[0] || await context.newPage()) : await context.newPage()
+      if (visible) await page.setViewportSize({ width, height: 900 })
       const errors = [], writes = []
       page.on('pageerror', (error) => errors.push(error.message))
       page.on('request', (request) => { if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method())) writes.push(`${request.method()} ${request.url()}`) })
@@ -137,9 +141,11 @@ async function main() {
         await page.locator(spec.shot).first().screenshot({ path: file })
         result.capturas.push(file)
       }
-      await context.close()
+      if (process.env.VERIFIER_VISIBLE === '1') await page.waitForTimeout(1500)
+      else await context.close()
     }
   } finally {
+    // Sobre una conexión CDP, close() solo desconecta; en modo visible la ventana se queda abierta para mirarla.
     await browser.close()
   }
   for (const id of targets) if (!seen.has(id)) result.problemas.push(`ningún «${id}» se dibujó con la plantilla del borrador (¿el token caducó o la página viva no muestra ese componente?)`)
