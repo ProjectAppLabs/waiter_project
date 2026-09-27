@@ -5,8 +5,10 @@
 // registro. Sin WAITER_HOST toma la IP de salida de la máquina, igual que scripts/dev.sh. Servicio: waiter-puente.service.
 const net = require('net')
 const { execSync } = require('child_process')
+// Misma elección que scripts/dev.sh: la red host-only 192.168.56.10 si existe; si no, la IP de salida de la máquina.
 function hostIp() {
   if (process.env.WAITER_HOST) return process.env.WAITER_HOST
+  try { if (/ 192\.168\.56\.10\//.test(execSync('ip -4 addr show', { encoding: 'utf8' }))) return '192.168.56.10' } catch {}
   try { return execSync('ip -4 route get 1.1.1.1', { encoding: 'utf8' }).match(/src (\S+)/)[1] } catch { return '127.0.0.1' }
 }
 const host = hostIp()
