@@ -1,8 +1,8 @@
 import { callKw, jsonRpc } from '@/lib/services/odoo'
 
-import type { Role } from '@/lib/domain/roles'
+import type { AccountRole } from '@/lib/domain/roles'
 
-export interface AuthUser { uid: number; name: string; companyId: number; role: Role }
+export interface AuthUser { uid: number; name: string; companyId: number; role: AccountRole }
 export interface PosSession { id: number; configId: number; state: 'opened' | 'opening_control' }
 
 interface RawSession { id: number; config_id: [number, string]; state: PosSession['state'] }
@@ -25,8 +25,8 @@ export async function currentUser(): Promise<AuthUser | null> {
 }
 
 // El rol lo pone el addon projectapp_ops en res.users; un usuario siempre puede leer el suyo.
-async function roleOf(uid: number): Promise<Role> {
-  const [row] = await callKw<{ waiter_role: Role | false }[]>('res.users', 'read', [[uid], ['waiter_role']])
+async function roleOf(uid: number): Promise<AccountRole> {
+  const [row] = await callKw<{ waiter_role: AccountRole | false }[]>('res.users', 'read', [[uid], ['waiter_role']])
   return row.waiter_role || 'waiter'
 }
 
@@ -38,14 +38,16 @@ function toSession(raw: RawSession): PosSession {
   return { id: raw.id, configId: raw.config_id[0], state: raw.state }
 }
 
-export async function getOpenSession(): Promise<PosSession | null> {
-  const rows = await callKw<RawSession[]>('pos.session', 'search_read',
-    [[['state', 'in', OPEN_STATES]], ['id', 'config_id', 'state']], { limit: 1 })
+// La caja abierta del restaurante de este dispositivo (plan O). Sin restaurante elegido se mira cualquiera, como antes.
+export async function getOpenSession(configId: number | null = null): Promise<PosSession | null> {
+  const domain: unknown[] = [['state', 'in', OPEN_STATES]]
+  if (configId !== null) domain.push(['config_id', '=', configId])
+  const rows = await callKw<RawSession[]>('pos.session', 'search_read', [domain, ['id', 'config_id', 'state']], { limit: 1 })
   return rows.length ? toSession(rows[0]) : null
 }
 
 export async function ensureOpenSession(configId: number): Promise<PosSession> {
-  const open = await getOpenSession()
+  const open = await getOpenSession(configId)
   if (open) return open
   const id = await callKw<number>('pos.session', 'create', [{ config_id: configId }])
   await callKw<void>('pos.session', 'action_pos_session_open', [[id]])

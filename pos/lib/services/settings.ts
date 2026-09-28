@@ -1,10 +1,10 @@
 import { callKw } from '@/lib/services/odoo'
-import type { Role } from '@/lib/domain/roles'
+import type { AccountRole, Role } from '@/lib/domain/roles'
 import type { Settings } from '@/lib/types'
 
 export interface CompanyInfo { id: number; name: string; vat: string; phone: string; email: string; street: string; city: string; waiter_latitude?: string; waiter_longitude?: string }
 export interface FloorInfo { id: number; name: string; tables: { id: number; number: number; seats: number; active: boolean }[] }
-export interface UserInfo { id: number; name: string; login: string; lastLogin: string | null; role: Role; activated: boolean }
+export interface UserInfo { id: number; name: string; login: string; lastLogin: string | null; role: AccountRole; activated: boolean }
 export interface PaymentMethodInfo { id: number; name: string; type: string }
 export interface TaxInfo { id: number; name: string; amount: number }
 
@@ -99,7 +99,7 @@ export async function listTaxes(): Promise<TaxInfo[]> {
 }
 
 export async function listUsers(): Promise<UserInfo[]> {
-  const rows = await callKw<{ id: number; name: string; login: string; login_date: string | false; waiter_role: Role | false; waiter_activated: boolean }[]>('res.users', 'search_read', [[['share', '=', false]], ['name', 'login', 'login_date', 'waiter_role', 'waiter_activated']], { order: 'name asc' })
+  const rows = await callKw<{ id: number; name: string; login: string; login_date: string | false; waiter_role: AccountRole | false; waiter_activated: boolean }[]>('res.users', 'search_read', [[['share', '=', false]], ['name', 'login', 'login_date', 'waiter_role', 'waiter_activated']], { order: 'name asc' })
   return rows.map((r) => ({ id: r.id, name: r.name, login: r.login, lastLogin: r.login_date || null, role: r.waiter_role || 'waiter', activated: r.waiter_activated || Boolean(r.login_date) }))
 }
 

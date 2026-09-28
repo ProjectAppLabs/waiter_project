@@ -16,7 +16,7 @@ const view = () => render(<NextIntlClientProvider locale="es" messages={messages
 // Falla si los umbrales de alerta dejan de poder ajustarse fuera de Configuración (desde la cocina) o si alguien que no es
 // administrador puede cambiarlos.
 it('el administrador ajusta los umbrales desde el botón; el resto no lo ve', async () => {
-  jest.mocked(useIdentity).mockReturnValue({ name: 'Laura', firstName: 'Laura', role: 'admin' })
+  jest.mocked(useIdentity).mockReturnValue({ name: 'Laura', firstName: 'Laura', role: 'admin', owner: false })
   const { unmount } = view()
   fireEvent.click(screen.getByRole('button', { name: 'Umbrales de alerta' }))
   const dialog = screen.getByRole('dialog', { name: 'Umbrales de alerta' })
@@ -26,7 +26,7 @@ it('el administrador ajusta los umbrales desde el botón; el resto no lo ve', as
   await waitFor(() => expect(saveSettings).toHaveBeenCalledWith(expect.objectContaining({ alertLateMinutes: 20, alertBillMinutes: 10 })))
   expect(load).toHaveBeenCalledWith(4)
   unmount()
-  jest.mocked(useIdentity).mockReturnValue({ name: 'Pedro', firstName: 'Pedro', role: 'waiter' })
+  jest.mocked(useIdentity).mockReturnValue({ name: 'Pedro', firstName: 'Pedro', role: 'waiter', owner: false })
   view()
   expect(screen.queryByRole('button', { name: 'Umbrales de alerta' })).not.toBeInTheDocument()
 })

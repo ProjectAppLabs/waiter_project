@@ -19,8 +19,9 @@ import { useAuthStore } from '@/lib/stores/authStore'
 // Estructura del pago en efectivo del kit (Payment / Cash / Pay.png): datos a la izquierda, importe y teclado a la derecha.
 export default function CajaPage() {
   const t = useTranslations('cash.open')
+  const tr = useTranslations('account.restaurant')
   const router = useRouter()
-  const { user, employee, session, hydrated, hydrate, openRegister } = useAuthStore()
+  const { user, employee, session, restaurant, restaurants, hydrated, hydrate, openRegister, chooseRestaurant } = useAuthStore()
   const [configs, setConfigs] = useState<RegisterConfig[]>([])
   const [configId, setConfigId] = useState<number | null>(null)
   const [cash, setCash] = useState('')
@@ -33,13 +34,16 @@ export default function CajaPage() {
     if (!user) { router.replace('/login'); return }
     if (!employee) { router.replace('/login'); return }
     if (session) { router.replace('/salon'); return }
+    // Plan O: la caja se abre en el restaurante del dispositivo; sin restaurante elegido, como antes, en cualquiera visible.
+    if (restaurant) return
     void listConfigs().then((c) => { setConfigs(c); setConfigId((id) => id ?? c[0]?.id ?? null) })
-  }, [hydrated, user, employee, session, router])
+  }, [hydrated, user, employee, session, restaurant, router])
 
+  const chosenId = restaurant?.id ?? configId
   async function open() {
-    if (configId === null) return
+    if (chosenId === null) return
     setBusy(true)
-    try { await openRegister(configId, Number(cash || '0'), notes); router.replace('/salon') } finally { setBusy(false) }
+    try { await openRegister(chosenId, Number(cash || '0'), notes); router.replace('/salon') } finally { setBusy(false) }
   }
   if (!hydrated || !user || !employee || session) return null
   return (
@@ -55,7 +59,10 @@ export default function CajaPage() {
           <section className="w-[400px] shrink-0 p-6 border-r border-border flex flex-col gap-4">
             <p className="text-[15px] text-soft leading-relaxed">{t('body')}</p>
             {effectiveRole(user.role, employee.role) === 'admin' && <Link href="/dashboard" className="rounded-md border border-primary p-3 text-primary font-semibold">Entrar a administración sin abrir caja</Link>}
-            <Select label={t('config')} value={configId ?? ''} onChange={(e) => setConfigId(Number(e.target.value))}>{configs.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select>
+            {restaurant
+              ? <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3"><span><span className="block text-[13px] text-soft">{t('config')}</span><strong className="text-ink">{restaurant.name}</strong></span>
+                  {(restaurants?.length ?? 0) > 1 && <button type="button" className="text-[14px] font-semibold text-primary" onClick={() => { void chooseRestaurant(null).then(() => router.replace('/login')) }}>{tr('change')}</button>}</div>
+              : <Select label={t('config')} value={configId ?? ''} onChange={(e) => setConfigId(Number(e.target.value))}>{configs.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select>}
             <TextInput label={t('notes')} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </section>
           <section className="flex-1 p-6 flex flex-col items-center gap-3">
@@ -63,7 +70,7 @@ export default function CajaPage() {
             <p className="text-[13px] text-soft">{t('inputBody')}</p>
             <AmountInput label={t('openingCash')} value={cash} onChange={setCash} />
             <NumericKeypad onDigit={(d) => setCash((v) => pushDigit(v, d))} onBackspace={() => setCash(popDigit)} />
-            <Button type="submit" variant="primary" size="money" className="w-full max-w-[420px] mt-2" disabled={busy || configId === null}><Icon name="cash" size={20} />{busy ? t('opening') : t('submit')}</Button>
+            <Button type="submit" variant="primary" size="money" className="w-full max-w-[420px] mt-2" disabled={busy || chosenId === null}><Icon name="cash" size={20} />{busy ? t('opening') : t('submit')}</Button>
           </section>
         </div>
       </form>

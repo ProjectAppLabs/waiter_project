@@ -19,12 +19,12 @@ const page = () => render(<NextIntlClientProvider locale="es" messages={messages
 // Falla si el horario de reservas deja de configurarse desde Reservas (se movió desde Configuración) o si alguien que no
 // es administrador puede abrirlo.
 it('el administrador configura el horario desde Reservas; el resto no lo ve', () => {
-  jest.mocked(useIdentity).mockReturnValue({ name: 'Laura', firstName: 'Laura', role: 'admin' })
+  jest.mocked(useIdentity).mockReturnValue({ name: 'Laura', firstName: 'Laura', role: 'admin', owner: false })
   const { unmount } = page()
   fireEvent.click(screen.getByRole('button', { name: 'Horario' }))
   expect(screen.getByRole('dialog', { name: 'Horario de reservas' })).toHaveTextContent('Formulario del horario 1')
   unmount()
-  jest.mocked(useIdentity).mockReturnValue({ name: 'Sofía', firstName: 'Sofía', role: 'waiter' })
+  jest.mocked(useIdentity).mockReturnValue({ name: 'Sofía', firstName: 'Sofía', role: 'waiter', owner: false })
   page()
   expect(screen.queryByRole('button', { name: 'Horario' })).not.toBeInTheDocument()
 })

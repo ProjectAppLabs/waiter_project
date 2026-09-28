@@ -25,10 +25,10 @@ async function soldOutIds(products: Product[]): Promise<Set<number>> {
   return new Set(rows.filter((r) => r.qty_available <= 0).map((r) => r.id))
 }
 
-export async function loadPosData(sessionId: number | null): Promise<Catalog> {
+export async function loadPosData(sessionId: number | null, restaurantId: number | null = null): Promise<Catalog> {
   // Todos los modelos, como lo hace el propio cliente de Odoo: los cargadores se leen entre sí
   // desde data[...] y una lista parcial rompe con KeyError en cada actualización.
-  const raw = sessionId === null ? await loadAdministrationData() : await callKw<RawLoad>('pos.session', 'load_data', [[sessionId], []])
+  const raw = sessionId === null ? await loadAdministrationData(restaurantId) : await callKw<RawLoad>('pos.session', 'load_data', [[sessionId], []])
 
   const templates = new Map(raw['product.template'].filter((t) => t.available_in_pos && t.active).map((t) => [t.id, t]))
   const base: Product[] = raw['product.product'].flatMap((p) => {
@@ -56,13 +56,14 @@ export async function loadPosData(sessionId: number | null): Promise<Catalog> {
 }
 
 // Administración lee los modelos directamente: no crea ni reutiliza una sesión de caja.
-async function loadAdministrationData(): Promise<RawLoad> {
+async function loadAdministrationData(restaurantId: number | null): Promise<RawLoad> {
   const read = async <T>(model: string, domain: unknown[], fields: string[]): Promise<T[]> => {
     const rows = await callKw<Record<string, unknown>[]>(model, 'search_read', [domain, fields], { order: 'id asc' })
     return rows.map((row) => Object.fromEntries(Object.entries(row).map(([key, value]) =>
       [key, Array.isArray(value) && value.length === 2 && typeof value[1] === 'string' ? value[0] : value]))) as T[]
   }
-  const configs = await read<RawConfig & { company_id: number; payment_method_ids: number[] }>('pos.config', [],
+  // El punto de venta del restaurante del dispositivo; sin elegir, el primero visible (una sola sede, como antes).
+  const configs = await read<RawConfig & { company_id: number; payment_method_ids: number[] }>('pos.config', restaurantId ? [['id', '=', restaurantId]] : [],
     ['name', 'company_id', 'payment_method_ids', 'waiter_can_charge', 'waiter_can_edit_inventory', 'alert_late_minutes', 'alert_bill_minutes', 'roi_hour_cost', 'roi_minutes_per_order', 'roi_baseline_hours_per_100', 'roi_monthly_cost', 'roi_start_date', 'tip_product_id'])
   const config = configs[0]
   if (!config) throw new Error('No hay un punto de venta configurado para este restaurante.')

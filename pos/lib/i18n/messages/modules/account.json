@@ -9,6 +9,16 @@
     "codeTitle": "Tengo un código",
     "back": "Volver a iniciar sesión"
   },
+  "restaurant": {
+    "title": "¿En qué restaurante está este dispositivo?",
+    "subtitle": "Este equipo quedará trabajando en el restaurante que elijas. Se puede cambiar después.",
+    "list": "Restaurantes",
+    "open": "Caja abierta",
+    "closed": "Caja cerrada",
+    "console": "Ir a la consola de la organización",
+    "consoleHint": "Todos tus restaurantes, el catálogo, el diseño del menú y el equipo.",
+    "change": "Cambiar de restaurante"
+  },
   "employee": {
     "title": "Inicio de empleado",
     "subtitle": "Elige tu cuenta para iniciar tu turno.",

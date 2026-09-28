@@ -11,7 +11,7 @@ jest.mock('@/lib/stores/authStore', () => ({ useAuthStore: (select: (s: unknown)
 // Falla si la cocina deja de ofrecer «Umbrales de alerta» a un administrador (se movieron desde Configuración) o si pierde
 // el botón de silenciar.
 it('el pie de la cocina lleva los umbrales de alerta junto a silenciar', () => {
-  jest.mocked(useIdentity).mockReturnValue({ name: 'Laura', firstName: 'Laura', role: 'admin' })
+  jest.mocked(useIdentity).mockReturnValue({ name: 'Laura', firstName: 'Laura', role: 'admin', owner: false })
   render(<NextIntlClientProvider locale="es" messages={messages}><KdsFooter muted={false} onToggleMute={() => undefined} /></NextIntlClientProvider>)
   const buttons = screen.getAllByRole('button').map((b) => b.textContent)
   expect(buttons[0]).toBe('Umbrales de alerta')

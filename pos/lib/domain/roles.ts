@@ -5,17 +5,30 @@ import { pathAllowed } from '@/lib/domain/navigation'
 export const NAV_ITEMS = ['operation', 'sales', 'catalog', 'inventory', 'customers', 'automation', 'billing', 'settings'] as const
 export type NavItem = (typeof NAV_ITEMS)[number]
 
-// Tres roles, los del restaurante. El rol vive en Odoo (res.users.waiter_role) y ahí se sincroniza con los grupos.
+// Roles del restaurante más el dueño de la organización (plan O). El rol vive en Odoo (res.users.waiter_role y
+// hr.employee.waiter_role) y ahí se sincroniza con los grupos. `admin` se muestra como «Encargado»: opera uno o varios
+// restaurantes; el dueño tiene además la consola de la organización.
+// `Role` es el rol dentro de un restaurante (lo que miran permisos y pantallas); `AccountRole` es lo guardado en la
+// cuenta o el empleado, que además puede ser dueño.
 export type Role = 'waiter' | 'cashier' | 'admin'
+export type AccountRole = Role | 'owner'
+// Los que se asignan dentro de un restaurante (listas de invitar y cambiar rol).
 export const ROLES: Role[] = ['waiter', 'cashier', 'admin']
+const RANK: AccountRole[] = ['waiter', 'cashier', 'admin', 'owner']
 
 // Quién manda en la pantalla: el empleado que inició turno, nunca la credencial del terminal. Si la tablet
 // entró como administrador y luego marca su PIN un mesero, la pantalla es la del mesero. Y al revés, un
-// empleado tampoco gana permisos que su terminal no tiene: se aplica el menor de los dos.
-export function effectiveRole(userRole: Role | null | undefined, employeeRole: Role | null | undefined): Role {
+// empleado tampoco gana permisos que su terminal no tiene: se aplica el menor de los dos. Dentro del POS de un
+// restaurante el dueño trabaja como su encargado (`admin`): la consola de la organización se decide con `isOwner`.
+export function effectiveRole(userRole: AccountRole | null | undefined, employeeRole: AccountRole | null | undefined): Role {
   const user = userRole ?? 'waiter'
-  if (!employeeRole) return user
-  return ROLES.indexOf(employeeRole) < ROLES.indexOf(user) ? employeeRole : user
+  const lower = !employeeRole ? user : RANK.indexOf(employeeRole) < RANK.indexOf(user) ? employeeRole : user
+  return lower === 'owner' ? 'admin' : lower
+}
+
+// La consola de la organización es del dueño: lo es la credencial del terminal y, si ya marcó su PIN, también el empleado.
+export function isOwner(userRole: AccountRole | null | undefined, employeeRole: AccountRole | null | undefined): boolean {
+  return userRole === 'owner' && (!employeeRole || employeeRole === 'owner')
 }
 
 const NAV: Record<Role, NavItem[]> = {
