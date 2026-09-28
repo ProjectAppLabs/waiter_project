@@ -1,6 +1,26 @@
 # Plan O · Multirrestaurante: un dueño con muchos restaurantes
 
-**Estado (2026-09-28): O0 hecho** (inventario, decisión y este plan). Siguen O1 a O5.
+**Estado (2026-09-28): hecho de O0 a O5**, con estos pendientes:
+- el control para marcar «agotado en este restaurante» desde el POS (el POS ya lo respeta);
+- la vista del catálogo maestro, con precio y disponibilidad por restaurante, en la consola del dueño.
+
+Pruebas:
+- Odoo: 184/184 sobre una base con dos restaurantes.
+- Experience: 706. Registro: 18. POS: 551. Menú: 506.
+- Verificador de Chromium sin problemas en Poblado y en Laureles.
+
+En desarrollo:
+- **Organización:** `burger-house`.
+- **Restaurantes:** «Poblado» (config 1) y «Laureles» (config 2, con 6 mesas).
+- **Personal de Laureles:** «Mateo Mesero», PIN `222222`.
+- **Dueño:** el empleado «Administrator», PIN `999999`, entra a la consola de la organización.
+
+Al integrar se corrigieron varias cosas (detalles en los commits):
+- la validación de restaurantes por rol;
+- la exención del administrador de Odoo en las reglas;
+- el piso y la sesión inicial del restaurante nuevo;
+- los compromisos de stock por almacén;
+- las pruebas antiguas con un solo restaurante activo.
 
 - Inventario: [qué es de la organización y qué es de cada restaurante](../inventario/2026-09-28-inventario-multirrestaurante.md)
 - Decisión: [una base de Odoo por organización y un `pos.config` por restaurante](../decisiones/2026-09-28-una-base-por-organizacion.md)
