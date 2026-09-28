@@ -1,6 +1,6 @@
-# Sprint de integraciones pendientes: WhatsApp, Bold y Wompi
+# Sprint de integraciones pendientes: WhatsApp, Bold, Wompi e IA de decisiones
 
-**Estado: pendiente, a propósito.** Por decisión del dueño (2026-09-28), estas integraciones se atacan juntas en un sprint
+**Estado: pendiente, a propósito.** Por decisión del dueño (2026-09-28), estas integraciones (WhatsApp, Bold, Wompi y una IA de decisiones) se atacan juntas en un sprint
 propio **al final**, después de cerrar el producto del menú y del POS. Hasta entonces, el sistema funciona con los
 sustitutos de demostración que se indican abajo, y ningún plan intermedio debe darlas por hechas.
 
@@ -59,6 +59,23 @@ falsas.
 - Regenerar los secretos de producción expuestos antes.
 - Solo después, habilitar producción.
 - La acción «pagar en línea» del Plan N empezará a premiar pagos reales cuando esto esté activo.
+
+## 4. IA de decisiones para guiar a las personas (JEV u otra, de código abierto)
+
+**Para qué:** una IA de decisiones que guíe a las personas, por ejemplo a elegir, resolver dudas o seguir el siguiente
+paso. La opción propuesta es **JEV** u otra equivalente, preferiblemente **de código abierto**.
+
+**Hoy:**
+- El chat del menú («Mi mesero») ya usa un núcleo de conversación compartido ([plan](2026-09-14-chat-menu.md)).
+- El asistente de WhatsApp está pendiente (sección 1).
+- No hay ninguna IA de decisiones integrada.
+
+**Por definir al empezar el sprint:**
+- Qué es exactamente JEV y qué alternativas de código abierto hay.
+- A quién guía: comensales, personal del POS o ambos.
+- En qué decisiones ayuda.
+- Dónde corre (servidor propio o servicio).
+- Cómo se conecta al chat del menú y al asistente de WhatsApp.
 
 ## Criterio de cierre del sprint
 
