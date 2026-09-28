@@ -12,7 +12,7 @@ import { KitchenPaymentPolicyForm } from '@/components/settings/KitchenPaymentPo
 import { ReservationHoursForm } from '@/components/settings/ReservationHoursForm'
 import { PaymentGatewayForm } from '@/components/settings/PaymentGatewayForm'
 import { BenefitsForm } from '@/components/settings/BenefitsForm'
-import { MenuBannersForm } from '@/components/settings/MenuBannersForm'
+import { McpInvite } from '@/components/settings/McpInvite'
 import { MenuDecorationsForm } from '@/components/settings/MenuDecorationsForm'
 import { McpKeysForm } from '@/components/settings/McpKeysForm'
 import { MenuTemplateForm } from '@/components/settings/MenuTemplateForm'
@@ -64,7 +64,7 @@ function ConfiguracionInner() {
               {section === 'restaurant' && company && <CompanyForm key={company.id} initial={company} />}
               {section === 'benefits' && <BenefitsForm configId={catalog.settings.configId} />}
               {section === 'integrations' && <McpKeysForm />}
-              {section === 'menuTemplate' && <><MenuTemplateForm /><MenuBannersForm configId={catalog.settings.configId}/><MenuDecorationsForm /></>}
+              {section === 'menuTemplate' && <><McpInvite onConnect={() => setSection('integrations')} /><MenuTemplateForm /><MenuDecorationsForm /></>}
               {section === 'floors' && <FloorsForm floors={floors} configId={catalog.settings.configId} onChanged={reloadFloors} />}
               {section === 'reservationHours' && <ReservationHoursForm configId={catalog.settings.configId} />}
               {section === 'payments' && <><PaymentMethodsList methods={methods} /><PaymentGatewayForm methods={methods} /></>}

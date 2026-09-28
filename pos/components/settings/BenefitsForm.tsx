@@ -3,10 +3,11 @@ import {useEffect,useState} from 'react'
 import {Button} from '@/components/ui/Button'
 import {Select,TextInput,Toggle} from '@/components/ui/Field'
 import {Segmented} from '@/components/ui/Segmented'
+import {MenuBannersForm} from './MenuBannersForm'
 import {benefitsSettings,type BenefitAction,type BenefitActionKey,type BenefitReward,type BenefitsSettings,type Coupon,type PointsSettings} from '@/lib/services/benefits'
 
 const empty:Coupon={name:'',code:'',percent:10,minimum:0,start:'',end:'',active:true}
-type Tab='coupons'|'points'|'actions'
+type Tab='coupons'|'points'|'actions'|'banners'
 
 // Plan N: qué hace el comensal para ganar cada premio y cuántas veces lo gana.
 export const ACTIONS:Record<BenefitActionKey,{title:string;hint:string}>={
@@ -17,7 +18,8 @@ export const ACTIONS:Record<BenefitActionKey,{title:string;hint:string}>={
 }
 const REWARDS:{value:BenefitReward;label:string}[]=[{value:'descuento',label:'Descuento en su próxima compra'},{value:'cupon',label:'Activarle un cupón'},{value:'puntos',label:'Sumarle puntos'}]
 
-// «Promociones»: cupones, puntos de fidelización y acciones del menú que dan un premio (que puede ser un cupón o puntos).
+// «Promociones»: cupones, puntos de fidelización, acciones del menú que dan un premio (un cupón, puntos o un descuento) y
+// los banners que anuncian una promoción en la carta.
 export function BenefitsForm({configId}:{configId:number}) {
  const [data,setData]=useState<BenefitsSettings|null>(null),[tab,setTab]=useState<Tab>('coupons')
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[saved,setSaved]=useState('')
@@ -29,10 +31,12 @@ export function BenefitsForm({configId}:{configId:number}) {
   finally{setBusy(false)}
  }
  return <div className="flex flex-col gap-5 max-w-3xl">
-  <Segmented label="Tipo de promoción" value={tab} onChange={t=>{setTab(t);setSaved('')}} options={[{value:'coupons',label:'Cupones'},{value:'points',label:'Puntos'},{value:'actions',label:'Acciones'}]}/>
+  <Segmented label="Tipo de promoción" value={tab} onChange={t=>{setTab(t);setSaved('')}} options={[{value:'coupons',label:'Cupones'},{value:'points',label:'Puntos'},{value:'actions',label:'Acciones'},{value:'banners',label:'Banners'}]}/>
   {error&&<p role="alert" className="text-danger">{error}</p>}{saved&&<p role="status">{saved}</p>}
   {data&&tab==='coupons'&&<CouponsTab coupons={data.coupons} busy={busy} save={coupon=>save({coupon},'Cupón guardado.')}/>}
   {data&&tab==='points'&&<PointsTab initial={data.loyalty} busy={busy} save={loyalty=>save({loyalty},'Puntos guardados.')}/>}
+  {/* Los banners publican una promoción en la carta y la enlazan a un plato, un combo o una categoría. */}
+  {tab==='banners'&&<MenuBannersForm configId={configId}/>}
   {data&&tab==='actions'&&<ActionsTab data={data} busy={busy} save={action=>save({action},`«${ACTIONS[action.action].title}» guardada.`)}/>}
  </div>
 }

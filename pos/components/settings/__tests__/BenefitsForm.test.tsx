@@ -3,6 +3,7 @@ import {BenefitsForm} from '../BenefitsForm'
 import {callKw} from '@/lib/services/odoo'
 import type {BenefitsSettings} from '@/lib/services/benefits'
 jest.mock('@/lib/services/odoo',()=>({callKw:jest.fn()}))
+jest.mock('../MenuBannersForm',()=>({MenuBannersForm:({configId}:{configId:number})=>{const {createElement}=jest.requireActual('react');return createElement('h3',null,`Banners del menú ${configId}`)}}))
 
 const actions:BenefitsSettings['actions']=[
  {action:'cuenta',active:true,reward:'descuento',percent:5,couponId:null,points:10},
@@ -46,4 +47,12 @@ it('no deja guardar un premio imposible',async()=>{
  expect(within(cuenta).getByRole('alert')).toHaveTextContent('Elige un cupón activo de la pestaña Cupones.')
  expect(within(cuenta).getByRole('button',{name:'Guardar acción'})).toBeDisabled()
  expect(callKw).toHaveBeenCalledTimes(1)
+})
+
+// Falla si los banners dejan de estar en «Promociones» (se movieron desde Diseño del menú).
+it('muestra los banners como otra pestaña de promociones',async()=>{
+ jest.mocked(callKw).mockResolvedValue(settings())
+ render(<BenefitsForm configId={1}/>)
+ fireEvent.click(await screen.findByRole('tab',{name:'Banners'}))
+ expect(screen.getByRole('heading',{name:'Banners del menú 1'})).toBeInTheDocument()
 })

@@ -3,6 +3,7 @@
 /* eslint-disable @next/next/no-img-element -- Photos already come resized from the restaurant API; logos can be local upload previews. */
 
 import { useEffect, useRef, useState } from 'react'
+import { Icon } from '@/components/kit/Icon'
 import { Button } from '@/components/ui/Button'
 import { SaveBar, useSaveState } from '@/components/settings/SettingsForms'
 import { Field, Select, TextInput } from '@/components/ui/Field'
@@ -16,7 +17,6 @@ import {
 import {
   getBrand,
   getBrandLogo,
-  saveBrandGreeting,
   saveBrandLogo,
   type BrandInfo,
   type LogoChange,
@@ -63,12 +63,25 @@ export function MenuTemplateForm() {
   const [savedFont, setSavedFont] = useState<string | null>(null)
   const [logo, setLogo] = useState<string | null>(null)
   const [logoChange, setLogoChange] = useState<LogoChange | undefined>()
-  const [greeting, setGreeting] = useState('')
   const [preview, setPreview] = useState<MenuDraft | null>(null)
   const [previewError, setPreviewError] = useState<string | null>(null)
   const [previewBusy, setPreviewBusy] = useState(false)
   const [previewVersion, setPreviewVersion] = useState(0)
   const [copied, setCopied] = useState(false)
+  const [dragging, setDragging] = useState(false)
+  const pickLogo = async (file?: File) => {
+    if (!file) return
+    if (validateLogoFile(file)) {
+      setLogoError('Usa una imagen PNG o JPG de hasta 1 MB.')
+      return
+    }
+    try {
+      setLogoChange({ base64: await resizeImage(file) })
+      setLogoError(null)
+    } catch {
+      setLogoError('No pudimos leer la imagen.')
+    }
+  }
   const copyLink = async (url: string) => {
     try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000) }
     catch { setPreviewError('No pudimos copiar el enlace; ábrelo y cópialo desde el navegador.') }
@@ -94,7 +107,6 @@ export function MenuTemplateForm() {
           )
         setCtx(c)
         setBrand(b)
-        setGreeting(b.greeting ?? '')
         setSpec(s)
         setLogo(image)
         setPalette(c.ajustes.plantilla === 'S1' ? c.ajustes.paleta : {})
@@ -161,10 +173,6 @@ export function MenuTemplateForm() {
           setLogoChange(undefined)
           setBrand({ ...brand, hasLogo: !('remove' in logoChange) })
         }
-        if (greeting.trim() !== (brand.greeting ?? '')) {
-          await saveBrandGreeting(greeting)
-          setBrand({ ...brand, greeting: greeting.trim() })
-        }
         await gateway('set', JSON.parse(serialized) as MenuSettings)
         setPreviewVersion((v) => v + 1)
       } catch (e) {
@@ -194,7 +202,7 @@ export function MenuTemplateForm() {
             <h3 id="menu-prueba" className="text-lg font-bold">Prueba tu menú</h3>
             <p className="mt-2 text-sm text-soft">
               Ábrelo en otra pestaña o compártelo a tu teléfono. El menú de prueba muestra tus cambios de color y fuente
-              antes de guardarlos (el logo y el saludo, al guardar). El enlace caduca a los 30 minutos.
+              antes de guardarlos (el logo, al guardar). El enlace caduca a los 30 minutos.
             </p>
             {previewBusy && <p role="status" className="mt-3 text-sm">Preparando el menú de prueba…</p>}
             {previewError && <p role="alert" className="mt-3 text-sm text-danger">No pudimos preparar el menú de prueba. {previewError}</p>}
@@ -209,59 +217,35 @@ export function MenuTemplateForm() {
             </div>
           </section>
           <section className="rounded-[20px] border border-border bg-surface p-5">
-            <h3 className="mb-4 text-lg font-bold">Saludo del menú</h3>
-            <TextInput
-              label="Saludo"
-              hint="Opcional. Vacío, el menú alterna frases cálidas según la hora («Buenas noches», «¿Qué se te antoja hoy?»…). Si escribes uno, se usa siempre, seguido del nombre del comensal cuando tiene cuenta."
-              placeholder="Hola"
-              maxLength={40}
-              value={greeting}
-              onChange={(e) => setGreeting(e.target.value)}
-            />
-            <p className="mt-3 text-sm text-soft">
-              Así se ve: <strong>{greeting.trim() || 'Buenas noches'}, Camila</strong> · {ctx.restaurante} · {ctx.sede}
-            </p>
-          </section>
-          <section className="rounded-[20px] border border-border bg-surface p-5">
             <h3 className="mb-4 text-lg font-bold">Logo del restaurante</h3>
-            <div className="mb-4 grid h-24 place-items-center rounded-xl bg-muted">
+            {/* Zona de arrastrar y soltar que se ve como tal; un clic también abre el selector de archivos. */}
+            <label
+              onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(e) => { e.preventDefault(); setDragging(false); void pickLogo(e.dataTransfer.files?.[0]) }}
+              data-dragging={dragging || undefined}
+              className={`flex min-h-40 cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-6 text-center transition-colors ${dragging ? 'border-brand-500 bg-brand-50' : 'border-border bg-muted hover:border-brand-500/60'}`}
+            >
               {shownLogo ? (
-                <img
-                  src={imageDataUrl(shownLogo)}
-                  alt="Logo del restaurante"
-                  className="max-h-20 max-w-48 object-contain"
-                />
+                <img src={imageDataUrl(shownLogo)} alt="Logo del restaurante" className="max-h-20 max-w-48 object-contain" />
               ) : (
-                <span className="text-soft">
-                  Se mostrará el nombre del restaurante
-                </span>
+                <span className="grid h-12 w-12 place-items-center rounded-full bg-surface text-primary"><Icon name="upload" size={24} /></span>
               )}
-            </div>
-            <input
-              ref={fileRef}
-              aria-label="Subir logo del restaurante"
-              type="file"
-              accept={LOGO_TYPES.join(',')}
-              className="w-full text-sm"
-              onChange={async (e) => {
-                const file = e.target.files?.[0]
-                if (!file) return
-                const problem = validateLogoFile(file)
-                if (problem) {
-                  setLogoError('Usa una imagen PNG o JPG de hasta 1 MB.')
-                  return
-                }
-                try {
-                  setLogoChange({ base64: await resizeImage(file) })
-                  setLogoError(null)
-                } catch {
-                  setLogoError('No pudimos leer la imagen.')
-                }
-              }}
-            />
+              <span className="text-[15px] font-semibold text-ink">
+                {dragging ? 'Suelta la imagen aquí' : shownLogo ? 'Arrastra otro logo o haz clic para cambiarlo' : 'Arrastra tu logo aquí o haz clic para elegirlo'}
+              </span>
+              <span className="text-xs text-soft">{shownLogo ? 'PNG o JPG de hasta 1 MB' : 'Sin logo, el menú muestra el nombre del restaurante. PNG o JPG de hasta 1 MB.'}</span>
+              <input
+                ref={fileRef}
+                aria-label="Subir logo del restaurante"
+                type="file"
+                accept={LOGO_TYPES.join(',')}
+                className="sr-only"
+                onChange={(e) => void pickLogo(e.target.files?.[0])}
+              />
+            </label>
             <p className="mt-2 text-xs text-soft">
-              PNG o JPG. El logo se adapta sin deformarse y aparece en el menú
-              al guardar.
+              El logo se adapta sin deformarse y aparece en el menú al guardar.
             </p>
             {shownLogo && (
               <Button

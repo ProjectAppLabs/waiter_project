@@ -6,6 +6,7 @@ import { gateway, listTemplates } from '@/lib/services/menuTemplates'
 import { getBrand, getBrandLogo, saveBrandGreeting, saveBrandLogo } from '@/lib/services/settings'
 
 jest.mock('@/lib/services/menuTemplates', () => ({ ...jest.requireActual('@/lib/services/menuTemplates'), gateway: jest.fn(), listTemplates: jest.fn() }))
+jest.mock('@/lib/domain/image', () => ({ ...jest.requireActual('@/lib/domain/image'), resizeImage: jest.fn().mockResolvedValue('bG9nbw==') }))
 jest.mock('@/lib/services/settings', () => ({ getBrand: jest.fn(), getBrandLogo: jest.fn(), saveBrandGreeting: jest.fn(), saveBrandLogo: jest.fn() }))
 const tokens = { acento: '#6755A0', tintaTerciaria: '#FFB01D', fondo: '#F8F8FA', superficie: '#FFFFFF', tinta: '#32324D', displayFont: 'Mulish' }
 const ctx = { restaurante: 'burger-house', sede: 'poblado', experienceUrl: 'http://experience', dinerUrl: 'http://diner', ajustes: { plantilla: 'S1', paleta: {}, tipografia: {} } }
@@ -59,15 +60,21 @@ it('removes the logo through the brand service without overwriting its other set
   fireEvent.click(screen.getByRole('button', { name: /^Guardar$/ }))
   await waitFor(() => expect(saveBrandLogo).toHaveBeenCalledWith({ remove: true }))
 })
-// Falla si el saludo de la cabecera del menú no se guarda desde Diseño del menú o si se escribe sin haberlo cambiado.
-it('saves the menu greeting only when it changed', async () => {
-  jest.mocked(getBrand).mockResolvedValue({ companyId: 1, hasLogo: false, color: '', greeting: 'Buenas noches' } as never)
+// Falla si vuelve el campo de saludo (el menú ya saluda solo) o si soltar una imagen en la zona del logo no la carga.
+it('sin saludo y con el logo por arrastrar y soltar', async () => {
+  jest.mocked(getBrand).mockResolvedValue({ companyId: 1, hasLogo: false, color: '' } as never)
+  jest.mocked(getBrandLogo).mockResolvedValue(null as never)
   wrap(); await screen.findByText('Tu restaurante, tu identidad')
-  expect(screen.getByPlaceholderText('Hola')).toHaveValue('Buenas noches')
-  fireEvent.change(screen.getByPlaceholderText('Hola'), { target: { value: 'Qué gusto verte' } })
-  expect(screen.getByText(/Qué gusto verte, Camila/)).toBeInTheDocument()
+  expect(screen.queryByText('Saludo del menú')).not.toBeInTheDocument()
+  const zone = screen.getByText('Arrastra tu logo aquí o haz clic para elegirlo').closest('label')!
+  fireEvent.dragOver(zone)
+  expect(screen.getByText('Suelta la imagen aquí')).toBeInTheDocument()
+  const file = new File(['logo'], 'logo.png', { type: 'image/png' })
+  fireEvent.drop(zone, { dataTransfer: { files: [file] } })
+  expect(await screen.findByRole('img', { name: 'Logo del restaurante' })).toHaveAttribute('src', expect.stringContaining('bG9nbw'))
   fireEvent.click(screen.getByRole('button', { name: /^Guardar$/ }))
-  await waitFor(() => expect(saveBrandGreeting).toHaveBeenCalledWith('Qué gusto verte'))
+  await waitFor(() => expect(saveBrandLogo).toHaveBeenCalledWith({ base64: 'bG9nbw==' }))
+  expect(saveBrandGreeting).not.toHaveBeenCalled()
 })
 
 // Falla si un rechazo de validación se oculta tras una vista previa anterior aparentemente válida.
