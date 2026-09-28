@@ -1814,3 +1814,4 @@
    pegados al borde superior. */
 .smart-menu .sm-fulfillment-dialog .sm-fulfillment-option { min-height: 104px; padding: var(--ds-espacio-16) var(--ds-espacio-12); gap: var(--ds-espacio-10); }
 .smart-menu .sm-fulfillment-dialog .sm-fulfillment-option svg { width: 28px; height: 28px; }
+.sm-screen-pago .sm-online-pay{padding-bottom:0}

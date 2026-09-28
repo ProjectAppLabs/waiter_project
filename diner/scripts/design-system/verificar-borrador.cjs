@@ -23,7 +23,7 @@ const PAGES = [
   // El contraste depende de los colores del tema en todas las pantallas, no solo donde hay plantillas propias: sin sesión
   // se ven los estados vacíos, formularios y títulos que más sufren con un fondo oscuro.
   { name: 'plato', path: 'plato/41', widths: [375, 1024], wait: '.sm-dish-hero', shot: '.smart-menu' },
-  ...['favoritos', 'pedido', 'la-cuenta', 'historial', 'recompensas', 'ubicacion', 'cuenta', 'cuenta/entrar', 'cuenta/registro']
+  ...['favoritos', 'pedido', 'pago', 'la-cuenta', 'historial', 'recompensas', 'ubicacion', 'cuenta', 'cuenta/entrar', 'cuenta/registro']
     .map((screen) => ({ name: screen, path: screen, widths: [375], wait: '.smart-menu .sm-page', shot: '.smart-menu' })),
   // El pedido con platos y su diálogo de modalidad: sin sesión el pedido sale vacío, así que el carrito se simula en el
   // navegador (nada se escribe). El MCP cambia colores y estilos de estas pantallas, no su estructura; se comprueban ambos.
@@ -243,6 +243,8 @@ function layoutCheck() {
   }
   // 5. Nutrición en una fila.
   const nutrition = [...document.querySelectorAll('.smart-menu .sm-nutrition > div')].filter(visible)
+  // En el pago no hay muelle: «Mi mesero» ya no es una opción cuando la persona está pagando.
+  if (document.querySelector('.smart-menu.sm-screen-pago') && document.querySelector('.sm-action-dock, .sm-chat-launch')) problems.push('pago: el muelle con «Mi mesero» no debe aparecer en el pago')
   // El pedido es una sola tarjeta: lo pedido va en texto dentro del resumen; la foto solo si una plantilla propia la usa.
   for (const line of document.querySelectorAll('.sm-cart-line')) {
     const plato = line.querySelector('h2')?.textContent.trim().slice(0, 30) || 'plato'
