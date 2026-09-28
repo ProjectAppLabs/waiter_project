@@ -85,7 +85,7 @@ def test_save_cache_isolation_and_legacy_compatibility(company_brand_stub):
         assert resolved['tema']['fundamentos']['densidad'] == .8
         assert resolved['tokens']['cuerpoFont'] == 'Lato'
         assert 'Lato' in resolved['fuentesGoogle']
-        assert services.resolve_template(replace(TABLE, venue_slug='otra')) == before
+        assert services.resolve_template(replace(TABLE, restaurant_slug='otra-organizacion')) == before
         services.save('burger-house', 'poblado', {'plantilla': 'S1', 'paleta': {'acento': '#123456'},
                                                'tipografia': {'display': 'Fraunces'}})
         after = services.resolve_template(TABLE)

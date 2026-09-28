@@ -1656,15 +1656,10 @@
 .sm-home-active{position:relative;overflow:hidden;min-height:145px}.sm-home-active>.sm-food-photo{position:absolute;left:-52px;top:4px;width:140px;height:140px;margin:0}.sm-home-active>.sm-food-photo+div{margin-left:var(--ds-espacio-62)}.sm-home-active h2{font-size:calc(16px * var(--ds-texto))}.sm-home-active p{font-size:calc(14px * var(--ds-texto));line-height:calc(20px * var(--ds-texto))}
 .sm-summary>.sm-cart-submit{display:block!important}.sm-cart-submit>.sm-primary{width:100%}
 @media(max-width:600px){
- .sm-screen-pedido .sm-cart-line{position:relative;padding:var(--ds-espacio-16) var(--ds-espacio-12);gap:var(--ds-espacio-12);min-height:142px;align-items:center}
- .sm-screen-pedido .sm-cart-line>.sm-food-photo{width:84px;height:84px;flex:0 0 84px}
- .sm-screen-pedido .sm-cart-line-info{padding-right:0}.sm-screen-pedido .sm-cart-line h2{font-size:calc(14px * var(--ds-texto));line-height:calc(21px * var(--ds-texto))}
- .sm-screen-pedido .sm-cart-line p{font-size:calc(14px * var(--ds-texto));line-height:calc(18px * var(--ds-texto))}.sm-screen-pedido .sm-cart-line strong{font-size:calc(14px * var(--ds-texto))}
  .sm-screen-pedido .sm-line-controls{margin-top:var(--ds-espacio-4)}.sm-screen-pedido .sm-line-controls>.sm-stepper{position:static;display:flex;flex-direction:row;align-items:center;flex-shrink:0;gap:var(--ds-espacio-2);border:0;background:var(--t-fondo);padding:var(--ds-espacio-2);width:auto;border-radius:calc(12px * var(--ds-forma-boton))}
  .sm-screen-pedido .sm-line-controls .sm-stepper>button{width:34px;height:34px;min-height:34px;border-radius:calc(12px * var(--ds-forma-boton));color:var(--sm-muted);background:var(--t-fondo)}
  .sm-screen-pedido .sm-line-controls .sm-stepper>output{min-width:24px;text-align:center;font-size:calc(14px * var(--ds-texto));line-height:calc(24px * var(--ds-texto))}
  .sm-screen-pedido .sm-line-controls>.sm-text-button{font-size:calc(14px * var(--ds-texto));min-height:28px;padding:var(--ds-espacio-4) 0}
- .sm-screen-pedido .sm-cart-lines>.sm-secondary{border:0;background:transparent;color:var(--sm-highlight-text);box-shadow:none}
  .sm-screen-pedido .sm-cart-submit{position:fixed;z-index:30;bottom:0;left:0;right:0;padding:var(--ds-espacio-20) var(--ds-espacio-24) max(var(--ds-espacio-20),env(safe-area-inset-bottom));border-radius:calc(24px * var(--ds-forma-hoja)) calc(24px * var(--ds-forma-hoja)) 0 0;background:var(--sm-surface)}
  .sm-screen-pedido .sm-cart-submit>.sm-primary{margin:0;min-height:54px}
  .sm-screen-pedido .sm-page{padding-bottom:130px}
@@ -1795,3 +1790,35 @@
 .sm-dish-heading .sm-price { margin-bottom:0; }
 .sm-dish-heading .sm-food-deal { display:flex; margin-top:var(--ds-espacio-6); }
 .sm-dish-heading .sm-food-time { display:flex; margin-top:var(--ds-espacio-6); }
+
+/* El pedido es una sola tarjeta: el resumen lleva dentro lo pedido, en texto, con su cantidad y subtotal. Las líneas
+   propias conservan un contador pequeño y «Eliminar»; no hay fotos ni tarjetas por plato. */
+.smart-menu .sm-checkout-layout { grid-template-columns: minmax(0, 560px); justify-content: center; }
+.smart-menu .sm-summary > .sm-cart-lines { gap: 0; margin: calc(-1 * var(--ds-espacio-8)) 0 0; }
+.smart-menu .sm-summary .sm-cart-line { display: block; min-height: 0; padding: var(--ds-espacio-12) 0; border: 0; border-bottom: 1px solid var(--sm-border); border-radius: 0; background: transparent; box-shadow: none; }
+.smart-menu .sm-summary .sm-cart-line-info { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--ds-espacio-12); align-items: baseline; }
+.smart-menu .sm-summary .sm-cart-line h2 { margin: 0; font-size: calc(15px * var(--ds-texto)); line-height: 1.35; font-weight: 700; overflow-wrap: anywhere; }
+.smart-menu .sm-summary .sm-cart-line-qty { color: var(--sm-highlight-text); font-variant-numeric: tabular-nums; }
+.smart-menu .sm-summary .sm-cart-line-info > strong { font-size: calc(15px * var(--ds-texto)); font-weight: 700; white-space: nowrap; }
+.smart-menu .sm-summary .sm-cart-line p { grid-column: 1 / -1; margin: var(--ds-espacio-2) 0 0; font-size: calc(14px * var(--ds-texto)); line-height: 1.4; }
+.smart-menu .sm-summary .sm-line-controls { grid-column: 1 / -1; justify-content: flex-start; gap: var(--ds-espacio-14); margin-top: var(--ds-espacio-6); }
+.smart-menu .sm-summary .sm-line-controls > span { font-size: calc(14px * var(--ds-texto)); color: var(--sm-muted); }
+.smart-menu .sm-summary .sm-line-controls > .sm-stepper { display: flex; align-items: center; gap: 0; padding: 0; border: 1px solid var(--sm-border); border-radius: 999px; background: transparent; }
+.smart-menu .sm-summary .sm-line-controls .sm-stepper > button { width: 44px; height: 44px; min-height: 44px; border-radius: 999px; background: transparent; color: var(--sm-ink); }
+.smart-menu .sm-summary .sm-line-controls .sm-stepper > output { min-width: 22px; text-align: center; font-size: calc(14px * var(--ds-texto)); }
+.smart-menu .sm-summary .sm-line-controls > .sm-text-button { min-height: 44px; padding: 0; font-size: calc(14px * var(--ds-texto)); }
+.smart-menu .sm-summary .sm-cart-more { display: inline-flex; align-items: center; gap: var(--ds-espacio-6); align-self: flex-start; min-height: 44px; margin-bottom: calc(-1 * var(--ds-espacio-8)); padding: 0; font-weight: 700; color: var(--sm-highlight-text); }
+.smart-menu .sm-summary .sm-cart-more svg { width: 16px; height: 16px; }
+
+/* Modalidad del pedido: la regla general de 44 px de los botones pisaba la altura y el relleno, y los iconos quedaban
+   pegados al borde superior. */
+.smart-menu .sm-fulfillment-dialog .sm-fulfillment-option { min-height: 104px; padding: var(--ds-espacio-16) var(--ds-espacio-12); gap: var(--ds-espacio-10); }
+.smart-menu .sm-fulfillment-dialog .sm-fulfillment-option svg { width: 28px; height: 28px; }
+.sm-screen-pago .sm-online-pay{padding-bottom:0}
+
+/* Plan O: portada de la organización (/<org>/), para elegir restaurante. */
+.smart-menu .sm-organization-head { display: flex; flex-direction: column; gap: var(--ds-espacio-8); padding: var(--ds-espacio-32) 0 var(--ds-espacio-8); }
+.smart-menu .sm-organization-head h1 { font-size: calc(28px * var(--ds-texto)); }
+.smart-menu .sm-organization-head p { color: var(--sm-muted); font-size: calc(15px * var(--ds-texto)); }
+.smart-menu .sm-organization-logo { width: 88px; height: 88px; object-fit: contain; }
+.smart-menu .sm-venue-card { min-height: 44px; text-decoration: none; }

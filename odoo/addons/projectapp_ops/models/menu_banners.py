@@ -14,8 +14,8 @@ LAYOUTS = ('product', 'promotion', 'category', 'image', 'notice')
 
 class PosConfig(models.Model):
     _inherit = 'pos.config'
-    waiter_menu_banners = fields.Json(default=list, copy=False)
-    waiter_banners_configured = fields.Boolean(default=False, copy=False)
+    waiter_menu_banners = fields.Json(related='company_id.waiter_menu_banners', readonly=False)
+    waiter_banners_configured = fields.Boolean(related='company_id.waiter_banners_configured', readonly=False)
 
     def write(self, vals):
         if {'waiter_menu_banners', 'waiter_banners_configured'} & vals.keys() and self.env.context.get('_banner_write') is not _WRITE:
@@ -49,7 +49,7 @@ class PosConfig(models.Model):
         return {'configured': self.waiter_banners_configured, 'banners': clean}
 
     def _waiter_write_banners(self, clean):
-        self.with_context(_banner_write=_WRITE).write({'waiter_menu_banners': clean, 'waiter_banners_configured': True})
+        self.company_id.sudo().with_context(_banner_write=_WRITE).write({'waiter_menu_banners': clean, 'waiter_banners_configured': True})
 
     def _waiter_clean_banners(self, banners):
         """Valida y normaliza la lista de banners. Las reglas son las mismas para el POS y para las integraciones."""
@@ -57,11 +57,13 @@ class PosConfig(models.Model):
             raise ValidationError('Puedes publicar hasta ocho banners.')
         clean = []
         for b in banners:
-            if not isinstance(b, dict) or set(b)-{'layout','title','subtitle','button','target','targetId','image','theme','active'}:
+            if not isinstance(b, dict) or set(b)-{'layout','title','subtitle','button','target','targetId','image','theme','active','configs'}:
                 raise ValidationError('Banner inválido.')
             if b.get('layout') not in LAYOUTS or b.get('target') not in ('product','category','none') or b.get('theme') not in ('violet','amber','dark') or type(b.get('active')) is not bool:
                 raise ValidationError('Revisa el diseño y el destino del banner.')
             row = dict(b)
+            if 'configs' in b:
+                row['configs'] = self._waiter_validate_restriction(b['configs'])
             for key, limit in [('title',80),('subtitle',160),('button',35)]:
                 value = b.get(key,'')
                 if not isinstance(value,str) or len(value)>limit or (key=='title' and not value.strip()):
@@ -97,3 +99,15 @@ class PosConfig(models.Model):
             row['image'] = picture
             clean.append(row)
         return clean
+
+
+class ResCompany(models.Model):
+    _inherit = 'res.company'
+
+    waiter_menu_banners = fields.Json(default=list, copy=False)
+    waiter_banners_configured = fields.Boolean(default=False, copy=False)
+
+    def write(self, vals):
+        if {'waiter_menu_banners', 'waiter_banners_configured'} & vals.keys() and self.env.context.get('_banner_write') is not _WRITE:
+            raise AccessError('Guarda los banners desde la configuración de Waiter.')
+        return super().write(vals)

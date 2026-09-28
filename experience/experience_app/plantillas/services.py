@@ -8,7 +8,7 @@ Precedencia de los tokens, de menor a mayor:
 Cuando el acento final no es el del diseño se recalculan `acentoTinta` (utils/brand.ink_for, contraste ≥ 4.5) y
 `acentoSuave` (10 % del acento sobre el fondo de la plantilla; sobre blanco coincide con utils/brand.soft_for).
 
-La plantilla resuelta se cachea TEMPLATE_CACHE_SECONDS (60 s por defecto) por sede y se invalida al guardar desde el POS
+La plantilla resuelta se cachea TEMPLATE_CACHE_SECONDS (60 s por defecto) por organización y se invalida al guardar desde el POS
 y con el aviso interno de "algo cambió en Odoo" (views/internal.py). Sin ajustes de sede se resuelve `S1`; con el catálogo
 vacío, el spec embebido (defaults.FALLBACK_SPEC). En S1, el tema v2 añade los fundamentos y resuelve colores y fuentes;
 los campos paleta/tipografia se conservan para el POS y el MCP anteriores.
@@ -51,7 +51,7 @@ class InvalidSettings(Exception):
 
 
 def _key(restaurant: str, venue: str) -> str:
-    return f'template:v2:{restaurant}/{venue}'
+    return f'template:org:v3:{restaurant}'
 
 
 def invalidate(restaurant: str, venue: str) -> None:
@@ -163,9 +163,9 @@ def build(spec: dict, brand_inputs: dict, palette: dict, typography: dict, perce
     }
 
 
-# ---- resolución por sede ------------------------------------------------------------------------------------------
+# ---- resolución por organización ------------------------------------------------------------------------------------------
 def get_settings(restaurant: str, venue: str) -> VenueMenuSettings | None:
-    return VenueMenuSettings.objects.select_related('template').filter(restaurant_slug=restaurant, venue_slug=venue).first()
+    return VenueMenuSettings.objects.select_related('template').filter(restaurant_slug=restaurant, venue_slug='').first()
 
 
 def _spec_for(restaurant: str, venue: str) -> tuple[dict, dict, dict]:
@@ -205,7 +205,11 @@ def _settings_view_sin_sede(restaurant: str, venue: str) -> dict:
 
 
 # ---- validación y guardado (PUT interno) --------------------------------------------------------------------------
-def validate(body: dict) -> tuple[MenuTemplate, dict, dict]:
+def validate(body: dict, *, keep_display: str | None = None, ink_on_background: str | None = None) -> tuple[MenuTemplate, dict, dict]:
+    """`keep_display`: la fuente de títulos que la sede ya tiene guardada (p. ej. una de Google Fonts elegida por el
+    sistema de diseño). El formulario antiguo del POS la reenvía tal cual y no debe rechazarse por no estar en su lista.
+    `ink_on_background`: la tinta del tema v2 para el texto sobre el fondo (`tintaFondo`); si existe, el contraste con el
+    fondo lo decide el validador del tema y `tinta` solo tiene que leerse sobre las tarjetas."""
     if not isinstance(body, dict):
         raise InvalidSettings('El cuerpo debe ser un objeto con plantilla, paleta y tipografia.')
     code = body.get('plantilla')
@@ -241,7 +245,7 @@ def validate(body: dict) -> tuple[MenuTemplate, dict, dict]:
     if display:
         if not customizable.get('tipografiaDisplay', True):
             raise InvalidSettings(f'La plantilla {template.code} no permite cambiar la tipografía de títulos.')
-        if display not in MENU_FONTS and display != spec['tokens'].get('displayFont'):
+        if display not in MENU_FONTS and display != spec['tokens'].get('displayFont') and display != keep_display:
             raise InvalidSettings(f'La tipografía «{display}» no está en la lista: {", ".join(FONTS)} o la de la plantilla.')
         typography = {'display': display}
     else:
@@ -251,7 +255,9 @@ def validate(body: dict) -> tuple[MenuTemplate, dict, dict]:
     ratio = contrast(accent, ink_for(accent))
     if ratio < MIN_CONTRAST:
         raise InvalidSettings(f'El color de acción {accent} no contrasta lo suficiente con su texto ({ratio:.2f}:1; mínimo {MIN_CONTRAST}:1).')
-    if palette.keys() & {'tinta', 'fondo', 'superficie'}:
+    # Con tema v2 (tintaFondo), el texto sobre el fondo lo comprueba el validador del tema con sus propios pares; aquí solo
+    # el contrato antiguo, donde tinta sirve para todo.
+    if palette.keys() & {'tinta', 'fondo', 'superficie'} and not ink_on_background:
         ratio = contrast(tokens['tinta'], tokens['fondo'])
         if ratio < MIN_CONTRAST:
             raise InvalidSettings(f'La tinta {tokens["tinta"]} no se lee sobre el fondo {tokens["fondo"]} ({ratio:.2f}:1; mínimo {MIN_CONTRAST}:1).')
@@ -260,12 +266,22 @@ def validate(body: dict) -> tuple[MenuTemplate, dict, dict]:
     return template, palette, typography
 
 
+def _saved_foundation(chosen) -> dict:
+    """Fundamentos del tema guardado de la sede (plantilla por defecto): lo que el formulario antiguo no sabe editar."""
+    if chosen is None or chosen.template_id != DEFAULT_CODE:
+        return {}
+    tokens = final_tokens(chosen.template.spec, {}, chosen.palette, chosen.typography)
+    return design.resolve(chosen.theme, tokens)['fundamentos']
+
+
 def _prepare_sin_sede(restaurant: str, venue: str, body: dict, *, chosen=None) -> tuple[MenuTemplate, dict, dict, dict]:
     """Valida ambos contratos; el POS anterior conserva fundamentos que no sabe editar."""
-    template, palette, typography = validate(body)
+    chosen = chosen if chosen is not None else get_settings(restaurant, venue)
+    foundation = _saved_foundation(chosen)
+    template, palette, typography = validate(body, keep_display=foundation.get('tipografia', {}).get('display'),
+                                             ink_on_background=foundation.get('colores', {}).get('tintaFondo'))
     if 'tema' in body:
         return template, palette, typography, design.validate(body['tema'])
-    chosen = chosen if chosen is not None else get_settings(restaurant, venue)
     old_palette = chosen.palette if chosen and chosen.template_id == DEFAULT_CODE else {}
     old_typography = chosen.typography if chosen and chosen.template_id == DEFAULT_CODE else {}
     old_tokens = final_tokens(template.spec, {}, old_palette, old_typography)
@@ -288,10 +304,10 @@ def _prepare_sin_sede(restaurant: str, venue: str, body: dict, *, chosen=None) -
 @transaction.atomic
 def save(restaurant: str, venue: str, body: dict) -> VenueMenuSettings:
     previous = VenueMenuSettings.objects.select_for_update().select_related('template').filter(
-        restaurant_slug=restaurant, venue_slug=venue).first()
+        restaurant_slug=restaurant, venue_slug='').first()
     template, palette, typography, theme = prepare(restaurant, venue, body, chosen=previous)
     chosen, _ = VenueMenuSettings.objects.update_or_create(
-        restaurant_slug=restaurant, venue_slug=venue,
+        restaurant_slug=restaurant, venue_slug='',
         defaults={'template': template, 'palette': palette, 'typography': typography, 'theme': theme})
     brand.invalidate(restaurant, venue)
     invalidate(restaurant, venue)
@@ -313,10 +329,10 @@ def save_verified(restaurant: str, venue: str, body: dict) -> VenueMenuSettings:
         change = borradores.get(restaurant, venue, body['borrador'], lock=True) if 'borrador' in body else None
         template, _, _, _ = prepare(restaurant, venue, body)
         # También bloquea la primera publicación, cuando aún no existían ajustes para esta sede.
-        VenueMenuSettings.objects.get_or_create(restaurant_slug=restaurant, venue_slug=venue,
+        VenueMenuSettings.objects.get_or_create(restaurant_slug=restaurant, venue_slug='',
                                                 defaults={'template': template})
         previous = VenueMenuSettings.objects.select_for_update().select_related('template').get(
-            restaurant_slug=restaurant, venue_slug=venue)
+            restaurant_slug=restaurant, venue_slug='')
         _, _, _, theme = prepare(restaurant, venue, body, chosen=previous)
         current = settings_view(restaurant, venue)['tema']
         if theme['componentes'] != current['componentes'] or change is not None:
@@ -332,11 +348,14 @@ def save_verified(restaurant: str, venue: str, body: dict) -> VenueMenuSettings:
         raise InvalidSettings(str(exc)) from exc
 
 
-# Plan K4: las decoraciones de la sede solo existen para su propia sede. Estas envolturas fijan la sede en contexto
+# Las decoraciones se comparten dentro de la organización. El contexto conserva el restaurante de vista previa
 # para que el validador de plantillas (diseno/plantillas.py) las reconozca al resolver, leer y preparar el tema.
 def resolve_template(tenant: Tenant) -> dict:
+    from experience_app.services import rewards
+    actions = rewards.actions(tenant)
     with component_templates.for_venue(tenant.restaurant_slug, tenant.venue_slug):
-        return _resolve_template_sin_sede(tenant)
+        percent = discount.percent_for(tenant)
+        return {**_resolve_template_sin_sede(tenant), 'acciones': actions, 'descuento': {'porcentaje': percent, 'activo': percent > 0}}
 
 
 def settings_view(restaurant: str, venue: str) -> dict:

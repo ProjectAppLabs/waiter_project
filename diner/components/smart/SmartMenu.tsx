@@ -4,7 +4,8 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { gsap } from 'gsap'
 import { createPortal } from 'react-dom'
 import { pathFor, type Route, type Screen } from '@/lib/domain/route'
 import type { TemplateData, TemplateSlots } from '@/lib/domain/plantillas'
@@ -67,6 +68,9 @@ export type IconName =
   | 'close'
   | 'logout'
   | 'plate'
+  | 'cutlery'
+  | 'gift'
+  | 'ticket'
 const paths: Record<IconName, ReactNode> = {
   star: <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9Z"/>,
   menu: (
@@ -126,6 +130,11 @@ const paths: Record<IconName, ReactNode> = {
       <path d="M2 3v18M22 3v18" />
     </>
   ),
+  // Tenedor y cuchillo: «Comer aquí» en la modalidad del pedido.
+  cutlery: <path d="M5 3v6a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2V3M7.5 3v18M19 15V3a4 4 0 0 0-4 4v6c0 1.1.9 2 2 2h2Zm0 0v6" />,
+  // Regalo y cupón: los premios de las acciones en «Mis recompensas».
+  gift: <path d="M4 11h16v10H4zM3 7h18v4H3zM12 7v14M12 7C10 3.5 6.5 3.5 6.5 5.5S9.5 7 12 7c2.5 0 5.5-.5 5.5-1.5S14 3.5 12 7" />,
+  ticket: <path d="M4 6h16v4a2 2 0 0 0 0 4v4H4v-4a2 2 0 0 0 0-4ZM14 6v2m0 3v2m0 3v2" />,
 }
 export function Icon({
   name,
@@ -526,7 +535,7 @@ export function SmartDish({ entry, id, onClose, actionTarget }: SmartProps & {on
       const selected=Object.entries(extras).filter(([,count])=>count>0)
       if(selected.length)await addBundle([{producto_id:dish.id,cantidad:qty,nota:''},...selected.map(([productId,count])=>({producto_id:Number(productId),cantidad:count,nota:`Acompaña: ${dish.nombre}`.slice(0,200)}))])
       else await add(dish.id, qty, '')
-      if (!useDinerStore.getState().error) setAdded(true)
+      if (!useDinerStore.getState().error) { if (actionTarget) go('carta'); else setAdded(true) }
     } finally {
       lock.current = false
       setSending(false)
@@ -543,6 +552,26 @@ export function SmartDish({ entry, id, onClose, actionTarget }: SmartProps & {on
   const atExtraLimit = Object.values(extras).filter(count=>count>0).length>=19
   const changeExtra = (productId:number, count:number) => {setExtras(e=>({...e,[productId]:Math.max(0,Math.min(99,count))}));setAdded(false)}
   const counter = (extra:Dish) => <div className="sm-extra-counter"><button aria-label={`Menos ${extra.nombre}`} disabled={!extras[extra.id]||sending} onClick={()=>changeExtra(extra.id,(extras[extra.id]||0)-1)}><Icon name="minus"/></button><output aria-label={`Cantidad de ${extra.nombre}`}>{extras[extra.id]||0}</output><button aria-label={`Más ${extra.nombre}`} disabled={extra.agotado||sending||(extras[extra.id]||0)>=99||(atExtraLimit&&!extras[extra.id])} onClick={()=>changeExtra(extra.id,(extras[extra.id]||0)+1)}><Icon name="plus"/></button></div>
+  // Sugerencias: un solo «+» mientras no hay unidades; con unidades, un contador horizontal compacto. Así la tarjeta deja
+  // sitio para lo que ayuda a decidir: valoración, tiempo, «solo hoy» y la rebaja.
+  const sideAction = (extra:Dish) => {
+    const n = extras[extra.id]||0
+    const plus = <button className="sm-side-plus" aria-label={`Más ${extra.nombre}`} disabled={extra.agotado||sending||n>=99||(atExtraLimit&&!n)} onClick={()=>changeExtra(extra.id,n+1)}><Icon name="plus"/></button>
+    if (!n) return <div className="sm-side-action">{plus}</div>
+    return <div className="sm-side-action sm-side-stepper" role="group" aria-label={`Cantidad de ${extra.nombre}`}>
+      <button aria-label={`Menos ${extra.nombre}`} disabled={sending} onClick={()=>changeExtra(extra.id,n-1)}><Icon name="minus"/></button>
+      <output aria-label={`Cantidad de ${extra.nombre}`}>{n}</output>{plus}
+    </div>
+  }
+  const sideCard = (extra:Dish) => { const deal = dealFor(extra); return <div className="sm-side" key={extra.id} data-selected={!!extras[extra.id]}>
+    <FoodPhoto dish={extra}/>
+    <div className="sm-side-info">
+      <h3>{extra.nombre}</h3>
+      <div className="sm-side-meta"><DishRating dish={extra}/><PrepTime dish={extra}/>{extra.atributos?.soloHoy&&<span className="sm-side-badge">Solo hoy</span>}{extra.agotado&&<span className="sm-side-badge">Agotado</span>}</div>
+      {deal&&<span className="sm-food-deal"><em>-{deal.porcentaje}%</em><s aria-label={`Antes ${money(deal.antes)}`}>{money(deal.antes)}</s></span>}
+      <div className="sm-side-bottom"><strong>{money(extra.precio)}</strong>{sideAction(extra)}</div>
+    </div>
+  </div> }
   const purchaseTotal = dish.precio*qty + additions.reduce((sum,d)=>sum+d.precio*(extras[d.id]||0),0)
   return (
     <>
@@ -570,7 +599,7 @@ export function SmartDish({ entry, id, onClose, actionTarget }: SmartProps & {on
             </div>
           )}
           {!!toppings.length && <section className="sm-dish-toppings"><h2>Añade adicionales</h2><div>{toppings.map(extra=><div className="sm-topping" key={extra.id} data-selected={!!extras[extra.id]}><label><input type="checkbox" checked={!!extras[extra.id]} disabled={extra.agotado||sending||(atExtraLimit&&!extras[extra.id])} onChange={e=>changeExtra(extra.id,e.target.checked?1:0)}/><span>{extra.nombre}{extra.agotado&&<small>Agotado</small>}</span><strong>{money(extra.precio)}</strong></label>{!!extras[extra.id]&&counter(extra)}</div>)}</div></section>}
-          {!!sides.length && <section className="sm-dish-sides"><h2>{attrs?.acompanamientos ? 'Acompañamientos recomendados' : 'También te puede gustar'}</h2><div>{sides.map(extra=><div className="sm-side" key={extra.id}><FoodPhoto dish={extra}/><div className="sm-side-info"><h3>{extra.nombre}</h3><DishRating dish={extra} reviews/>{extra.descripcion&&<p>{extra.descripcion}</p>}<strong>{money(extra.precio)}</strong>{extra.agotado&&<small>Agotado</small>}</div>{counter(extra)}</div>)}</div></section>}
+          {!!sides.length && <section className="sm-dish-sides"><h2>{attrs?.acompanamientos ? 'Acompañamientos recomendados' : 'También te puede gustar'}</h2><div>{sides.map(sideCard)}</div></section>}
           {atExtraLimit&&<p className="sm-footnote">Puedes elegir hasta 19 adicionales y acompañamientos distintos por plato.</p>}
           <div className={`sm-dish-purchase ${added ? 'is-added' : ''}${actionTarget ? ' is-inline' : ''}`}>
           {!actionTarget && <div className="sm-quantity-row">
@@ -599,7 +628,13 @@ export function SmartDish({ entry, id, onClose, actionTarget }: SmartProps & {on
               </button>
             </div>
           </div>}
-          {(() => { const action = <>
+          {(() => { const dockStepper = actionTarget && !dish.agotado ? <div className="sm-dock-stepper" role="group" aria-label="Cantidad">
+              <button aria-label="Menos unidades" disabled={qty <= 1 || sending} onClick={() => setQty(qty - 1)}><Icon name="minus" /></button>
+              <output aria-live="polite">{qty}</output>
+              <button aria-label="Más unidades" disabled={qty >= 99 || sending} onClick={() => setQty(qty + 1)}><Icon name="plus" /></button>
+            </div> : null
+          const action = <>
+            {dockStepper}
             {added ? (
             <div className="sm-added">
               <p role="status">
@@ -638,6 +673,33 @@ export function SmartDish({ entry, id, onClose, actionTarget }: SmartProps & {on
     </>
   )
 }
+// Animación del muelle (GSAP): al entrar en la ficha, el botón del mesero se encoge desde su ancho de la carta hasta el
+// círculo del icono y aparecen la cantidad y «Agregar»; cada vez que cambia la cantidad del pedido, su botón da un pequeño
+// pulso. Sin animación si el sistema pide movimiento reducido.
+// Al navegar de la carta a la ficha se vuelve a montar la experiencia; el último estado del muelle vive fuera del
+// componente para que la animación sepa desde qué ancho encoger al mesero.
+const lastDock: { current: { compact: boolean; chat: number; count: number } | null } = { current: null }
+
+function useDockMotion(dock: React.RefObject<HTMLDivElement | null>, compact: boolean, count: number) {
+  const previous = lastDock
+  useLayoutEffect(() => {
+    const el = dock.current
+    if (!el) return
+    const chat = el.querySelector<HTMLElement>('.sm-chat-launch'), cart = el.querySelector<HTMLElement>('.sm-cart-float')
+    const before = previous.current
+    const calm = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    if (!calm) {
+      if (compact && chat && before && !before.compact && before.chat > 0) {
+        gsap.from(chat, { width: before.chat, duration: .5, ease: 'power3.out', clearProps: 'width' })
+        const slot = el.querySelector<HTMLElement>('.sm-dish-dock-action')
+        if (slot) gsap.from(slot, { opacity: 0, x: 16, duration: .4, delay: .12, ease: 'power2.out', clearProps: 'opacity,transform' })
+      }
+      if (cart && count > 0 && (!before || before.count !== count)) gsap.fromTo(cart, { scale: .9, opacity: before?.count ? 1 : 0 }, { scale: 1, opacity: 1, duration: .45, ease: 'back.out(2)', clearProps: 'transform,opacity' })
+    }
+    previous.current = { compact, chat: chat?.getBoundingClientRect().width ?? 0, count }
+  }, [dock, compact, count])
+}
+
 export function SmartExperience({
   route,
   ...props
@@ -659,6 +721,21 @@ export function SmartExperience({
     .reduce((n, l) => n + l.cantidad, 0)
   const showConfirm = screen === 'pedido' && !!cart?.lineas.length
   const showCart = count > 0 && ['portada', 'carta', 'favoritos', 'historial', 'cuenta'].includes(screen)
+  // Solo en la ficha del plato: «Mi mesero» se queda con su icono (el comensal ya lo conoce de la carta) y deja sitio a la
+  // cantidad y a «Agregar». En la carta y el pedido, los dos botones van completos. Se encoge cuando la ficha ya puso sus
+  // acciones en el muelle; mientras el plato carga, el mesero sigue completo y la animación se ve al llegar el contador.
+  const [dishActionsReady, setDishActionsReady] = useState(false)
+  useEffect(() => {
+    if (!dishActionTarget) { setDishActionsReady(false); return }
+    const sync = () => setDishActionsReady(dishActionTarget.childElementCount > 0)
+    sync()
+    const observer = new MutationObserver(sync)
+    observer.observe(dishActionTarget, { childList: true })
+    return () => observer.disconnect()
+  }, [dishActionTarget])
+  const compactDock = screen === 'plato' && dishActionsReady
+  const dockRef = useRef<HTMLDivElement>(null)
+  useDockMotion(dockRef, compactDock, count)
   return (
     <div className={`smart-menu sm-screen-${screen.replaceAll("/", "-")}`}>
       <div className="sm-page">
@@ -698,7 +775,8 @@ export function SmartExperience({
         {screen === 'cuenta/registro' && <SmartSignup />}
         {screen === 'cuenta/codigo' && <SmartCode />}
       </div>
-      {screen !== 'reserva' && <div className={`sm-action-dock${showCart || showConfirm || screen === 'plato' ? ' sm-action-dock-pair' : ''}`}>
+      {/* En el pago no hay muelle: la persona ya está pagando y «Mi mesero» solo la distraería (tampoco en la reserva). */}
+      {!['reserva', 'pago'].includes(screen) && <div ref={dockRef} className={`sm-action-dock${showCart || showConfirm || compactDock ? ' sm-action-dock-pair' : ''}${compactDock ? ' sm-action-dock-compacto' : ''}`}>
         <SmartChat key={`${props.rest}/${props.venue}/${props.token}`} entry={props.entry} rest={props.rest} venue={props.venue} token={props.token}/>
         {showConfirm && <div className="sm-confirm-slot" ref={setCartActionTarget}/>}
         {screen === 'plato' && <div className="sm-confirm-slot" ref={setDishActionTarget}/>}

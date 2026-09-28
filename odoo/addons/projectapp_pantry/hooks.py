@@ -34,7 +34,9 @@ def post_init_hook(env):
     seed_demo(env)
 
 
-def seed_demo(env):
+def seed_demo(env, config_id=None):
+    config = env['pos.config']._waiter_selected_config(config_id)
+    env = env(context={**env.context, 'waiter_config_id': config.id})
     Template = env["product.template"]
     Partner = env["res.partner"]
     suppliers = {}
@@ -54,6 +56,9 @@ def seed_demo(env):
                  "pantry_min": min_qty, "pantry_max": max_qty},
                 initial_qty=stock, supplier_id=suppliers[category].id,
             )["id"])
+        if not template._pantry_orderpoints().get(template.id):
+            template.waiter_set_thresholds(min_qty, max_qty)
+            template.waiter_set_stock(stock)
         ingredients[name] = template
 
     for dish_name, lines in RECIPES.items():

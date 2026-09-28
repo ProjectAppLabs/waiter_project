@@ -32,10 +32,13 @@ class ProductTemplate(models.Model):
 
     def _pantry_manager(self, employee_id, token):
         employee = self.env['hr.employee'].sudo().browse(employee_id).exists()
-        if (self.env.user.waiter_role != 'admin' or not employee or not employee.active or
-                employee.company_id != self.env.company or employee.waiter_role != 'admin' or not employee._waiter_session_ok(token)):
+        if (self.env.user.waiter_role not in ('admin', 'owner') or not employee or not employee.active or
+                employee.company_id != self.env.company or employee.waiter_role not in ('admin', 'owner') or not employee._waiter_session_ok(token)):
             raise AccessError(_('Valida el PIN del administrador para modificar recetas o existencias.'))
         self.check_access('write')
+        config = self._waiter_config()
+        if employee.waiter_role != 'owner' and config not in employee.waiter_config_ids:
+            raise AccessError(_('El empleado no opera este restaurante.'))
         return employee
 
     def _pantry_requirements(self):
@@ -51,9 +54,12 @@ class ProductTemplate(models.Model):
         return result
 
     @api.model
-    def _pantry_pending_orders(self):
-        return self.env['pos.order'].search([
-            ('company_id', '=', self.env.company.id), ('state', 'in', ['draft', 'paid', 'done', 'invoiced']),
+    def _pantry_pending_orders(self, organization=False):
+        orders = self.env['pos.order'].sudo() if organization else self.env['pos.order']
+        # Los compromisos son del almacén: cualquier punto de venta que descuenta de él compromete sus ingredientes.
+        scope = ('company_id', '=', self.env.company.id) if organization else ('config_id.picking_type_id.warehouse_id', '=', self._waiter_config().warehouse_id.id)
+        return orders.search([
+            scope, ('state', 'in', ['draft', 'paid', 'done', 'invoiced']),
             '|', '|', ('state', '=', 'draft'), ('picking_ids.state', 'in', ['draft', 'waiting', 'confirmed', 'assigned']),
             '&', ('picking_ids', '=', False), ('session_id.state', '!=', 'closed'),
         ])
@@ -84,6 +90,7 @@ class ProductTemplate(models.Model):
             balances[quant.product_id.id] += quant.quantity
         return balances
 
+    @api.depends_context("waiter_config_id")
     def _compute_servings(self):
         requirements = self._pantry_requirements()
         pending = self._pantry_pending()
@@ -124,7 +131,7 @@ class ProductTemplate(models.Model):
         if (bom.id if bom else None) != expected_bom_id:
             raise UserError(_('La receta cambió en otra pantalla. Vuelve a abrirla.'))
         # El consumo pendiente debe mantener la receta con la que se tomó el pedido.
-        open_lines = self._pantry_pending_orders().lines.filtered(lambda l: l.qty > 0 and l.product_id.product_tmpl_id == self)
+        open_lines = self._pantry_pending_orders(organization=True).lines.filtered(lambda l: l.qty > 0 and l.product_id.product_tmpl_id == self)
         if open_lines:
             raise UserError(_('Termina o cancela los pedidos pendientes de este plato antes de cambiar su receta.'))
         created = self.waiter_set_recipe(recipe)
@@ -137,7 +144,7 @@ class ProductTemplate(models.Model):
         self.check_access('write')
         if self.is_ingredient or not isinstance(recipe, list) or len(recipe) > 100:
             raise UserError(_('La receta necesita un plato y hasta 100 ingredientes.'))
-        if self._pantry_pending_orders().lines.filtered(lambda l: l.qty > 0 and l.product_id.product_tmpl_id == self):
+        if self._pantry_pending_orders(organization=True).lines.filtered(lambda l: l.qty > 0 and l.product_id.product_tmpl_id == self):
             raise UserError(_('Termina los pedidos pendientes antes de modificar esta receta.'))
         normalized = []
         seen = set()
@@ -159,7 +166,7 @@ class ProductTemplate(models.Model):
         self.ensure_one()
         self.check_access('read')
         product = self.product_variant_id
-        location = self._waiter_stock_location()
+        location = self._waiter_stock_location(strict=True)
         locations = self.env['stock.location'].search([('id', 'child_of', location.id)]).ids
         moves = self.env['stock.move'].search([('product_id', '=', product.id), ('state', '=', 'done'),
             '|', ('location_id', 'in', locations), ('location_dest_id', 'in', locations)], order='date desc, id desc', limit=100)
@@ -188,14 +195,14 @@ class ProductTemplate(models.Model):
         self.env.cr.execute('SELECT id FROM product_product WHERE id = %s FOR UPDATE', [product.id])
         existing = self.env['stock.move'].search([('waiter_pantry_key', '=', request_key)], limit=1)
         if existing:
-            if existing.product_id != product or existing.waiter_pantry_kind != kind or existing.waiter_pantry_requested_qty != qty or existing.waiter_pantry_reason != reason.strip():
+            if existing.product_id != product or existing.waiter_pantry_kind != kind or existing.waiter_pantry_requested_qty != qty or existing.waiter_pantry_reason != reason.strip() or self._waiter_stock_location() not in (existing.location_id, existing.location_dest_id):
                 raise UserError(_('El movimiento ya fue usado para otro ingrediente.'))
             return self.waiter_inventory_detail()
         self.env.cr.execute('SELECT id FROM stock_quant WHERE product_id = %s AND company_id = %s ORDER BY id FOR UPDATE', [product.id, self.env.company.id])
         self.env['stock.quant'].invalidate_model(['quantity'])
         self._waiter_invalidate()
         current = self._pantry_balances([product.id])[product.id]
-        location = self._waiter_stock_location()
+        location = self._waiter_stock_location(strict=True)
         # Esta UI opera una ubicación; evita convertir un total de sububicaciones en un ajuste local.
         child_quants = self.env['stock.quant'].search([('product_id', '=', product.id), ('location_id', 'child_of', location.id), ('location_id', '!=', location.id), ('quantity', '!=', 0)], limit=1)
         if child_quants:

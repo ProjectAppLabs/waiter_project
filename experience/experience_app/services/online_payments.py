@@ -178,6 +178,8 @@ def reconcile(attempt):
                 from experience_app.models import DinerAccount
                 Order.objects.filter(id=attempt.order_id).update(state=Order.SENT, sent_at=timezone.now())
                 DinerAccount.objects.filter(discount_order=attempt.order, discount_used_at=None).update(discount_used_at=timezone.now())
+                from experience_app.services import rewards
+                rewards.use_reserved(attempt.order)
             else:
                 close_paid(attempt.session)
         else:
@@ -209,6 +211,9 @@ def apply_remote(attempt, remote):
                 locked.needs_review = True
             locked.save()
     locked.gateway = attempt.gateway
+    if locked.status == 'APPROVED' and locked.diner_id:
+        from experience_app.services import rewards
+        rewards.sync_for_diner(locked.diner)
     return reconcile(locked)
 
 

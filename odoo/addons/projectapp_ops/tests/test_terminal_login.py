@@ -9,12 +9,14 @@ from datetime import timedelta
 from odoo import fields
 from odoo.tests import HttpCase, tagged
 from odoo.tests.common import new_test_user
+from odoo.addons.projectapp_ops.tests.common_waiter import single_restaurant
 
 
 @tagged("post_install", "-at_install")
 class TestTerminalLogin(HttpCase):
     def setUp(self):
         super().setUp()
+        single_restaurant(self.env)
         self.password = "Waiter-2026-terminal"
         self.user = new_test_user(self.env, login="terminal_prueba", password=self.password, waiter_role="admin",
                                   groups="base.group_user,point_of_sale.group_pos_manager")

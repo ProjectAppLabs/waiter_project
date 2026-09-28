@@ -3,6 +3,8 @@
   "floors": "Piso",
   "day": "Día",
   "add": "Nueva reserva",
+  "hoursButton": "Horario",
+  "hoursTitle": "Horario de reservas",
   "tableColumn": "Mesa",
   "offscreen": {
     "count": "{count, plural, one {# reserva} other {# reservas}}", "earlier": "antes · {time}", "later": "después · {time}",

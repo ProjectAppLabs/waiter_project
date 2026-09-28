@@ -29,6 +29,10 @@ const base = (rest: string, venue: string, token: string | null) => `/api/v1/${r
 export async function getEntry(rest: string, venue: string, token: string | null): Promise<Entry> {
   return (await http.get<Entry>(base(rest, venue, token))).data
 }
+// Plan O: los restaurantes de una organización, para su portada.
+export async function getOrganization(rest: string): Promise<import('@/lib/types').OrganizationEntry> {
+  return (await http.get(`/api/v1/${encodeURIComponent(rest)}/`)).data
+}
 export async function getThemeDraft(rest: string, venue: string, token: string): Promise<{plantilla: Template; caduca: string}> {
   return (await http.get(`/api/v1/${encodeURIComponent(rest)}/${encodeURIComponent(venue)}/borradores/${encodeURIComponent(token)}/`)).data
 }

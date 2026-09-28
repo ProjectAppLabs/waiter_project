@@ -6,6 +6,7 @@ from odoo.exceptions import UserError
 from odoo.tests import TransactionCase, tagged
 
 from odoo.addons.projectapp_pantry.hooks import seed_demo, INGREDIENTS, RECIPES
+from odoo.addons.projectapp_ops.tests.common_waiter import single_restaurant
 
 
 @tagged("post_install", "-at_install")
@@ -13,6 +14,7 @@ class TestPantry(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        single_restaurant(cls.env)
         cls.Template = cls.env["product.template"]
         cls.kg = cls.env.ref("uom.product_uom_kgm")
         cls.unit = cls.env.ref("uom.product_uom_unit")

@@ -39,7 +39,7 @@ it('prepares the usual staff with the cash register closed', async () => {
   expect(within(dialog).queryByLabelText('Guardar también como reparto habitual')).not.toBeInTheDocument()
   expect(within(dialog).getByRole('button', { name: 'Guardar reparto' })).toBeDisabled()
   // El rol se lee traducido en la ficha (salía la clave cruda «pos.roles.admin»).
-  expect(within(within(dialog).getByRole('button', { name: 'Laura Encargada en Ventana' })).getByText('Administrador')).toBeInTheDocument()
+  expect(within(within(dialog).getByRole('button', { name: 'Laura Encargada en Ventana' })).getByText('Encargado')).toBeInTheDocument()
   fireEvent.click(within(dialog).getByRole('button', { name: 'Sofía Mesera en Ventana' }))
   fireEvent.click(within(dialog).getByRole('button', { name: 'Laura Encargada en Ventana' }))
   fireEvent.click(within(dialog).getByRole('button', { name: 'Guardar reparto' }))

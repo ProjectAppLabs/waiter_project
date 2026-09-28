@@ -6,14 +6,15 @@ import { useEffect, useState } from 'react'
 import { Chip } from '@/components/kit/Chip'
 import { Icon } from '@/components/kit/Icon'
 import { StatusPill } from '@/components/kit/StatusPill'
-import { Toggle } from '@/components/kit/Toggle'
 import { MapsLinkField, type MapsStatus } from '@/components/settings/MapsLinkField'
 import { SaveBar, useSaveState } from '@/components/settings/SettingsForms'
 import { Button } from '@/components/ui/Button'
 import { Select, TextInput } from '@/components/ui/Field'
 import { play, setStation, type SoundId, type Station } from '@/lib/audio/sounds'
 import { ROLES, type Role } from '@/lib/domain/roles'
-import { inviteUser, resendInvite, saveCompany, saveFloor, saveTable, setUserRole, type CompanyInfo, type FloorInfo, type PaymentMethodInfo, type TaxInfo, type UserInfo } from '@/lib/services/settings'
+import { shiftLabel } from '@/lib/domain/employees'
+import type { PosEmployee } from '@/lib/services/employees'
+import { inviteUser, resendInvite, saveCompany, setUserRole, type CompanyInfo, type PaymentMethodInfo, type TaxInfo, type UserInfo } from '@/lib/services/settings'
 
 // Secciones de Configuración dibujadas con los componentes del kit (tarjetas, chips, píldoras, toggles).
 // Marca y Plantilla del menú tienen su propio componente; umbrales y ROI usan ThresholdsForm.
@@ -40,39 +41,6 @@ export function CompanyForm({ initial }: { initial: CompanyInfo }) {
       <p className="text-sm text-soft">{t('addressHint')}</p>
       <MapsLinkField initial={start} onChange={(point, status) => { setMaps(status); if (status === 'found' || status === 'empty') setC((v) => ({ ...v, waiter_latitude: point ? String(point.lat) : '', waiter_longitude: point ? String(point.lng) : '' })) }} />
       <SaveBar state={state} onSave={() => save(() => saveCompany(c))} disabled={!c.name.trim() || mapsBlocks} />
-    </div>
-  )
-}
-
-export function FloorsForm({ floors, configId, onChanged }: { floors: FloorInfo[]; configId: number; onChanged: () => Promise<void> }) {
-  const t = useTranslations('admin.settings.floors')
-  const ts = useTranslations('admin.common')
-  const [newFloor, setNewFloor] = useState('')
-  const [drafts, setDrafts] = useState<Record<number, { number: number; seats: number; active: boolean }>>({})
-  const draft = (id: number, base: { number: number; seats: number; active: boolean }) => drafts[id] ?? base
-  const edit = (id: number, base: { number: number; seats: number; active: boolean }, patch: Partial<{ number: number; seats: number; active: boolean }>) => setDrafts((x) => ({ ...x, [id]: { ...draft(id, base), ...patch } }))
-  return (
-    <div className="flex flex-col gap-4">
-      {floors.map((f) => (
-        <section key={f.id} aria-label={f.name} className={box}>
-          <div className="flex items-center gap-3"><span className="w-10 h-10 rounded-md bg-primary-soft text-primary grid place-items-center"><Icon name="grid" size={20} /></span><span className="text-[16px] font-semibold text-ink">{f.name}</span><span className="ml-auto text-[13px] text-soft">{t('tables', { n: f.tables.length })}</span></div>
-          <div className="flex flex-col gap-2">
-            {f.tables.map((tb) => {
-              const d = draft(tb.id, tb)
-              return (
-                <div key={tb.id} className="grid grid-cols-[120px_120px_1fr_auto] gap-3 items-end rounded-md bg-muted p-3">
-                  <TextInput label={t('number')} type="number" value={d.number} onChange={(e) => edit(tb.id, tb, { number: Number(e.target.value) })} className="tabular" />
-                  <TextInput label={t('seats')} type="number" value={d.seats} onChange={(e) => edit(tb.id, tb, { seats: Number(e.target.value) })} className="tabular" />
-                  <div className="flex items-center gap-3 h-tap-min"><Toggle checked={d.active} onChange={(v) => edit(tb.id, tb, { active: v })} label={`${t('active')} ${t('table', { n: d.number })}`} /><span className="text-[15px] text-ink">{t('active')}</span></div>
-                  <Button size="compact" variant={drafts[tb.id] ? 'primary' : 'secondary'} disabled={!drafts[tb.id]} onClick={async () => { await saveTable(tb.id, f.id, d); await onChanged(); setDrafts((x) => { const { [tb.id]: _omit, ...rest } = x; void _omit; return rest }) }}>{ts('save')}</Button>
-                </div>
-              )
-            })}
-          </div>
-          <Button size="compact" className="self-start" onClick={async () => { await saveTable(null, f.id, { number: Math.max(0, ...f.tables.map((x) => x.number)) + 1, seats: 4, active: true }); await onChanged() }}><Icon name="plus" size={18} />{t('newTable')}</Button>
-        </section>
-      ))}
-      <div className="flex items-end gap-3 max-w-md"><TextInput label={t('floorName')} value={newFloor} onChange={(e) => setNewFloor(e.target.value)} /><Button variant="primary" disabled={!newFloor.trim()} onClick={async () => { await saveFloor(null, newFloor.trim(), configId); setNewFloor(''); await onChanged() }}><Icon name="plus" size={18} />{t('newFloor')}</Button></div>
     </div>
   )
 }
@@ -107,7 +75,9 @@ export function TaxesList({ taxes }: { taxes: TaxInfo[] }) {
   )
 }
 
-export function UsersForm({ users, onChanged }: { users: UserInfo[]; onChanged: () => Promise<void> }) {
+// `employees`: quienes inician turno con PIN (hr.employee); el rol de ellos es el que aplica la tabla de permisos.
+// `readOnly`: el equipo de un restaurante dentro de su POS (plan O); invitar y asignar se hace en la consola del dueño.
+export function UsersForm({ users, employees = [], onChanged, readOnly = false }: { users: UserInfo[]; employees?: PosEmployee[]; onChanged: () => Promise<void>; readOnly?: boolean }) {
   const t = useTranslations('admin.settings.users')
   const roles = useTranslations('pos.nav.roles')
   const [u, setU] = useState<{ name: string; email: string; role: Role }>({ name: '', email: '', role: 'waiter' })
@@ -116,7 +86,18 @@ export function UsersForm({ users, onChanged }: { users: UserInfo[]; onChanged: 
   return (
     <div className="flex flex-col gap-4">
       <section aria-label={t('list')} className={box}>
-        <p className="text-[15px] font-semibold text-ink">{t('list')}</p>
+        <div><h3 className="text-lg font-semibold text-ink">{t('list')}</h3><p className="mt-1 text-sm text-soft">{t('listHint')}</p></div>
+        {employees.length > 0 && <>
+          <div><p className="text-[15px] font-semibold text-ink">{t('withPin')}</p><p className="text-[13px] text-soft">{t('withPinHint')}</p></div>
+          {employees.map((x) => (
+            <div key={`e${x.id}`} className="flex items-center gap-3 rounded-md bg-muted p-3 text-[15px]">
+              <span className="w-10 h-10 rounded-md bg-surface border border-border text-ink grid place-items-center"><Icon name="lock" size={20} /></span>
+              <div className="min-w-0"><p className="font-semibold text-ink truncate">{x.name}</p><p className="text-[13px] text-soft truncate">{shiftLabel(x.shift, t('noShift'))}</p></div>
+              <span className="ml-auto"><StatusPill tone="neutral">{x.role ? roles(x.role) : t('accountRole')}</StatusPill></span>
+            </div>
+          ))}
+          {!readOnly && <p className="text-[15px] font-semibold text-ink">{t('withEmail')}</p>}
+        </>}
         {users.map((x) => (
           <div key={x.id} className="flex items-center gap-3 rounded-md bg-muted p-3 text-[15px]">
             <span className="w-10 h-10 rounded-md bg-surface border border-border text-ink grid place-items-center"><Icon name="user" size={20} /></span>
@@ -131,15 +112,17 @@ export function UsersForm({ users, onChanged }: { users: UserInfo[]; onChanged: 
           </div>
         ))}
       </section>
-      <section aria-label={t('invite')} className={box}>
-        <p className="text-[15px] font-semibold text-ink">{t('invite')}</p>
-        <div className="grid grid-cols-3 gap-4">
-          <TextInput label={t('name')} value={u.name} onChange={(e) => setU((v) => ({ ...v, name: e.target.value }))} />
-          <TextInput label={t('email')} type="email" value={u.email} onChange={(e) => setU((v) => ({ ...v, email: e.target.value }))} hint={t('emailHint')} />
-          <Select label={t('role')} hint={t('roleHint')} value={u.role} onChange={(e) => setU((v) => ({ ...v, role: e.target.value as Role }))}>{ROLES.map((r) => <option key={r} value={r}>{roles(r)}</option>)}</Select>
-        </div>
-        <SaveBar state={state} onSave={() => save(async () => { await inviteUser(u); setU({ name: '', email: '', role: 'waiter' }); await onChanged() })} disabled={!u.name.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(u.email)} />
-      </section>
+      {!readOnly && (
+        <section aria-label={t('invite')} className={box}>
+          <p className="text-[15px] font-semibold text-ink">{t('invite')}</p>
+          <div className="grid grid-cols-3 gap-4">
+            <TextInput label={t('name')} value={u.name} onChange={(e) => setU((v) => ({ ...v, name: e.target.value }))} />
+            <TextInput label={t('email')} type="email" value={u.email} onChange={(e) => setU((v) => ({ ...v, email: e.target.value }))} hint={t('emailHint')} />
+            <Select label={t('role')} hint={t('roleHint')} value={u.role} onChange={(e) => setU((v) => ({ ...v, role: e.target.value as Role }))}>{ROLES.map((r) => <option key={r} value={r}>{roles(r)}</option>)}</Select>
+          </div>
+          <SaveBar state={state} onSave={() => save(async () => { await inviteUser(u); setU({ name: '', email: '', role: 'waiter' }); await onChanged() })} disabled={!u.name.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(u.email)} />
+        </section>
+      )}
     </div>
   )
 }

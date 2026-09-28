@@ -5,7 +5,7 @@
   "pantallas": [
     "pedido"
   ],
-  "descripcion": "La tarjeta con el cupón, los totales de la mesa y del comensal, el descuento, el total estimado, la nota y las acciones de confirmar y ver el pago. El cupón y las acciones son del código.",
+  "descripcion": "La tarjeta única del pedido: lo que se pidió en texto (con cantidad, subtotal y controles de las líneas propias), el cupón, los totales de la mesa y del comensal, el descuento, el total estimado, la nota y las acciones de confirmar y ver el pago. Las líneas, el cupón y las acciones son del código.",
   "datos": {
     "pedido.subtotal": {
       "tipo": "precio",
@@ -40,6 +40,10 @@
     "titulo": {
       "descripcion": "Título de fábrica."
     },
+    "lineas": {
+      "obligatoria": true,
+      "descripcion": "Lo que se pidió: cada línea en texto (componente linea-pedido) y el enlace «Agregar algo más»."
+    },
     "filas": {
       "descripcion": "Filas de fábrica: subtotal, consumo y descuento."
     },
@@ -70,5 +74,5 @@
   "limites": {
     "ancho_minimo": 272
   },
-  "plantilla_fabrica": "<ranura nombre=\"cupon\"/>\n<ranura nombre=\"titulo\"/>\n<ranura nombre=\"filas\"/>\n<ranura nombre=\"total\"/>\n<ranura nombre=\"nota\"/>\n<ranura nombre=\"confirmar\"/>\n<ranura nombre=\"pago\"/>"
+  "plantilla_fabrica": "<ranura nombre=\"titulo\"/>\n<ranura nombre=\"lineas\"/>\n<ranura nombre=\"cupon\"/>\n<ranura nombre=\"filas\"/>\n<ranura nombre=\"total\"/>\n<ranura nombre=\"nota\"/>\n<ranura nombre=\"confirmar\"/>\n<ranura nombre=\"pago\"/>"
 }

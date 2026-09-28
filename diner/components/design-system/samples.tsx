@@ -100,6 +100,9 @@ export function sampleLines(dishes: Dish[]): CartLine[] {
   return dishes.slice(0, 2).map((dish, i) => ({ id: i + 1, comensal: 'muestra', mio: true, producto_id: dish.id, nombre: dish.nombre, precio: dish.precio, cantidad: i + 1, nota: i === 0 ? 'Sin cebolla' : '', subtotal: dish.precio * (i + 1) }))
 }
 const never = async () => undefined
+function SampleLines({ dishes }: { dishes: Dish[] }) {
+  return <section className="sm-cart-lines">{sampleLines(dishes).map((line) => <CartLineItem key={line.id} line={line} dish={dishes.find((d) => d.id === line.producto_id)} swiped={false} onSwipe={never} busy={false} setQty={never} remove={never} />)}</section>
+}
 
 // Contenedor de una muestra: atributos completos del tema (con la opción demostrada encima), .smart-menu y .sm-page reales.
 // `inert` deja las muestras sin interacción: la página enseña el diseño, nunca abre sesiones ni escribe.
@@ -171,7 +174,8 @@ export const SAMPLES: Record<ComponentId, (context: SampleContext) => ReactNode>
       </div>
     </article>
   },
-  carrito: ({ dishes }) => <section className="sm-cart-lines">{sampleLines(dishes).map((line) => <CartLineItem key={line.id} line={line} dish={dishes.find((d) => d.id === line.producto_id)} swiped={false} onSwipe={never} busy={false} setQty={never} remove={never} />)}</section>,
+  // Lo pedido va en texto dentro del resumen: la muestra lo pinta sobre la misma tarjeta.
+  carrito: ({ dishes }) => <aside className="sm-summary"><SampleLines dishes={dishes} /></aside>,
   'tarjeta-historial': ({ dishes }) => <div className="sm-history-grid"><HistoryCard order={sampleOrder(dishes)} busy={false} reordering={null} reorder={never} /></div>,
   'tarjeta-estado': ({ dishes }) => <section className="sm-status"><StatusCard order={{ id: 'muestra-0001', sesion: 'muestra', estado: 'en_cocina', total: sampleOrder(dishes).total, impuestos: 0, intentos: 1 } as OrderStatus} current={1} /></section>,
   recibo: ({ dishes }) => <PaperReceipt order={sampleOrder(dishes)} products={dishes} />,
@@ -181,7 +185,7 @@ export const SAMPLES: Record<ComponentId, (context: SampleContext) => ReactNode>
   buscador: () => <SearchBox query="Hamburguesa" onChange={noop} />,
   seccion: ({ entry, dishes }) => <SectionHeading title={entry.carta.categorias[0]?.nombre ?? 'Platos'} count={dishes.length} />,
   // Totales de muestra con un descuento aplicado; el cupón lee el pedido real (vacío en la página viva).
-  resumen: ({ dishes }) => { const total = sampleOrder(dishes).total; return <OrderSummary cart={{ sesion: 'muestra', lineas: [], por_comensal: [], total, mio: total, descuento: { codigo: 'MUESTRA10', porcentaje: 10, monto: Math.round(total / 10) } } as unknown as Cart}
+  resumen: ({ dishes }) => { const total = sampleOrder(dishes).total; return <OrderSummary cart={{ sesion: 'muestra', lineas: [], por_comensal: [], total, mio: total, descuento: { codigo: 'MUESTRA10', porcentaje: 10, monto: Math.round(total / 10) } } as unknown as Cart} lineas={<SampleLines dishes={dishes} />}
     confirmar={<div className="sm-cart-submit"><button type="button" className="sm-primary">Continuar al pago<Icon name="arrow" /></button></div>} pago={<button type="button" className="sm-text-button">Ver opciones de pago</button>} /> },
   cupon: () => <CouponField />,
   perfil: () => <ProfileSection account={{ id: 'muestra', nombre: 'Camila Ruiz', correo: 'camila@ejemplo.com', celular: '300 123 4567', verificada: true }} pedidos={3} favoritos={2}

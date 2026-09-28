@@ -1,6 +1,7 @@
 import uuid
 
 from django.db import models
+from django.db.models.functions import Lower
 
 
 class DinerAccount(models.Model):
@@ -11,6 +12,7 @@ class DinerAccount(models.Model):
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organization_slug = models.SlugField(max_length=60, db_index=True)
     password = models.CharField(max_length=128, blank=True)
     name = models.CharField(max_length=60)
     email = models.EmailField(max_length=120)
@@ -28,6 +30,7 @@ class DinerAccount(models.Model):
 
     class Meta:
         indexes = [models.Index(fields=['email'])]
+        constraints = [models.UniqueConstraint(Lower('email'), models.F('organization_slug'), name='unique_account_email_per_org')]
 
     @property
     def discount_available(self) -> bool:
@@ -35,6 +38,7 @@ class DinerAccount(models.Model):
 
 
 class SignupDiscountClaim(models.Model):
+    organization_slug = models.SlugField(max_length=60, db_index=True)
     key = models.CharField(max_length=64, unique=True)
     order = models.ForeignKey('experience_app.Order', on_delete=models.PROTECT)
 

@@ -42,7 +42,9 @@ export interface TemplateCatalog { familias: Record<Family, string>; plantillas:
 
 // Ajustes crudos de la sede: solo lo que el restaurante pisó. Un color ausente en paleta usa el de la
 // plantilla (o el de la marca del Plan G); lo mismo con tipografia.display.
-export interface MenuSettings { plantilla: string; paleta: Partial<Record<ColorToken, string>>; tipografia: { display?: string }; borrador?: string }
+export interface MenuSettings { plantilla: string; paleta: Partial<Record<ColorToken, string>>; tipografia: { display?: string }; borrador?: string
+  // Tema v2 guardado (solo lectura aquí): trae `tintaFondo`, la tinta del texto que va directo sobre el fondo.
+  tema?: { fundamentos?: { colores?: Record<string, string> } } }
 export interface MenuSettingsContext { restaurante: string; sede: string; experienceUrl: string; dinerUrl: string; ajustes: MenuSettings }
 // Lo que devuelve 'set': la plantilla resuelta (código + tokens finales) tal como la verá el comensal.
 export interface ResolvedTemplate { codigo: string; nombre: string; familia: Family; tokens: TemplateTokens }

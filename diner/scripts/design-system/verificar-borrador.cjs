@@ -23,9 +23,41 @@ const PAGES = [
   // El contraste depende de los colores del tema en todas las pantallas, no solo donde hay plantillas propias: sin sesión
   // se ven los estados vacíos, formularios y títulos que más sufren con un fondo oscuro.
   { name: 'plato', path: 'plato/41', widths: [375, 1024], wait: '.sm-dish-hero', shot: '.smart-menu' },
-  ...['favoritos', 'pedido', 'la-cuenta', 'historial', 'recompensas', 'ubicacion', 'cuenta', 'cuenta/entrar', 'cuenta/registro']
+  ...['favoritos', 'pedido', 'pago', 'la-cuenta', 'historial', 'recompensas', 'ubicacion', 'cuenta', 'cuenta/entrar', 'cuenta/registro']
     .map((screen) => ({ name: screen, path: screen, widths: [375], wait: '.smart-menu .sm-page', shot: '.smart-menu' })),
+  // El pedido con platos y su diálogo de modalidad: sin sesión el pedido sale vacío, así que el carrito se simula en el
+  // navegador (nada se escribe). El MCP cambia colores y estilos de estas pantallas, no su estructura; se comprueban ambos.
+  { name: 'pedido con platos', path: 'pedido', widths: [375, 1024], wait: '.sm-cart-line', shot: '.smart-menu', mocks: 'carrito' },
+  { name: 'modalidad', path: 'pedido', widths: [375], wait: '.sm-cart-line', shot: 'dialog.sm-fulfillment-dialog', mocks: 'carrito', open: 'modalidad' },
+  // Plan N: «Mis recompensas» de una cuenta verificada con un premio de cada tipo ganado y acciones pendientes (simulado).
+  { name: 'recompensas con beneficios', path: 'recompensas', widths: [375, 1024], wait: '.sm-reward-list', shot: '.smart-menu', mocks: 'recompensas' },
 ]
+
+// Plan N: cuenta verificada y sus recompensas para «recompensas con beneficios».
+const SAMPLE_ACCOUNT = { cuenta: { id: 'verificador', nombre: 'Ana Verificadora', correo: 'ana@example.invalid', verificada: true, descuentoDisponible: false }, pedidos: [] }
+const SAMPLE_REWARDS = { tarjeta: 1, codigo: 'VERIFICA-01', puntos: 1250, ganados: 0, programa: 'Puntos de muestra', valorPunto: 10, minimoCanje: 500,
+  beneficios: [
+    { id: 1, accion: 'novedades', premio: { tipo: 'cupon', codigo: 'BIENVENIDA10', nombre: 'Bienvenida', porcentaje: 10, minimo: 30000 }, estado: 'disponible', fecha: '2026-09-27' },
+    { id: 2, accion: 'opinion', premio: { tipo: 'puntos', puntos: 200, programa: 'Puntos de muestra' }, estado: 'acreditado', fecha: '2026-09-27' },
+    { id: 3, accion: 'pago_en_linea', premio: { tipo: 'descuento', porcentaje: 8 }, estado: 'disponible', fecha: '2026-09-27' },
+  ],
+  acciones: [
+    { accion: 'cuenta', premio: { tipo: 'descuento', porcentaje: 5 }, hecha: true },
+    { accion: 'opinion', premio: { tipo: 'puntos', puntos: 200 }, hecha: false },
+  ] }
+const MOCKS = {
+  carrito: [[/\/api\/v1\/sesiones\/[^/]+\/carrito\/(\?.*)?$/, () => SAMPLE_CART]],
+  recompensas: [[/\/api\/v1\/cuenta\/(\?.*)?$/, () => SAMPLE_ACCOUNT], [/\/favoritos\/(\?.*)?$/, () => ({ favoritos: [] })],
+    [/\/recompensas\/(\?.*)?$/, () => SAMPLE_REWARDS]],
+}
+
+// Carrito de muestra para «pedido con platos»: dos líneas propias (una con nota) y una de otra persona de la mesa.
+const SAMPLE_CART = { sesion: 'verificador', total: 133800, mio: 100900, por_comensal: [],
+  lineas: [
+    { id: 1, comensal: 'yo', mio: true, producto_id: 41, nombre: 'Hamburguesa Clásica', precio: 32000, cantidad: 2, nota: 'Sin cebolla', subtotal: 64000 },
+    { id: 2, comensal: 'yo', mio: true, producto_id: 40, nombre: 'Hamburguesa Angus', precio: 36900, cantidad: 1, nota: '', subtotal: 36900 },
+    { id: 3, comensal: 'a1b2c3d4', mio: false, producto_id: 43, nombre: 'Papas Trufadas', precio: 32900, cantidad: 1, nota: '', subtotal: 32900 },
+  ] }
 
 // Orígenes a los que la carta puede pedir recursos: el propio (incluidos los proxys /api y /experience) y Google Fonts.
 const ALLOWED_ORIGINS = new Set([new URL(base).origin, 'https://fonts.googleapis.com', 'https://fonts.gstatic.com'])
@@ -139,9 +171,65 @@ function imageCheck() {
   return [...problems.values()]
 }
 
+// Se ejecuta dentro de la página: estructura del diálogo «¿Dónde vas a disfrutarlo?». El tema puede cambiar sus colores y
+// estilos, pero siempre deben verse las dos modalidades con su icono en una fila, los dos campos, cerrar y continuar, y
+// todo dentro de la pantalla.
+function fulfillmentCheck() {
+  const problems = []
+  const dialog = document.querySelector('dialog.sm-fulfillment-dialog')
+  if (!dialog || !dialog.open) return ['modalidad: el diálogo «¿Dónde vas a disfrutarlo?» no se abrió']
+  const visible = (el) => { const r = el.getBoundingClientRect(), cs = getComputedStyle(el); return r.width > 2 && r.height > 2 && cs.visibility !== 'hidden' && cs.display !== 'none' && Number(cs.opacity) > 0.05 }
+  const options = [...dialog.querySelectorAll('.sm-fulfillment-option')].filter(visible)
+  const names = options.map((o) => o.textContent.trim())
+  if (names.join('|') !== 'Comer aquí|Para llevar') problems.push(`modalidad: se esperaban «Comer aquí» y «Para llevar»; se ven ${names.length ? names.map((n) => `«${n}»`).join(', ') : 'ninguna'}`)
+  for (const o of options) {
+    const icon = o.querySelector('svg')
+    if (!icon || !visible(icon)) problems.push(`modalidad: «${o.textContent.trim()}» no muestra su icono`)
+    const r = o.getBoundingClientRect()
+    if (icon && visible(icon)) { const ir = icon.getBoundingClientRect(); if (ir.top - r.top < 8 || r.bottom - ir.bottom < 8) problems.push(`modalidad: el icono de «${o.textContent.trim()}» queda pegado al borde de la opción`) }
+    if (r.width < 44 || r.height < 44) problems.push(`modalidad: «${o.textContent.trim()}» mide ${Math.round(r.width)}×${Math.round(r.height)} px (mínimo 44×44)`)
+  }
+  if (options.length === 2 && Math.abs(options[0].getBoundingClientRect().top - options[1].getBoundingClientRect().top) > 4) problems.push('modalidad: las dos opciones no comparten fila')
+  if (options.filter((o) => o.getAttribute('aria-pressed') === 'true').length !== 1) problems.push('modalidad: debe haber exactamente una modalidad elegida')
+  const fields = [...dialog.querySelectorAll('.sm-field textarea')].filter(visible)
+  if (fields.length !== 2) problems.push(`modalidad: se esperaban los campos de notas y de alergias; se ven ${fields.length}`)
+  if (![...dialog.querySelectorAll('button.sm-icon')].some(visible)) problems.push('modalidad: falta el botón de cerrar')
+  const go = [...dialog.querySelectorAll('.sm-primary')].filter(visible)
+  if (go.length !== 1 || !/Continuar al pago/.test(go[0].textContent)) problems.push('modalidad: falta «Continuar al pago»')
+  const box = dialog.getBoundingClientRect()
+  if (box.left < -1 || box.right > innerWidth + 1) problems.push('modalidad: el diálogo se sale de la pantalla a lo ancho')
+  if (box.height > innerHeight + 1 && dialog.scrollHeight <= dialog.clientHeight + 1) problems.push('modalidad: el diálogo es más alto que la pantalla y no se desplaza')
+  return problems
+}
+
+// Se ejecuta dentro de la página (Plan N): en «Mis recompensas», cada premio ganado y cada acción pendiente es una fila
+// legible con su premio y su origen, y la acción de usar un cupón es un control de 44 px que no se sale de su fila.
+function rewardsCheck() {
+  const problems = []
+  const visible = (el) => { const r = el.getBoundingClientRect(), cs = getComputedStyle(el); return r.width > 2 && r.height > 2 && cs.visibility !== 'hidden' && cs.display !== 'none' && Number(cs.opacity) > 0.05 }
+  for (const name of ['Tus beneficios', 'Gana más']) {
+    const list = document.querySelector(`.sm-reward-list[aria-label="${name}"]`)
+    if (!list || !visible(list)) { problems.push(`recompensas: falta la lista «${name}»`); continue }
+    for (const row of list.children) {
+      const title = row.querySelector('strong'), detail = row.querySelector('small')
+      if (!title || !visible(title) || !title.textContent.trim()) problems.push(`recompensas: una fila de «${name}» no dice su premio`)
+      if (!detail || !visible(detail) || !detail.textContent.trim()) problems.push(`recompensas: «${title?.textContent.trim()}» no dice de dónde viene ni cómo se usa`)
+      const box = row.getBoundingClientRect()
+      for (const control of row.querySelectorAll('a, button')) {
+        const r = control.getBoundingClientRect()
+        if (r.height < 44) problems.push(`recompensas: «${control.textContent.trim().slice(0, 30)}» mide ${Math.round(r.height)} px de alto (mínimo 44)`)
+        if (r.right > box.right + 1 || r.left < box.left - 1) problems.push(`recompensas: «${control.textContent.trim().slice(0, 30)}» se sale de su fila`)
+      }
+    }
+  }
+  const coupon = [...document.querySelectorAll('.sm-reward-item button')].find((b) => /Usar en mi pedido/.test(b.textContent))
+  if (!coupon) problems.push('recompensas: el cupón ganado no ofrece «Usar en mi pedido»')
+  return problems
+}
+
 // Se ejecuta dentro de la página: reglas de maquetación de las pantallas, que son del código y no del tema (el MCP no las
 // cambia), para que ninguna regresión pase sin verse. Espacio vacío al final, contenido cortado por el borde, muelle en una
-// fila, adornos fijos visibles sin sentido y nutrición en una fila.
+// fila, adornos fijos visibles sin sentido, nutrición en una fila y el pedido como una sola tarjeta en texto.
 function layoutCheck() {
   const problems = []
   const visible = (el) => { const r = el.getBoundingClientRect(), cs = getComputedStyle(el); return r.width > 2 && r.height > 2 && cs.visibility !== 'hidden' && cs.display !== 'none' && Number(cs.opacity) > 0.05 }
@@ -173,6 +261,12 @@ function layoutCheck() {
     const tops = items.map((el) => Math.round(el.getBoundingClientRect().top))
     if (items.length > 1 && Math.max(...tops) - Math.min(...tops) > 4) problems.push('maquetación: los botones del muelle no comparten fila')
     for (const b of dock.querySelectorAll('a, button')) if (visible(b) && b.getBoundingClientRect().height > 72) problems.push(`maquetación: el botón «${b.textContent.trim().slice(0, 24)}» del muelle parte su texto en varias líneas`)
+    // Muelle compacto: el mesero queda como icono y la acción de al lado no recorta su texto (cantidad y total del pedido).
+    if (dock.classList.contains('sm-action-dock-compacto')) {
+      const chat = dock.querySelector('.sm-chat-launch')
+      if (chat && visible(chat) && chat.getBoundingClientRect().width > 64) problems.push(`maquetación: con el muelle compacto, «Mi mesero» mide ${Math.round(chat.getBoundingClientRect().width)} px (debe quedar como icono)`)
+      for (const el of dock.querySelectorAll('.sm-cart-float, .sm-cart-float *, .sm-confirm-slot .sm-primary')) if (visible(el) && el.scrollWidth > el.clientWidth + 1) problems.push(`maquetación: el muelle recorta «${el.textContent.trim().slice(0, 30)}»`)
+    }
   }
   // 4. Adornos fijos: las órbitas de la ficha solo acompañan a una foto circular.
   const orbits = document.querySelector('.smart-menu .sm-dish-orbits'), photo = document.querySelector('.smart-menu .sm-dish-hero .sm-dish-photo')
@@ -194,6 +288,14 @@ function layoutCheck() {
   }
   // 5. Nutrición en una fila.
   const nutrition = [...document.querySelectorAll('.smart-menu .sm-nutrition > div')].filter(visible)
+  // En el pago no hay muelle: «Mi mesero» ya no es una opción cuando la persona está pagando.
+  if (document.querySelector('.smart-menu.sm-screen-pago') && document.querySelector('.sm-action-dock, .sm-chat-launch')) problems.push('pago: el muelle con «Mi mesero» no debe aparecer en el pago')
+  // El pedido es una sola tarjeta: lo pedido va en texto dentro del resumen; la foto solo si una plantilla propia la usa.
+  for (const line of document.querySelectorAll('.sm-cart-line')) {
+    const plato = line.querySelector('h2')?.textContent.trim().slice(0, 30) || 'plato'
+    if (!line.closest('.sm-summary')) problems.push(`pedido: «${plato}» va en una tarjeta aparte; lo pedido debe ir dentro del resumen`)
+    if (line.getAttribute('data-plantilla') !== 'propia' && [...line.querySelectorAll('.sm-food-photo')].some(visible)) problems.push(`pedido: «${plato}» lleva foto; en el resumen lo pedido va en texto`)
+  }
   if (nutrition.length > 1 && new Set(nutrition.map((el) => Math.round(el.getBoundingClientRect().top))).size > 1) problems.push('maquetación: la información nutricional no cabe en una fila')
   return [...new Set(problems)]
 }
@@ -308,12 +410,20 @@ async function main() {
         const url = request.url()
         if (/^https?:/.test(url) && !ALLOWED_ORIGINS.has(new URL(url).origin)) foreign.add(new URL(url).origin)
       })
+      // Respuestas simuladas solo para lecturas de la API; las páginas de verificación no escriben nada.
+      for (const [pattern, body] of MOCKS[spec.mocks] || []) await page.route((url) => url.pathname.startsWith('/api/') && pattern.test(url.pathname + url.search),
+        (route) => route.request().method() === 'GET' ? route.fulfill({ contentType: 'application/json', body: JSON.stringify(body()) }) : route.continue())
       await page.goto(`${base}/${encodeURIComponent(rest)}/${encodeURIComponent(venue)}/${spec.path}/${token ? `?borrador=${encodeURIComponent(token)}` : ''}`, { waitUntil: 'networkidle', timeout: 120000 })
       await page.locator(spec.wait).first().waitFor({ timeout: 60000 })
       // Un teléfono no reserva sitio para la barra de desplazamiento; el Edge de Windows sí (15 px). Se oculta para medir el ancho real.
       await page.addStyleTag({ content: 'html { scrollbar-width: none } ::-webkit-scrollbar { display: none }' })
       await page.evaluate(() => document.fonts.ready)
       await page.waitForTimeout(600)
+      if (spec.open === 'modalidad') {
+        await page.locator('.sm-cart-submit .sm-primary').first().click()
+        await page.locator('dialog.sm-fulfillment-dialog[open]').waitFor({ timeout: 15000 })
+        await page.waitForTimeout(400)
+      }
       const measured = await page.evaluate(measureRoots)
       if (errors.length) measured.problemas.push(...errors.map((e) => `error de JavaScript: ${e}`))
       // Con borrador la página no debe escribir nada; lo publicado sí abre la sesión de mesa (POST /sesiones), que es lo normal.
@@ -322,6 +432,8 @@ async function main() {
       measured.problemas.push(...await page.evaluate(contrastCheck))
       measured.problemas.push(...await page.evaluate(imageCheck))
       if (spec.name !== 'sistema') measured.problemas.push(...await page.evaluate(layoutCheck))
+      if (spec.open === 'modalidad') measured.problemas.push(...await page.evaluate(fulfillmentCheck))
+      if (spec.mocks === 'recompensas') measured.problemas.push(...await page.evaluate(rewardsCheck))
       // Plan M: toda foto de plato llega optimizada (WebP) y ligera (menos de 400 KB), la principal y las de galería.
       const photos = await page.evaluate(() => [...new Set([...document.querySelectorAll('.smart-menu img')].map((i) => i.currentSrc || i.src).filter((u) => /\/fotos\/\d+/.test(u)))].slice(0, 12))
       for (const url of photos) {

@@ -5,7 +5,7 @@
   "pantallas": [
     "pedido"
   ],
-  "descripcion": "Cada plato del carrito. La plantilla se dibuja dentro de la línea real, que conserva la distribución del carrito y el gesto de deslizar para eliminar.",
+  "descripcion": "Cada plato del pedido, en texto dentro del resumen: cantidad, nombre, comensal y nota, subtotal y controles. La plantilla se dibuja dentro de la línea real, que conserva el gesto de deslizar para eliminar. La foto no se pinta de fábrica, pero una plantilla puede usar su ranura.",
   "datos": {
     "linea.nombre": {
       "tipo": "texto",
@@ -73,5 +73,5 @@
   "limites": {
     "ancho_minimo": 327
   },
-  "plantilla_fabrica": "<ranura nombre=\"foto\"/>\n<ranura nombre=\"info\"/>"
+  "plantilla_fabrica": "<ranura nombre=\"info\"/>"
 }

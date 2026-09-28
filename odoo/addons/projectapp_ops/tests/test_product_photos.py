@@ -186,6 +186,9 @@ class TestProductPhotos(TransactionCase):
         third = self._photo(sequence=1)
         self.assertEqual(self.product.diner_photo_ids.ids, [second.id, third.id, first.id])
         ids = self.product.diner_photo_ids.ids
+        # La copia de la base de desarrollo puede tener una sesión del POS abierta, y Odoo no deja borrar un producto
+        # vendible mientras la haya; la cascada de las fotos no depende de eso.
+        self.product.available_in_pos = False
         self.product.unlink()
         self.assertFalse(self.Photo.browse(ids).exists())
 

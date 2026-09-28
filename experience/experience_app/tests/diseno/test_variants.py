@@ -78,7 +78,7 @@ def test_save_variants_cache_and_legacy_contract(api_client, settings, company_b
         after = services.resolve_template(TABLE)['tema']
         for layer in LAYERS:
             assert after[layer] == expected[layer]
-            assert services.settings_view('burger-house', 'otra')['tema'][layer] == design.defaults()[layer]
+            assert services.settings_view('otra-organizacion', 'otra')['tema'][layer] == design.defaults()[layer]
         invalid = api_client.put(url, {'plantilla': 'S1', 'tema': {'variantes': {'boton': 'oculto'}}},
                                  format='json', HTTP_X_INTERNAL_KEY='clave-prueba')
         assert invalid.status_code == 400

@@ -1,4 +1,4 @@
-"""Resolución jerárquica restaurante → sede → mesa para el bloque 3. Interna: clave compartida."""
+"""Resolución jerárquica organización → restaurante → mesa para el bloque 3. Interna: clave compartida."""
 
 import hmac
 
@@ -6,7 +6,7 @@ from django.conf import settings
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from registry_app.models import CredentialRelease, TableToken, Venue
+from registry_app.models import CredentialRelease, Restaurant, TableToken, Venue
 
 
 def _authorized(request) -> bool:
@@ -52,3 +52,14 @@ def resolve(request, restaurant, venue, token=None):
             },
         }
     )
+
+
+@api_view(["GET"])
+def restaurants(request, organization):
+    """Índice interno de restaurantes activos, sin credenciales ni tokens de mesa."""
+    if not _authorized(request):
+        return Response({"detail": "clave interna inválida"}, status=401)
+    org = Restaurant.objects.filter(slug=organization, active=True).first()
+    if org is None:
+        return Response({"detail": "organización no encontrada"}, status=404)
+    return Response(list(org.venues.filter(active=True).order_by('id').values('slug', 'name')))

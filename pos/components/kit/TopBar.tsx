@@ -11,6 +11,8 @@ import { TAB_ROUTES, adminSubtabsFor, tabsFor, type AdminSubtab, type KitTab } f
 import type { RolePolicy } from '@/lib/domain/permissions'
 import { homePath } from '@/lib/domain/navigation'
 import type { Role } from '@/lib/domain/roles'
+import { useIdentity } from '@/lib/hooks/useIdentity'
+import { useAuthStore } from '@/lib/stores/authStore'
 import { useNotificationStore } from '@/lib/stores/notificationStore'
 import { cn, initials } from '@/lib/utils'
 
@@ -38,6 +40,11 @@ export function TopBar({ active, role, policy, userName, unread, activeSubtab, o
     return () => ro.disconnect()
   }, [active, role, administrationOnly, policy])
   const tr = useTranslations('pos.nav.roles')
+  const { owner } = useIdentity()
+  const restaurant = useAuthStore((s) => s.restaurant)
+  const restaurants = useAuthStore((s) => s.restaurants)
+  // Con varios restaurantes, en cuál se está (en pantallas medianas va junto al rol; en grandes, en su propia etiqueta).
+  const place = (restaurants?.length ?? 0) > 1 ? restaurant?.name ?? null : null
   const tabs = tabsFor(role, policy).filter((tab) => !administrationOnly || !['orders', 'kitchen'].includes(tab))
   const subtabs = adminSubtabsFor(role, policy)
   return (
@@ -61,15 +68,18 @@ export function TopBar({ active, role, policy, userName, unread, activeSubtab, o
           </Link>
         </>}
         <div className="ml-auto shrink-0 flex items-center gap-3 relative">
+          {/* Plan O: con varios restaurantes se dice en cuál se está; el dueño vuelve desde aquí a su consola. */}
+          {place && <span title={place} className="hidden min-[1600px]:inline-flex h-12 px-3 items-center gap-2 rounded-md border border-border text-[15px] font-semibold text-ink"><Icon name="store" size={18} />{place}</span>}
+          {owner && <Link href="/organizacion" aria-label="Consola de la organización" className="h-12 px-3 flex items-center gap-2 rounded-md border border-primary/40 text-primary text-[15px] font-semibold"><Icon name="layout" size={20} /><span className="hidden min-[1600px]:inline">Organización</span></Link>}
           <button type="button" aria-label={t('bell', { count })} aria-expanded={bell} onClick={() => setBell((v) => !v)} className={cn('relative w-12 h-12 rounded-md border border-border grid place-items-center', bell ? 'text-primary border-primary/40' : 'text-soft')}>
             <Icon name="bell" size={22} />
             {count > 0 && <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 rounded-full bg-danger border-2 border-surface" />}
           </button>
           <NotificationPopover open={bell} onClose={() => setBell(false)} />
           {/* En 1194 px con ocho pestañas el nombre no cabe: bajo 1400 px queda solo el avatar; la etiqueta accesible lleva nombre y rol. */}
-          <button type="button" onClick={onOpenSettings} aria-label={`${userName} / ${tr(role)}`} className="h-12 px-1.5 min-[1400px]:pr-4 rounded-md border border-border flex items-center gap-2.5">
+          <button type="button" onClick={onOpenSettings} aria-label={`${userName} / ${tr(role)}${place ? ` · ${place}` : ''}`} className="h-12 px-1.5 min-[1400px]:pr-4 rounded-md border border-border flex items-center gap-2.5">
             <span className="w-9 h-9 rounded-full bg-primary-soft text-primary grid place-items-center text-[14px] font-semibold">{initials(userName)}</span>
-            <span className="hidden min-[1400px]:inline text-[15px] text-ink font-semibold">{userName}<span className="text-dim font-normal"> / {tr(role)}</span></span>
+            <span className="hidden min-[1400px]:inline text-[15px] text-ink font-semibold">{userName}<span className={cn('text-dim font-normal', place && 'hidden min-[1600px]:inline')}> / {tr(role)}</span>{place && <span className="min-[1600px]:hidden text-dim font-normal"> · {place}</span>}</span>
           </button>
         </div>
       </div>

@@ -59,7 +59,9 @@ class OdooClient:
     def call_kw(self, model: str, method: str, args: list, kwargs: dict | None = None):
         if self.uid is None:
             self.authenticate()
-        params = {'model': model, 'method': method, 'args': args, 'kwargs': kwargs or {}}
+        kwargs = dict(kwargs or {})
+        kwargs['context'] = {**kwargs.get('context', {}), 'waiter_config_id': self.creds.pos_config_id}
+        params = {'model': model, 'method': method, 'args': args, 'kwargs': kwargs}
         try:
             return self._post('/web/dataset/call_kw', params)
         except OdooError as exc:

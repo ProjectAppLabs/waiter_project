@@ -1,5 +1,5 @@
 import { toShift, type Shift } from '@/lib/domain/employees'
-import type { Role } from '@/lib/domain/roles'
+import type { AccountRole } from '@/lib/domain/roles'
 import { callKw } from '@/lib/services/odoo'
 
 // Empleados del terminal. Todo el PIN se resuelve en el servidor con los métodos de `projectapp_ops`
@@ -8,13 +8,13 @@ import { callKw } from '@/lib/services/odoo'
 const EMPLOYEE = 'hr.employee'
 const LIST_FIELDS = ['name', 'waiter_role', 'employee_code', 'shift_start', 'shift_end']
 
-export interface PosEmployee { id: number; name: string; code: string | null; role: Role | null; shift: Shift | null }
+export interface PosEmployee { id: number; name: string; code: string | null; role: AccountRole | null; shift: Shift | null }
 export interface EmployeeProfile {
   id: number; name: string; code: string | null; phone: string | null; email: string | null; address: string | null
-  joiningDate: string | null; accessRole: Role | null; employmentStatus: string | null; manager: string | null
+  joiningDate: string | null; accessRole: AccountRole | null; employmentStatus: string | null; manager: string | null
   jobTitle: string | null; shift: Shift | null
 }
-export interface CheckedEmployee { id: number; name: string; code: string | null; role: Role | null; shift: Shift | null; userId: number | null }
+export interface CheckedEmployee { id: number; name: string; code: string | null; role: AccountRole | null; shift: Shift | null; userId: number | null }
 export type PinResult =
   | { ok: true; employee: CheckedEmployee; attendanceId: number; token: string }
   | { ok: false; reason: 'wrong'; attemptsLeft: number }
@@ -22,7 +22,7 @@ export type PinResult =
   | { ok: false; reason: 'unknown' }
 
 interface RawEmployee {
-  id: number; name: string; waiter_role: Role | false; employee_code: string | false
+  id: number; name: string; waiter_role: AccountRole | false; employee_code: string | false
   shift_start: number | false; shift_end: number | false
 }
 interface RawProfile extends RawEmployee {
@@ -33,7 +33,7 @@ interface RawPrivate { private_street: string | false; private_city: string | fa
 interface RawPin {
   ok: boolean; reason?: 'wrong' | 'locked' | 'unknown'; attempts_left?: number; locked_until?: string
   attendance_id?: number; token?: string
-  employee?: { id: number; name: string; waiter_role: Role | false; employee_code: string | false; shift_start: number; shift_end: number; user_id: number | false }
+  employee?: { id: number; name: string; waiter_role: AccountRole | false; employee_code: string | false; shift_start: number; shift_end: number; user_id: number | false }
 }
 
 const or = (v: string | false | null | undefined): string | null => (v ? v : null)
@@ -99,8 +99,8 @@ export async function findOpenAttendance(employeeId: number): Promise<{ id: numb
 
 // Por el mismo motivo que la lista: un mesero no puede leer estos campos directamente, así que se piden
 // al servidor y se busca el suyo. Sin esto, recargar la página dejaba al mesero sin empleado activo.
-export async function readEmployee(id: number): Promise<PosEmployee> {
-  const found = (await listPosEmployees()).find((e) => e.id === id)
+export async function readEmployee(id: number, configId: number | null = null): Promise<PosEmployee> {
+  const found = (await listPosEmployees(configId)).find((e) => e.id === id)
   if (!found) throw new Error(`El empleado ${id} ya no está disponible en este terminal.`)
   return found
 }

@@ -41,9 +41,11 @@ PARAMS = {
 REQUIRED = ("experience_url", "internal_key", "restaurant", "venue", "diner_url")
 
 
-def _params():
+def _params(config_id=None):
     icp = request.env["ir.config_parameter"].sudo()
     values = {name: (icp.get_param(key) or "").strip() for name, key in PARAMS.items()}
+    config = request.env['pos.config']._waiter_selected_config(config_id)
+    values['venue'] = config.waiter_slug or ''
     missing = [PARAMS[name] for name in REQUIRED if not values[name]]
     if missing:
         raise UserError(_("Falta configurar en Odoo: %s. Siémbralos con env.set_param (ver README del addon).") % ", ".join(missing))
@@ -83,13 +85,13 @@ def _call(method, url, key, json=None):
 
 class WaiterAdmin(http.Controller):
     @http.route("/waiter/admin/menu_settings", type="jsonrpc", auth="user", methods=["POST"])
-    def menu_settings(self, action="get", plantilla=None, paleta=None, tipografia=None, tema=None, borrador=None, **kw):
+    def menu_settings(self, action="get", plantilla=None, paleta=None, tipografia=None, tema=None, borrador=None, config_id=None, **kw):
         # Solo quien administra el POS elige la plantilla: el mesero y el cajero no llegan aquí.
         if not request.env.user.has_group("point_of_sale.group_pos_manager"):
             raise AccessError(_("Solo un administrador del punto de venta puede cambiar la plantilla del menú."))
         if kw:
             raise UserError(_("Parámetros desconocidos: %s") % ", ".join(sorted(kw)))
-        p = _params()
+        p = _params(config_id)
         url = "%s/internal/v1/%s/%s/menu/" % (p["experience_url"].rstrip("/"), p["restaurant"], p["venue"])
         if action == "get":
             return {"restaurante": p["restaurant"], "sede": p["venue"], "experienceUrl": p["experience_url"],
@@ -115,12 +117,12 @@ class WaiterAdmin(http.Controller):
         raise UserError(_("Acción desconocida: %s (usa get, set, preview o verify).") % action)
 
     @http.route("/waiter/admin/menu_decorations", type="jsonrpc", auth="user", methods=["POST"])
-    def menu_decorations(self, action="list", nombre=None, imagen=None, decoracion_id=None, **kw):
+    def menu_decorations(self, action="list", nombre=None, imagen=None, decoracion_id=None, config_id=None, **kw):
         if not request.env.user.has_group("point_of_sale.group_pos_manager"):
             raise AccessError(_("Solo un administrador del punto de venta puede administrar las decoraciones del menú."))
         if kw:
             raise UserError(_("Parámetros desconocidos: %s") % ", ".join(sorted(kw)))
-        p = _params()
+        p = _params(config_id)
         base = "%s/internal/v1/%s/%s/decoraciones/" % (p["experience_url"].rstrip("/"), p["restaurant"], p["venue"])
         if action == "list":
             return {**_call("GET", base, p["internal_key"]), "experienceUrl": p["experience_url"]}
@@ -135,7 +137,7 @@ class WaiterAdmin(http.Controller):
         raise UserError(_("Acción desconocida: %s (usa list, add o remove).") % action)
 
     @http.route("/waiter/admin/mcp_keys", type="jsonrpc", auth="user", methods=["POST"])
-    def mcp_keys(self, action="list", nombre=None, key_id=None, **kw):
+    def mcp_keys(self, action="list", nombre=None, key_id=None, config_id=None, **kw):
         """Claves MCP de esta sede (ver experience/experience_app/mcp). La sede sale de los parámetros de este Odoo, nunca
         del navegador: un administrador solo crea o revoca claves de su propio restaurante.
 
@@ -147,7 +149,7 @@ class WaiterAdmin(http.Controller):
             raise AccessError(_("Solo un administrador del punto de venta puede administrar las claves de IA."))
         if kw:
             raise UserError(_("Parámetros desconocidos: %s") % ", ".join(sorted(kw)))
-        p = _params()
+        p = _params(config_id)
         base = "%s/internal/v1/%s/%s/mcp/claves/" % (p["experience_url"].rstrip("/"), p["restaurant"], p["venue"])
         mcp_url = "%s/mcp/" % p["experience_url"].rstrip("/")
         if action == "list":
@@ -161,14 +163,14 @@ class WaiterAdmin(http.Controller):
         raise UserError(_("Acción desconocida: %s (usa list, create o revoke).") % action)
 
     @http.route("/waiter/admin/payment_gateways", type="jsonrpc", auth="user", methods=["POST"])
-    def payment_gateways(self, action="get", configuration=None, environment="test", **kw):
+    def payment_gateways(self, action="get", configuration=None, environment="test", config_id=None, **kw):
         if not request.env.user.has_group("point_of_sale.group_pos_manager"):
             raise AccessError("Solo un administrador del POS puede configurar las pasarelas de pago.")
         if kw or action not in ("get", "set", "test"):
             raise UserError("Acción de pasarela inválida.")
-        p = _params()
+        p = _params(config_id)
         url = "%s/internal/v1/%s/%s/pasarelas/" % (p["experience_url"].rstrip("/"), p["restaurant"], p["venue"])
-        # Tenant comes from this Odoo database, never from a browser-supplied slug.
+        # El restaurante se resuelve desde el config autorizado.
         if action == "get":
             return _call("GET", url, p["internal_key"])
         if action == "test":

@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from odoo.tests import HttpCase, TransactionCase, tagged
 from odoo.tests.common import new_test_user
+from odoo.addons.projectapp_ops.tests.common_waiter import single_restaurant
 
 PARAMS = {"projectapp.experience_url": "http://experience.test", "projectapp.experience_internal_key": "k",
           "projectapp.restaurant_slug": "burger-house", "projectapp.venue_slug": "poblado", "projectapp.diner_url": "http://diner.test"}
@@ -31,6 +32,7 @@ class TestLoadData(TransactionCase):
 class TestMenuSettingsGateway(HttpCase):
     def setUp(self):
         super().setUp()
+        single_restaurant(self.env)
         icp = self.env["ir.config_parameter"].sudo()
         for key, value in PARAMS.items():
             icp.set_param(key, value)
@@ -194,6 +196,7 @@ class TestMenuDecorationsGateway(HttpCase):
 
     def setUp(self):
         super().setUp()
+        single_restaurant(self.env)
         icp = self.env["ir.config_parameter"].sudo()
         for key, value in PARAMS.items():
             icp.set_param(key, value)

@@ -1,16 +1,16 @@
-"""Siembra la demo: un restaurante, una sede sobre el Odoo del compose y un token por mesa.
+"""Siembra la demo: una organización, un restaurante sobre el Odoo del compose y un token por mesa.
 
 Aprovisionamiento, no lógica de negocio: lee las mesas de Odoo por JSON-RPC una vez
 para saber sus ids, y no vuelve a hablar con Odoo nunca más.
 """
 
 import requests
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
 from registry_app.models import Restaurant, TableToken, Venue
 
 
-def _odoo_tables(url: str, db: str, login: str, password: str) -> list[dict]:
+def _odoo_tables(url: str, db: str, login: str, password: str, config_id: int = 1) -> list[dict]:
     s = requests.Session()
     auth = s.post(
         f"{url}/web/session/authenticate",
@@ -18,7 +18,12 @@ def _odoo_tables(url: str, db: str, login: str, password: str) -> list[dict]:
         timeout=20,
     ).json()
     if not auth.get("result", {}).get("uid"):
-        raise SystemExit(f"Odoo rechazó las credenciales: {auth.get('error', {}).get('message')}")
+        raise CommandError('Odoo rechazó las credenciales del restaurante.')
+    config = s.post(f'{url}/web/dataset/call_kw', json={'jsonrpc': '2.0', 'params': {
+        'model': 'pos.config', 'method': 'search_read', 'args': [[['id', '=', config_id]], ['id']], 'kwargs': {},
+    }}, timeout=20).json()
+    if not config.get('result'):
+        raise CommandError('El config indicado no existe o no está disponible en esta base de Odoo.')
     res = s.post(
         f"{url}/web/dataset/call_kw",
         json={
@@ -26,7 +31,7 @@ def _odoo_tables(url: str, db: str, login: str, password: str) -> list[dict]:
             "params": {
                 "model": "restaurant.table",
                 "method": "search_read",
-                "args": [[["active", "=", True]], ["id", "table_number"]],
+                "args": [[["active", "=", True], ["floor_id.pos_config_ids", "in", [config_id]]], ["id", "table_number"]],
                 "kwargs": {},
             },
         },
@@ -65,7 +70,7 @@ class Command(BaseCommand):
         )
         venue.odoo_password = o["password"]
         venue.save()
-        for t in _odoo_tables(o["odoo_url"], o["db"], o["login"], o["password"]):
+        for t in _odoo_tables(o["odoo_url"], o["db"], o["login"], o["password"], o["config_id"]):
             token, created = TableToken.objects.get_or_create(
                 venue=venue, odoo_table_id=t["id"], defaults={"table_number": t["table_number"]}
             )

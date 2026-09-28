@@ -56,7 +56,7 @@ export interface MenuTheme {
   }
 }
 // `contexto.plantilla`: la plantilla resuelta (catálogo + paleta y tipografía de la sede + marca). Es lo único que el motor necesita.
-export interface Template { codigo: string; nombre: string; familia: TemplateFamily; tokens: TemplateTokens; layouts: TemplateLayouts; fotos: TemplatePhotos; fuentesGoogle: string[]; descuento: TemplateDiscount; tema?: MenuTheme }
+export interface Template { codigo: string; nombre: string; familia: TemplateFamily; tokens: TemplateTokens; layouts: TemplateLayouts; fotos: TemplatePhotos; fuentesGoogle: string[]; descuento: TemplateDiscount; acciones?: RewardOffer[]; tema?: MenuTheme }
 // Una entrada del catálogo público (GET /api/v1/plantillas/): el spec.json sin resúmenes, con miniatura.
 export interface TemplateSpec {
   codigo: string; nombre: string; familia: TemplateFamily; familiaNombre?: string; descripcion?: string
@@ -117,5 +117,16 @@ export interface DesignContract {
   inventario: { fundamentos: Record<string, string[]>; derivadas: Record<string, string>; componentes: DesignComponent[]; pantallas: Record<string, string[]>; variantes: Record<string, DesignVariantField> }
 }
 
-export interface DinerRewards {tarjeta:number|null;codigo:string;puntos:number;ganados:number;programa:string;valorPunto:number;minimoCanje:number}
+// Plan N: acciones del menú que dan un premio, lo que la cuenta ya ganó y las acciones que le quedan (GET recompensas).
+export type RewardAction = 'cuenta' | 'opinion' | 'novedades' | 'pago_en_linea'
+export type RewardPrize =
+  | { tipo: 'descuento'; porcentaje: number }
+  | { tipo: 'cupon'; codigo: string; nombre: string; porcentaje: number; minimo: number }
+  | { tipo: 'puntos'; puntos: number; programa?: string }
+export interface RewardOffer { accion: RewardAction; premio: RewardPrize; hecha?: boolean }
+export interface EarnedReward { id: number | string; accion: RewardAction; premio: RewardPrize; estado: 'disponible' | 'reservado' | 'usado' | 'acreditado'; fecha: string }
+export interface DinerRewards {tarjeta:number|null;codigo:string;puntos:number;ganados:number;programa:string;valorPunto:number;minimoCanje:number;beneficios?:EarnedReward[];acciones?:RewardOffer[]}
 export interface VenueLocation {direccion:string;latitud:number|null;longitud:number|null}
+
+// Plan O: portada de la organización (`GET /api/v1/<org>/`): sus restaurantes para elegir a cuál entrar.
+export interface OrganizationEntry { organizacion: { slug: string; nombre: string; marca?: Record<string, unknown> }; restaurantes: { slug: string; nombre: string; direccion?: string }[] }

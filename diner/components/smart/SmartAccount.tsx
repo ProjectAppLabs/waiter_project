@@ -5,6 +5,7 @@ import {PasswordField} from './SmartPassword'
 import { updateAccount } from '@/lib/services/api'
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { initials } from '@/lib/domain/template'
+import { prizeText } from '@/lib/domain/rewards'
 import { useDinerStore } from '@/lib/stores/dinerStore'
 import type { Account, AccountOrder, Dish, RegisterForm } from '@/lib/types'
 import { Plantilla } from '@/components/plantillas/Renderizador'
@@ -22,6 +23,7 @@ import {
 
 export function SmartSignup() {
   const { register, busy, error, template } = useDinerStore()
+  const signupPrize = template.acciones?.find((a) => a.accion === 'cuenta')?.premio
   const { go } = useSmartRoute()
   const [form, setForm] = useState<RegisterForm>({
     clave: '',
@@ -74,10 +76,16 @@ export function SmartSignup() {
               <Icon name="bag" />
               Tu historial de pedidos
             </span>
-            {template.descuento.activo && (
+            {template.descuento.activo ? (
               <span>
                 <Icon name="check" />
                 {template.descuento.porcentaje}% en tu primera compra elegible
+              </span>
+            ) : signupPrize && (
+              // Plan N: si crear la cuenta da un cupón o puntos (no el descuento de primera compra), se dice cuál.
+              <span>
+                <Icon name="check" />
+                Al verificarla ganas {prizeText(signupPrize)}
               </span>
             )}
           </div>

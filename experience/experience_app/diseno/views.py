@@ -40,7 +40,7 @@ def decorations(request, restaurant, venue):
 
 
 @api_view(['GET'])
-def decoration(request, restaurant, venue, slug):
+def decoration(request, restaurant, slug, venue=''):
     found = decoraciones.get(restaurant, venue, slug)
     if found is None:
         return Response({'detail': 'sin decoración'}, status=404)

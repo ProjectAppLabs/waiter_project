@@ -81,11 +81,11 @@ def create(tenant, theme, *, key=None, before=None):
     preview.update(tema=theme, tokens=design.apply_to_tokens(theme, preview['tokens']))
     typography = theme['fundamentos']['tipografia']
     preview['fuentesGoogle'] = list(dict.fromkeys([typography['display'], typography['cuerpo'], *typography['fuentes']]))
-    McpPendingChange.objects.filter(restaurant_slug=tenant.restaurant_slug, venue_slug=tenant.venue_slug,
+    McpPendingChange.objects.filter(restaurant_slug=tenant.restaurant_slug, venue_slug='',
                                     created_at__lte=timezone.now() - TTL, applied_at__isnull=True).delete()
     return McpPendingChange.objects.create(key=key, kind='theme' if key else 'preview',
-        restaurant_slug=tenant.restaurant_slug, venue_slug=tenant.venue_slug, preview_token=uuid.uuid4(), preview=preview,
-        payload={'plantilla': 'S1', 'tema': theme, 'base': current})
+        restaurant_slug=tenant.restaurant_slug, venue_slug='', preview_token=uuid.uuid4(), preview=preview,
+        payload={'plantilla': 'S1', 'tema': theme, 'base': current, 'preview_venue_slug': tenant.venue_slug})
 
 
 def design_system_url(restaurant, venue, token=None):
@@ -94,10 +94,19 @@ def design_system_url(restaurant, venue, token=None):
     return f'{url}?borrador={token}' if token else url
 
 
+def preview_venue(change):
+    """El local de la vista previa no decide el alcance del diseño compartido."""
+    venue = change.payload.get('preview_venue_slug') or change.venue_slug
+    if not venue:
+        from experience_app.adapters.registry.client import resolve
+        venue = resolve(change.restaurant_slug, '').venue_slug
+    return venue
+
+
 def result(change):
     return {'borrador': str(change.preview_token), 'caduca': (change.created_at + TTL).isoformat(),
-            'url': f'{settings.DINER_PUBLIC_URL}/{quote(change.restaurant_slug)}/{quote(change.venue_slug)}/carta?borrador={change.preview_token}',
-            'url_design_system': design_system_url(change.restaurant_slug, change.venue_slug, change.preview_token),
+            'url': f'{settings.DINER_PUBLIC_URL}/{quote(change.restaurant_slug)}/{quote(preview_venue(change))}/carta?borrador={change.preview_token}',
+            'url_design_system': design_system_url(change.restaurant_slug, preview_venue(change), change.preview_token),
             'vista_previa': differences(change.payload['base'], change.payload['tema'])}
 
 
@@ -109,7 +118,7 @@ def get(restaurant, venue, token, *, lock=False):
         raise InvalidDraft('El borrador no existe, caducó o ya fue aplicado.') from None
     changes = McpPendingChange.objects.select_for_update() if lock else McpPendingChange.objects.all()
     change = changes.filter(preview_token=token,
-        restaurant_slug=restaurant, venue_slug=venue, kind__in=['theme', 'preview']).first()
+        restaurant_slug=restaurant, venue_slug='', kind__in=['theme', 'preview']).first()
     if (change is None or change.applied_at or timezone.now() >= change.created_at + TTL
             or (change.key_id and change.key.revoked_at)):
         raise InvalidDraft('El borrador no existe, caducó o ya fue aplicado.')
@@ -268,7 +277,7 @@ def start_verification(change):
 
 
 def _run_verifier(command: str, change) -> dict:
-    env = {**os.environ, 'DRAFT_TOKEN': str(change.preview_token), 'REST': change.restaurant_slug, 'SEDE': change.venue_slug}
+    env = {**os.environ, 'DRAFT_TOKEN': str(change.preview_token), 'REST': change.restaurant_slug, 'SEDE': preview_venue(change)}
     parts = shlex.split(command)
     if not parts:
         raise ValueError('DESIGN_VERIFIER_CMD está vacío')
@@ -340,9 +349,9 @@ def confirm(key, token):
     template = templates.default_template()
     if template is None:
         raise InvalidDraft('El catálogo de plantillas no está cargado. Vuelve a preparar el tema cuando esté disponible.')
-    VenueMenuSettings.objects.get_or_create(restaurant_slug=key.restaurant_slug, venue_slug=key.venue_slug,
+    VenueMenuSettings.objects.get_or_create(restaurant_slug=key.restaurant_slug, venue_slug='',
                                             defaults={'template': template})
-    VenueMenuSettings.objects.select_for_update().get(restaurant_slug=key.restaurant_slug, venue_slug=key.venue_slug)
+    VenueMenuSettings.objects.select_for_update().get(restaurant_slug=key.restaurant_slug, venue_slug='')
     if templates.settings_view(key.restaurant_slug, key.venue_slug)['tema'] != change.payload['base']:
         raise InvalidDraft('El tema cambió después de preparar el borrador. Lee el diseño y vuelve a prepararlo.')
     templates.save(key.restaurant_slug, key.venue_slug, {'plantilla': 'S1', 'tema': change.payload['tema']})

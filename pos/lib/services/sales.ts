@@ -1,5 +1,5 @@
 import { utcBounds, type SalesScope } from '@/lib/domain/salesPeriod'
-import { callKw } from '@/lib/services/odoo'
+import { callKw, inRestaurant } from '@/lib/services/odoo'
 import type { Origin } from '@/lib/services/ops'
 
 // `startAt` es null mientras la caja está creada pero sin abrir (`opening_control`): Odoo aún no le pone fecha de inicio.
@@ -14,7 +14,7 @@ interface RawSale { id: number; pos_reference: string; date_order: string; table
 const PAID = ['paid', 'done', 'invoiced']
 
 export async function listShifts(limit = 12): Promise<ShiftRow[]> {
-  const rows = await callKw<RawSession[]>('pos.session', 'search_read', [[], ['name', 'state', 'start_at', 'stop_at', 'user_id', 'total_payments_amount', 'order_count']], { limit, order: 'id desc' })
+  const rows = await callKw<RawSession[]>('pos.session', 'search_read', [inRestaurant([]), ['name', 'state', 'start_at', 'stop_at', 'user_id', 'total_payments_amount', 'order_count']], { limit, order: 'id desc' })
   return rows.map((r) => ({ id: r.id, name: r.name, state: r.state, startAt: r.start_at || null, stopAt: r.stop_at || null, user: r.user_id ? r.user_id[1] : '', total: r.total_payments_amount, orders: r.order_count }))
 }
 
@@ -23,7 +23,10 @@ export async function listShifts(limit = 12): Promise<ShiftRow[]> {
 function scopeDomain(scope: SalesScope, prefix = '', field = 'date_order'): unknown[] {
   if (scope.kind === 'shift') return [[`${prefix}session_id`, '=', scope.sessionId]]
   const [from, to] = utcBounds(scope)
-  return [[`${prefix}${field}`, '>=', from], [`${prefix}${field}`, '<', to]]
+  // Un rango de días es del restaurante en uso (plan O): el dueño ve todos los pedidos de la empresa. Los pagos llegan
+  // al restaurante por su sesión.
+  const config = field === 'payment_date' ? `${prefix}session_id.config_id` : `${prefix}config_id`
+  return inRestaurant([[`${prefix}${field}`, '>=', from], [`${prefix}${field}`, '<', to]], config)
 }
 
 export const SALES_LIST_LIMIT = 200 // un mes pueden ser miles de pedidos: la tabla trae los más recientes y los KPI se suman aparte

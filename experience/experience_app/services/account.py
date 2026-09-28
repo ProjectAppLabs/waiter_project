@@ -7,7 +7,7 @@ Nunca se recuperan cuentas existentes por correo. En producción se rechaza el f
 import re
 
 from django.conf import settings
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
 
@@ -57,21 +57,25 @@ class DemoUnavailable(Exception):
 def register(data: dict, diner: Diner) -> DinerAccount:
     """Una cuenta nueva vinculada al dispositivo; demo nunca recupera identidades por correo."""
     require_demo()
-    fields = _clean(data)
+    fields = {**_clean(data), 'organization_slug': diner.session.restaurant_slug}
     password = data.get('clave')
     if password is not None:
         if not isinstance(password, str) or not 10 <= len(password) <= 128 or password.isnumeric() or password.lower() in {fields['email'], fields['name'].lower()}:
             raise InvalidRegistration('Usa una contraseña de 10 a 128 caracteres que no sea solo numérica ni tu nombre o correo.')
         from django.contrib.auth.hashers import make_password
         fields['password'] = make_password(password)
-    pending = DinerAccount.objects.filter(email=fields['email'], verified=False, registration_key=diner.key).first()
+    pending = DinerAccount.objects.filter(organization_slug=diner.session.restaurant_slug, email=fields['email'], verified=False, registration_key=diner.key).first()
     if pending:
         pending.created_at = timezone.now()
         pending.save(update_fields=['created_at'])
         return pending
-    if DinerAccount.objects.filter(email=fields['email']).exists():
+    if DinerAccount.objects.filter(organization_slug=diner.session.restaurant_slug, email=fields['email']).exists():
         raise InvalidRegistration('Este correo no está disponible para un registro demo.')
-    return DinerAccount.objects.create(**fields, registration_key=diner.key)
+    try:
+        with transaction.atomic():
+            return DinerAccount.objects.create(**fields, registration_key=diner.key)
+    except IntegrityError:
+        raise InvalidRegistration('Este correo no está disponible para un registro demo.') from None
 
 
 @transaction.atomic
@@ -79,7 +83,7 @@ def verify(account: DinerAccount, diner: Diner, code) -> DinerAccount:
     require_demo()
     if not CODE_RE.fullmatch(str(code or '').strip()):
         raise InvalidCode()
-    updated = DinerAccount.objects.filter(id=account.id, registration_key=diner.key, verified=False,
+    updated = DinerAccount.objects.filter(id=account.id, organization_slug=diner.session.restaurant_slug, registration_key=diner.key, verified=False,
                                          created_at__gte=timezone.now() - timezone.timedelta(minutes=10)).update(
         verified=True, verified_at=timezone.now(), registration_key='')
     if not updated:
@@ -87,6 +91,8 @@ def verify(account: DinerAccount, diner: Diner, code) -> DinerAccount:
     account.refresh_from_db()
     diner.account = account
     diner.save(update_fields=['account'])
+    from experience_app.services import rewards
+    rewards.sync_for_diner(diner)
     return account
 
 
@@ -111,7 +117,7 @@ def history(account: DinerAccount) -> list[dict]:
     El estado sale de la sesión (pagada por el salón o no), sin ir a Odoo por cada pedido viejo.
     """
     orders = (Order.objects.filter(Q(lines__account=account) | Q(lines__account__isnull=True, session__diners__account=account), state__in=(Order.SENT, Order.CHECKOUT))
-              .distinct().select_related('session').order_by('-created_at'))
+              .filter(session__restaurant_slug=account.organization_slug).distinct().select_related('session').order_by('-created_at'))
     orders = list(orders)
     groups = {}
     for order in orders:

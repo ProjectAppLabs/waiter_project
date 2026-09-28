@@ -70,12 +70,18 @@ export function PointsBalanceView({data,error,onRetry}:{data:DinerRewards|null;e
  return <section className="sm-points-balance" {...marker}>{arbol?<Plantilla arbol={arbol} datos={pointsTemplateData(cuenta)} ranuras={{imagen,titulo,estado,saldo,codigo,nota}} fallback={factory}/>:factory}</section>
 }
 
-export function PointsBalance() {
- const {keys,account}=useDinerStore(),{href}=useSmartRoute()
+// Recompensas de la cuenta en la sede (puntos, beneficios ganados y acciones pendientes); sin cuenta no se pide nada.
+export function useRewards() {
+ const {keys,account}=useDinerStore()
  const [data,setData]=useState<DinerRewards|null>(null),[error,setError]=useState(''),[retry,setRetry]=useState(0)
  useEffect(()=>{let active=true;if(!keys||!account)return;getRewards(keys.rest,keys.venue).then(r=>{if(active){setData(r);setError('')}}).catch(e=>{if(active)setError(e.message)});return()=>{active=false}},[keys,account,retry])
+ return {data:account?data:null,error:account?error:'',retry:()=>setRetry(n=>n+1)}
+}
+
+export function PointsBalance({rewards}:{rewards:ReturnType<typeof useRewards>}) {
+ const {account}=useDinerStore(),{href}=useSmartRoute()
  if(!account)return <Link className="sm-profile-link" href={href('cuenta/entrar')}>Entra a tu cuenta para ver tus puntos<Icon name="arrow"/></Link>
- return <PointsBalanceView data={data} error={error} onRetry={()=>setRetry(retry+1)}/>
+ return <PointsBalanceView data={rewards.data} error={rewards.error} onRetry={rewards.retry}/>
 }
 
 export function PaidCelebration({order}:{order:OrderStatus}) {

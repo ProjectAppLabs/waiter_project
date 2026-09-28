@@ -16,3 +16,5 @@ from . import test_tax_regime
 from . import test_table_release
 from . import test_company_brand
 from . import test_product_photos
+
+from . import test_restaurants

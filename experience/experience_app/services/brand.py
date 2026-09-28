@@ -1,6 +1,6 @@
 """La marca que ve el comensal: lo que el restaurante puso en Odoo manda campo a campo; el registro pone el valor inicial.
 
-Odoo no está en el camino caliente: la marca de la sede se cachea BRAND_CACHE_SECONDS (60 s por defecto), así que un
+Odoo no está en el camino caliente: la marca de la organización se cachea BRAND_CACHE_SECONDS (60 s por defecto), así que un
 cambio en Configuración › Restaurante llega a los comensales en menos de un minuto sin una lectura a Odoo por
 petición. Si Odoo falla, el comensal ve la marca del registro y nunca un 5xx por la marca; el fallo no se cachea
 para que la próxima petición vuelva a intentarlo.
@@ -28,11 +28,11 @@ _MISSING = object()
 
 
 def _key(restaurant: str, venue: str) -> str:
-    return f'brand:{restaurant}/{venue}'
+    return f'brand:org:{restaurant}'
 
 
 def _logo_key(tenant: Tenant, version: str) -> str:
-    return f'logo:{tenant.restaurant_slug}/{tenant.venue_slug}/{version}'
+    return f'logo:org:{tenant.restaurant_slug}/{version}'
 
 
 def get_company_brand(tenant: Tenant) -> pos.CompanyBrand | None:

@@ -29,7 +29,8 @@
       "roles": {
         "waiter": "Mesero",
         "cashier": "Cajero",
-        "admin": "Administrador"
+        "admin": "Encargado",
+        "owner": "Dueño"
       }
     },
     "topbar": {

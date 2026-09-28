@@ -30,6 +30,16 @@
 .sm-rewards .sm-profile-link strong { font-size:calc(16px * var(--ds-texto)); font-weight:500; }
 .sm-rewards .sm-profile-link small { font-size:calc(14px * var(--ds-texto)); line-height:calc(24px * var(--ds-texto)); margin-top:var(--ds-espacio-8); }
 .sm-rewards .sm-profile-link svg { color:var(--sm-highlight-text); }
+/* Plan N: lo ganado por acciones (Tus beneficios) y las acciones que aún dan premio (Gana más), como tarjetas en lista. */
+.smart-menu .sm-reward-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:var(--ds-espacio-12); }
+.smart-menu .sm-reward-list > li > .sm-profile-link { background:var(--sm-surface); border-radius:calc(16px * var(--ds-forma-tarjeta)); padding:var(--ds-espacio-20); margin:0; }
+.smart-menu .sm-reward-item { display:flex; align-items:center; flex-wrap:wrap; gap:var(--ds-espacio-12) var(--ds-espacio-14); background:var(--sm-surface); color:var(--sm-ink); border-radius:calc(16px * var(--ds-forma-tarjeta)); padding:var(--ds-espacio-16) var(--ds-espacio-20); }
+.smart-menu .sm-reward-item > .sm-empty-icon { flex:0 0 44px; width:44px; height:44px; margin:0; }
+.smart-menu .sm-reward-item > .sm-empty-icon svg { width:22px; height:22px; }
+.smart-menu .sm-reward-item > span:not(.sm-empty-icon) { flex:1 1 180px; min-width:0; display:flex; flex-direction:column; gap:var(--ds-espacio-4); }
+.smart-menu .sm-reward-item strong { font-size:calc(16px * var(--ds-texto)); font-weight:700; overflow-wrap:anywhere; }
+.smart-menu .sm-reward-item small { font-size:calc(14px * var(--ds-texto)); line-height:1.45; color:var(--sm-muted); }
+.smart-menu .sm-reward-item > .sm-text-button { min-height:44px; margin-left:auto; font-weight:700; color:var(--sm-highlight-text); }
 .sm-reward-dialog { text-align:center; }
 .sm-reward-dialog > .sm-icon { margin-left:auto; }
 .sm-reward-dialog > p { color:var(--sm-muted); font-size:calc(14px * var(--ds-texto)); line-height:calc(24px * var(--ds-texto)); margin:var(--ds-espacio-20) 0; }
@@ -180,4 +190,35 @@ body:has(.sm-recommendation-dialog[open]) { overflow:hidden; }
 .smart-menu .sm-dish-gallery-dots button { padding: 0; border: 0; background: transparent; display: grid; place-items: center; }
 .smart-menu .sm-dish-gallery-dots button::before { content: ''; width: 8px; height: 8px; border-radius: 999px; background: color-mix(in srgb, #fff 60%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, #000 25%, transparent); }
 .smart-menu .sm-dish-gallery-dots button[aria-current='true']::before { width: 20px; background: #fff; }
+
+/* Sugerencias de la ficha: foto, nombre, datos (valoración, tiempo, «solo hoy»), rebaja y abajo precio + acción. La acción
+ * es un «+» redondo; con unidades pasa a un contador horizontal compacto. Todo control mide al menos 44 px. */
+.smart-menu .sm-dish-sides .sm-side { align-items: stretch; min-height: 0; padding: var(--ds-espacio-10); gap: var(--ds-espacio-12); }
+.smart-menu .sm-dish-sides .sm-side > .sm-food-photo { width: 88px; height: 88px; flex: 0 0 88px; align-self: center; }
+.smart-menu .sm-dish-sides .sm-side-info { justify-content: flex-start; gap: var(--ds-espacio-4); }
+.smart-menu .sm-dish-sides .sm-side-info h3 { font-weight: 700; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.smart-menu .sm-side-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-espacio-4) var(--ds-espacio-8); }
+.smart-menu .sm-side-meta:empty { display: none; }
+.smart-menu .sm-side-meta .sm-rating-pill { position: static; }
+.smart-menu .sm-side-badge { display: inline-flex; align-items: center; padding: var(--ds-espacio-2) var(--ds-espacio-8); border-radius: calc(12px * var(--ds-forma-chip)); background: var(--sm-highlight); color: var(--sm-highlight-ink, #212134); font-size: calc(14px * var(--ds-texto)); line-height: calc(20px * var(--ds-texto)); font-weight: 700; }
+.smart-menu .sm-side-info .sm-food-deal { align-self: flex-start; }
+.smart-menu .sm-side-bottom { display: flex; align-items: center; justify-content: space-between; gap: var(--ds-espacio-8); margin-top: auto; }
+.smart-menu .sm-side-bottom > strong { font-size: calc(16px * var(--ds-texto)); font-weight: 800; color: var(--sm-highlight-text); }
+.smart-menu .sm-side-action { display: flex; align-items: center; flex-shrink: 0; }
+.smart-menu .sm-side-action button { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 999px; background: var(--sm-accent); color: var(--t-acento-tinta, #fff); padding: 0; }
+.smart-menu .sm-side-action button:disabled { opacity: .45; }
+.smart-menu .sm-side-action svg { width: 20px; height: 20px; }
+.smart-menu .sm-side-stepper { border-radius: 999px; background: color-mix(in srgb, var(--sm-accent) 14%, var(--sm-surface)); }
+.smart-menu .sm-side-stepper button:first-child { background: transparent; color: var(--sm-ink); }
+.smart-menu .sm-side-stepper output { min-width: 24px; text-align: center; font-weight: 700; font-size: calc(16px * var(--ds-texto)); }
+.smart-menu .sm-dish-sides .sm-side[data-selected="true"] { box-shadow: inset 0 0 0 2px var(--sm-accent); }
+
+/* Muelle de la ficha como Rappi: − cantidad + y «Agregar · total»; al agregar se vuelve a la carta. */
+.smart-menu .sm-dish-dock-action { gap: var(--ds-espacio-8); align-items: stretch; }
+.smart-menu .sm-dock-stepper { display: flex; align-items: center; flex-shrink: 0; border-radius: 999px; background: var(--sm-surface); color: var(--t-tinta, #32324d); }
+.smart-menu .sm-dock-stepper button { display: grid; place-items: center; width: 44px; height: 100%; min-height: 54px; border: 0; background: transparent; color: inherit; padding: 0; }
+.smart-menu .sm-dock-stepper button:disabled { opacity: .4; }
+.smart-menu .sm-dock-stepper svg { width: 18px; height: 18px; }
+.smart-menu .sm-dock-stepper output { min-width: 20px; text-align: center; font-weight: 800; font-size: calc(16px * var(--ds-texto)); }
+.smart-menu .sm-dish-dock-action .sm-primary { flex: 1 1 auto; min-width: 0; padding-inline: var(--ds-espacio-14); gap: var(--ds-espacio-8); white-space: nowrap; overflow: hidden; }
 

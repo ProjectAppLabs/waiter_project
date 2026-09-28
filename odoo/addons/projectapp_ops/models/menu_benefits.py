@@ -40,6 +40,7 @@ class Config(models.Model):
     def waiter_benefits_settings(self, coupon=None, loyalty=None):
         manager(self.env)
         self.ensure_one()
+        self.check_access('read')
         if coupon is not None:
             if not isinstance(coupon, dict):
                 raise ValidationError('Cupón inválido.')
@@ -57,11 +58,11 @@ class Config(models.Model):
             if start and end and start > end:
                 raise ValidationError('La fecha final debe ser posterior a la inicial.')
             vals = {'name': str(coupon.get('name') or code)[:80], 'active': bool(coupon.get('active', True)),
-                    'program_type': 'promo_code', 'pos_ok': True, 'pos_config_ids': [(6, 0, self.ids)],
+                    'program_type': 'promo_code', 'pos_ok': True, 'pos_config_ids': [(6, 0, self._waiter_validate_restriction(coupon.get('configs', [])))],
                     'company_id': self.company_id.id, 'currency_id': self.currency_id.id,
                     'waiter_menu_coupon': True, 'date_from': start, 'date_to': end, 'limit_usage': False}
             program = self.env['loyalty.program'].with_context(active_test=False).browse(coupon.get('id') or []).exists()
-            if program and (not program.waiter_menu_coupon or self not in program.pos_config_ids):
+            if program and (not program.waiter_menu_coupon or program.company_id != self.company_id):
                 raise AccessError('Este cupón no pertenece a este POS.')
             rule_vals = {'code': code, 'mode': 'with_code', 'minimum_amount': minimum, 'minimum_amount_tax_mode': 'incl',
                          'minimum_qty': 1, 'reward_point_mode': 'order', 'reward_point_amount': 1}
@@ -86,9 +87,9 @@ class Config(models.Model):
             program.rule_ids.write({'reward_point_mode': 'money', 'reward_point_amount': 1 / spend, 'minimum_amount': spend, 'minimum_amount_tax_mode': 'incl'})
             program.reward_ids.write({'discount_mode': 'per_point', 'discount': value, 'required_points': required})
         coupons = self.env['loyalty.program'].with_context(active_test=False).search([
-            ('waiter_menu_coupon', '=', True), ('pos_config_ids', 'in', self.ids)])
+            ('waiter_menu_coupon', '=', True), ('company_id', '=', self.company_id.id)])
         return {'coupons': [{'id': p.id, 'name': p.name, 'active': p.active, 'code': p.rule_ids[:1].code,
-                             'percent': p.reward_ids[:1].discount, 'minimum': p.rule_ids[:1].minimum_amount,
+                             'configs': p.pos_config_ids.ids, 'percent': p.reward_ids[:1].discount, 'minimum': p.rule_ids[:1].minimum_amount,
                              'start': str(p.date_from) if p.date_from else '', 'end': str(p.date_to) if p.date_to else ''} for p in coupons],
                 'loyalty': {'name': program.name, 'spendPerPoint': 1 / program.rule_ids[:1].reward_point_amount,
                             'valuePerPoint': program.reward_ids[:1].discount, 'minimumPoints': program.reward_ids[:1].required_points} if program else None}

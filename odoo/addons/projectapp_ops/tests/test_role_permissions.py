@@ -14,6 +14,7 @@ class TestRolePermissions(KitCase):
         for role in ('waiter', 'cashier', 'admin'):
             employee = self.env['hr.employee'].create({'name': 'Permisos ' + role, 'company_id': self.config.company_id.id, 'waiter_role': role})
             self.staff[role] = (employee.id, employee._waiter_new_session())
+        self.env['ir.config_parameter'].sudo().set_param('waiter.role_permissions', '')
         self.env['ir.config_parameter'].sudo().set_param('waiter.role_permissions.%s' % self.config.id, '')
 
     def guard(self, role, model, method, args):

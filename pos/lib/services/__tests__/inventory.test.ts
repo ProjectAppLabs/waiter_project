@@ -2,7 +2,7 @@ import { stockStatus } from '@/lib/domain/inventory'
 import { setStock } from '@/lib/services/inventory'
 import { callKw } from '@/lib/services/odoo'
 
-jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn() }))
+jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn(), inRestaurant: (d: unknown[]) => d, currentConfigId: () => null }))
 const m = callKw as jest.Mock
 beforeEach(() => m.mockReset())
 

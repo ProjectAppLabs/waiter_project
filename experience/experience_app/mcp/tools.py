@@ -25,7 +25,7 @@ FONT_RULE = ('fundamentos.tipografia.fuentes declara de 0 a 3 familias globales 
              'por nombre exacto y sin repetir; se comprueban al preparar y se cargan una sola vez. '
              'display y cuerpo admiten la lista fija o esas familias. En plantillas, ds-fuente-1, ds-fuente-2 y '
              'ds-fuente-3 eligen su posición (ds-fuente-N); si no existe, usan la fuente de títulos (display).')
-BANNER_FIELDS = ('layout', 'title', 'subtitle', 'button', 'target', 'targetId', 'theme', 'active')
+BANNER_FIELDS = ('layout', 'title', 'subtitle', 'button', 'target', 'targetId', 'theme', 'active', 'configs')
 COLOR_ROLES = {'acento': 'botones y color de acción', 'tintaTerciaria': 'textos secundarios y etiquetas', 'fondo': 'fondo del menú',
                'superficie': 'tarjetas de los platos', 'tinta': 'texto principal'}
 
@@ -67,7 +67,7 @@ def leer_design_system(key: McpKey, args: dict) -> dict:
     _arguments(args, ())
     return {'esquema': deepcopy(design.SCHEMA), 'inventario': deepcopy(design.INVENTORY),
             'tema': templates.settings_view(key.restaurant_slug, key.venue_slug)['tema'],
-            'pagina': borradores.design_system_url(key.restaurant_slug, key.venue_slug),
+            'pagina': borradores.design_system_url(key.restaurant_slug, _tenant(key).venue_slug),
             'plantillas': plantillas.contract(),
             'orden': ['1. Sistema de diseño: preparar_tema con fundamentos (colores, tipografía y fuentes globales, forma, '
                       'imágenes, textura) y variantes; verificar_borrador y confirmar_cambio.',
@@ -324,7 +324,8 @@ def listar_catalogo(key: McpKey, args: dict) -> dict:
     tenant = _tenant(key)
     products = _odoo(tenant, 'product.product', 'search_read', [[['available_in_pos', '=', True], ['sale_ok', '=', True]],
                                                                   ['name', 'lst_price', 'pos_categ_ids']], {'order': 'name'})
-    categories = _odoo(tenant, 'pos.category', 'search_read', [[], ['name']], {'order': 'sequence, name'})
+    category_ids = sorted({category for product in products for category in product['pos_categ_ids']})
+    categories = _odoo(tenant, 'pos.category', 'search_read', [[["id", "in", category_ids]], ['name']], {'order': 'sequence, name'})
     return {'productos': [{'id': p['id'], 'nombre': p['name'], 'precio': p['lst_price'], 'categorias': p['pos_categ_ids']} for p in products],
             'categorias': [{'id': c['id'], 'nombre': c['name']} for c in categories]}
 

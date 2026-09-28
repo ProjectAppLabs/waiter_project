@@ -1,4 +1,4 @@
-"""Restaurant role policy, shared by POS navigation and the employee RPC guard."""
+"""Política de roles de la organización, compartida por la navegación y las acciones."""
 import json
 from odoo import models
 from odoo.exceptions import AccessError, ValidationError
@@ -18,8 +18,9 @@ def employee_role(env, employee_id, token):
     if (not employee or not employee.active or employee.company_id not in env.companies or
             not employee._waiter_session_ok(token)):
         raise AccessError('Inicia sesión con el PIN de tu empleado para continuar.')
-    role = min(ROLES.index(env.user.waiter_role or 'waiter'), ROLES.index(employee.waiter_role or 'waiter'))
-    return employee, ROLES[role]
+    ranks = ROLES + ('owner',)
+    role = min(ranks.index(env.user.waiter_role or 'waiter'), ranks.index(employee.waiter_role or 'waiter'))
+    return employee, ranks[role]
 
 
 class PosConfig(models.Model):
@@ -27,17 +28,18 @@ class PosConfig(models.Model):
 
     def _waiter_role_policy(self):
         self.ensure_one()
-        raw = self.env['ir.config_parameter'].sudo().get_param('waiter.role_permissions.%s' % self.id)
+        raw = self.env['ir.config_parameter'].sudo().get_param('waiter.role_permissions')
+        raw = raw or self.env['ir.config_parameter'].sudo().get_param('waiter.role_permissions.%s' % self.id)
         return json.loads(raw) if raw else json.loads(json.dumps(DEFAULTS))
 
     def waiter_role_policy(self, employee_id=None, token=None, policy=None):
         self.ensure_one()
         self.check_access('read')
         employee, role = employee_role(self.env, employee_id, token)
-        if self.company_id != employee.company_id:
+        if self.company_id != employee.company_id or (employee.waiter_role != 'owner' and self not in employee.waiter_config_ids):
             raise AccessError('El empleado no pertenece a este restaurante.')
         if policy is not None:
-            if role != 'admin':
+            if role not in ('admin', 'owner'):
                 raise AccessError('Solo un administrador puede cambiar los permisos por rol.')
             self.check_access('write')
             if not isinstance(policy, dict) or set(policy) != set(ROLES):
@@ -59,26 +61,30 @@ class PosConfig(models.Model):
                 if 'serve_orders' in row['actions'] and 'tables' not in row['views']:
                     raise ValidationError('Entregar y atender mesas requiere la vista Mesas.')
             policy['admin'] = json.loads(json.dumps(DEFAULTS['admin']))
-            self.env['ir.config_parameter'].sudo().set_param('waiter.role_permissions.%s' % self.id, json.dumps(policy))
+            self.env['ir.config_parameter'].sudo().set_param('waiter.role_permissions', json.dumps(policy))
             # Compatibilidad con los formularios antiguos: una sola decisión de cobro e inventario.
-            self.write({'waiter_can_charge': 'charge_orders' in policy['waiter']['actions'],
-                        'waiter_can_edit_inventory': 'edit_inventory' in policy['waiter']['actions']})
+            self.env['pos.config'].sudo().search([('company_id', '=', self.company_id.id)]).write({
+                'waiter_can_charge': 'charge_orders' in policy['waiter']['actions'],
+                'waiter_can_edit_inventory': 'edit_inventory' in policy['waiter']['actions']})
         return self._waiter_role_policy()
 
     def _waiter_require_permission(self, role, permission):
         self.ensure_one()
-        if role == 'admin':
+        if role in ('admin', 'owner'):
             return
         policy = self._waiter_role_policy()[role]
         if permission not in policy['views'] + policy['actions']:
             raise AccessError('Tu rol no tiene permiso para esta acción. Consulta al administrador.')
 
     def _waiter_check_rpc(self, employee_id, token, model, method, args):
-        """Guard used for both dataset endpoints; never trusts a role sent by the browser."""
+        """Autoriza ambos endpoints de datos sin confiar en el rol enviado por el navegador."""
         employee, role = employee_role(self.env, employee_id, token)
         self.ensure_one()
-        if employee.company_id != self.company_id:
+        if employee.company_id != self.company_id or (employee.waiter_role != 'owner' and self not in employee.waiter_config_ids):
             raise AccessError('El empleado no pertenece a este restaurante.')
+        self.check_access('read')
+        if method == 'waiter_create_restaurant' and role != 'owner':
+            raise AccessError('Solo el dueño puede crear restaurantes.')
         permission = None
         values = args[1] if len(args) > 1 and isinstance(args[1], dict) else {}
         mutation = method in ('create', 'write', 'unlink', 'copy')
@@ -117,7 +123,7 @@ class PosConfig(models.Model):
                 permission = 'kitchen'
         elif model == 'restaurant.table' and method == 'set_waiter_call':
             permission = 'serve_orders'
-        elif model in ('product.template', 'product.product', 'stock.quant') and mutation:
+        elif model in ('product.template', 'product.product', 'stock.quant') and (mutation or method == 'waiter_set_availability'):
             permission = 'edit_inventory'
         elif model == 'account.move':
             permission = 'billing'

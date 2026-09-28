@@ -181,3 +181,30 @@ def test_public_catalog_strips_implementation_notes_and_adds_thumbnails():
     assert all(not {'resumen', 'estructura'}.intersection(screen) for screen in smart['pantallas'].values())
     assert smart['pantallas']['menu']['layout'] == 'S1'
     assert smart['tokens'] == MenuTemplate.objects.get(code='S1').spec['tokens']
+
+
+@pytest.mark.django_db
+def test_legacy_form_keeps_the_display_font_chosen_by_the_design_system():
+    # // Falla si el formulario del POS (contrato antiguo) no puede reenviar la fuente de Google Fonts que el sistema de
+    # // diseño ya guardó para la sede (el menú de prueba no se generaba), o si eso abre la lista a cualquier otra fuente.
+    theme = deepcopy(design.defaults())
+    theme['fundamentos']['tipografia'].update(display='Anton', fuentes=['Anton'])
+    services.save('burger-house', 'poblado', {'plantilla': 'S1', 'tema': theme})
+    _, _, typography, saved = services.prepare('burger-house', 'poblado', {'plantilla': 'S1', 'paleta': {'acento': '#7A2E2A'}, 'tipografia': {'display': 'Anton'}})
+    assert typography == {'display': 'Anton'} and saved['fundamentos']['tipografia']['display'] == 'Anton'
+    with pytest.raises(services.InvalidSettings, match='no está en la lista'):
+        services.prepare('burger-house', 'poblado', {'plantilla': 'S1', 'tipografia': {'display': 'Comic Sans'}})
+
+
+@pytest.mark.django_db
+def test_legacy_form_checks_the_background_with_the_theme_ink_on_background():
+    # // Falla si el formulario del POS exige que la tinta de las tarjetas se lea sobre un fondo oscuro cuando el tema v2
+    # // ya tiene su propia tinta para el fondo (el menú de prueba no se generaba), o si deja pasar un fondo ilegible.
+    theme = deepcopy(design.defaults())
+    theme['fundamentos']['colores'].update(fondo='#51141E', superficie='#FCF7F2', tinta='#240E10', tintaFondo='#FCF7F2')
+    services.save('burger-house', 'poblado', {'plantilla': 'S1', 'tema': theme})
+    palette = {'fondo': '#51141E', 'superficie': '#FCF7F2', 'tinta': '#240E10'}
+    _, saved, _, _ = services.prepare('burger-house', 'poblado', {'plantilla': 'S1', 'paleta': palette})
+    assert saved == palette
+    with pytest.raises(services.InvalidSettings, match='tintaFondo sobre fondo'):
+        services.prepare('burger-house', 'poblado', {'plantilla': 'S1', 'paleta': {**palette, 'fondo': '#F4ECE4'}})

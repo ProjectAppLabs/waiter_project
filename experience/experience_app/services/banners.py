@@ -7,6 +7,6 @@ def for_menu(tenant, menu):
         return None  # Conserva los destacados automáticos hasta configurar banners.
     products = {p['id']: p for c in menu['categorias'] for p in c['productos']}
     categories = {c['id'] for c in menu['categorias']}
-    return [b for b in config.get('banners', []) if b.get('active') and (
+    return [b for b in config.get('banners', []) if b.get('active') and (not b.get('configs') or tenant.odoo.pos_config_id in b['configs']) and (
         b['target']=='none' or b['target']=='category' and b['targetId'] in categories or
         b['target']=='product' and b['targetId'] in products and not products[b['targetId']]['agotado'])]

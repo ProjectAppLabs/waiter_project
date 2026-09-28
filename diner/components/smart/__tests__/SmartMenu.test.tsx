@@ -157,3 +157,19 @@ it('shows price first, the struck previous price with its percentage and the pre
   expect(screen.queryByText(/%$/)).not.toBeInTheDocument()
   expect(screen.queryByText(/min$/)).not.toBeInTheDocument()
 })
+
+// Falla si en el muelle la ficha pierde el selector de cantidad junto a «Agregar», si agrega otra cantidad o si tras
+// agregar no vuelve a la carta (el flujo de Rappi: − n + y Agregar abajo, y de vuelta al menú).
+it('en el muelle agrega la cantidad elegida y vuelve a la carta', async () => {
+  const add = jest.fn().mockResolvedValue(undefined)
+  useDinerStore.setState({ add, error: null })
+  const slot = document.createElement('div'); document.body.appendChild(slot)
+  render(<SmartDish entry={entry} rest="demo" venue="salon" token="mesa8" id="3" actionTarget={slot}/>)
+  expect(slot.querySelector('.sm-dock-stepper')).not.toBeNull()
+  fireEvent.click(within(slot).getByRole('button', { name: 'Más unidades' }))
+  fireEvent.click(within(slot).getByRole('button', { name: /Agregar/ }))
+  await waitFor(() => expect(add).toHaveBeenCalledWith(3, 2, ''))
+  await waitFor(() => expect(push).toHaveBeenCalledWith(expect.stringMatching(/\/carta$/)))
+  expect(screen.queryByText('Agregado a tu pedido')).not.toBeInTheDocument()
+  slot.remove()
+})

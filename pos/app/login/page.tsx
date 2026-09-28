@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
 import { EmployeeLogin } from '@/components/account/EmployeeLogin'
+import { RestaurantPicker } from '@/components/account/RestaurantPicker'
 import { ForgotPin, LOGIN_INPUT } from '@/components/account/ForgotPin'
 import { LoginFrame } from '@/components/account/LoginFrame'
 import { Icon } from '@/components/kit/Icon'
@@ -12,7 +13,7 @@ import { Toggle } from '@/components/kit/Toggle'
 import { Button } from '@/components/ui/Button'
 import { lockMinutesLeft } from '@/lib/domain/employees'
 import { homePath } from '@/lib/domain/navigation'
-import { effectiveRole } from '@/lib/domain/roles'
+import { effectiveRole, isOwner } from '@/lib/domain/roles'
 import { activate, requestCode } from '@/lib/services/activation'
 import { checkPin, forgotPin, listPosEmployees, type PosEmployee } from '@/lib/services/employees'
 import { OdooError } from '@/lib/services/errors'
@@ -38,7 +39,7 @@ export default function LoginPage() {
   const t = useTranslations('account')
   const tl = useTranslations('pos.login')
   const router = useRouter()
-  const { user, session, hydrated, hydrate, login, startShift } = useAuthStore()
+  const { user, session, restaurant, restaurants, hydrated, hydrate, login, startShift, chooseRestaurant } = useAuthStore()
   const [view, setView] = useState<View>('main')
   const [employees, setEmployees] = useState<PosEmployee[] | null>(null)
   const storedEmail = useStored('waiter.email')
@@ -55,12 +56,17 @@ export default function LoginPage() {
   const [codeState, setCodeState] = useState<'idle' | 'sent' | 'invalid' | 'mismatch'>('idle')
 
   useEffect(() => { void hydrate() }, [hydrate])
+  // Plan O: la cuenta opera varios restaurantes y este dispositivo aún no tiene uno: se pregunta antes del PIN. El dueño
+  // puede ir en cambio a la consola: marca su PIN (lo pide Odoo para guardar) y entra sin elegir restaurante.
+  const [consoleIntent, setConsoleIntent] = useState(false)
+  const mustPick = !!user && !restaurant && !consoleIntent && (restaurants?.length ?? 0) > 1
   useEffect(() => {
-    if (!user) return
+    if (!user || mustPick) return
     let alive = true
-    listPosEmployees(session?.configId ?? null).then((list) => { if (alive) setEmployees(list) }).catch(() => { if (alive) setEmployees([]) })
+    listPosEmployees(consoleIntent ? null : restaurant?.id ?? session?.configId ?? null)
+      .then((list) => { if (alive) setEmployees(consoleIntent ? list.filter((e) => e.role === 'owner') : list) }).catch(() => { if (alive) setEmployees([]) })
     return () => { alive = false }
-  }, [user, session])
+  }, [user, session, restaurant, mustPick, consoleIntent])
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -91,11 +97,20 @@ export default function LoginPage() {
       return result.attemptsLeft > 0 ? t('employee.wrongPinLeft', { left: result.attemptsLeft }) : t('employee.wrongPin')
     }
     await startShift(result.employee, result.attendanceId, result.token)
-    router.push(homePath(effectiveRole(user?.role, result.employee.role), session !== null))
+    router.push(consoleIntent && isOwner(user?.role, result.employee.role) ? '/organizacion' : homePath(effectiveRole(user?.role, result.employee.role), session !== null))
     return null
   }
 
   if (!hydrated) return <LoginFrame><p className="pt-20 text-dim">{t('employee.loading')}</p></LoginFrame>
+
+  if (user && mustPick) {
+    return (
+      <LoginFrame>
+        <RestaurantPicker restaurants={restaurants ?? []} owner={isOwner(user.role, null)}
+          onPick={(r) => { setEmployees(null); void chooseRestaurant({ id: r.id, name: r.name }) }} onConsole={() => { setEmployees(null); setConsoleIntent(true) }} />
+      </LoginFrame>
+    )
+  }
 
   if (user) {
     return (

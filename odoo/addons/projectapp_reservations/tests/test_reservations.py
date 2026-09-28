@@ -4,6 +4,7 @@ Corren con el runner de Odoo (`-u projectapp_reservations --test-enable --test-t
 """
 import math
 from datetime import date, timedelta
+from unittest.mock import patch
 
 from odoo import Command, fields
 from odoo.exceptions import UserError, ValidationError
@@ -76,9 +77,10 @@ class TestReservations(TransactionCase):
         table = self.env["restaurant.table"].create({"floor_id": self.floor.id, "table_number": 904, "seats": 4})
         today = fields.Date.context_today(self.Reservation)
         self._open_all_day()
-        now = self.Reservation._waiter_now_hour()
-        self._reserve(table, min(23.0, float(int(now + 4)) ), date=today, prep_minutes="30")
-        self.assertFalse(table.waiter_reserved_at(today)[table.id], "todavía no la aparta")
+        # Mediodía fijo: de noche «dentro de cuatro horas» pasaba de medianoche y la reserva no se podía crear.
+        with patch.object(type(self.Reservation), "_waiter_now_hour", return_value=12.0):
+            self._reserve(table, 16.0, date=today, prep_minutes="30")
+            self.assertFalse(table.waiter_reserved_at(today)[table.id], "todavía no la aparta")
 
     def test_slots_follow_the_config_hours_and_available_tables_skip_clashes_and_small_tables(self):
         """Falla si las franjas no van de 10:00 a 21:30 cada 30 min, si el pos.config no las configura o si una mesa ocupada o pequeña se ofrece."""

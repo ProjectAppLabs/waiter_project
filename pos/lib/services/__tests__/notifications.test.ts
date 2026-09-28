@@ -1,7 +1,7 @@
 import { listNotifications, markAllRead, markRead, requestIngredient } from '@/lib/services/notifications'
 import { callKw } from '@/lib/services/odoo'
 
-jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn() }))
+jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn(), inRestaurant: (d: unknown[]) => d, currentConfigId: () => null }))
 const rpc = callKw as jest.Mock
 
 beforeEach(() => rpc.mockReset())

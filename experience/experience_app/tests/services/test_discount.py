@@ -17,8 +17,8 @@ SENT = OdooOrder(id=13, reference='260-1-1', state='draft', total=87822, tax=140
 
 
 def verified_account(diner, **fields):
-    defaults = {'name': 'Camila', 'email': 'camila@correo.com', 'accepts_data': True, 'verified': True, 'verified_at': timezone.now()}
-    account = DinerAccount.objects.create(**{**defaults, **fields})
+    defaults = {'name': 'Camila', 'email': f'camila-{diner.id}@correo.com', 'accepts_data': True, 'verified': True, 'verified_at': timezone.now()}
+    account = DinerAccount.objects.create(organization_slug='burger-house', **{**defaults, **fields})
     diner.account = account
     diner.save(update_fields=['account'])
     return account

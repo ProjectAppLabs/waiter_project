@@ -1,7 +1,7 @@
 import { callKw } from '@/lib/services/odoo'
 import { createDish, createIngredient, ensureKitUnits, listDishes, listIngredients, listRequests, recipeLines, requestIngredient } from '@/lib/services/pantry'
 
-jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn() }))
+jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn(), inRestaurant: (d: unknown[]) => d, currentConfigId: () => null }))
 const m = callKw as jest.Mock
 beforeEach(() => m.mockReset())
 

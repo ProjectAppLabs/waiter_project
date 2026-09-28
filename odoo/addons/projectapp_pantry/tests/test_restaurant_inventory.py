@@ -2,12 +2,14 @@ from uuid import uuid4
 from odoo import Command
 from odoo.tests import TransactionCase, tagged
 from odoo.exceptions import UserError, AccessError
+from odoo.addons.projectapp_ops.tests.common_waiter import single_restaurant
 
 
 @tagged('post_install', '-at_install')
 class TestRestaurantInventory(TransactionCase):
     def setUp(self):
         super().setUp()
+        single_restaurant(self.env)
         self.env.user.waiter_role = 'admin'
         self.T = self.env['product.template']
         self.unit = self.env.ref('uom.product_uom_unit')

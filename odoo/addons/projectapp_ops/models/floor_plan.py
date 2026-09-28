@@ -9,8 +9,8 @@ from odoo.exceptions import AccessError, UserError
 
 def authorize(env, employee_id, token):
     employee = env['hr.employee'].sudo().browse(employee_id).exists()
-    if (env.user.waiter_role != 'admin' or not employee or not employee.active or
-            employee.company_id not in env.companies or employee.waiter_role != 'admin' or
+    if (env.user.waiter_role not in ('admin', 'owner') or not employee or not employee.active or
+            employee.company_id not in env.companies or employee.waiter_role not in ('admin', 'owner') or
             not employee._waiter_session_ok(token)):
         raise AccessError(env._('Valida el PIN de un administrador para modificar el plano o las zonas.'))
 

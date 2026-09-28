@@ -7,13 +7,14 @@ import json
 
 from odoo import api, fields, models
 
-ROLES = [("waiter", "Mesero"), ("cashier", "Cajero"), ("admin", "Administrador")]
+ROLES = [("waiter", "Mesero"), ("cashier", "Cajero"), ("admin", "Encargado"), ("owner", "Dueño")]
 GROUPS_BY_ROLE = {
     "waiter": ["base.group_user", "point_of_sale.group_pos_user"],
     "cashier": ["base.group_user", "point_of_sale.group_pos_user", "account.group_account_invoice"],
     "admin": ["base.group_user", "point_of_sale.group_pos_manager", "product.group_product_manager", "stock.group_stock_manager",
               "account.group_account_invoice"],
 }
+GROUPS_BY_ROLE["owner"] = GROUPS_BY_ROLE["admin"] + ["projectapp_ops.group_waiter_owner"]
 MANAGED = sorted({g for gs in GROUPS_BY_ROLE.values() for g in gs} - {"base.group_user"})
 
 # Preferencias de notificación del kit (pantalla "Notification Settings"): tipo × canal. Todas encendidas al inicio.
@@ -32,7 +33,7 @@ class ResUsers(models.Model):
 
     @property
     def SELF_READABLE_FIELDS(self):
-        return super().SELF_READABLE_FIELDS + ["waiter_role", "waiter_notify"]
+        return super().SELF_READABLE_FIELDS + ["waiter_role", "waiter_notify", "waiter_config_ids"]
 
     @property
     def SELF_WRITEABLE_FIELDS(self):
@@ -40,7 +41,7 @@ class ResUsers(models.Model):
 
     @api.model
     def _load_pos_data_fields(self, *args, **kwargs):
-        return super()._load_pos_data_fields(*args, **kwargs) + ["waiter_role", "waiter_notify"]
+        return super()._load_pos_data_fields(*args, **kwargs) + ["waiter_role", "waiter_notify", "waiter_config_ids"]
 
     def get_waiter_notify(self):
         """Preferencias como dict, completando con el valor por defecto lo que falte o esté mal formado."""

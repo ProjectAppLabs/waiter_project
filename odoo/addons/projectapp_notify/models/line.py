@@ -22,7 +22,7 @@ class PosOrderLine(models.Model):
             order = line.order_id
             where = _("Mesa %s", order.table_id.table_number) if order.table_id else (getattr(order, "waiter_number", False) or order.name)
             values.append({
-                "kind": "kitchen", "title": _("Plato listo para servir"),
+                "config_id": order.config_id.id, "kind": "kitchen", "title": _("Plato listo para servir"),
                 "body": _("%(product)s · %(where)s", product=line.full_product_name or line.product_id.display_name, where=where),
                 "res_model": "pos.order", "res_id": order.id, "action": "serve",
             })

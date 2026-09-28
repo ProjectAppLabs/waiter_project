@@ -6,10 +6,12 @@ from . import product
 from . import product_photo
 from . import seed
 from . import users
+from . import restaurants
 
 from . import floor_plan
 
 from . import menu_benefits
+from . import benefit_actions
 from . import channel_orders
 from . import gateway_payments
 

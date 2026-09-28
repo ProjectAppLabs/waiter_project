@@ -62,6 +62,8 @@ def feedback(request, order_id):
         row, _ = DinerFeedback.objects.update_or_create(order=order, diner=diner, defaults={'rating': rating, 'comment': comment.strip(), 'dish_ratings': dishes})
         from experience_app.services import ratings
         ratings.invalidate(order.session.restaurant_slug, order.session.venue_slug)
+        from experience_app.services import rewards
+        rewards.sync_for_diner(diner)
     else:
         row = DinerFeedback.objects.filter(order=order, diner=diner).first()
     return Response({'feedback': {'rating': row.rating, 'comment': row.comment, 'dishes': row.dish_ratings} if row else None, 'items': list(order.lines.filter(diner=diner).values('product_id').annotate(name=Min('name'), qty=Sum('qty')).order_by('product_id'))})

@@ -14,7 +14,7 @@ import { KitTable, type KitColumn } from '@/components/ui/KitTable'
 import { KpiTile } from '@/components/ui/KpiTile'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { formatCop } from '@/lib/domain/money'
-import { can } from '@/lib/domain/roles'
+import { can, effectiveRole } from '@/lib/domain/roles'
 import { cashInOut, closeRegister, closingData, forceCloseRegister, type ClosingData } from '@/lib/services/cashRegister'
 import { SALES_LIST_LIMIT, listSales, listShifts, paymentsByMethod, salesByWaiter, salesSummary, topProducts, type SalesSummary, type MethodTotal, type ProductTotal, type SaleRow, type ShiftRow, type WaiterTotal } from '@/lib/services/sales'
 import { SALES_PERIODS, rangeFor, validRange, type DayRange, type SalesPeriod, type SalesScope } from '@/lib/domain/salesPeriod'
@@ -35,7 +35,8 @@ export default function VentasPage() {
   const t = useTranslations('cash.sales')
   const catalog = useCatalogStore((s) => s.catalog)
   const { session, refreshSession, user } = useAuthStore()
-  const role = user?.role ?? 'waiter'
+  // El dueño cierra caja como el encargado del restaurante que está operando.
+  const role = effectiveRole(user?.role, null)
   const [closing, setClosing] = useState<ClosingData | null>(null)
   const [expectedCash, setExpectedCash] = useState<number | null>(null)
   const [shifts, setShifts] = useState<ShiftRow[]>([])

@@ -21,6 +21,15 @@ class Tenant:
     brand: dict = field(default_factory=dict)
 
 
+    @property
+    def organization_slug(self):
+        return self.restaurant_slug
+
+    @property
+    def organization_name(self):
+        return self.restaurant_name
+
+
 class TenantNotFound(Exception):
     """Restaurante, sede o mesa inexistente o revocada: "Esta mesa no está disponible"."""
 
@@ -47,6 +56,11 @@ def _to_tenant(body: dict) -> Tenant:
 
 
 def resolve(restaurant: str, venue: str, token: str | None = None) -> Tenant:
+    if not venue:
+        venues = list_restaurants(restaurant)
+        if not venues:
+            raise TenantNotFound(restaurant)
+        venue = venues[0]['slug']
     # Se cachea unos minutos: cada petición del comensal resuelve, y el registro no debe ser el cuello.
     key = f'tenant:{restaurant}/{venue}/{token or "-"}'
     cached = cache.get(key)
@@ -64,3 +78,18 @@ def resolve(restaurant: str, venue: str, token: str | None = None) -> Tenant:
     tenant = _to_tenant(response.json())
     cache.set(key, tenant, settings.TENANT_CACHE_SECONDS)
     return tenant
+
+
+def list_restaurants(organization: str) -> list[dict]:
+    """Lee el índice interno de la organización; nunca lo publica con credenciales."""
+    try:
+        response = requests.get(
+            settings.REGISTRY_URL + f'/internal/v1/organizaciones/{organization}/restaurantes/',
+            headers={'X-Internal-Key': settings.REGISTRY_INTERNAL_KEY}, timeout=10)
+    except (requests.ConnectionError, requests.Timeout) as exc:
+        raise RegistryUnavailable(str(exc)) from exc
+    if response.status_code == 404:
+        raise TenantNotFound(organization)
+    if response.status_code != 200:
+        raise RegistryUnavailable(f'registro respondió {response.status_code}')
+    return response.json()

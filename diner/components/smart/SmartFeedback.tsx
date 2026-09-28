@@ -5,6 +5,7 @@ import {http} from '@/lib/services/api'
 import {useDinerStore} from '@/lib/stores/dinerStore'
 import {FoodPhoto, Icon, Title, useSmartRoute} from './SmartMenu'
 import {Recorrido} from './Recorrido'
+import {prizeText} from '@/lib/domain/rewards'
 
 type Feedback = {rating:number; comment:string; dishes:Record<string,number>}
 type Item = {product_id:number; name:string; qty:number}
@@ -12,7 +13,8 @@ const labels = ['Muy mala','Mala','Regular','Buena','Excelente']
 
 export function SmartFeedback({id}: {id:string|null}) {
  const {go} = useSmartRoute()
- const {entry,preview} = useDinerStore()
+ const {entry,preview,account,template} = useDinerStore()
+ const [existing,setExisting] = useState(false)
  const [step,setStep] = useState(0)
  const [rating,setRating] = useState(3)
  const [comment,setComment] = useState('')
@@ -29,7 +31,7 @@ export function SmartFeedback({id}: {id:string|null}) {
   http.get<{feedback:Feedback|null;items:Item[]}>(`/api/v1/pedidos/${id}/opinion/`).then(({data}) => {
    if(!current)return
    setItems(data.items)
-   if(data.feedback){setRating(data.feedback.rating);setComment(data.feedback.comment);setDishes(data.feedback.dishes)}
+   if(data.feedback){setExisting(true);setRating(data.feedback.rating);setComment(data.feedback.comment);setDishes(data.feedback.dishes)}
   }).catch(e => {if(current)setError(e.message)}).finally(() => {if(current)setLoading(false)})
   return () => {current=false}
  },[id])
@@ -45,6 +47,8 @@ export function SmartFeedback({id}: {id:string|null}) {
   catch(e) {setError(e instanceof Error ? e.message : 'No pudimos guardar tu opinión')}
   finally {lock.current=false;setSaving(false)}
  }
+ // Plan N: la opinión de un pedido da un premio una vez (la primera vez que se guarda) y solo con cuenta verificada.
+ const earned = !existing && account?.verificada ? template.acciones?.find(a => a.accion === 'opinion')?.premio : undefined
  const catalog = entry?.carta.categorias.flatMap(c => c.productos) || []
  return <section className="sm-journey sm-feedback" data-step={step}>
   <Title title="Tu experiencia" back="historial"/>
@@ -83,7 +87,7 @@ export function SmartFeedback({id}: {id:string|null}) {
    </article>)}</div>
    <div className="sm-journey-footer"><button className="sm-text-button" disabled={saving} onClick={()=>setStep(2)}>Agregar un comentario</button><button className="sm-primary" disabled={saving||!!preview} onClick={()=>void submit()}>{saving?'Guardando…':'Enviar mi opinión'}</button></div>
   </> : <>
-   <Recorrido ilustracion="/smart-menu/stars.png" titulo="¡Gracias por compartir!" texto="Tu opinión quedó guardada para este pedido." textoAtributos={{role:'status'}} acciones={<><button className="sm-primary" onClick={()=>go('historial')}>Ver mis pedidos</button><button className="sm-text-button" onClick={()=>go('ubicacion','otra')}>Escanear otra mesa</button></>}/>
+   <Recorrido ilustracion="/smart-menu/stars.png" titulo="¡Gracias por compartir!" texto={earned?`Tu opinión quedó guardada y ganaste ${prizeText(earned)}. Míralo en Mis recompensas.`:'Tu opinión quedó guardada para este pedido.'} textoAtributos={{role:'status'}} acciones={<><button className="sm-primary" onClick={()=>go('historial')}>Ver mis pedidos</button><button className="sm-text-button" onClick={()=>go('ubicacion','otra')}>Escanear otra mesa</button></>}/>
   </>}
  </section>
 }

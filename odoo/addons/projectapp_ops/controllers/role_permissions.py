@@ -1,4 +1,4 @@
-"""Bind the verified employee to the HTTP session; enforce POS actions server-side."""
+"""Vincula el empleado verificado a la sesión HTTP y exige permisos del POS en el servidor."""
 from odoo import http
 from odoo.http import request
 from odoo.exceptions import AccessError
@@ -12,7 +12,7 @@ class WaiterDataSet(DataSet):
         context = dict(kwargs.get('context') or {})
         supplied = context.pop('waiter_pos_identity', None)
         kwargs = {**kwargs, 'context': context}
-        # PIN exchange and ending the employee session already verify their own credentials.
+        # El intercambio del PIN y el cierre del turno ya verifican sus propias credenciales.
         if model == 'hr.employee' and method in ('waiter_check_pin', 'waiter_end_shift', 'waiter_forgot_pin', 'waiter_login_list'):
             return kwargs
         identity = supplied or request.session.get('waiter_pos_identity')
@@ -21,12 +21,32 @@ class WaiterDataSet(DataSet):
         if not isinstance(identity, dict):
             raise AccessError('Sesión de empleado inválida.')
         try:
-            employee, _ = employee_role(request.env, identity.get('id'), identity.get('token'))
+            employee, role = employee_role(request.env, identity.get('id'), identity.get('token'))
         except AccessError:
             request.session.pop('waiter_pos_identity', None)
             raise
         if supplied:
             request.session['waiter_pos_identity'] = {'id': employee.id, 'token': identity['token'], 'config_id': identity.get('config_id')}
+        # La consola puede listar o crear locales antes de seleccionar uno para operar.
+        if model == 'pos.config' and method in ('waiter_restaurants', 'waiter_create_restaurant'):
+            if role not in ('admin', 'owner') or (method == 'waiter_create_restaurant' and role != 'owner'):
+                raise AccessError('Tu rol no puede administrar los restaurantes.')
+            if role != 'owner':
+                context['waiter_restaurant_ids'] = employee.waiter_config_ids.ids
+            return kwargs
+        if model in ('hr.employee', 'res.users') and method == 'waiter_set_restaurants':
+            if role not in ('admin', 'owner'):
+                raise AccessError('Tu rol no puede asignar restaurantes.')
+            if role != 'owner':
+                record_id = args[0] if args else kwargs.get('employee_id', kwargs.get('user_id'))
+                ids = args[1] if len(args) > 1 else kwargs.get('config_ids')
+                if type(record_id) is not int or not isinstance(ids, list) or any(type(i) is not int for i in ids):
+                    raise AccessError('Indica el operador y sus restaurantes.')
+                target = request.env[model].sudo().browse(record_id).exists()
+                if (not target or target.waiter_role == 'owner' or
+                        not (set(target.waiter_config_ids.ids) | set(ids)) <= set(employee.waiter_config_ids.ids)):
+                    raise AccessError('El encargado solo puede asignar sus propios restaurantes.')
+            return kwargs
         configs = request.env['pos.config']
         if model == 'pos.config' and args and isinstance(args[0], list) and all(type(value) is int for value in args[0]):
             configs = configs.browse(args[0]).exists()
@@ -51,11 +71,35 @@ class WaiterDataSet(DataSet):
                 configs = request.env[model].browse(args[0]).exists().pos_order_id.session_id.config_id
         if not configs:
             config_id = identity.get('config_id')
-            configs = request.env['pos.config'].browse(config_id).exists() if type(config_id) is int else request.env['pos.config'].search([('company_id', '=', employee.company_id.id)], limit=1)
+            configs = request.env['pos.config'].browse(config_id).exists() if type(config_id) is int else request.env['pos.config']._waiter_selected_config(context.get('waiter_config_id'))
         if not configs:
             raise AccessError('No hay un punto de venta autorizado.')
+        selected = context.get('waiter_config_id') or identity.get('config_id')
+        if selected and (type(selected) is not int or any(c.id != selected for c in configs)):
+            raise AccessError('La operación pertenece a otro restaurante.')
+        if len(configs) == 1:
+            context['waiter_config_id'] = configs.id
+            context['warehouse_id'] = configs.warehouse_id.id
         for config in configs:
             config._waiter_check_rpc(employee.id, identity['token'], model, method, args)
+        # El terminal puede usar una credencial técnica de dueño: el PIN sigue limitando sus lecturas.
+        fields = {'pos.config': 'id', 'pos.session': 'config_id', 'pos.order': 'config_id',
+                  'pos.payment': 'config_id', 'report.pos.order': 'config_id',
+                  'pos.order.line': 'order_id.config_id', 'restaurant.order.course': 'order_id.config_id',
+                  'waiter.reservation': 'config_id', 'waiter.notification': 'config_id',
+                  'restaurant.floor': 'pos_config_ids', 'restaurant.table': 'floor_id.pos_config_ids'}
+        if model in fields:
+            from odoo.fields import Domain
+            scope = [(fields[model], 'in', configs.ids)]
+            if method in ('search', 'search_read', 'search_count', 'search_fetch', 'read_group', 'web_search_read'):
+                if args:
+                    args[0] = list(Domain.AND([args[0], scope]))
+                else:
+                    kwargs['domain'] = list(Domain.AND([kwargs.get('domain', []), scope]))
+            elif method == 'read':
+                ids = args[0] if args else []
+                if request.env[model].search_count([('id', 'in', ids)] + scope) != len(set(ids)):
+                    raise AccessError('La lectura incluye registros de otro restaurante.')
         return kwargs
 
     @http.route()
