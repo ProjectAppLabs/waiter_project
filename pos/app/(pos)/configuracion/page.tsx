@@ -1,6 +1,5 @@
 'use client'
 
-import { useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Suspense, useEffect, useState } from 'react'
 
@@ -23,8 +22,8 @@ import { listPosEmployees, type PosEmployee } from '@/lib/services/employees'
 import { useCatalogStore } from '@/lib/stores/catalogStore'
 import { cn } from '@/lib/utils'
 
-const SECTIONS: [Section, KitIcon][] = [['restaurant', 'store'], ['menuTemplate', 'layout'], ['benefits', 'percentage'], ['payments', 'card'], ['taxes', 'percentage'], ['users', 'users'], ['alerts', 'alert'], ['roi', 'chartLine'], ['display', 'tablet'], ['integrations', 'sparkles']]
-type Section = 'integrations' | 'benefits' | 'restaurant' | 'brand' | 'menuTemplate' | 'payments' | 'taxes' | 'users' | 'alerts' | 'roi' | 'display'
+const SECTIONS: [Section, KitIcon][] = [['restaurant', 'store'], ['menuTemplate', 'layout'], ['benefits', 'percentage'], ['payments', 'card'], ['taxes', 'percentage'], ['users', 'users'], ['roi', 'chartLine'], ['display', 'tablet'], ['integrations', 'sparkles']]
+type Section = 'integrations' | 'benefits' | 'restaurant' | 'brand' | 'menuTemplate' | 'payments' | 'taxes' | 'users' | 'roi' | 'display'
 
 // Cuántas personas tiene cada rol: la tabla de permisos lo muestra en cada columna para ligarla con la lista del equipo.
 // Se cuentan los empleados con PIN: su rol es el que aplican estos permisos al iniciar turno.
@@ -35,11 +34,9 @@ const roleCounts = (employees: PosEmployee[]) => employees.reduce<Partial<Record
 // icono a la izquierda y panel con cabecera a la derecha, para las secciones del restaurante.
 function ConfiguracionInner() {
   const t = useTranslations('admin.settings')
-  const params = useSearchParams()
   const session = useAuthStore((s) => s.session)
   const { catalog, load } = useCatalogStore()
-  const initialSection: Section = params.get('seccion') === 'alertas' ? 'alerts' : 'restaurant'
-  const [section, setSection] = useState<Section>(initialSection)
+  const [section, setSection] = useState<Section>('restaurant')
   const [company, setCompany] = useState<CompanyInfo | null>(null)
   const [methods, setMethods] = useState<PaymentMethodInfo[]>([])
   const [taxes, setTaxes] = useState<TaxInfo[]>([])
@@ -77,7 +74,6 @@ function ConfiguracionInner() {
                 <RolePermissionsForm configId={catalog.settings.configId} initial={catalog.settings.rolePermissions} counts={roleCounts(employees)} />
                 <KitchenPaymentPolicyForm configId={catalog.settings.configId} />
               </div>}
-              {section === 'alerts' && <ThresholdsForm key="alerts" initial={catalog.settings} section="alerts" onSave={onSaveSettings} />}
               {section === 'roi' && <ThresholdsForm key="roi" initial={catalog.settings} section="roi" onSave={onSaveSettings} />}
               {section === 'display' && <DisplayForm />}
             </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { AlertThresholdsButton } from '@/components/settings/AlertThresholdsButton'
 import { useTranslations } from 'next-intl'
 import { useEffect, useMemo, useState } from 'react'
 
@@ -93,7 +94,7 @@ export default function OperacionPage() {
           </div>
           <div className="px-[22px] py-4 border-t border-border bg-canvas flex items-center justify-between">
             <span className="text-[15px] text-soft">{t('thresholds')}</span>
-            <Link href="/configuracion?seccion=alertas" className="h-11 px-3.5 rounded-[10px] border border-border bg-surface grid place-items-center text-[15px] font-medium">{t('configure')}</Link>
+            <AlertThresholdsButton label={t('configure')} />
           </div>
         </aside>
       </div>
