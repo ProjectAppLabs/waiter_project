@@ -59,7 +59,7 @@ def open_session(tenant: Tenant, diner_key: str | None) -> tuple[TableSession, D
     if diner is None or diner.session_id != session.id:
         # La cuenta verificada (Plan H) viaja con la cookie: otra visita es otro comensal, pero la misma persona.
         previous = diner
-        diner = Diner.objects.create(session=session, account=previous.account if previous else None,
+        diner = Diner.objects.create(session=session, account=previous.account if previous and previous.account_id and previous.account.organization_slug == tenant.restaurant_slug else None,
                                      **({'benefit_key': previous.benefit_key} if previous else {}))
     return session, diner
 

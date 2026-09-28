@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="waiter_restaurant_config" model="ir.rule">
+        <field name="name">Waiter · Aislamiento de config</field>
+        <field name="model_id" ref="point_of_sale.model_pos_config"/>
+        <field name="domain_force">[(1, '=', 1)] if user.has_group('projectapp_ops.group_waiter_owner') or user.has_group('base.group_system') else [('id', 'in', user.waiter_config_ids.ids)]</field>
+    </record>
+    <record id="waiter_restaurant_session" model="ir.rule">
+        <field name="name">Waiter · Aislamiento de session</field>
+        <field name="model_id" ref="point_of_sale.model_pos_session"/>
+        <field name="domain_force">[(1, '=', 1)] if user.has_group('projectapp_ops.group_waiter_owner') or user.has_group('base.group_system') else [('config_id', 'in', user.waiter_config_ids.ids)]</field>
+    </record>
+    <record id="waiter_restaurant_order" model="ir.rule">
+        <field name="name">Waiter · Aislamiento de order</field>
+        <field name="model_id" ref="point_of_sale.model_pos_order"/>
+        <field name="domain_force">[(1, '=', 1)] if user.has_group('projectapp_ops.group_waiter_owner') or user.has_group('base.group_system') else [('config_id', 'in', user.waiter_config_ids.ids)]</field>
+    </record>
+    <record id="waiter_restaurant_payment" model="ir.rule">
+        <field name="name">Waiter · Aislamiento de payment</field>
+        <field name="model_id" ref="point_of_sale.model_pos_payment"/>
+        <field name="domain_force">[(1, '=', 1)] if user.has_group('projectapp_ops.group_waiter_owner') or user.has_group('base.group_system') else [('config_id', 'in', user.waiter_config_ids.ids)]</field>
+    </record>
+    <record id="waiter_restaurant_report" model="ir.rule">
+        <field name="name">Waiter · Aislamiento de report</field>
+        <field name="model_id" ref="point_of_sale.model_report_pos_order"/>
+        <field name="domain_force">[(1, '=', 1)] if user.has_group('projectapp_ops.group_waiter_owner') or user.has_group('base.group_system') else [('config_id', 'in', user.waiter_config_ids.ids)]</field>
+    </record>
+    <record id="waiter_restaurant_line" model="ir.rule">
+        <field name="name">Waiter · Aislamiento de line</field>
+        <field name="model_id" ref="point_of_sale.model_pos_order_line"/>
+        <field name="domain_force">[(1, '=', 1)] if user.has_group('projectapp_ops.group_waiter_owner') or user.has_group('base.group_system') else [('order_id.config_id', 'in', user.waiter_config_ids.ids)]</field>
+    </record>
+    <record id="waiter_restaurant_floor" model="ir.rule">
+        <field name="name">Waiter · Aislamiento de floor</field>
+        <field name="model_id" ref="pos_restaurant.model_restaurant_floor"/>
+        <field name="domain_force">[(1, '=', 1)] if user.has_group('projectapp_ops.group_waiter_owner') or user.has_group('base.group_system') else [('pos_config_ids', 'in', user.waiter_config_ids.ids)]</field>
+    </record>
+    <record id="waiter_restaurant_table" model="ir.rule">
+        <field name="name">Waiter · Aislamiento de table</field>
+        <field name="model_id" ref="pos_restaurant.model_restaurant_table"/>
+        <field name="domain_force">[(1, '=', 1)] if user.has_group('projectapp_ops.group_waiter_owner') or user.has_group('base.group_system') else [('floor_id.pos_config_ids', 'in', user.waiter_config_ids.ids)]</field>
+    </record>
+</odoo>

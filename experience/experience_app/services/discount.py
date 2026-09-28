@@ -31,13 +31,14 @@ def claim_keys(diner: Diner) -> list[str]:
         if len(phone) == 10 and phone.startswith('3'):
             phone = '57' + phone
         identities.append('phone:' + phone)
-    return [hashlib.sha256(value.encode()).hexdigest() for value in identities]
+    organization = diner.session.restaurant_slug
+    return [hashlib.sha256(f'{organization}:{hashlib.sha256(value.encode()).hexdigest()}'.encode()).hexdigest() for value in identities]
 
 
 def applicable(diner: Diner) -> bool:
     """El comensal tiene una cuenta verificada que aún no usó su descuento."""
     return diner.account_id is not None and DinerAccount.objects.filter(
-        id=diner.account_id, verified=True, discount_used_at=None, discount_order=None).exists() and not SignupDiscountClaim.objects.filter(key__in=claim_keys(diner)).exists()
+        id=diner.account_id, organization_slug=diner.session.restaurant_slug, verified=True, discount_used_at=None, discount_order=None).exists() and not SignupDiscountClaim.objects.filter(key__in=claim_keys(diner)).exists()
 
 
 def view(lines: list[CartLine], diner: Diner, percent: float) -> dict:

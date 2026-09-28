@@ -16,6 +16,8 @@ class TestMenuBenefits(CommonPosTest):
     def setUp(self):
         super().setUp()
         self.config = self.pos_config_usd
+        self.env['waiter.benefit.action'].with_context(active_test=False).search([
+            ('company_id', '=', self.config.company_id.id)]).unlink()
         self.session = self.env['pos.session'].create({'config_id': self.config.id})
         self.session.action_pos_session_open()
         self.env['waiter.seed'].seed_loyalty()
@@ -50,7 +52,8 @@ class TestMenuBenefits(CommonPosTest):
             self.config.waiter_benefits_settings(coupon={**c, 'percent': 101})
 
     def test_cashier_cannot_change_programs_or_provision_diner_identity(self):
-        user = new_test_user(self.env, login='benefits-cashier', groups='point_of_sale.group_pos_user')
+        user = new_test_user(self.env, login='benefits-cashier', groups='point_of_sale.group_pos_user',
+                             waiter_config_ids=[(6, 0, self.config.ids)])
         with self.assertRaises(AccessError):
             self.config.with_user(user).waiter_benefits_settings()
         with self.assertRaises(AccessError):
@@ -148,8 +151,8 @@ class TestMenuBenefits(CommonPosTest):
         self.config.signup_discount_percent = 7
         rows = self.config.waiter_benefits_settings()['actions']
         self.assertEqual([r['action'] for r in rows], ['cuenta', 'opinion', 'novedades', 'pago_en_linea'])
-        self.assertEqual(rows[0], {'action': 'cuenta', 'active': True, 'reward': 'descuento', 'percent': 7, 'couponId': None, 'points': 10})
-        self.assertEqual(rows[1], {'action': 'opinion', 'active': False, 'reward': 'descuento', 'percent': 5, 'couponId': None, 'points': 10})
+        self.assertEqual(rows[0], {'action': 'cuenta', 'active': True, 'reward': 'descuento', 'percent': 7, 'couponId': None, 'points': 10, 'configs': []})
+        self.assertEqual(rows[1], {'action': 'opinion', 'active': False, 'reward': 'descuento', 'percent': 5, 'couponId': None, 'points': 10, 'configs': []})
         self.assertEqual(self.config.waiter_benefit_actions(), [{'accion': 'cuenta', 'premio': {'tipo': 'descuento', 'porcentaje': 7}}])
         self._action('cuenta', percent=15)
         self.assertEqual(self.config.signup_discount_percent, 15)
@@ -159,10 +162,10 @@ class TestMenuBenefits(CommonPosTest):
         self._action('cuenta', reward='puntos', points=40)
         self.assertEqual(self.config.signup_discount_percent, 0)
         self.assertEqual(self.env['waiter.benefit.action'].with_context(active_test=False).search_count([
-            ('config_id', '=', self.config.id), ('action', '=', 'cuenta')]), 1)
+            ('company_id', '=', self.config.company_id.id), ('action', '=', 'cuenta')]), 1)
 
     def test_actions_validate_prizes_and_venue(self):
-        # Falla si se guarda un porcentaje inválido, puntos sin programa o un cupón de otra sede.
+        # Falla si se guarda un porcentaje inválido, puntos sin programa o se rechaza un cupón de toda la organización.
         for invalid in ({'percent': 0}, {'percent': 101}, {'percent': float('nan')}, {'percent': float('inf')},
                         {'reward': 'puntos', 'points': 0}, {'reward': 'puntos', 'points': 1.5}, {'reward': 'cupon'}):
             with self.assertRaises(ValidationError), self.env.cr.savepoint():
@@ -171,8 +174,8 @@ class TestMenuBenefits(CommonPosTest):
         program = self.env['loyalty.program'].browse(coupon['id'])
         self._action(reward='cupon', couponId=program.id)
         program.pos_config_ids = False
-        with self.assertRaises(ValidationError), self.env.cr.savepoint():
-            self._action(reward='cupon', couponId=program.id)
+        self._action(reward='cupon', couponId=program.id)
+        self.assertFalse(program.pos_config_ids)
         points_program = self.config._waiter_points_program()
         with self.assertRaises(ValidationError), self.env.cr.savepoint():
             self._action(reward='cupon', couponId=points_program.id)
@@ -232,7 +235,8 @@ class TestMenuBenefits(CommonPosTest):
     def test_cashier_only_reads_actions_and_grants(self):
         # Falla si el cajero cambia acciones o se otorga puntos mediante RPC o acceso directo al modelo.
         self._action()
-        user = new_test_user(self.env, login='actions-cashier', groups='point_of_sale.group_pos_user')
+        user = new_test_user(self.env, login='actions-cashier', groups='point_of_sale.group_pos_user',
+                             waiter_config_ids=[(6, 0, self.config.ids)])
         self.assertTrue(self.config.with_user(user).waiter_benefit_actions())
         with self.assertRaises(AccessError):
             self.config.with_user(user).waiter_benefits_settings(action={'action': 'opinion'})
@@ -248,16 +252,16 @@ class TestMenuBenefits(CommonPosTest):
         from pathlib import Path
         migrate = runpy.run_path(str(Path(__file__).resolve().parents[1] / 'migrations/19.0.2.4.0/post-migrate.py'))['migrate']
         Action = self.env['waiter.benefit.action'].with_context(active_test=False)
-        Action.search([('config_id', '=', self.config.id), ('action', '=', 'cuenta')]).unlink()
+        Action.search([('company_id', '=', self.config.company_id.id), ('action', '=', 'cuenta')]).unlink()
         self.config.signup_discount_percent = 9
         migrate(self.env.cr, '19.0.2.3.0')
         migrate(self.env.cr, '19.0.2.3.0')
-        row = Action.search([('config_id', '=', self.config.id), ('action', '=', 'cuenta')])
+        row = Action.search([('company_id', '=', self.config.company_id.id), ('action', '=', 'cuenta')])
         self.assertEqual((len(row), row.active, row.percent), (1, True, 9))
         row.unlink()
         self.config.signup_discount_percent = 0
         migrate(self.env.cr, '19.0.2.3.0')
-        row = Action.search([('config_id', '=', self.config.id), ('action', '=', 'cuenta')])
+        row = Action.search([('company_id', '=', self.config.company_id.id), ('action', '=', 'cuenta')])
         self.assertEqual((row.active, row.percent, self.config.signup_discount_percent), (False, 5, 0))
         self._action('cuenta', reward='puntos', points=25)
         migrate(self.env.cr, '19.0.2.3.0')

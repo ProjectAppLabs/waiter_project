@@ -91,12 +91,12 @@ def test_read_prepare_preview_confirm_end_to_end(client, owner):
 
 
 # // Falla si un borrador admite otra sede/clave, sobrevive a la revocación/caducidad o permite métodos de escritura públicos.
-@pytest.mark.parametrize('reason', ['otra-sede', 'otra-clave', 'revocada', 'caducada', 'token-invalido', 'escritura'])
+@pytest.mark.parametrize('reason', ['otra-organizacion', 'otra-clave', 'revocada', 'caducada', 'token-invalido', 'escritura'])
 def test_draft_scope_and_lifetime(client, owner, reason):
     record, raw = owner
     draft = prepare(client, raw, {'variantes': {'boton': 'suave'}})
-    if reason == 'otra-sede':
-        assert client.get(url(draft, 'otra')).status_code == 404
+    if reason == 'otra-organizacion':
+        assert client.get(url(draft).replace('/burger-house/', '/otra-organizacion/')).status_code == 404
     elif reason == 'otra-clave':
         _, other = keys.create('otro', 'salon', 'Otra')
         assert call(client, other, 'confirmar_cambio', {'token': draft['token']})['isError']

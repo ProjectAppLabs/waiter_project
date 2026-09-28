@@ -25,6 +25,8 @@ class WaiterNotification(models.Model):
     _description = "Notificación del kit Waiter"
     _order = "create_date desc, id desc"
 
+    config_id = fields.Many2one('pos.config', required=True, index=True, ondelete='cascade',
+                                default=lambda self: self.env['pos.config']._waiter_selected_config())
     kind = fields.Selection(KINDS, string="Tipo", required=True, index=True)
     title = fields.Char(string="Título", required=True)
     body = fields.Char(string="Cuerpo")
@@ -40,7 +42,7 @@ class WaiterNotification(models.Model):
     def create(self, vals_list):
         records = super().create(vals_list)
         # El aviso tiene que sonar en la tablet ahora, no en el siguiente latido.
-        configs = self.env["pos.config"].search([]).ids
+        configs = records.config_id.ids
         self.env["waiter.bus"].waiter_send(configs, "notify")
         return records
 
@@ -48,7 +50,7 @@ class WaiterNotification(models.Model):
 
     @api.model
     def _waiter_mine_domain(self):
-        return ["|", ("user_id", "=", False), ("user_id", "=", self.env.uid)]
+        return [("config_id", "=", self.env["pos.config"]._waiter_selected_config().id), "|", ("user_id", "=", False), ("user_id", "=", self.env.uid)]
 
     @api.model
     def waiter_mark_all_read(self):
@@ -78,25 +80,28 @@ class WaiterNotification(models.Model):
         """Cron (cada 5 minutos). Crea «Stock bajo» por producto bajo mínimo sin duplicar mientras siga bajo;
         cierra las abiertas de los productos que se recuperaron. Devuelve los ids creados."""
         low, fine = self._low_stock_orderpoints()
-        open_domain = [("kind", "=", "inventory"), ("res_model", "=", "product.product"), ("action_done", "=", False)]
-        if fine:
-            self.search(open_domain + [("res_id", "in", fine.product_id.ids)]).write({"action_done": True})
-        already = set(self.search(open_domain + [("res_id", "in", low.product_id.ids)]).mapped("res_id"))
-        values = []
-        for orderpoint in low:
-            product = orderpoint.product_id
-            if product.id in already:
-                continue
-            already.add(product.id)
-            unit = orderpoint.product_uom_name or product.uom_id.name or ""
-            values.append({
-                "kind": "inventory", "title": _("Stock bajo"),
-                "body": _("%(product)s: quedan %(qty)s %(unit)s (mínimo %(min)s). Pide al proveedor pronto.",
-                          product=product.display_name, qty=self._fmt(orderpoint.qty_on_hand), unit=unit,
-                          min=self._fmt(orderpoint.product_min_qty)),
-                "res_model": "product.product", "res_id": product.id, "action": "request_ingredient",
-            })
-        return self.create(values).ids
+        created = self.browse()
+        for config in self.env['pos.config'].search([]):
+            local_low = low.filtered(lambda o: o.warehouse_id == config.warehouse_id)
+            local_fine = fine.filtered(lambda o: o.warehouse_id == config.warehouse_id)
+            domain = [('config_id', '=', config.id), ('kind', '=', 'inventory'),
+                      ('res_model', '=', 'product.product'), ('action_done', '=', False)]
+            recovered = local_fine.product_id - local_low.product_id
+            self.search(domain + [('res_id', 'in', recovered.ids)]).write({'action_done': True})
+            already = set(self.search(domain).mapped('res_id'))
+            for orderpoint in local_low:
+                product = orderpoint.product_id
+                if product.id in already:
+                    continue
+                already.add(product.id)
+                created |= self.create({
+                    'config_id': config.id, 'kind': 'inventory', 'title': _('Stock bajo'),
+                    'body': _('%(product)s: quedan %(qty)s (mínimo %(min)s). Pide al proveedor pronto.',
+                              product=product.display_name, qty=self._fmt(orderpoint.qty_on_hand),
+                              min=self._fmt(orderpoint.product_min_qty)),
+                    'res_model': 'product.product', 'res_id': product.id, 'action': 'request_ingredient',
+                })
+        return created.ids
 
     @staticmethod
     def _fmt(qty):
@@ -108,6 +113,7 @@ class WaiterNotification(models.Model):
         Cantidad: la dada, o lo que falta para el máximo de la regla, o el mínimo del proveedor, o 1.
         Marca `action_done` en las notificaciones de inventario del producto.
         Devuelve `{purchase_id, name, partner_id, partner_name, product_qty}`."""
+        config = self.env["pos.config"]._waiter_selected_config()
         product = self.env["product.product"].browse(int(product_id)).exists()
         if not product:
             raise UserError(_("El producto no existe."))
@@ -115,20 +121,20 @@ class WaiterNotification(models.Model):
         if not sellers:
             raise UserError(_("%s no tiene proveedor configurado (pestaña Compra del producto).", product.display_name))
         if qty is None:
-            orderpoint = self.env["stock.warehouse.orderpoint"].search([("product_id", "=", product.id)], limit=1)
+            orderpoint = self.env["stock.warehouse.orderpoint"].search([("product_id", "=", product.id), ("warehouse_id", "=", config.warehouse_id.id)], limit=1)
             missing = (orderpoint.product_max_qty - orderpoint.qty_on_hand) if orderpoint else 0.0
             qty = missing if missing > 0 else (sellers[0].min_qty or 1.0)
         # El proveedor más barato que sirva esa cantidad; si ninguno cubre el mínimo, el primero de la lista.
         seller = product._select_seller(quantity=qty, date=fields.Date.context_today(self), uom_id=product.uom_id) or sellers[0]
         purchase = self.env["purchase.order"].create({
-            "partner_id": seller.partner_id.id, "origin": _("Waiter: solicitud de ingrediente"),
+            "picking_type_id": config.warehouse_id.in_type_id.id, "partner_id": seller.partner_id.id, "origin": _("Waiter: solicitud de ingrediente"),
             "order_line": [(0, 0, {
                 "product_id": product.id, "name": product.display_name, "product_qty": qty,
                 "product_uom_id": (seller.product_uom_id or product.uom_id).id, "price_unit": seller.price,
                 "date_planned": fields.Datetime.now(),
             })],
         })
-        self.search([("kind", "=", "inventory"), ("res_model", "=", "product.product"), ("res_id", "=", product.id),
+        self.search([("config_id", "=", config.id), ("kind", "=", "inventory"), ("res_model", "=", "product.product"), ("res_id", "=", product.id),
                      ("action_done", "=", False)]).write({"action_done": True})
         return {"purchase_id": purchase.id, "name": purchase.name, "partner_id": seller.partner_id.id,
                 "partner_name": seller.partner_id.display_name, "product_qty": qty}

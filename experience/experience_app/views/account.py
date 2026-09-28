@@ -20,7 +20,11 @@ NO_ACCOUNT = {'detail': 'No hay una cuenta en este dispositivo'}
 
 def _diner(request) -> Diner:
     # 404 y no 401: sin cookie no hay comensal, y la cuenta cuelga del comensal (no hay otro login).
-    return get_object_or_404(Diner.objects.select_related('account'), key=request.COOKIES.get(COOKIE, ''))
+    diner = get_object_or_404(Diner.objects.select_related('account', 'session'), key=request.COOKIES.get(COOKIE, ''))
+    if diner.account_id and diner.account.organization_slug != diner.session.restaurant_slug:
+        from django.http import Http404
+        raise Http404('La cuenta pertenece a otra organización.')
+    return diner
 
 
 @api_view(['POST'])
@@ -46,7 +50,7 @@ def verify(request):
         account_id = uuid.UUID(raw_id)
     except ValueError:
         return Response({'detail': 'La cuenta indicada no existe'}, status=404)
-    account = get_object_or_404(DinerAccount, id=account_id)
+    account = get_object_or_404(DinerAccount, id=account_id, organization_slug=diner.session.restaurant_slug)
     try:
         accounts.verify(account, diner, request.data.get('codigo'))
     except accounts.DemoUnavailable:
@@ -110,13 +114,15 @@ def favorites(request, restaurant, venue, product_id=None):
     diner = _diner(request)
     if not diner.account_id or not diner.account.verified:
         return Response(NO_ACCOUNT, status=401)
+    if restaurant != diner.session.restaurant_slug or diner.account.organization_slug != restaurant:
+        return Response(NO_ACCOUNT, status=403)
     tenant = resolve(restaurant, venue)
-    rows = DinerFavorite.objects.filter(account=diner.account, restaurant_slug=restaurant, venue_slug=venue)
+    rows = DinerFavorite.objects.filter(account=diner.account, restaurant_slug=restaurant, venue_slug='')
     if request.method == 'PUT':
         if product_id is None:
             return Response({'detail': 'Elige un plato'}, status=400)
         catalog.find_product(tenant, product_id)
-        rows.get_or_create(product_id=product_id, defaults={'account': diner.account, 'restaurant_slug': restaurant, 'venue_slug': venue})
+        rows.get_or_create(product_id=product_id, defaults={'account': diner.account, 'restaurant_slug': restaurant, 'venue_slug': ''})
     elif request.method == 'DELETE':
         if product_id is None:
             return Response({'detail': 'Elige un plato'}, status=400)
@@ -135,11 +141,11 @@ def password_login(request):
     password = data.get('clave', '')
     if not isinstance(password, str) or len(password) > 128:
         return Response({'detail': 'Correo o contraseña incorrectos'}, status=400)
-    key = 'diner-login:' + hashlib.sha256((request.META.get('REMOTE_ADDR', '') + ':' + email).encode()).hexdigest()
+    key = 'diner-login:' + hashlib.sha256((diner.session.restaurant_slug + ':' + request.META.get('REMOTE_ADDR', '') + ':' + email).encode()).hexdigest()
     attempts = cache.get(key, 0)
     if attempts >= 5:
         return Response({'detail': 'Espera 15 minutos antes de volver a intentarlo'}, status=429)
-    account = DinerAccount.objects.filter(email__iexact=email, verified=True).first()
+    account = DinerAccount.objects.filter(organization_slug=diner.session.restaurant_slug, email__iexact=email, verified=True).first()
     valid = check_password(password, account.password) if account and account.password else False
     if not valid:
         if not account or not account.password:
@@ -161,6 +167,6 @@ def change_password(request):
     data = request.data if isinstance(request.data, dict) else {}
     if 'nueva' in data or 'actual' in data:
         return Response({'detail': 'Verifica tu identidad con el enlace enviado a tu correo antes de cambiar la contraseña.'}, status=403)
-    # The recipient and restaurant come from the authenticated diner, never the browser.
+    # La organización y el destinatario salen de la sesión del comensal.
     return send_reset_link(request, diner.account.email, diner.session.restaurant_slug,
                            diner.session.venue_slug, authenticated=True)

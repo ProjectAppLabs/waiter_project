@@ -9,7 +9,7 @@ class DinerReward(models.Model):
 
     account = models.ForeignKey('DinerAccount', on_delete=models.CASCADE, related_name='rewards')
     restaurant_slug = models.SlugField(max_length=60)
-    venue_slug = models.SlugField(max_length=60)
+    venue_slug = models.SlugField(max_length=60, blank=True, default='')
     action = models.CharField(max_length=20, choices=ACTIONS)
     reference = models.CharField(max_length=64, blank=True, default='')
     reward = models.CharField(max_length=10, choices=REWARDS)
@@ -22,6 +22,10 @@ class DinerReward(models.Model):
     order = models.ForeignKey('Order', on_delete=models.SET_NULL, null=True, blank=True, related_name='rewards')
     created_at = models.DateTimeField(auto_now_add=True)
     used_at = models.DateTimeField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        self.venue_slug = ''
+        return super().save(*args, **kwargs)
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['account', 'restaurant_slug', 'venue_slug', 'action', 'reference'],

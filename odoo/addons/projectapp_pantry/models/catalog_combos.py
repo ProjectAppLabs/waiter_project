@@ -22,7 +22,7 @@ class ProductTemplate(models.Model):
         result={}
         for template in self.filtered('waiter_combo_bom_id'):
             components=template.waiter_combo_bom_id.bom_line_ids.product_id
-            available=all(p.active and p.available_in_pos for p in components)
+            available=all(p.active and p.available_in_pos and self._waiter_config() not in p.waiter_unavailable_config_ids for p in components)
             result[str(template.product_variant_id.id)]=bool(available and (not template.has_recipe or template.servings_available>0))
         return result
 

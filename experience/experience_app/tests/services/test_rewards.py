@@ -51,7 +51,7 @@ def rpc():
 @pytest.fixture
 def table(two_diners, catalog_stub, rpc):
     session, ana, beto = two_diners
-    account = DinerAccount.objects.create(name='Ana', email='ana@example.invalid', verified=True, discount_used_at=timezone.now())
+    account = DinerAccount.objects.create(organization_slug='burger-house', name='Ana', email='ana@example.invalid', verified=True, discount_used_at=timezone.now())
     ana.account = account
     ana.save(update_fields=['account'])
     sessions.add_line(session, ana, ANGUS, 2)
@@ -119,7 +119,7 @@ def test_verification_and_account_discount_keep_the_existing_path(table, rpc):
 
 
 def test_coupon_prize_is_copied_once_and_isolated_by_account_and_venue(table, rpc):
-    # Falla si cambiar el POS reescribe un premio concedido o si otra cuenta/sede ve ese premio.
+    # Falla si cambiar el POS reescribe un premio concedido o si otra cuenta u organización ve ese premio.
     _, ana, beto = table
     configured, _, _ = rpc
     prize = action('cuenta', 'cupon', codigo='HOLA20', nombre='Bienvenida', porcentaje=20, minimo=10000)
@@ -133,15 +133,16 @@ def test_coupon_prize_is_copied_once_and_isolated_by_account_and_venue(table, rp
     assert row.prize_snapshot == prize['premio']
     assert (row.coupon_code, row.percent, row.state) == ('HOLA20', 20, 'disponible')
     other = replace(TABLE, venue_slug='centro')
-    assert rewards.view(other, ana.account)['beneficios'] == []
-    beto.account = DinerAccount.objects.create(name='Beto', email='beto@example.invalid', verified=True)
+    assert len(rewards.view(other, ana.account)['beneficios']) == 1
+    assert rewards.view(replace(TABLE, restaurant_slug='otra-organizacion'), ana.account)['beneficios'] == []
+    beto.account = DinerAccount.objects.create(organization_slug='burger-house', name='Beto', email='beto@example.invalid', verified=True)
     assert rewards.view(TABLE, beto.account)['beneficios'] == []
     with pytest.raises(IntegrityError), transaction.atomic():
         earned(ana, 'cuenta')
 
 
 def test_opinion_is_once_per_sent_order_and_only_in_its_venue(table, rpc):
-    # Falla si editar una opinión o repetirla con otra cookie duplica el premio, o se premian pedidos de otra sede.
+    # Falla si editar una opinión o repetirla con otra cookie duplica el premio, o se premian pedidos de otra organización.
     session, ana, beto = table
     rpc[0].append(action('opinion', porcentaje=12))
     order = Order.objects.create(session=session, state=Order.SENT)
@@ -149,7 +150,7 @@ def test_opinion_is_once_per_sent_order_and_only_in_its_venue(table, rpc):
     beto.save()
     DinerFeedback.objects.create(order=order, diner=ana, rating=1)
     DinerFeedback.objects.create(order=order, diner=beto, rating=5)
-    other_session = TableSession.objects.create(restaurant_slug=TABLE.restaurant_slug, venue_slug='centro')
+    other_session = TableSession.objects.create(restaurant_slug='otra-organizacion', venue_slug='centro')
     other_order = Order.objects.create(session=other_session, state=Order.SENT)
     DinerFeedback.objects.create(order=other_order, diner=ana, rating=4)
     pending = Order.objects.create(session=session, state=Order.CHECKOUT)
@@ -228,6 +229,22 @@ def test_best_discount_only_on_confirming_diner_and_other_prizes_wait(table, rpc
     smaller.refresh_from_db()
     assert (best.state, best.order, smaller.state) == ('usado', order, 'disponible')
     assert best.used_at is not None
+
+
+def test_restricted_reward_is_shared_but_only_spent_in_its_restaurant(table, rpc, sending):
+    # Falla si un premio compartido se aplica fuera de los restaurantes permitidos en su concesión.
+    session, ana, _ = table
+    restricted = earned(ana, percent=25, prize_snapshot={'tipo': 'descuento', 'porcentaje': 25, 'configs': [2]})
+    global_reward = earned(ana, 'novedades', percent=10)
+    assert [row['id'] for row in rewards.view(TABLE, ana.account)['beneficios']] == [global_reward.pk]
+    sibling = replace(TABLE, venue_slug='laureles', odoo=replace(TABLE.odoo, pos_config_id=2))
+    assert restricted.pk in [row['id'] for row in rewards.view(sibling, ana.account)['beneficios']]
+    order, _ = orders.confirm(session, ana)
+    restricted.refresh_from_db()
+    global_reward.refresh_from_db()
+    assert restricted.state == 'disponible'
+    assert (global_reward.state, global_reward.order_id) == ('usado', order.pk)
+    assert sending.call_args.kwargs['lines'][0].discount == 10
 
 
 @pytest.mark.parametrize('coupon,first_purchase,expected', [(True, True, 20), (False, True, 5), (False, False, 25)])
@@ -456,10 +473,10 @@ def test_cas_loss_uses_next_available_reward_without_stealing_reserved_one(table
 
 
 def test_reward_reservation_excludes_other_accounts_venues_and_unverified_accounts(table):
-    # Falla si reservar usa el mayor porcentaje de otra cuenta/sede o autoriza una cuenta que dejó de estar verificada.
+    # Falla si reservar usa el mayor porcentaje de otra cuenta u organización o autoriza una cuenta que dejó de estar verificada.
     session, ana, beto = table
-    earned(ana, percent=90, venue_slug='centro')
-    beto.account = DinerAccount.objects.create(name='Beto', email='beto@example.invalid', verified=True)
+    earned(ana, percent=90, restaurant_slug='otra-organizacion')
+    beto.account = DinerAccount.objects.create(organization_slug='burger-house', name='Beto', email='beto@example.invalid', verified=True)
     beto.save()
     earned(beto, percent=80)
     own = earned(ana, percent=10)

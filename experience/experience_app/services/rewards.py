@@ -1,4 +1,4 @@
-"""Premios por acciones verificadas en el servidor, aislados por cuenta y sede."""
+"""Premios por acciones verificadas en el servidor, aislados por cuenta y organización."""
 from decimal import Decimal
 
 from django.conf import settings
@@ -28,11 +28,16 @@ def actions(tenant):
 
 
 def _scope(tenant, account):
-    return {'account': account, 'restaurant_slug': tenant.restaurant_slug, 'venue_slug': tenant.venue_slug}
+    return {'account': account, 'restaurant_slug': tenant.restaurant_slug, 'venue_slug': ''}
+
+
+def _eligible(row, config_id):
+    configs = row.prize_snapshot.get('configs') or []
+    return not configs or config_id in configs
 
 
 def _references(tenant, account):
-    venue = {'order__session__restaurant_slug': tenant.restaurant_slug, 'order__session__venue_slug': tenant.venue_slug}
+    venue = {'order__session__restaurant_slug': tenant.restaurant_slug}
     opinions = DinerFeedback.objects.filter(diner__account=account, order__state=Order.SENT, **venue)
     paid = PaymentAttempt.objects.filter(diner__account=account, status='APPROVED', **venue).exists()
     return {'cuenta': [''], 'novedades': [''] if account.marketing else [],
@@ -44,7 +49,7 @@ def sync(tenant, account):
     """Concede una vez cada acción y reintenta los puntos aunque la acción ya se haya desactivado."""
     if account is None:
         return
-    account = DinerAccount.objects.filter(pk=account.pk, verified=True).first()
+    account = DinerAccount.objects.filter(pk=account.pk, organization_slug=tenant.restaurant_slug, verified=True).first()
     if account is None:
         return
     available = actions(tenant)
@@ -83,13 +88,15 @@ def reserve(tenant, diner, new_lines, order):
     mine = [line for line in new_lines if line.diner_id == diner.id]
     if not mine or any(line.discount or line.coupon_code for line in mine):
         return
-    if not DinerAccount.objects.filter(pk=diner.account_id, verified=True).exists():
+    if not DinerAccount.objects.filter(pk=diner.account_id, organization_slug=diner.session.restaurant_slug, verified=True).exists():
         return
     with transaction.atomic():
         candidates = DinerReward.objects.filter(**_scope(tenant, diner.account), reward='descuento')
         row = candidates.filter(state='reservado', order=order).first()
         if row is None:
             for candidate in candidates.filter(state='disponible').order_by('-percent', 'created_at', 'pk'):
+                if not _eligible(candidate, tenant.odoo.pos_config_id):
+                    continue
                 if DinerReward.objects.filter(pk=candidate.pk, state='disponible').update(state='reservado', order=order):
                     row = candidate
                     break
@@ -111,23 +118,34 @@ def use_coupon(tenant, diner, code, order):
     candidates = DinerReward.objects.filter(**_scope(tenant, diner.account), reward='cupon', coupon_code=code,
                                              state='disponible').order_by('created_at', 'pk')
     for row in candidates:
+        if not _eligible(row, tenant.odoo.pos_config_id):
+            continue
         if DinerReward.objects.filter(pk=row.pk, state='disponible').update(state='usado', order=order, used_at=timezone.now()):
             break
 
 
 def discount_view(lines, diner):
     """Proyecta el mayor descuento disponible o explica el premio ya aplicado a estas líneas."""
-    if not diner.account_id or not DinerAccount.objects.filter(pk=diner.account_id, verified=True).exists():
+    if not diner.account_id or not DinerAccount.objects.filter(pk=diner.account_id, organization_slug=diner.session.restaurant_slug, verified=True).exists():
         return None
     rows = DinerReward.objects.filter(account_id=diner.account_id, restaurant_slug=diner.session.restaurant_slug,
-                                      venue_slug=diner.session.venue_slug, reward='descuento')
+                                      venue_slug='', reward='descuento')
     mine = [line for line in lines if line.diner_id == diner.id]
     pending = [line for line in mine if line.status == CartLine.OPEN and line.order_id is None and not line.discount]
     row = None
     if pending:
         row = rows.filter(state='reservado', order__session=diner.session).first()
         if row is None:
-            row = rows.filter(state='disponible').order_by('-percent', 'created_at', 'pk').first()
+            config_id = None
+            for candidate in rows.filter(state='disponible').order_by('-percent', 'created_at', 'pk'):
+                if candidate.prize_snapshot.get('configs') and config_id is None:
+                    try:
+                        config_id = benefits.tenant_for(diner.session).odoo.pos_config_id
+                    except (RegistryUnavailable, TenantNotFound):
+                        continue
+                if _eligible(candidate, config_id):
+                    row = candidate
+                    break
     projected = sum((line.subtotal for line in pending), Decimal(0)) * row.percent / 100 if row else Decimal(0)
     can_apply = row is not None
     if row is None:
@@ -141,7 +159,8 @@ def discount_view(lines, diner):
 
 
 def view(tenant, account):
-    rows = list(DinerReward.objects.filter(**_scope(tenant, account)).order_by('created_at', 'pk'))
+    rows = [row for row in DinerReward.objects.filter(**_scope(tenant, account)).order_by('created_at', 'pk')
+            if _eligible(row, tenant.odoo.pos_config_id)]
     done = {row.action for row in rows}
     references = _references(tenant, account)
     return {'beneficios': [{'id': row.pk, 'accion': row.action, 'premio': row.prize_snapshot,

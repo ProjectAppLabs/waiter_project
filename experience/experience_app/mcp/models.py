@@ -1,17 +1,17 @@
-"""Claves MCP por sede y borradores compartidos entre IA y vista previa del POS."""
+"""Claves MCP por organización y borradores compartidos entre IA y vista previa del POS."""
 import uuid
 
 from django.db import models
 
 
 class McpKey(models.Model):
-    """Una clave MCP de una sede. Solo se guarda su sha256: la clave en claro se muestra una vez, al crearla.
+    """Una clave MCP de una organización. Solo se guarda su sha256: la clave en claro se muestra una vez, al crearla.
 
-    La clave es lo único que decide a qué restaurante se accede: el servidor MCP nunca acepta un slug del cliente.
+    La clave es lo único que decide a qué organización se accede: el servidor MCP nunca acepta un slug del cliente.
     """
 
     restaurant_slug = models.SlugField(max_length=60)
-    venue_slug = models.SlugField(max_length=60)
+    venue_slug = models.SlugField(max_length=60, blank=True, default='')
     name = models.CharField(max_length=60)
     # Primeros caracteres de la clave (wtr_xxxxxx), para reconocerla en la lista sin guardarla.
     prefix = models.CharField(max_length=16)
@@ -20,6 +20,10 @@ class McpKey(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     last_used_at = models.DateTimeField(null=True, blank=True)
     revoked_at = models.DateTimeField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        self.venue_slug = ''
+        return super().save(*args, **kwargs)
 
     class Meta:
         indexes = [models.Index(fields=['restaurant_slug', 'venue_slug'])]
@@ -40,3 +44,9 @@ class McpPendingChange(models.Model):
     preview = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     applied_at = models.DateTimeField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        self.venue_slug = ''
+        if self.key_id and not self.restaurant_slug:
+            self.restaurant_slug = self.key.restaurant_slug
+        return super().save(*args, **kwargs)

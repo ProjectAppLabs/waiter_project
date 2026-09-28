@@ -50,20 +50,20 @@ def view(decoration: MenuDecoration) -> dict:
 
 def file_path(decoration: MenuDecoration) -> str:
     version = decoration.updated_at.strftime('%Y%m%d%H%M%S') if decoration.updated_at else '0'
-    return f'/api/v1/{quote(decoration.restaurant_slug)}/{quote(decoration.venue_slug)}/decoraciones/{decoration.slug}/?v={version}'
+    return f'/api/v1/{quote(decoration.restaurant_slug)}/decoraciones/{decoration.slug}/?v={version}'
 
 
 def listing(restaurant: str, venue: str) -> list[dict]:
-    return [view(d) for d in MenuDecoration.objects.filter(restaurant_slug=restaurant, venue_slug=venue).defer('data')]
+    return [view(d) for d in MenuDecoration.objects.filter(restaurant_slug=restaurant, venue_slug='').defer('data')]
 
 
 def files(restaurant: str, venue: str) -> dict[str, str]:
     """{id: archivo} de la sede, para que el validador resuelva <decoracion id="…"/> a su ruta."""
-    return {d.slug: file_path(d) for d in MenuDecoration.objects.filter(restaurant_slug=restaurant, venue_slug=venue).defer('data')}
+    return {d.slug: file_path(d) for d in MenuDecoration.objects.filter(restaurant_slug=restaurant, venue_slug='').defer('data')}
 
 
 def get(restaurant: str, venue: str, slug: str) -> MenuDecoration | None:
-    return MenuDecoration.objects.filter(restaurant_slug=restaurant, venue_slug=venue, slug=slug).first()
+    return MenuDecoration.objects.filter(restaurant_slug=restaurant, venue_slug='', slug=slug).first()
 
 
 @transaction.atomic
@@ -83,7 +83,7 @@ def create(restaurant: str, venue: str, name, image, created_by: str = '') -> Me
     width, height = dimensions
     if width > MAX_SIDE or height > MAX_SIDE or width < 16 or height < 16:
         raise InvalidDecoration(f'La imagen mide {width}×{height} px; debe estar entre 16 y {MAX_SIDE} px de lado.')
-    existing = MenuDecoration.objects.select_for_update().filter(restaurant_slug=restaurant, venue_slug=venue)
+    existing = MenuDecoration.objects.select_for_update().filter(restaurant_slug=restaurant, venue_slug='')
     if existing.count() >= MAX_PER_VENUE:
         raise InvalidDecoration(f'La galería ya tiene {MAX_PER_VENUE} decoraciones; elimina alguna antes de subir otra.')
     taken = set(existing.values_list('slug', flat=True))
@@ -94,12 +94,12 @@ def create(restaurant: str, venue: str, name, image, created_by: str = '') -> Me
         slug = f'{base[:36]}-{counter}'
         counter += 1
     try:
-        return MenuDecoration.objects.create(restaurant_slug=restaurant, venue_slug=venue, slug=slug, name=name, content_type=content_type,
+        return MenuDecoration.objects.create(restaurant_slug=restaurant, venue_slug='', slug=slug, name=name, content_type=content_type,
                                              data=data, width=width, height=height, size=len(data), created_by=created_by[:120])
     except IntegrityError:
         raise InvalidDecoration('Ya existe una decoración con ese nombre; elige otro.') from None
 
 
 def remove(restaurant: str, venue: str, slug: str) -> bool:
-    deleted, _ = MenuDecoration.objects.filter(restaurant_slug=restaurant, venue_slug=venue, slug=slug).delete()
+    deleted, _ = MenuDecoration.objects.filter(restaurant_slug=restaurant, venue_slug='', slug=slug).delete()
     return bool(deleted)

@@ -13,12 +13,8 @@ from experience_app.views.sessions import COOKIE, diner_for, cart_of
 def location(request, restaurant, venue):
     tenant = resolve(restaurant, venue, None)
     client = OdooClient(tenant.odoo)
-    config = client.call_kw('pos.config', 'read', [[tenant.odoo.pos_config_id], ['company_id']])[0]
-    rows = client.call_kw('res.company', 'read', [[config['company_id'][0]], ['street', 'city', 'waiter_latitude', 'waiter_longitude']])
-    row = rows[0]
-    return Response({'direccion': ', '.join(str(row[k]) for k in ('street', 'city') if row[k]),
-                     'latitud': float(row['waiter_latitude']) if row['waiter_latitude'] else None,
-                     'longitud': float(row['waiter_longitude']) if row['waiter_longitude'] else None})
+    from experience_app.adapters.odoo.pos import read_restaurant_location
+    return Response(read_restaurant_location(client))
 
 
 @api_view(['GET'])
@@ -26,6 +22,8 @@ def rewards(request, restaurant, venue):
     diner = get_object_or_404(Diner.objects.select_related('account'), key=request.COOKIES.get(COOKIE, ''))
     if not diner.account_id or not diner.account.verified:
         return Response({'detail': 'Entra a tu cuenta para consultar tus puntos.'}, status=401)
+    if restaurant != diner.session.restaurant_slug or diner.account.organization_slug != restaurant:
+        return Response({'detail': 'La cuenta pertenece a otra organización.'}, status=403)
     tenant = resolve(restaurant, venue, None)
     action_rewards.sync(tenant, diner.account)
     return Response({**action_rewards.view(tenant, diner.account), **benefits.account_benefits(tenant, diner.account)})

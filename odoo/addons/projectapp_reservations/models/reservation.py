@@ -80,6 +80,7 @@ class WaiterReservation(models.Model):
     # del plano miran `table_ids`.
     table_id = fields.Many2one("restaurant.table", string="Mesa principal", required=True, ondelete="restrict", index=True)
     table_ids = fields.Many2many("restaurant.table", "waiter_reservation_table_rel", "reservation_id", "table_id", string="Mesas")
+    config_id = fields.Many2one('pos.config', required=True, index=True, ondelete='restrict')
     floor_id = fields.Many2one(related="table_id.floor_id", string="Piso", store=True)
     state = fields.Selection([
         ("confirmed", "Confirmada"),
@@ -141,7 +142,7 @@ class WaiterReservation(models.Model):
         al mover de fecha u hora: acortar el horario después no invalida las reservas que ya existían, ni impide cambiarles
         las mesas (por eso `table_id` no dispara esta regla)."""
         for reservation in self.filtered(lambda r: r.state in ACTIVE_STATES):
-            config = reservation.table_id.floor_id.pos_config_ids[:1]
+            config = reservation.config_id
             if not config:
                 continue
             ranges = config.reservation_ranges(reservation.date)
@@ -183,6 +184,7 @@ class WaiterReservation(models.Model):
             if not vals.get("time_end") and vals.get("time_start") is not None:
                 vals["time_end"] = vals["time_start"] + DEFAULT_DURATION_HOURS
             self._waiter_fill_tables(vals)
+            self._waiter_fill_config(vals)
             # El estado del anticipo y el token del enlace los fija el servidor, nunca quien llama.
             amount = float(vals.get("deposit_amount") or 0.0)
             vals.update(deposit_state="pending" if amount > 0 else "none", deposit_reference=False, deposit_paid_at=False,
@@ -199,6 +201,8 @@ class WaiterReservation(models.Model):
             for reservation in self:  # cada una resuelve sus mesas: la principal siempre queda dentro de `table_ids`
                 own = dict(vals)
                 reservation._waiter_fill_tables(own)
+                own.setdefault('config_id', reservation.config_id.id)
+                reservation._waiter_fill_config(own)
                 super(WaiterReservation, reservation).write(own)
         else:
             super().write(vals)
@@ -335,7 +339,7 @@ class WaiterReservation(models.Model):
         Los tres parámetros son los mismos que usa la pasarela de Diseño del menú (projectapp_ops)."""
         self.ensure_one()
         param = self.env["ir.config_parameter"].sudo().get_param
-        base, restaurant, venue = (param("projectapp.diner_url") or "").rstrip("/"), param("projectapp.restaurant_slug"), param("projectapp.venue_slug")
+        base, restaurant, venue = (param("projectapp.diner_url") or "").rstrip("/"), param("projectapp.restaurant_slug"), self.config_id.waiter_slug
         if not (base and restaurant and venue and self.pay_token):
             return ""
         return "%s/%s/%s/reserva/%s" % (base, restaurant, venue, self.pay_token)
@@ -458,7 +462,7 @@ class WaiterReservation(models.Model):
         Devuelve el detalle (ver ``waiter_detail``). El correo de confirmación sale después del pre-pedido.
         """
         vals = dict(vals or {})
-        config_id = vals.pop("config_id", None)
+        config_id = vals.get("config_id")
         reservation = self.with_context(waiter_skip_confirmation_mail=True).create(vals)
         if lines:
             reservation._create_preorder(lines, config_id=config_id)
@@ -513,7 +517,7 @@ class WaiterReservation(models.Model):
                 "amount_total": reservation.amount_total, "currency_id": reservation.currency_id.id or False,
                 "deposit_amount": reservation.deposit_amount, "deposit_state": reservation.deposit_state,
                 "deposit_reference": reservation.deposit_reference or "", "pay_token": reservation.pay_token or "",
-                "pay_url": reservation._waiter_pay_url(), "restaurant_name": reservation.table_id.floor_id.pos_config_ids[:1].company_id.name or "",
+                "pay_url": reservation._waiter_pay_url(), "restaurant_name": reservation.config_id.company_id.name or "",
                 "deposit_paid_at": fields.Datetime.to_string(reservation.deposit_paid_at) if reservation.deposit_paid_at else "",
                 "lines": [{
                     "id": line.id, "product_id": line.product_id.id, "product_tmpl_id": line.product_id.product_tmpl_id.id,
@@ -540,7 +544,7 @@ class WaiterReservation(models.Model):
             "time_label": self.waiter_time_label(), "table_id": self.table_id.id, "table_number": self.table_id.table_number,
             "table_ids": self._waiter_tables().ids, "table_numbers": self._waiter_tables().mapped("table_number"),
             "seats": sum(self.table_ids.mapped("seats")),
-            "floor_id": self.floor_id.id, "floor_name": self.floor_id.name or "", "deposit_state": self.deposit_state,
+            "config_id": self.config_id.id, "floor_id": self.floor_id.id, "floor_name": self.floor_id.name or "", "deposit_state": self.deposit_state,
         }
 
     def _waiter_tables(self):
@@ -566,9 +570,33 @@ class WaiterReservation(models.Model):
         now = datetime.now(self._waiter_tz())
         return now.hour + now.minute / 60.0
 
+    @api.model
+    def _waiter_fill_config(self, vals):
+        table = self.env['restaurant.table'].browse(vals.get('table_id')).exists()
+        configs = table.floor_id.pos_config_ids
+        selected = vals.get('config_id') or self.env.context.get('waiter_config_id')
+        if selected:
+            config = self.env['pos.config'].browse(selected).exists()
+            if config not in configs:
+                raise ValidationError('La mesa no pertenece al restaurante de la reserva.')
+        elif len(configs) == 1:
+            config = configs
+        else:
+            raise ValidationError('Indica el restaurante al reservar una mesa compartida.')
+        config.check_access('read')
+        vals['config_id'] = config.id
+
+    @api.constrains('config_id', 'table_id', 'table_ids', 'preorder_id')
+    def _check_restaurant(self):
+        for reservation in self:
+            if any(reservation.config_id not in table.floor_id.pos_config_ids for table in reservation.table_ids | reservation.table_id):
+                raise ValidationError('Todas las mesas deben pertenecer al restaurante de la reserva.')
+            if reservation.preorder_id and reservation.preorder_id.config_id != reservation.config_id:
+                raise ValidationError('El pre-pedido pertenece a otro restaurante.')
+
     def _waiter_config(self):
         self.ensure_one()
-        return self.table_id.floor_id.pos_config_ids[:1]
+        return self.config_id
 
     def _waiter_preset_time(self):
         """Fecha y hora de inicio de la reserva en UTC, para `pos.order.preset_time`."""
@@ -579,13 +607,15 @@ class WaiterReservation(models.Model):
     def _create_preorder(self, lines, config_id=None):
         self.ensure_one()
         config = self.env["pos.config"].browse(config_id) if config_id else self._waiter_config()
+        if config != self.config_id:
+            raise ValidationError("El pre-pedido debe usar el restaurante de la reserva.")
         if not config:
             raise UserError(_("La mesa %s no pertenece a ningún punto de venta.", self.table_id.display_name))
         session = config.current_session_id
         if not session or session.state == "closed":
             raise UserError(_("Abre la caja de %s antes de registrar un pre-pedido.", config.name))
         preset = (self.env.ref("pos_restaurant.pos_takein_preset", raise_if_not_found=False)
-                  or self.env["pos.preset"].search([("name", "ilike", "Dine In")], limit=1))
+                  or config.available_preset_ids.filtered(lambda p: p.service_at == "table")[:1])
         order = self.env["pos.order"].create({
             "session_id": session.id, "preset_id": preset.id or False, "table_id": self.table_id.id,
             "customer_count": self.people, "floating_order_name": "%s · %s" % (self.name, self.customer_name),

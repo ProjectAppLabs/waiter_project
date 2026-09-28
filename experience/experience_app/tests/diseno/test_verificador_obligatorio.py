@@ -120,8 +120,8 @@ def test_internal_verification_matches_mcp_and_put_consumes_draft(api_client, cl
 
 
 def invalidate_draft(change, reason):
-    if reason == 'otra-sede':
-        change.venue_slug = 'otra'
+    if reason == 'otra-organizacion':
+        change.restaurant_slug = 'otra-organizacion'
     elif reason == 'otro-restaurante':
         change.restaurant_slug = 'otro'
     elif reason == 'caducado':
@@ -137,7 +137,7 @@ def invalidate_draft(change, reason):
 
 
 # // Falla si se ejecuta el verificador sin clave interna, fuera de la sede, con tokens inválidos o borradores no vigentes.
-@pytest.mark.parametrize('reason', ['sin-clave', 'otra-sede', 'otro-restaurante', 'caducado', 'aplicado',
+@pytest.mark.parametrize('reason', ['sin-clave', 'otra-organizacion', 'otro-restaurante', 'caducado', 'aplicado',
                                   'revocado', 'otro-kind', 'confirmacion', 'invalido', 'desconocido'])
 def test_internal_verification_authorization_and_scope(api_client, owner, reason):
     draft = prepare(api_client)
@@ -152,7 +152,7 @@ def test_internal_verification_authorization_and_scope(api_client, owner, reason
 
 
 # // Falla si el PUT acepta cambios de componentes sin un borrador propio, vigente y verificado del tema completo.
-@pytest.mark.parametrize('reason', ['ausente', 'invalido', 'desconocido', 'otra-sede', 'otro-restaurante', 'caducado',
+@pytest.mark.parametrize('reason', ['ausente', 'invalido', 'desconocido', 'otra-organizacion', 'otro-restaurante', 'caducado',
                                   'aplicado', 'revocado', 'otro-kind', 'confirmacion', 'sin-verificar', 'error',
                                   'problemas', 'no_disponible', 'otro-tema', 'verde-anterior', 'verde-ajeno', 'ok-texto'])
 def test_put_rejects_unverified_or_mismatched_drafts(api_client, owner, settings, tmp_path, reason):

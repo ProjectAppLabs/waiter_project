@@ -34,3 +34,15 @@ def test_unknown_table_raises_not_found(get):
     """Atrapa que una placa revocada resuelva a algo."""
     with pytest.raises(client.TenantNotFound):
         client.resolve('burger-house', 'poblado', 'NOPE')
+
+
+@override_settings(REGISTRY_INTERNAL_KEY='k')
+def test_organization_resolution_uses_the_internal_index_and_a_representative_restaurant():
+    # Falla si una clave MCP de organización intenta resolver una sede vacía o consulta el índice sin autenticación.
+    with patch('experience_app.adapters.registry.client.requests.get', side_effect=[
+            RawResponse([{'slug': 'poblado', 'name': 'Poblado'}]), RawResponse(BODY)]) as get:
+        tenant = client.resolve('burger-house', '')
+    assert (tenant.organization_slug, tenant.organization_name, tenant.venue_slug) == ('burger-house', 'Burger House', 'poblado')
+    assert get.call_args_list[0].args[0].endswith('/internal/v1/organizaciones/burger-house/restaurantes/')
+    assert get.call_args_list[0].kwargs['headers'] == {'X-Internal-Key': 'k'}
+    assert get.call_args_list[1].args[0].endswith('/internal/v1/resolve/burger-house/poblado/')

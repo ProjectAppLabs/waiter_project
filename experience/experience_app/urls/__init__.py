@@ -9,6 +9,7 @@ from experience_app.views import (
     benefits,
     channel_orders,
     context,
+    organization,
     internal,
     logo,
     orders,
@@ -20,6 +21,7 @@ from experience_app.views import (
 )
 
 urlpatterns = [
+    path('api/v1/<slug:restaurant>/decoraciones/<slug:slug>/', design.decoration, name='organization-decoration'),
     path('api/v1/diseno/', design.contract, name='design-contract'),
     path('api/v1/<slug:restaurant>/<slug:venue>/decoraciones/', design.decorations, name='decorations'),
     path('api/v1/<slug:restaurant>/<slug:venue>/decoraciones/<slug:slug>/', design.decoration, name='decoration'),
@@ -78,4 +80,5 @@ urlpatterns = [
     path('api/v1/<slug:restaurant>/<slug:venue>/t/<str:token>/', context.entry, name='entry-table'),
     path('internal/v1/carta/<slug:restaurant>/<slug:venue>/invalidar/', internal.invalidate_menu, name='invalidate-menu'),
     path('internal/v1/<slug:restaurant>/<slug:venue>/menu/', templates.venue_settings, name='venue-menu-settings'),
+    path('api/v1/<slug:organization>/', organization.entry, name='organization-entry'),
 ]

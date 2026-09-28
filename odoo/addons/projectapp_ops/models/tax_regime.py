@@ -70,7 +70,7 @@ class PosConfig(models.Model):
 
         products = self._waiter_taxable_products()
         if regime is not None:
-            if role != 'admin':
+            if role not in ('admin', 'owner'):
                 raise AccessError(self.env._('Solo un administrador puede cambiar el régimen tributario.'))
             if regime not in REGIMES:
                 raise UserError(self.env._('Régimen desconocido.'))

@@ -41,12 +41,32 @@ class WaiterSeed(models.AbstractModel):
     _description = "Siembra del kit CloudPos (presets, fidelización, empleados demo)"
 
     @api.model
-    def _demo_config(self):
-        config = self.env["pos.config"].search([("module_pos_restaurant", "=", True)], order="id", limit=1)
-        return config or self.env["pos.config"].search([], order="id", limit=1)
+    def _prepare_first_restaurant(self):
+        """Las instalaciones nuevas reciben la misma identidad y asignaciones que la migración."""
+        config = self._demo_config()
+        if not config.waiter_slug:
+            company = config.company_id
+            config.write({'waiter_slug': self.env['ir.config_parameter'].sudo().get_param('projectapp.venue_slug') or 'poblado',
+                          'waiter_street': company.street, 'waiter_city': company.city, 'waiter_phone': company.phone,
+                          'waiter_latitude': company.waiter_latitude, 'waiter_longitude': company.waiter_longitude})
+        users = self.env['res.users'].with_context(active_test=False).search([
+            ('company_id', '=', config.company_id.id), ('waiter_config_ids', '=', False),
+        ])
+        users.write({'waiter_config_ids': [(6, 0, config.ids)]})
+        employees = self.env['hr.employee'].with_context(active_test=False).search([
+            ('company_id', '=', config.company_id.id), ('waiter_config_ids', '=', False), ('waiter_role', '!=', 'owner'),
+        ])
+        employees.write({'waiter_config_ids': [(6, 0, config.ids)]})
+        self.env['res.users'].search([('login', '=', 'admin')]).write({'waiter_role': 'owner'})
+        config._waiter_sync_employee_lists()
 
     @api.model
-    def seed_presets(self):
+    def _demo_config(self):
+        return self.env['pos.config']._waiter_selected_config()
+
+    @api.model
+    def seed_presets(self, config_id=None):
+        self = self.with_context(waiter_config_id=config_id or self.env.context.get("waiter_config_id"))
         preset_model = self.env["pos.preset"].with_context(lang="en_US")
         presets = self.env["pos.preset"].browse()
         for name, service_at, identification, xml_id in PRESETS:
@@ -96,13 +116,13 @@ class WaiterSeed(models.AbstractModel):
     @api.model
     def seed_loyalty(self):
         program_model = self.env["loyalty.program"]
-        program = program_model.search([("name", "=", LOYALTY_NAME)], limit=1)
+        program = program_model.search([("name", "=", LOYALTY_NAME), ("company_id", "in", [False, self.env.company.id])], limit=1)
         if program and self._loyalty_configured(program):
             return program
         # Dos pasos: `_compute_from_program_type` reescribe reglas y recompensas al fijar el tipo, así que primero
         # el tipo y después las nuestras (reemplazando las que Odoo puso por defecto).
         if not program:
-            program = program_model.create({"name": LOYALTY_NAME, "program_type": "loyalty", "pos_ok": True})
+            program = program_model.create({"name": LOYALTY_NAME, "company_id": self.env.company.id, "program_type": "loyalty", "pos_ok": True})
         program.write({
             "applies_on": "both", "trigger": "auto", "portal_visible": True, "portal_point_name": "Puntos",
             "rule_ids": [(5, 0, 0), (0, 0, {"reward_point_mode": "money", "reward_point_amount": 1.0 / COP_PER_POINT,
@@ -115,33 +135,27 @@ class WaiterSeed(models.AbstractModel):
         return program
 
     @api.model
-    def seed_employees(self):
+    def seed_employees(self, config_id=None):
+        self = self.with_context(waiter_config_id=config_id or self.env.context.get("waiter_config_id"))
+        config = self._demo_config()
         employee_model = self.env["hr.employee"]
         employees = employee_model.browse()
         for name, pin, role, email, status in DEMO_EMPLOYEES:
-            employee = employee_model.search([("name", "=", name)], limit=1)
+            employee = employee_model.search([("name", "=", name), ("waiter_config_ids", "in", config.ids)], limit=1)
             if not employee:
                 employee = employee_model.create({
-                    "name": name, "pin": pin, "waiter_role": role, "work_email": email, "employment_status": status,
+                    "name": name, "pin": pin, "waiter_role": role, "waiter_config_ids": [(6, 0, config.ids)], "work_email": email, "employment_status": status,
                     "joining_date": fields.Date.today(), "shift_start": 8.0, "shift_end": 16.0,
                 })
             employees |= employee
-        # Todo empleado ligado a un usuario del POS entra al terminal. Sin esto, `pos.config` no viaja en
-        # `load_data` (pos_hr lo filtra), `pos_loyalty` revienta al leer `data['pos.config'][0]` y la persona
-        # se queda mirando una pantalla en blanco.
-        linked = employee_model.search([
-            ("user_id", "!=", False), ("user_id.active", "=", True),
-            ("user_id.group_ids", "in", self.env.ref("point_of_sale.group_pos_user").id),
-        ])
-        config = self._demo_config()
-        if config:
-            config.write({"module_pos_hr": True, "basic_employee_ids": [(4, e.id) for e in employees | linked]})
+        config.write({'module_pos_hr': True})
+        config._waiter_sync_employee_lists()
         return employees
 
     @api.model
-    def seed_kit(self):
+    def seed_kit(self, config_id=None):
         """Todo lo anterior, en orden. Devuelve un resumen para el log de provisioning."""
-        presets = self.seed_presets()
+        presets = self.seed_presets(config_id)
         program = self.seed_loyalty()
-        employees = self.seed_employees()
+        employees = self.seed_employees(config_id)
         return {"presets": presets.mapped("name"), "loyalty": program.name, "employees": employees.mapped("name")}

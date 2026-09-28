@@ -2,7 +2,7 @@ from django.db import models
 
 
 class Restaurant(models.Model):
-    """Inquilino del SaaS. Su slug es el primer segmento de toda URL pública."""
+    """Organización dueña de los restaurantes. Su slug es el primer segmento de toda URL pública."""
 
     slug = models.SlugField(max_length=60, unique=True)
     name = models.CharField(max_length=120)

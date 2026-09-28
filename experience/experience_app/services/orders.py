@@ -44,7 +44,7 @@ def _first_purchase_discount(tenant, diner: Diner | None, new_lines: list[CartLi
         return Decimal(0), []
     try:
         with transaction.atomic():
-            SignupDiscountClaim.objects.bulk_create([SignupDiscountClaim(key=key, order=order) for key in discount.claim_keys(diner)])
+            SignupDiscountClaim.objects.bulk_create([SignupDiscountClaim(key=key, order=order, organization_slug=diner.session.restaurant_slug) for key in discount.claim_keys(diner)])
             return _reserve_account_discount(diner, mine, order, percent)
     except IntegrityError:
         return Decimal(0), []
@@ -52,7 +52,7 @@ def _first_purchase_discount(tenant, diner: Diner | None, new_lines: list[CartLi
 
 def _reserve_account_discount(diner, mine, order, percent):
     with transaction.atomic():
-        claimed = DinerAccount.objects.filter(id=diner.account_id, verified=True, discount_used_at=None,
+        claimed = DinerAccount.objects.filter(id=diner.account_id, organization_slug=diner.session.restaurant_slug, verified=True, discount_used_at=None,
                                               discount_order=None).update(discount_order=order)
         if not claimed:
             raise IntegrityError('beneficio no disponible')

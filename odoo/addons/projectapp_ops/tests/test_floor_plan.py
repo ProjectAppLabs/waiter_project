@@ -8,10 +8,12 @@ from odoo.exceptions import UserError, AccessError
 class TestFloorPlan(TransactionCase):
     def setUp(self):
         super().setUp()
-        self.env.user.write({'waiter_role': 'admin'})
         base = self.env['pos.config'].search([], limit=1)
         self.config = base.copy({'name': 'Plano prueba'})
-        self.employee = self.env['hr.employee'].create({'name': 'Admin plano', 'company_id': self.env.company.id, 'waiter_role': 'admin'})
+        # Plan O: el encargado y su empleado operan el restaurante de la prueba.
+        self.env.user.write({'waiter_role': 'admin', 'waiter_config_ids': [(6, 0, (base | self.config).ids)]})
+        self.employee = self.env['hr.employee'].create({'name': 'Admin plano', 'company_id': self.env.company.id, 'waiter_role': 'admin',
+                                                       'waiter_config_ids': [(6, 0, self.config.ids)]})
         self.token = self.employee._waiter_new_session()
         self.Floor = self.env['restaurant.floor']
         self.plan = {'id': None, 'name': 'Sala prueba', 'revision': 0,

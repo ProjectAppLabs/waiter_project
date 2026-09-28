@@ -24,12 +24,16 @@ class MenuTemplate(models.Model):
 
 class VenueMenuSettings(models.Model):
     restaurant_slug = models.SlugField(max_length=60)
-    venue_slug = models.SlugField(max_length=60)
+    venue_slug = models.SlugField(max_length=60, blank=True, default='')
     template = models.ForeignKey(MenuTemplate, on_delete=models.PROTECT, related_name='venues')
     palette = models.JSONField(default=dict)  # {"acento": "#RRGGBB", ...} solo tokens de spec.personalizable.colores
     typography = models.JSONField(default=dict)  # {"display": "Fraunces"}
     theme = models.JSONField(default=dict)  # Tema v2; {} conserva la compatibilidad con los ajustes anteriores.
     updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        self.venue_slug = ''
+        return super().save(*args, **kwargs)
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['restaurant_slug', 'venue_slug'], name='uniq_venue_menu_settings')]

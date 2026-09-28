@@ -9,7 +9,7 @@ import logging
 import re
 from dataclasses import dataclass, field, replace
 
-from experience_app.adapters.odoo.client import OdooClient
+from experience_app.adapters.odoo.client import OdooClient, OdooError
 
 # Reexportados: el sniff vive en utils/images.py (lo comparten fotos y logo); quien ya usaba pos.image_content_type sigue igual.
 from experience_app.utils.images import (  # noqa: F401
@@ -155,24 +155,29 @@ def _taxes_by_id(client: OdooClient, tax_ids: set[int]) -> dict[int, dict]:
 def load_catalog(client: OdooClient, pos_session_id: int) -> Catalog:
     # Todos los modelos: una lista parcial rompe con KeyError dentro de Odoo.
     raw = client.call_kw('pos.session', 'load_data', [[pos_session_id], []])
+    config = next((c for c in raw.get('pos.config', []) if c['id'] == client.creds.pos_config_id), {})
+    warehouse = config.get('warehouse_id')
+    warehouse = warehouse[0] if isinstance(warehouse, (list, tuple)) else warehouse
     templates = {t['id']: t for t in raw['product.template'] if t['available_in_pos'] and t['active']}
     template_of = {p['id']: templates.get(p['product_tmpl_id']) for p in raw['product.product']}
     base = {pid: t for pid, t in template_of.items() if t}
+    prices = client.call_kw('pos.config', 'waiter_catalog_prices', [[client.creds.pos_config_id], list(base)]) if config.get('pricelist_id') else {}
     # "Agotado" solo aplica a almacenables: un consumible sin control de stock tiene qty 0 siempre.
     storable = [pid for pid, t in base.items() if t['is_storable']]
     sold_out: set[int] = set()
     if storable:
-        rows = client.call_kw('product.product', 'search_read', [[['id', 'in', storable]], ['qty_available']])
+        rows = client.call_kw('product.product', 'search_read', [[['id', 'in', storable]], ['qty_available']],
+                              {'context': {'warehouse_id': warehouse}} if warehouse else {})
         sold_out = {r['id'] for r in rows if r['qty_available'] <= 0}
     # description_sale, image_128 e image_origin llegan como False cuando están vacíos (no como '' ni None); image_origin
     # ni siquiera llega si projectapp_ops no se ha actualizado en ese Odoo, y la carta debe salir igual.
     taxes = _taxes_by_id(client, {tid for t in base.values() for tid in t['taxes_id']})
     galleries = _catalog_galleries(client, {t['id'] for t in base.values()})
-    products = [Product(id=pid, name=t['name'], price=t['list_price'], category_ids=t['pos_categ_ids'], tax_ids=t['taxes_id'],
-                        sold_out=pid in sold_out, template_id=t['id'], description=t.get('description_sale') or '',
+    products = [Product(id=pid, name=t['name'], price=prices.get(str(pid), t['list_price']), category_ids=t['pos_categ_ids'], tax_ids=t['taxes_id'],
+                        sold_out=pid in sold_out or client.creds.pos_config_id in (t.get('waiter_unavailable_config_ids') or []), template_id=t['id'], description=t.get('description_sale') or '',
                         favorite=bool(t.get('is_favorite')), has_image=bool(t.get('image_128')),
                         image_version=_version(t.get('write_date')), image_origin=t.get('image_origin') or '',
-                        final_price=price_with_taxes(t['list_price'], [taxes[i] for i in t['taxes_id'] if i in taxes]),
+                        final_price=price_with_taxes(prices.get(str(pid), t['list_price']), [taxes[i] for i in t['taxes_id'] if i in taxes]),
                         gallery=list(galleries.get(t['id'], [])),
                         attributes=_with_taxed_previous_price(parse_attributes(t.get('diner_attributes')),
                                                               [taxes[i] for i in t['taxes_id'] if i in taxes]))
@@ -182,9 +187,12 @@ def load_catalog(client: OdooClient, pos_session_id: int) -> Catalog:
         availability=client.call_kw('product.template','waiter_combo_availability',[combos])
         products=[replace(p,sold_out=True) if p.attributes.get('combo') and not availability.get(str(p.id),False) else p for p in products]
     categories = [Category(c['id'], c['name'], c['sequence']) for c in raw['pos.category']]
-    company = raw['res.company'][0]['name'] if raw.get('res.company') else ''
+    config = next((c for c in raw.get('pos.config', []) if c['id'] == client.creds.pos_config_id), {})
+    company_id = config.get('company_id')
+    company_id = company_id[0] if isinstance(company_id, (list, tuple)) else company_id
+    company = next((c['name'] for c in raw.get('res.company', []) if c.get('id') == company_id), '')
     return Catalog(company_name=company, products=products, categories=categories,
-                   signup_discount_percent=signup_discount_percent(raw.get('pos.config') or []))
+                   signup_discount_percent=signup_discount_percent([config] if config else []))
 
 
 def _catalog_galleries(client: OdooClient, template_ids: set[int]) -> dict[int, list[dict]]:
@@ -253,13 +261,30 @@ def _version(write_date) -> str:
     return re.sub(r'\D', '', str(write_date or ''))
 
 
+def _company_id(client: OdooClient) -> int:
+    rows = client.call_kw('pos.config', 'read', [[client.creds.pos_config_id], ['company_id']])
+    if not rows or not rows[0].get('company_id'):
+        raise OdooError('El restaurante no tiene una empresa configurada.')
+    company = rows[0]['company_id']
+    return company[0] if isinstance(company, (list, tuple)) else company
+
+
+def read_restaurant_location(client: OdooClient) -> dict:
+    rows = client.call_kw('pos.config', 'read', [[client.creds.pos_config_id],
+                          ['waiter_street', 'waiter_city', 'waiter_phone', 'waiter_latitude', 'waiter_longitude']])
+    row = rows[0] if rows else {}
+    return {'direccion': ', '.join(str(row[k]) for k in ('waiter_street', 'waiter_city') if row.get(k)),
+            'latitud': float(row['waiter_latitude']) if row.get('waiter_latitude') else None,
+            'longitud': float(row['waiter_longitude']) if row.get('waiter_longitude') else None}
+
+
 def read_company_brand(client: OdooClient) -> CompanyBrand:
     """La marca de la compañía del POS (una por base). Odoo devuelve False en los campos vacíos: aquí se normaliza.
 
     bin_size=True hace que brand_logo llegue como tamaño ('12.5 Kb') en vez del base64: basta para saber si hay logo
     sin descargarlo en cada refresco de la marca.
     """
-    rows = client.call_kw('res.company', 'search_read', [[], BRAND_FIELDS], {'limit': 1, 'context': {'bin_size': True}})
+    rows = client.call_kw('res.company', 'search_read', [[['id', '=', _company_id(client)]], BRAND_FIELDS], {'limit': 1, 'context': {'bin_size': True}})
     row = rows[0] if rows else {}
 
     def text(key):
@@ -278,7 +303,7 @@ def fetch_company_logo(client: OdooClient) -> tuple[bytes, str] | None:
     El tope se comprueba sobre el base64, antes de decodificar: un logo enorme (addon sin el tope) no debe ocupar memoria
     ni caché en la experiencia. Un SVG nunca sale.
     """
-    rows = client.call_kw('res.company', 'search_read', [[], ['brand_logo']], {'limit': 1})
+    rows = client.call_kw('res.company', 'search_read', [[['id', '=', _company_id(client)]], ['brand_logo']], {'limit': 1})
     encoded = rows[0].get('brand_logo') if rows else None
     if not encoded:
         return None
@@ -414,7 +439,9 @@ def pay_order(client: OdooClient, order_id: int, payment_method_id: int, amount:
 
 
 def cash_payment_method_id(client: OdooClient) -> int:
-    rows = client.call_kw('pos.payment.method', 'search_read', [[], ['id', 'type']])
+    configs = client.call_kw('pos.config', 'read', [[client.creds.pos_config_id], ['payment_method_ids']])
+    method_ids = configs[0]['payment_method_ids'] if configs else []
+    rows = client.call_kw('pos.payment.method', 'search_read', [[["id", "in", method_ids]], ['id', 'type']])
     return next(r['id'] for r in rows if r['type'] == 'cash')
 
 

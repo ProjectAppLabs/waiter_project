@@ -19,18 +19,20 @@ from experience_app.adapters.registry.client import resolve
 def request_reset(request):
     data = request.data if isinstance(request.data, dict) else {}
     email = str(data.get('correo', '')).strip().lower()[:120]
-    return send_reset_link(request, email, str(data.get('restaurante', '')), str(data.get('sede', '')))
+    from .account import _diner
+    diner = _diner(request)
+    return send_reset_link(request, email, diner.session.restaurant_slug, diner.session.venue_slug)
 
 
 def send_reset_link(request, email, restaurant, venue, *, authenticated=False):
     if not settings.DINER_EMAIL_ENABLED:
         return Response({'detail': 'La verificación por correo todavía no está habilitada. Tu contraseña no se ha cambiado.'}, status=503)
     tenant = resolve(restaurant, venue)
-    key = 'diner-reset:' + hashlib.sha256((request.META.get('REMOTE_ADDR', '') + ':' + email).encode()).hexdigest()
+    key = 'diner-reset:' + hashlib.sha256((restaurant + ':' + request.META.get('REMOTE_ADDR', '') + ':' + email).encode()).hexdigest()
     if cache.get(key):
         return Response({'detail': 'Espera unos minutos antes de pedir otro enlace.'}, status=429)
     cache.set(key, True, 300)
-    account = DinerAccount.objects.filter(email__iexact=email, verified=True).first()
+    account = DinerAccount.objects.filter(organization_slug=restaurant, email__iexact=email, verified=True).first()
     if account:
         token = secrets.token_urlsafe(32)
         row = DinerPasswordReset.objects.create(account=account, token_hash=hashlib.sha256(token.encode()).hexdigest(), expires_at=timezone.now()+timezone.timedelta(minutes=20))
@@ -50,12 +52,14 @@ def send_reset_link(request, email, restaurant, venue, *, authenticated=False):
 
 @api_view(['POST'])
 def reset(request):
+    from .account import _diner
+    diner = _diner(request)
     data = request.data if isinstance(request.data, dict) else {}
     token, password = data.get('token', ''), data.get('nueva', '')
     if not isinstance(token, str) or len(token) > 200 or not isinstance(password, str) or not 10 <= len(password) <= 128 or password.isdigit():
         return Response({'detail': 'Revisa el enlace y usa una contraseña de entre 10 y 128 caracteres.'}, status=400)
     with transaction.atomic():
-        row = DinerPasswordReset.objects.select_related('account').filter(token_hash=hashlib.sha256(token.encode()).hexdigest(), used_at__isnull=True, expires_at__gt=timezone.now()).first()
+        row = DinerPasswordReset.objects.select_related('account').filter(account__organization_slug=diner.session.restaurant_slug, token_hash=hashlib.sha256(token.encode()).hexdigest(), used_at__isnull=True, expires_at__gt=timezone.now()).first()
         if not row or password.lower() in [row.account.email.lower(), row.account.name.lower()]:
             return Response({'detail': 'El enlace no es válido o ya venció.'}, status=400)
         # Conditional update makes a token single use even with concurrent submissions.

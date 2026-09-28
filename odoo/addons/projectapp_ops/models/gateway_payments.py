@@ -4,7 +4,7 @@ from odoo import api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
 
 _POLICY_WRITE = object()
-_ROLES = ('waiter', 'cashier', 'admin')
+_ROLES = ('waiter', 'cashier', 'admin', 'owner')
 
 
 class PosConfig(models.Model):

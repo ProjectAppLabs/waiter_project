@@ -64,7 +64,7 @@ def test_invalid_coupon_missing_cookie_and_confirming_do_not_change_order(table,
 def test_coupon_snapshot_reaches_pos_without_stacking_or_affecting_other_diner(table, rpc):
     session, ana, beto, _ = table
     ana.coupon_code = 'FOOD20'
-    ana.account = DinerAccount.objects.create(name='Ana', email='ana@example.invalid', verified=True)
+    ana.account = DinerAccount.objects.create(organization_slug='burger-house', name='Ana', email='ana@example.invalid', verified=True)
     ana.save()
     order = Order.objects.create(session=session)
     lines = list(sessions.open_lines(session))
@@ -98,7 +98,7 @@ def test_rewards_require_own_account_and_use_server_identity(table, rpc):
     url = reverse('diner-rewards', args=['burger-house', 'poblado'])
     with patch('experience_app.views.benefits.resolve', return_value=TABLE):
         assert client.get(url).status_code == 401
-        ana.account = DinerAccount.objects.create(name='Ana', email='ana@example.invalid', verified=True)
+        ana.account = DinerAccount.objects.create(organization_slug='burger-house', name='Ana', email='ana@example.invalid', verified=True)
         ana.save()
         assert client.get(url, {'id': 'someone-else'}).json()['puntos'] == 0
         assert rpc.call_args.args[2][1]['id'] == str(ana.account_id)
@@ -106,6 +106,6 @@ def test_rewards_require_own_account_and_use_server_identity(table, rpc):
 def test_location_exposes_only_configured_address_and_coordinates(table):
     _, _, _, client = table
     with patch('experience_app.views.benefits.resolve', return_value=TABLE), patch('experience_app.views.benefits.OdooClient') as adapter:
-        adapter.return_value.call_kw.side_effect = [[{'company_id': [1, 'Restaurant']}], [{'street': 'Calle 10', 'city': 'Medellín', 'waiter_latitude': '0', 'waiter_longitude': '0'}]]
+        adapter.return_value.call_kw.side_effect = [[{'waiter_street': 'Calle 10', 'waiter_city': 'Medellín', 'waiter_latitude': '0', 'waiter_longitude': '0'}]]
         response = client.get(reverse('venue-location', args=['burger-house', 'poblado']))
     assert response.json() == {'direccion': 'Calle 10, Medellín', 'latitud': 0, 'longitud': 0}

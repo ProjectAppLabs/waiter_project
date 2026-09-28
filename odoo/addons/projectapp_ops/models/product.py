@@ -14,11 +14,27 @@ from odoo.exceptions import AccessError, UserError
 from ..utils.images import to_webp
 from .product_photo import MAX_GALLERY_PHOTOS
 
+_AVAILABILITY_WRITE = object()
 
 class ProductTemplate(models.Model):
     _inherit = "product.template"
 
     diner_photo_ids = fields.One2many("projectapp.product.photo", "product_tmpl_id", string="Galería del plato")
+    waiter_unavailable_config_ids = fields.Many2many('pos.config', 'waiter_product_unavailable_config_rel',
+                                                   'product_tmpl_id', 'config_id', string='Agotado en restaurantes', copy=False)
+
+    def waiter_set_availability(self, config_id, available):
+        """Cambia el agotado local conservando la pertenencia del plato al catálogo maestro."""
+        self.check_access('write')
+        config = self.env['pos.config']._waiter_selected_config(config_id)
+        if type(available) is not bool:
+            raise UserError('La disponibilidad debe ser verdadera o falsa.')
+        if any(p.company_id and p.company_id != config.company_id for p in self):
+            raise AccessError('El plato pertenece a otra organización.')
+        self.with_context(_waiter_availability_write=_AVAILABILITY_WRITE).write({
+            'waiter_unavailable_config_ids': [(3 if available else 4, config.id)],
+        })
+        return True
 
     # Odoo 19 acepta WebP, pero fields.Image._image_process devuelve el original si no
     # encuentra adjuntos resize. Generamos los tamaños con Pillow y conservamos los
@@ -45,6 +61,8 @@ class ProductTemplate(models.Model):
 
     def write(self, vals):
         vals = dict(vals)
+        if 'waiter_unavailable_config_ids' in vals and self.env.context.get('_waiter_availability_write') is not _AVAILABILITY_WRITE:
+            raise AccessError('Cambia el agotado desde waiter_set_availability para el restaurante seleccionado.')
         if vals.get("image_1920"):
             vals["image_1920"] = to_webp(vals["image_1920"])[0]
         return super().write(vals)
@@ -54,8 +72,8 @@ class ProductTemplate(models.Model):
         # Mismo patrón que waiter_save_catalog_product → _pantry_manager (projectapp_pantry).
         # Se replica aquí para no crear una dependencia circular entre los addons.
         employee = self.env["hr.employee"].sudo().browse(employee_id).exists() if type(employee_id) is int else None
-        if (self.env.user.waiter_role != "admin" or not employee or not employee.active or
-                employee.company_id != self.env.company or employee.waiter_role != "admin" or
+        if (self.env.user.waiter_role not in ("admin", "owner") or not employee or not employee.active or
+                employee.company_id != self.env.company or employee.waiter_role not in ("admin", "owner") or
                 not employee._waiter_session_ok(employee_token)):
             raise AccessError("Valida el PIN del administrador para modificar las fotos del catálogo.")
         self.check_access("write")
@@ -124,4 +142,4 @@ class ProductTemplate(models.Model):
         fields_ = super()._load_pos_data_fields(*args, **kwargs)
         if not fields_:
             return fields_
-        return fields_ + ["image_origin", "diner_attributes", "available_from"]
+        return fields_ + ["image_origin", "diner_attributes", "available_from", "waiter_unavailable_config_ids"]

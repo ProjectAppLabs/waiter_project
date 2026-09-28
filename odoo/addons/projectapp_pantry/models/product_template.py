@@ -52,10 +52,11 @@ class ProductTemplate(models.Model):
     def _pantry_orderpoints(self):
         Orderpoint = self.env["stock.warehouse.orderpoint"]
         by_template = {}
-        for orderpoint in Orderpoint.search([("product_id.product_tmpl_id", "in", self.ids)], order="id"):
+        for orderpoint in Orderpoint.search([("product_id.product_tmpl_id", "in", self.ids), ("warehouse_id", "=", self._waiter_config().warehouse_id.id)], order="id"):
             by_template.setdefault(orderpoint.product_id.product_tmpl_id.id, orderpoint)
         return by_template
 
+    @api.depends_context("waiter_config_id")
     def _compute_pantry_thresholds(self):
         orderpoints = self._pantry_orderpoints()
         for template in self:
@@ -65,10 +66,11 @@ class ProductTemplate(models.Model):
             if template.pantry_max <= template.pantry_min:
                 template.pantry_max = template.pantry_min + (DEFAULT_MAX_QTY - DEFAULT_MIN_QTY)
 
+    @api.depends_context("waiter_config_id")
     def _compute_pantry(self):
         for template in self:
             if template.is_ingredient:
-                level = level_for(template.qty_available, template.pantry_min, template.pantry_max)
+                level = level_for(template.with_context(warehouse_id=self._waiter_config().warehouse_id.id).qty_available, template.pantry_min, template.pantry_max)
             elif template.has_recipe:
                 level = level_for(template.servings_available, template.pantry_min, template.pantry_max)
             else:
@@ -105,7 +107,7 @@ class ProductTemplate(models.Model):
         self.ensure_one()
         return {
             "id": self.id, "product_id": self.product_variant_id.id, "name": self.name, "is_ingredient": self.is_ingredient,
-            "pantry_category": self.pantry_category or False, "qty_available": self.qty_available, "uom_id": self.uom_id.id,
+            "pantry_category": self.pantry_category or False, "qty_available": self.with_context(warehouse_id=self._waiter_config().warehouse_id.id).qty_available, "uom_id": self.uom_id.id,
             "uom_name": self.uom_id.name, "pantry_min": self.pantry_min, "pantry_max": self.pantry_max,
             "pantry_level": self.pantry_level or False, "pantry_status": self.pantry_status or False,
             "supplier_id": self.pantry_supplier_id.id or False, "supplier_name": self.pantry_supplier_id.display_name or "",
@@ -129,16 +131,16 @@ class ProductTemplate(models.Model):
             raise UserError(_("El ingrediente %s no tiene proveedor. Asigna uno antes de solicitarlo.", template.display_name))
         variant = template.product_variant_id
         Purchase = self.env["purchase.order"]
-        existing = Purchase.search([("state", "in", ("draft", "sent")), ("order_line.product_id", "=", variant.id)], order="id desc", limit=1)
+        existing = Purchase.search([("state", "in", ("draft", "sent")), ("picking_type_id", "=", self._waiter_config().warehouse_id.in_type_id.id), ("order_line.product_id", "=", variant.id)], order="id desc", limit=1)
         if existing:
             return existing.waiter_request_vals(created=False)
         purchase_unit = seller.product_uom_id or template.uom_id
         if qty is not None and (not isinstance(qty, (int, float)) or isinstance(qty, bool) or not math.isfinite(qty) or qty <= 0):
             raise UserError(_("La cantidad solicitada debe ser mayor que cero."))
-        stock_qty = qty if qty is not None else max(template.pantry_max - template.qty_available, 1.0)
+        stock_qty = qty if qty is not None else max(template.pantry_max - template.with_context(warehouse_id=self._waiter_config().warehouse_id.id).qty_available, 1.0)
         qty = max(template.uom_id._compute_quantity(stock_qty, purchase_unit, round=False), seller.min_qty)
         order = Purchase.create({
-            "partner_id": seller.partner_id.id, "origin": _("Despensa"), "waiter_pantry_request": True,
+            "picking_type_id": self._waiter_config(strict=True).warehouse_id.in_type_id.id, "partner_id": seller.partner_id.id, "origin": _("Despensa"), "waiter_pantry_request": True,
             "order_line": [Command.create({
                 "product_id": variant.id, "name": template.display_name, "product_qty": qty,
                 "product_uom_id": (seller.product_uom_id or template.uom_id).id, "price_unit": seller.price,
@@ -150,7 +152,7 @@ class ProductTemplate(models.Model):
     @api.model
     def waiter_request_list(self):
         """Solicitudes hechas desde el POS, la más reciente primero, con estado (draft = Solicitud de presupuesto…)."""
-        orders = self.env["purchase.order"].search([("waiter_pantry_request", "=", True)], order="date_order desc, id desc")
+        orders = self.env["purchase.order"].search([("waiter_pantry_request", "=", True), ("picking_type_id", "=", self._waiter_config().warehouse_id.in_type_id.id)], order="date_order desc, id desc")
         return [order.waiter_request_vals() for order in orders]
 
     @api.model
@@ -229,7 +231,7 @@ class ProductTemplate(models.Model):
             orderpoint.write({"product_min_qty": min_qty, "product_max_qty": max_qty})
         else:
             orderpoint = self.env["stock.warehouse.orderpoint"].create({
-                "product_id": self.product_variant_id.id, "location_id": self._waiter_stock_location().id,
+                "product_id": self.product_variant_id.id, "location_id": self._waiter_stock_location(strict=True).id,
                 "product_min_qty": min_qty, "product_max_qty": max_qty, "trigger": "manual",
             })
         self._waiter_invalidate()
@@ -239,17 +241,17 @@ class ProductTemplate(models.Model):
         """Ajuste de inventario a ``qty`` en el almacén principal (stock.quant en modo inventario)."""
         self.ensure_one()
         quant = self.env["stock.quant"].with_context(inventory_mode=True).create({
-            "product_id": self.product_variant_id.id, "location_id": self._waiter_stock_location().id, "inventory_quantity": qty,
+            "product_id": self.product_variant_id.id, "location_id": self._waiter_stock_location(strict=True).id, "inventory_quantity": qty,
         })
         quant.action_apply_inventory()
         self._waiter_invalidate()
         return quant
 
-    def _waiter_stock_location(self):
-        warehouse = self.env["stock.warehouse"].search([("company_id", "=", self.env.company.id)], limit=1)
-        if not warehouse:
-            raise UserError(_("No hay almacén para la compañía %s.", self.env.company.name))
-        return warehouse.lot_stock_id
+    def _waiter_config(self, strict=False):
+        return self.env['pos.config']._waiter_selected_config(strict=strict)
+
+    def _waiter_stock_location(self, strict=False):
+        return self._waiter_config(strict=strict).warehouse_id.lot_stock_id
 
 
 class MrpBomLine(models.Model):
@@ -266,7 +268,7 @@ class MrpBomLine(models.Model):
         per_serving = self._waiter_qty_per_serving()
         if per_serving <= 0:
             return 0
-        return max(int(math.floor(self.product_id.qty_available / per_serving + 1e-9)), 0)
+        return max(int(math.floor(self.product_id.with_context(warehouse_id=self.env['pos.config']._waiter_selected_config().warehouse_id.id).qty_available / per_serving + 1e-9)), 0)
 
     def _waiter_vals(self):
         self.ensure_one()
@@ -274,6 +276,6 @@ class MrpBomLine(models.Model):
         return {
             "id": self.id, "product_tmpl_id": template.id, "product_id": self.product_id.id, "name": template.name,
             "qty": self.product_qty, "uom_id": self.product_uom_id.id, "uom_name": self.product_uom_id.name,
-            "qty_available": self.product_id.qty_available, "level": template.pantry_level or False,
+            "qty_available": self.product_id.with_context(warehouse_id=self.env['pos.config']._waiter_selected_config().warehouse_id.id).qty_available, "level": template.pantry_level or False,
             "status": template.pantry_status or False, "servings": self._waiter_servings(),
         }

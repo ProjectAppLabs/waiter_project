@@ -27,11 +27,11 @@ def fingerprint(raw: str) -> str:
 
 def create(restaurant: str, venue: str, name: str, created_by: str = '') -> tuple[McpKey, str]:
     """Crea una clave para la sede y devuelve (registro, clave en claro). La clave en claro no se vuelve a ver."""
-    active = McpKey.objects.filter(restaurant_slug=restaurant, venue_slug=venue, revoked_at__isnull=True).count()
+    active = McpKey.objects.filter(restaurant_slug=restaurant, venue_slug='', revoked_at__isnull=True).count()
     if active >= MAX_ACTIVE_PER_VENUE:
         raise KeyLimit(f'Ya hay {active} claves activas. Revoca una que no uses para crear otra.')
     raw = PREFIX + secrets.token_urlsafe(32)
-    key = McpKey.objects.create(restaurant_slug=restaurant, venue_slug=venue, name=name.strip()[:60] or 'Clave MCP',
+    key = McpKey.objects.create(restaurant_slug=restaurant, venue_slug='', name=name.strip()[:60] or 'Clave MCP',
                                 prefix=raw[:10], key_hash=fingerprint(raw), created_by=created_by[:120])
     return key, raw
 
@@ -50,7 +50,7 @@ def authenticate(raw: str | None) -> McpKey | None:
 
 
 def listing(restaurant: str, venue: str) -> list[dict]:
-    rows = McpKey.objects.filter(restaurant_slug=restaurant, venue_slug=venue).order_by('-created_at')
+    rows = McpKey.objects.filter(restaurant_slug=restaurant, venue_slug='').order_by('-created_at')
     return [view(k) for k in rows]
 
 
@@ -62,5 +62,5 @@ def view(key: McpKey) -> dict:
 
 def revoke(restaurant: str, venue: str, key_id: int) -> bool:
     """Revoca una clave de ESA sede (el id de otra sede no se toca). True si estaba activa."""
-    return bool(McpKey.objects.filter(pk=key_id, restaurant_slug=restaurant, venue_slug=venue, revoked_at__isnull=True)
+    return bool(McpKey.objects.filter(pk=key_id, restaurant_slug=restaurant, venue_slug='', revoked_at__isnull=True)
                 .update(revoked_at=timezone.now()))

@@ -16,7 +16,7 @@ pytestmark = pytest.mark.django_db
 
 def client_for(name='Ana'):
     _, diner = open_session(TABLE, None)
-    diner.account = DinerAccount.objects.create(name=name, email=f'{name}@example.com', verified=True)
+    diner.account = DinerAccount.objects.create(organization_slug='burger-house', name=name, email=f'{name}@example.com', verified=True)
     diner.save()
     client = APIClient()
     client.cookies['waiter_diner'] = diner.key
@@ -43,12 +43,13 @@ def test_favorites_persist_are_idempotent_and_private(catalog_stub):
         assert a.delete(detail).json() == {'favoritos': []}
 
 
-def test_favorites_require_account_and_do_not_leak_between_venues(catalog_stub):
+def test_favorites_require_account_and_are_shared_between_venues(catalog_stub):
     a, diner = client_for()
     with patch('experience_app.adapters.registry.client.resolve', return_value=TABLE):
         a.put(reverse('account-favorite', args=['burger-house', 'poblado', 3]))
     with patch('experience_app.adapters.registry.client.resolve', return_value=replace(TABLE, venue_slug='otra')):
-        assert a.get(reverse('account-favorites', args=['burger-house', 'otra'])).json() == {'favoritos': []}
+        assert a.get(reverse('account-favorites', args=['burger-house', 'otra'])).json() == {'favoritos': [3]}
+    assert a.get(reverse('account-favorites', args=['otra-organizacion', 'centro'])).status_code == 403
     diner.account = None
     diner.save()
     assert a.get(reverse('account-favorites', args=['burger-house', 'poblado'])).status_code == 401

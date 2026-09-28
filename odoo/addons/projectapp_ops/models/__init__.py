@@ -6,6 +6,7 @@ from . import product
 from . import product_photo
 from . import seed
 from . import users
+from . import restaurants
 
 from . import floor_plan
 

@@ -31,6 +31,36 @@ def photo_rows(encoded, image_field='image_512'):
     return FakeResponse([{'id': 21, image_field: encoded}])
 
 
+def test_catalog_uses_the_selected_company_warehouse_pricelist_and_availability():
+    # Falla si el menú toma empresa, precios, stock o disponibilidad de otro restaurante de la misma base.
+    raw = dict(LOAD_DATA.json()['result'])
+    raw['pos.config'] = [
+        {'id': 2, 'company_id': 8, 'warehouse_id': 20, 'pricelist_id': 4},
+        {'id': 1, 'company_id': 9, 'warehouse_id': 30, 'pricelist_id': 5, 'signup_discount_percent': 7},
+    ]
+    raw['res.company'] = [{'id': 8, 'name': 'Ajena'}, {'id': 9, 'name': 'Organización correcta'}]
+    raw['product.template'] = [dict(t, is_storable=True, waiter_unavailable_config_ids=[1] if t['id'] == 21 else [2])
+                               for t in raw['product.template']]
+    http = FakeSession([AUTH, FakeResponse(raw), FakeResponse({'3': 20000, '7': 15000}),
+                        FakeResponse([{'id': 3, 'qty_available': 5}, {'id': 7, 'qty_available': 5}]),
+                        FakeResponse([]), FakeResponse([])])
+    catalog = pos.load_catalog(OdooClient(CREDS, http), 4)
+    assert catalog.company_name == 'Organización correcta'
+    assert catalog.signup_discount_percent == 7
+    assert [(p.price, p.sold_out) for p in catalog.products] == [(20000, True), (15000, False)]
+    assert params(http.calls[2])['args'] == [[1], [3, 7]]
+    assert params(http.calls[3])['kwargs']['context'] == {'warehouse_id': 30, 'waiter_config_id': 1}
+
+
+def test_cash_payment_method_is_selected_from_the_restaurant_methods():
+    # Falla si cobrar el pedido usa el efectivo de otro restaurante.
+    http = FakeSession([AUTH, FakeResponse([{'id': 1, 'payment_method_ids': [4, 9]}]),
+                        FakeResponse([{'id': 4, 'type': 'bank'}, {'id': 9, 'type': 'cash'}])])
+    assert pos.cash_payment_method_id(OdooClient(CREDS, http)) == 9
+    assert params(http.calls[1])['args'] == [[1], ['payment_method_ids']]
+    assert params(http.calls[2])['args'][0] == [['id', 'in', [4, 9]]]
+
+
 def test_create_order_syncs_with_uuid_then_recomputes_prices():
     """Atrapa un payload que Odoo rechace o un pedido sin recalcular (total en 0)."""
     http = FakeSession([AUTH, FakeResponse({'pos.order': [{'id': 13}]}), FakeResponse(True), FakeResponse(True), READ])

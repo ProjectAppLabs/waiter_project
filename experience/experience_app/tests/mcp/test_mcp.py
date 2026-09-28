@@ -92,7 +92,7 @@ def test_protocol_handshake_auth_and_url_key(client, key):
 def test_the_venue_comes_from_the_key_never_from_the_client(client, odoo):
     _, raw = keys.create('otro-restaurante', 'centro', 'Clave de otro')
     call(client, raw, 'leer_banners', {'restaurante': 'burger-house', 'sede': 'poblado'})
-    odoo.resolve.assert_called_with('otro-restaurante', 'centro')
+    odoo.resolve.assert_called_with('otro-restaurante', '')
 
 
 # Falla si preparar guardara algo, si un color sin contraste pasara, o si confirmar no aplicara (o aplicara dos veces).

@@ -17,7 +17,7 @@ from datetime import timedelta
 from odoo import _, api, fields, models
 from odoo.exceptions import AccessError, UserError
 
-ROLES = [("waiter", "Mesero"), ("cashier", "Cajero"), ("admin", "Administrador")]
+ROLES = [("waiter", "Mesero"), ("cashier", "Cajero"), ("admin", "Encargado"), ("owner", "Dueño")]
 EMPLOYMENT = [("full_time", "Tiempo completo"), ("part_time", "Medio tiempo"), ("contract", "Contrato")]
 PIN_MAX_ATTEMPTS = 5
 PIN_LOCK_MINUTES = 10
@@ -73,7 +73,7 @@ class HrEmployee(models.Model):
             "joining_date": fields.Date.to_string(self.joining_date) if self.joining_date else False,
             "shift_start": self.shift_start, "shift_end": self.shift_end, "employment_status": self.employment_status,
             "work_email": self.work_email or False, "job_title": self.job_title or False,
-            "user_id": self.user_id.id or False,
+            "user_id": self.user_id.id or False, "waiter_config_ids": self.waiter_config_ids.ids,
         }
 
     def _waiter_open_attendance(self):
@@ -148,16 +148,11 @@ class HrEmployee(models.Model):
         así que sin esto la lista llegaba vacía y nadie sin permisos de RR. HH. podía entrar. No expone el PIN.
         """
         self._waiter_require_pos_user()
-        employees = self.sudo()
-        if config_id:
-            config = self.env["pos.config"].sudo().browse(int(config_id)).exists()
-            allowed = config.basic_employee_ids | config.advanced_employee_ids if config else employees.browse()
-            if allowed:
-                employees = allowed
-        employees = (employees if employees else self.sudo().search([])).filtered("active")
+        config = self.env["pos.config"]._waiter_selected_config(config_id)
+        employees = self.sudo().search(config._employee_domain(self.env.uid))
         return [{
             "id": e.id, "name": e.name, "employee_code": e.employee_code or False,
-            "waiter_role": e.waiter_role or False, "shift_start": e.shift_start, "shift_end": e.shift_end,
+            "waiter_role": e.waiter_role or False, "waiter_config_ids": e.waiter_config_ids.ids, "shift_start": e.shift_start, "shift_end": e.shift_end,
         } for e in employees.sorted("name")]
 
     @api.model
@@ -170,9 +165,16 @@ class HrEmployee(models.Model):
         en el dispositivo y no lo muestres.
         """
         self._waiter_require_pos_user()
+        owner = self.env.user.has_group('projectapp_ops.group_waiter_owner')
+        allowed_ids = self.env.user.waiter_config_ids.ids
         employee = self.sudo().browse(int(employee_id)).exists()
-        if not employee or not employee.active:
+        if (not employee or not employee.active or employee.company_id not in self.env.companies or
+                (not owner and employee.waiter_role != 'owner' and not set(employee.waiter_config_ids.ids) & set(allowed_ids))):
             return {"ok": False, "reason": "unknown"}
+        if self.env.context.get('waiter_config_id'):
+            config = self.env['pos.config']._waiter_selected_config()
+            if employee.waiter_role != 'owner' and config.id not in employee.waiter_config_ids.ids:
+                return {'ok': False, 'reason': 'unknown'}
         now = fields.Datetime.now()
         if employee.waiter_pin_locked_until and employee.waiter_pin_locked_until > now:
             return {"ok": False, "reason": "locked", "locked_until": fields.Datetime.to_string(employee.waiter_pin_locked_until)}

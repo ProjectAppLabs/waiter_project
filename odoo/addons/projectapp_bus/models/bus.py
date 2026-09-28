@@ -62,4 +62,6 @@ class IrWebsocket(models.AbstractModel):
     _inherit = "ir.websocket"
 
     def _build_bus_channel_list(self, channels):
-        return super()._build_bus_channel_list(keep_allowed(channels, self.env.user.has_group("point_of_sale.group_pos_user")))
+        allowed = {pos_channel(c.id) for c in self.env['pos.config'].search([])} if self.env.user.has_group('point_of_sale.group_pos_user') else set()
+        channels = [c for c in channels if not (isinstance(c, str) and c.startswith(CHANNEL_PREFIX)) or c in allowed]
+        return super()._build_bus_channel_list(channels)

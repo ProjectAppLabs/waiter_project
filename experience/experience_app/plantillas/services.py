@@ -8,7 +8,7 @@ Precedencia de los tokens, de menor a mayor:
 Cuando el acento final no es el del diseño se recalculan `acentoTinta` (utils/brand.ink_for, contraste ≥ 4.5) y
 `acentoSuave` (10 % del acento sobre el fondo de la plantilla; sobre blanco coincide con utils/brand.soft_for).
 
-La plantilla resuelta se cachea TEMPLATE_CACHE_SECONDS (60 s por defecto) por sede y se invalida al guardar desde el POS
+La plantilla resuelta se cachea TEMPLATE_CACHE_SECONDS (60 s por defecto) por organización y se invalida al guardar desde el POS
 y con el aviso interno de "algo cambió en Odoo" (views/internal.py). Sin ajustes de sede se resuelve `S1`; con el catálogo
 vacío, el spec embebido (defaults.FALLBACK_SPEC). En S1, el tema v2 añade los fundamentos y resuelve colores y fuentes;
 los campos paleta/tipografia se conservan para el POS y el MCP anteriores.
@@ -51,7 +51,7 @@ class InvalidSettings(Exception):
 
 
 def _key(restaurant: str, venue: str) -> str:
-    return f'template:v2:{restaurant}/{venue}'
+    return f'template:org:v3:{restaurant}'
 
 
 def invalidate(restaurant: str, venue: str) -> None:
@@ -163,9 +163,9 @@ def build(spec: dict, brand_inputs: dict, palette: dict, typography: dict, perce
     }
 
 
-# ---- resolución por sede ------------------------------------------------------------------------------------------
+# ---- resolución por organización ------------------------------------------------------------------------------------------
 def get_settings(restaurant: str, venue: str) -> VenueMenuSettings | None:
-    return VenueMenuSettings.objects.select_related('template').filter(restaurant_slug=restaurant, venue_slug=venue).first()
+    return VenueMenuSettings.objects.select_related('template').filter(restaurant_slug=restaurant, venue_slug='').first()
 
 
 def _spec_for(restaurant: str, venue: str) -> tuple[dict, dict, dict]:
@@ -304,10 +304,10 @@ def _prepare_sin_sede(restaurant: str, venue: str, body: dict, *, chosen=None) -
 @transaction.atomic
 def save(restaurant: str, venue: str, body: dict) -> VenueMenuSettings:
     previous = VenueMenuSettings.objects.select_for_update().select_related('template').filter(
-        restaurant_slug=restaurant, venue_slug=venue).first()
+        restaurant_slug=restaurant, venue_slug='').first()
     template, palette, typography, theme = prepare(restaurant, venue, body, chosen=previous)
     chosen, _ = VenueMenuSettings.objects.update_or_create(
-        restaurant_slug=restaurant, venue_slug=venue,
+        restaurant_slug=restaurant, venue_slug='',
         defaults={'template': template, 'palette': palette, 'typography': typography, 'theme': theme})
     brand.invalidate(restaurant, venue)
     invalidate(restaurant, venue)
@@ -329,10 +329,10 @@ def save_verified(restaurant: str, venue: str, body: dict) -> VenueMenuSettings:
         change = borradores.get(restaurant, venue, body['borrador'], lock=True) if 'borrador' in body else None
         template, _, _, _ = prepare(restaurant, venue, body)
         # También bloquea la primera publicación, cuando aún no existían ajustes para esta sede.
-        VenueMenuSettings.objects.get_or_create(restaurant_slug=restaurant, venue_slug=venue,
+        VenueMenuSettings.objects.get_or_create(restaurant_slug=restaurant, venue_slug='',
                                                 defaults={'template': template})
         previous = VenueMenuSettings.objects.select_for_update().select_related('template').get(
-            restaurant_slug=restaurant, venue_slug=venue)
+            restaurant_slug=restaurant, venue_slug='')
         _, _, _, theme = prepare(restaurant, venue, body, chosen=previous)
         current = settings_view(restaurant, venue)['tema']
         if theme['componentes'] != current['componentes'] or change is not None:
@@ -348,13 +348,14 @@ def save_verified(restaurant: str, venue: str, body: dict) -> VenueMenuSettings:
         raise InvalidSettings(str(exc)) from exc
 
 
-# Plan K4: las decoraciones de la sede solo existen para su propia sede. Estas envolturas fijan la sede en contexto
+# Las decoraciones se comparten dentro de la organización. El contexto conserva el restaurante de vista previa
 # para que el validador de plantillas (diseno/plantillas.py) las reconozca al resolver, leer y preparar el tema.
 def resolve_template(tenant: Tenant) -> dict:
     from experience_app.services import rewards
     actions = rewards.actions(tenant)
     with component_templates.for_venue(tenant.restaurant_slug, tenant.venue_slug):
-        return {**_resolve_template_sin_sede(tenant), 'acciones': actions}
+        percent = discount.percent_for(tenant)
+        return {**_resolve_template_sin_sede(tenant), 'acciones': actions, 'descuento': {'porcentaje': percent, 'activo': percent > 0}}
 
 
 def settings_view(restaurant: str, venue: str) -> dict:
