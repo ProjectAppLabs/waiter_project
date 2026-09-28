@@ -31,8 +31,23 @@ export async function jsonRpc<T>(path: string, params: Record<string, unknown>):
 export function callKw<T>(
   model: string, method: string, args: unknown[], kwargs: Record<string, unknown> = {},
 ): Promise<T> {
-  const { employee, session } = useAuthStore.getState()
+  const configId = currentConfigId()
+  const { employee } = useAuthStore.getState()
   const context = { ...((kwargs.context as Record<string, unknown>) ?? {}) }
-  if (employee?.token) context.waiter_pos_identity = { id: employee.id, token: employee.token, config_id: session?.configId }
-  return jsonRpc<T>('/web/dataset/call_kw', { model, method, args, kwargs: employee?.token ? { ...kwargs, context } : kwargs })
+  if (employee?.token) context.waiter_pos_identity = { id: employee.id, token: employee.token, config_id: configId }
+  // Plan O: el restaurante en uso viaja siempre; el addon lo usa para el almacén, los avisos y las pasarelas.
+  if (configId !== null) context.waiter_config_id = configId
+  const withContext = employee?.token || configId !== null
+  return jsonRpc<T>('/web/dataset/call_kw', { model, method, args, kwargs: withContext ? { ...kwargs, context } : kwargs })
+}
+
+// El restaurante en uso (plan O): el de la caja abierta o, sin caja, el del dispositivo. null si no se sabe (una sede).
+export function currentConfigId(): number | null {
+  const { session, restaurant } = useAuthStore.getState()
+  return session?.configId ?? restaurant?.id ?? null
+}
+// Añade el filtro del restaurante en uso a un dominio de Odoo; sin restaurante conocido, lo deja igual.
+export function inRestaurant(domain: unknown[], field = 'config_id'): unknown[] {
+  const id = currentConfigId()
+  return id === null ? domain : [...domain, [field, '=', id]]
 }

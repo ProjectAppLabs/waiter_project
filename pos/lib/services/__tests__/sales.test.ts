@@ -1,7 +1,7 @@
 import { callKw } from '@/lib/services/odoo'
 import { listSales, listShifts, paymentsByMethod, salesSummary, topProducts } from '@/lib/services/sales'
 
-jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn() }))
+jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn(), inRestaurant: (d: unknown[]) => d, currentConfigId: () => null }))
 const m = callKw as jest.Mock
 beforeEach(() => m.mockReset())
 

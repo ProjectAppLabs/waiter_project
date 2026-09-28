@@ -2,7 +2,7 @@ import { fireUnsentLines } from '@/lib/services/kitchen'
 import { callKw } from '@/lib/services/odoo'
 import { addRound, cancelLines, listHistoryOrders, listKitOrders, resetPresetCache } from '@/lib/services/ordersKit'
 
-jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn() }))
+jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn(), inRestaurant: (d: unknown[]) => d, currentConfigId: () => null }))
 jest.mock('@/lib/services/kitchen', () => ({ fireUnsentLines: jest.fn() }))
 const mock = callKw as jest.Mock
 const presets = [{ id: 1, service_at: 'table' }, { id: 2, service_at: 'counter' }]

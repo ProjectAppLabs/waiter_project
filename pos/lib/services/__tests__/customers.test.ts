@@ -1,7 +1,7 @@
 import { loyaltyCard } from '@/lib/services/customers'
 import { callKw } from '@/lib/services/odoo'
 
-jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn() }))
+jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn(), inRestaurant: (d: unknown[]) => d, currentConfigId: () => null }))
 const m = callKw as jest.Mock
 
 // Falla si el panel del cliente muestra puntos de otra tarjeta o pierde el programa y el código del socio.

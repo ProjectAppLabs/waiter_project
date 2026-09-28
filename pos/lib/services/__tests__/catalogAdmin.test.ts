@@ -1,7 +1,7 @@
 import { catalogPhotoUrl, listCatalogPhotos, listProducts, saveProduct, setCatalogPhotos } from '@/lib/services/catalogAdmin'
 import { callKw } from '@/lib/services/odoo'
 
-jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn() }))
+jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn(), inRestaurant: (d: unknown[]) => d, currentConfigId: () => null }))
 const m = callKw as jest.Mock
 beforeEach(() => m.mockClear())
 const input = { name: 'Lomo', price: 38900, categoryIds: [2], taxIds: [55], available: true, storable: false, favorite: true, description: '', dinerAttributes: { picante: 2 as const, etiquetas: ['popular'] } }

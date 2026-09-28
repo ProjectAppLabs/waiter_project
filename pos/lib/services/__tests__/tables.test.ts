@@ -1,7 +1,7 @@
 import { callKw } from '@/lib/services/odoo'
 import { getOrderDetail, listAllFloors, listTableReservations, moveOrder, reservedAtByTable, saveFloorLayout } from '@/lib/services/tables'
 
-jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn() }))
+jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn(), inRestaurant: (d: unknown[]) => d, currentConfigId: () => null }))
 const m = callKw as jest.Mock
 
 const ORDER = { id: 9, tracking_number: '104', pos_reference: 'Order 00009', preset_id: false, floating_order_name: 'Eva', date_order: '2026-09-06 17:24:00', amount_total: 87822 }

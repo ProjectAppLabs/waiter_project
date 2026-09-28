@@ -2,7 +2,7 @@ import { DEFAULT_ROLE_POLICY } from '@/lib/domain/permissions'
 import { callKw } from '@/lib/services/odoo'
 import { loadPosData } from '@/lib/services/posData'
 
-jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn() }))
+jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn(), inRestaurant: (d: unknown[]) => d, currentConfigId: () => null }))
 const mockCallKw = callKw as jest.Mock
 
 // Fixture copiado de la respuesta real de load_data (Odoo 19): many2one como enteros, impuestos y

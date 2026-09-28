@@ -1,7 +1,7 @@
 import {render,screen,fireEvent,waitFor} from '@testing-library/react'
 import {MenuBannersForm} from '../MenuBannersForm'
 import {callKw} from '@/lib/services/odoo'
-jest.mock('@/lib/services/odoo',()=>({callKw:jest.fn()}))
+jest.mock('@/lib/services/odoo',()=>({callKw:jest.fn(),inRestaurant:(d:unknown[])=>d,currentConfigId:()=>null}))
 jest.mock('@/lib/stores/authStore',()=>({useAuthStore:{getState:()=>({employee:{id:9,token:'session'}})}}))
 jest.mock('@/lib/services/catalogAdmin',()=>({listProducts:async()=>[{id:20,variantId:30,name:'Combo almuerzo',available:true,dinerAttributes:{combo:[{}]}},{id:21,variantId:31,name:'Hamburguesa',available:true,dinerAttributes:{}}],listCategories:async()=>[{id:2,name:'Combos'}]}))
 // Falla si el banner no se vincula a un combo (o a un plato) elegido de su propia lista, o si el modo del formulario se guarda.

@@ -1,7 +1,7 @@
 import { callKw } from '@/lib/services/odoo'
 import { getBrand, getBrandLogo, saveBrand, saveBrandGreeting, type BrandInfo } from '@/lib/services/settings'
 
-jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn() }))
+jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn(), inRestaurant: (d: unknown[]) => d, currentConfigId: () => null }))
 const m = callKw as jest.Mock
 const BRAND: BrandInfo = { companyId: 1, color: '#7a2e2a', font: 'Lora', radius: '14', tagline: 'Cocina de barrio', greeting: '', waiterName: 'Alex', welcome: '', hasLogo: false }
 

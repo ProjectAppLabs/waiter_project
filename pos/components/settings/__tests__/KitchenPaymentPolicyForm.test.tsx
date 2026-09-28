@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { KitchenPaymentPolicyForm } from '../KitchenPaymentPolicyForm'
 import { callKw } from '@/lib/services/odoo'
-jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn() }))
+jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn(), inRestaurant: (d: unknown[]) => d, currentConfigId: () => null }))
 jest.mock('@/lib/stores/authStore', () => ({ useAuthStore: { getState: () => ({ employee: { id: 7, token: 'employee-session' } }) } }))
 it('saves per-role restrictions using the employee session and keeps menu payment mandatory', async () => {
   jest.mocked(callKw).mockResolvedValue({ require_payment_roles: [] })

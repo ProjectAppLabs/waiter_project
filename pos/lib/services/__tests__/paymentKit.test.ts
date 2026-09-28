@@ -1,7 +1,7 @@
 import { readPayableOrder } from '@/lib/services/paymentKit'
 import { callKw } from '@/lib/services/odoo'
 
-jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn() }))
+jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn(), inRestaurant: (d: unknown[]) => d, currentConfigId: () => null }))
 const mockCallKw = callKw as jest.Mock
 
 // Falla si el cajero no puede leer para cobrar un pedido que no se compuso en su dispositivo: es lo normal,

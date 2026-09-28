@@ -1,4 +1,4 @@
-import { callKw } from '@/lib/services/odoo'
+import { callKw, inRestaurant } from '@/lib/services/odoo'
 import type { AccountRole, Role } from '@/lib/domain/roles'
 import type { Settings } from '@/lib/types'
 
@@ -91,7 +91,8 @@ export async function saveTable(id: number | null, floorId: number, t: { number:
 }
 
 export async function listPaymentMethods(): Promise<PaymentMethodInfo[]> {
-  return callKw<PaymentMethodInfo[]>('pos.payment.method', 'search_read', [[], ['name', 'type']], { order: 'sequence asc, id asc' })
+  // Los métodos del restaurante en uso (el efectivo es propio de cada uno).
+  return callKw<PaymentMethodInfo[]>('pos.payment.method', 'search_read', [inRestaurant([], 'config_ids'), ['name', 'type']], { order: 'sequence asc, id asc' })
 }
 
 export async function listTaxes(): Promise<TaxInfo[]> {

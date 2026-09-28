@@ -2,7 +2,7 @@ import {render,screen,fireEvent,waitFor,within} from '@testing-library/react'
 import {BenefitsForm} from '../BenefitsForm'
 import {callKw} from '@/lib/services/odoo'
 import type {BenefitsSettings} from '@/lib/services/benefits'
-jest.mock('@/lib/services/odoo',()=>({callKw:jest.fn()}))
+jest.mock('@/lib/services/odoo',()=>({callKw:jest.fn(),inRestaurant:(d:unknown[])=>d,currentConfigId:()=>null}))
 jest.mock('../MenuBannersForm',()=>({MenuBannersForm:({configId}:{configId:number})=>{const {createElement}=jest.requireActual('react');return createElement('h3',null,`Banners del menú ${configId}`)}}))
 
 const actions:BenefitsSettings['actions']=[
