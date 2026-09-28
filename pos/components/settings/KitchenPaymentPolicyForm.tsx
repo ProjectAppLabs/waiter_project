@@ -28,7 +28,7 @@ export function KitchenPaymentPolicyForm({ configId }: { configId: number }) {
     } catch (e) { setError(e instanceof Error ? e.message : 'No se pudieron guardar los permisos.') }
     finally { setBusy(false) }
   }
-  return <section className="border border-border rounded-lg p-5 mb-6 max-w-3xl flex flex-col gap-4">
+  return <section className="border border-border rounded-lg p-5 flex flex-col gap-4">
     <div><h3 className="font-semibold text-lg">Cobrar antes de enviar a cocina</h3><p className="text-sm text-soft mt-1">Activa los roles que deben cobrar primero. Los demás podrán enviar a cocina y cobrar después.</p></div>
     <p className="text-sm bg-canvas p-3 rounded-md">Comensal desde el menú: siempre debe pagar primero. Solo un empleado con permiso puede enviar su pedido sin cobrar.</p>
     {error && <p role="alert" className="text-danger">{error}</p>}

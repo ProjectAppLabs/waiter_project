@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/Button'
 import { Select, TextInput } from '@/components/ui/Field'
 import { play, setStation, type SoundId, type Station } from '@/lib/audio/sounds'
 import { ROLES, type Role } from '@/lib/domain/roles'
+import { shiftLabel } from '@/lib/domain/employees'
+import type { PosEmployee } from '@/lib/services/employees'
 import { inviteUser, resendInvite, saveCompany, setUserRole, type CompanyInfo, type PaymentMethodInfo, type TaxInfo, type UserInfo } from '@/lib/services/settings'
 
 // Secciones de Configuración dibujadas con los componentes del kit (tarjetas, chips, píldoras, toggles).
@@ -73,7 +75,8 @@ export function TaxesList({ taxes }: { taxes: TaxInfo[] }) {
   )
 }
 
-export function UsersForm({ users, onChanged }: { users: UserInfo[]; onChanged: () => Promise<void> }) {
+// `employees`: quienes inician turno con PIN (hr.employee); el rol de ellos es el que aplica la tabla de permisos.
+export function UsersForm({ users, employees = [], onChanged }: { users: UserInfo[]; employees?: PosEmployee[]; onChanged: () => Promise<void> }) {
   const t = useTranslations('admin.settings.users')
   const roles = useTranslations('pos.nav.roles')
   const [u, setU] = useState<{ name: string; email: string; role: Role }>({ name: '', email: '', role: 'waiter' })
@@ -82,7 +85,18 @@ export function UsersForm({ users, onChanged }: { users: UserInfo[]; onChanged: 
   return (
     <div className="flex flex-col gap-4">
       <section aria-label={t('list')} className={box}>
-        <p className="text-[15px] font-semibold text-ink">{t('list')}</p>
+        <div><h3 className="text-lg font-semibold text-ink">{t('list')}</h3><p className="mt-1 text-sm text-soft">{t('listHint')}</p></div>
+        {employees.length > 0 && <>
+          <div><p className="text-[15px] font-semibold text-ink">{t('withPin')}</p><p className="text-[13px] text-soft">{t('withPinHint')}</p></div>
+          {employees.map((x) => (
+            <div key={`e${x.id}`} className="flex items-center gap-3 rounded-md bg-muted p-3 text-[15px]">
+              <span className="w-10 h-10 rounded-md bg-surface border border-border text-ink grid place-items-center"><Icon name="lock" size={20} /></span>
+              <div className="min-w-0"><p className="font-semibold text-ink truncate">{x.name}</p><p className="text-[13px] text-soft truncate">{shiftLabel(x.shift, t('noShift'))}</p></div>
+              <span className="ml-auto"><StatusPill tone="neutral">{x.role ? roles(x.role) : t('accountRole')}</StatusPill></span>
+            </div>
+          ))}
+          <p className="text-[15px] font-semibold text-ink">{t('withEmail')}</p>
+        </>}
         {users.map((x) => (
           <div key={x.id} className="flex items-center gap-3 rounded-md bg-muted p-3 text-[15px]">
             <span className="w-10 h-10 rounded-md bg-surface border border-border text-ink grid place-items-center"><Icon name="user" size={20} /></span>

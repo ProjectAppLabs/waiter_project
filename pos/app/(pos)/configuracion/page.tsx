@@ -19,11 +19,17 @@ import { ThresholdsForm } from '@/components/settings/SettingsForms'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { getCompany, listPaymentMethods, listTaxes, listUsers, saveSettings, type CompanyInfo, type PaymentMethodInfo, type TaxInfo, type UserInfo } from '@/lib/services/settings'
 import { useAuthStore } from '@/lib/stores/authStore'
+import { listPosEmployees, type PosEmployee } from '@/lib/services/employees'
 import { useCatalogStore } from '@/lib/stores/catalogStore'
 import { cn } from '@/lib/utils'
 
-const SECTIONS: [Section, KitIcon][] = [['restaurant', 'store'], ['menuTemplate', 'layout'], ['benefits', 'percentage'], ['payments', 'card'], ['taxes', 'percentage'], ['users', 'users'], ['permissions', 'lock'], ['alerts', 'alert'], ['roi', 'chartLine'], ['display', 'tablet'], ['integrations', 'sparkles']]
-type Section = 'integrations' | 'permissions' | 'benefits' | 'restaurant' | 'brand' | 'menuTemplate' | 'payments' | 'taxes' | 'users' | 'alerts' | 'roi' | 'display'
+const SECTIONS: [Section, KitIcon][] = [['restaurant', 'store'], ['menuTemplate', 'layout'], ['benefits', 'percentage'], ['payments', 'card'], ['taxes', 'percentage'], ['users', 'users'], ['alerts', 'alert'], ['roi', 'chartLine'], ['display', 'tablet'], ['integrations', 'sparkles']]
+type Section = 'integrations' | 'benefits' | 'restaurant' | 'brand' | 'menuTemplate' | 'payments' | 'taxes' | 'users' | 'alerts' | 'roi' | 'display'
+
+// Cuántas personas tiene cada rol: la tabla de permisos lo muestra en cada columna para ligarla con la lista del equipo.
+// Se cuentan los empleados con PIN: su rol es el que aplican estos permisos al iniciar turno.
+// Sin rol propio, el empleado usa el de su cuenta: no se cuenta en ninguna columna.
+const roleCounts = (employees: PosEmployee[]) => employees.reduce<Partial<Record<string, number>>>((acc, e) => e.role ? { ...acc, [e.role]: (acc[e.role] ?? 0) + 1 } : acc, {})
 
 // Configuración con la estructura del modal "Setting" del kit (Account Setting / Profile.png): pestañas verticales con
 // icono a la izquierda y panel con cabecera a la derecha, para las secciones del restaurante.
@@ -39,7 +45,8 @@ function ConfiguracionInner() {
   const [taxes, setTaxes] = useState<TaxInfo[]>([])
   const [users, setUsers] = useState<UserInfo[]>([])
   const reloadUsers = () => listUsers().then(setUsers)
-  useEffect(() => { void getCompany().then(setCompany); void listPaymentMethods().then(setMethods); void listTaxes().then(setTaxes); void reloadUsers() }, [])
+  const [employees, setEmployees] = useState<PosEmployee[]>([])
+  useEffect(() => { void getCompany().then(setCompany); void listPaymentMethods().then(setMethods); void listTaxes().then(setTaxes); void reloadUsers(); void listPosEmployees(session?.configId ?? null).then(setEmployees).catch(() => setEmployees([])) }, []) // eslint-disable-line react-hooks/exhaustive-deps
   if (!catalog) return null
   const onSaveSettings = async (s: typeof catalog.settings) => { await saveSettings(s); await load(session?.id ?? null) }
   return (
@@ -64,8 +71,12 @@ function ConfiguracionInner() {
               {section === 'menuTemplate' && <><McpInvite onConnect={() => setSection('integrations')} /><MenuTemplateForm /><MenuDecorationsForm /></>}
               {section === 'payments' && <><PaymentMethodsList methods={methods} /><PaymentGatewayForm methods={methods} /></>}
               {section === 'taxes' && <div className="space-y-8"><TaxRegimeForm configId={catalog.settings.configId} /><TaxesList taxes={taxes} /></div>}
-              {section === 'users' && <UsersForm users={users} onChanged={reloadUsers} />}
-              {section === 'permissions' && <div className="space-y-8"><RolePermissionsForm configId={catalog.settings.configId} initial={catalog.settings.rolePermissions} /><KitchenPaymentPolicyForm configId={catalog.settings.configId} /></div>}
+              {/* Usuarios y permisos en una sola vista: quién está en el equipo, qué puede hacer cada rol y quién cobra antes de cocina. */}
+              {section === 'users' && <div className="flex max-w-4xl flex-col gap-10">
+                <UsersForm users={users} employees={employees} onChanged={reloadUsers} />
+                <RolePermissionsForm configId={catalog.settings.configId} initial={catalog.settings.rolePermissions} counts={roleCounts(employees)} />
+                <KitchenPaymentPolicyForm configId={catalog.settings.configId} />
+              </div>}
               {section === 'alerts' && <ThresholdsForm key="alerts" initial={catalog.settings} section="alerts" onSave={onSaveSettings} />}
               {section === 'roi' && <ThresholdsForm key="roi" initial={catalog.settings} section="roi" onSave={onSaveSettings} />}
               {section === 'display' && <DisplayForm />}

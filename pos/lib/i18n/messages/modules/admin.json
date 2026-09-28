@@ -333,13 +333,12 @@
   "settings": {
     "title": "Configuración",
     "sections": {
-      "permissions": "Permisos por rol",
       "restaurant": "Restaurante",
       "brand": "Marca",
       "menuTemplate": "Diseño del menú",
       "payments": "Métodos de pago",
       "taxes": "Impuestos",
-      "users": "Usuarios",
+      "users": "Usuarios y permisos",
       "alerts": "Umbrales de alerta",
       "roi": "Supuestos del ROI",
       "display": "Pantalla y sonido",
@@ -358,8 +357,14 @@
       "hint": "Impuestos de venta disponibles para la carta."
     },
     "users": {
-      "list": "Usuarios del restaurante",
-      "invite": "Invitar usuario",
+      "list": "Tu equipo",
+      "listHint": "El rol de cada persona decide qué ve y qué puede hacer; ajusta cada rol más abajo.",
+      "withPin": "Con PIN en el POS",
+      "withPinHint": "Quienes inician turno con su PIN. Su rol decide qué ven; hoy se crean y cambian desde Odoo.",
+      "withEmail": "Con cuenta de correo",
+      "noShift": "Sin horario",
+      "accountRole": "Rol de su cuenta",
+      "invite": "Invitar a alguien",
       "active": "Activa",
       "pending": "Invitación pendiente",
       "lastLogin": "Último ingreso",
