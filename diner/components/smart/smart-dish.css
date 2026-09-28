@@ -30,6 +30,16 @@
 .sm-rewards .sm-profile-link strong { font-size:calc(16px * var(--ds-texto)); font-weight:500; }
 .sm-rewards .sm-profile-link small { font-size:calc(14px * var(--ds-texto)); line-height:calc(24px * var(--ds-texto)); margin-top:var(--ds-espacio-8); }
 .sm-rewards .sm-profile-link svg { color:var(--sm-highlight-text); }
+/* Plan N: lo ganado por acciones (Tus beneficios) y las acciones que aún dan premio (Gana más), como tarjetas en lista. */
+.smart-menu .sm-reward-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:var(--ds-espacio-12); }
+.smart-menu .sm-reward-list > li > .sm-profile-link { background:var(--sm-surface); border-radius:calc(16px * var(--ds-forma-tarjeta)); padding:var(--ds-espacio-20); margin:0; }
+.smart-menu .sm-reward-item { display:flex; align-items:center; flex-wrap:wrap; gap:var(--ds-espacio-12) var(--ds-espacio-14); background:var(--sm-surface); color:var(--sm-ink); border-radius:calc(16px * var(--ds-forma-tarjeta)); padding:var(--ds-espacio-16) var(--ds-espacio-20); }
+.smart-menu .sm-reward-item > .sm-empty-icon { flex:0 0 44px; width:44px; height:44px; margin:0; }
+.smart-menu .sm-reward-item > .sm-empty-icon svg { width:22px; height:22px; }
+.smart-menu .sm-reward-item > span:not(.sm-empty-icon) { flex:1 1 180px; min-width:0; display:flex; flex-direction:column; gap:var(--ds-espacio-4); }
+.smart-menu .sm-reward-item strong { font-size:calc(16px * var(--ds-texto)); font-weight:700; overflow-wrap:anywhere; }
+.smart-menu .sm-reward-item small { font-size:calc(14px * var(--ds-texto)); line-height:1.45; color:var(--sm-muted); }
+.smart-menu .sm-reward-item > .sm-text-button { min-height:44px; margin-left:auto; font-weight:700; color:var(--sm-highlight-text); }
 .sm-reward-dialog { text-align:center; }
 .sm-reward-dialog > .sm-icon { margin-left:auto; }
 .sm-reward-dialog > p { color:var(--sm-muted); font-size:calc(14px * var(--ds-texto)); line-height:calc(24px * var(--ds-texto)); margin:var(--ds-espacio-20) 0; }

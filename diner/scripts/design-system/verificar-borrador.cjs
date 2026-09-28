@@ -27,9 +27,29 @@ const PAGES = [
     .map((screen) => ({ name: screen, path: screen, widths: [375], wait: '.smart-menu .sm-page', shot: '.smart-menu' })),
   // El pedido con platos y su diálogo de modalidad: sin sesión el pedido sale vacío, así que el carrito se simula en el
   // navegador (nada se escribe). El MCP cambia colores y estilos de estas pantallas, no su estructura; se comprueban ambos.
-  { name: 'pedido con platos', path: 'pedido', widths: [375, 1024], wait: '.sm-cart-line', shot: '.smart-menu', cart: true },
-  { name: 'modalidad', path: 'pedido', widths: [375], wait: '.sm-cart-line', shot: 'dialog.sm-fulfillment-dialog', cart: true, open: 'modalidad' },
+  { name: 'pedido con platos', path: 'pedido', widths: [375, 1024], wait: '.sm-cart-line', shot: '.smart-menu', mocks: 'carrito' },
+  { name: 'modalidad', path: 'pedido', widths: [375], wait: '.sm-cart-line', shot: 'dialog.sm-fulfillment-dialog', mocks: 'carrito', open: 'modalidad' },
+  // Plan N: «Mis recompensas» de una cuenta verificada con un premio de cada tipo ganado y acciones pendientes (simulado).
+  { name: 'recompensas con beneficios', path: 'recompensas', widths: [375, 1024], wait: '.sm-reward-list', shot: '.smart-menu', mocks: 'recompensas' },
 ]
+
+// Plan N: cuenta verificada y sus recompensas para «recompensas con beneficios».
+const SAMPLE_ACCOUNT = { cuenta: { id: 'verificador', nombre: 'Ana Verificadora', correo: 'ana@example.invalid', verificada: true, descuentoDisponible: false }, pedidos: [] }
+const SAMPLE_REWARDS = { tarjeta: 1, codigo: 'VERIFICA-01', puntos: 1250, ganados: 0, programa: 'Puntos de muestra', valorPunto: 10, minimoCanje: 500,
+  beneficios: [
+    { id: 1, accion: 'novedades', premio: { tipo: 'cupon', codigo: 'BIENVENIDA10', nombre: 'Bienvenida', porcentaje: 10, minimo: 30000 }, estado: 'disponible', fecha: '2026-09-27' },
+    { id: 2, accion: 'opinion', premio: { tipo: 'puntos', puntos: 200, programa: 'Puntos de muestra' }, estado: 'acreditado', fecha: '2026-09-27' },
+    { id: 3, accion: 'pago_en_linea', premio: { tipo: 'descuento', porcentaje: 8 }, estado: 'disponible', fecha: '2026-09-27' },
+  ],
+  acciones: [
+    { accion: 'cuenta', premio: { tipo: 'descuento', porcentaje: 5 }, hecha: true },
+    { accion: 'opinion', premio: { tipo: 'puntos', puntos: 200 }, hecha: false },
+  ] }
+const MOCKS = {
+  carrito: [[/\/api\/v1\/sesiones\/[^/]+\/carrito\/(\?.*)?$/, () => SAMPLE_CART]],
+  recompensas: [[/\/api\/v1\/cuenta\/(\?.*)?$/, () => SAMPLE_ACCOUNT], [/\/favoritos\/(\?.*)?$/, () => ({ favoritos: [] })],
+    [/\/recompensas\/(\?.*)?$/, () => SAMPLE_REWARDS]],
+}
 
 // Carrito de muestra para «pedido con platos»: dos líneas propias (una con nota) y una de otra persona de la mesa.
 const SAMPLE_CART = { sesion: 'verificador', total: 133800, mio: 100900, por_comensal: [],
@@ -179,6 +199,31 @@ function fulfillmentCheck() {
   const box = dialog.getBoundingClientRect()
   if (box.left < -1 || box.right > innerWidth + 1) problems.push('modalidad: el diálogo se sale de la pantalla a lo ancho')
   if (box.height > innerHeight + 1 && dialog.scrollHeight <= dialog.clientHeight + 1) problems.push('modalidad: el diálogo es más alto que la pantalla y no se desplaza')
+  return problems
+}
+
+// Se ejecuta dentro de la página (Plan N): en «Mis recompensas», cada premio ganado y cada acción pendiente es una fila
+// legible con su premio y su origen, y la acción de usar un cupón es un control de 44 px que no se sale de su fila.
+function rewardsCheck() {
+  const problems = []
+  const visible = (el) => { const r = el.getBoundingClientRect(), cs = getComputedStyle(el); return r.width > 2 && r.height > 2 && cs.visibility !== 'hidden' && cs.display !== 'none' && Number(cs.opacity) > 0.05 }
+  for (const name of ['Tus beneficios', 'Gana más']) {
+    const list = document.querySelector(`.sm-reward-list[aria-label="${name}"]`)
+    if (!list || !visible(list)) { problems.push(`recompensas: falta la lista «${name}»`); continue }
+    for (const row of list.children) {
+      const title = row.querySelector('strong'), detail = row.querySelector('small')
+      if (!title || !visible(title) || !title.textContent.trim()) problems.push(`recompensas: una fila de «${name}» no dice su premio`)
+      if (!detail || !visible(detail) || !detail.textContent.trim()) problems.push(`recompensas: «${title?.textContent.trim()}» no dice de dónde viene ni cómo se usa`)
+      const box = row.getBoundingClientRect()
+      for (const control of row.querySelectorAll('a, button')) {
+        const r = control.getBoundingClientRect()
+        if (r.height < 44) problems.push(`recompensas: «${control.textContent.trim().slice(0, 30)}» mide ${Math.round(r.height)} px de alto (mínimo 44)`)
+        if (r.right > box.right + 1 || r.left < box.left - 1) problems.push(`recompensas: «${control.textContent.trim().slice(0, 30)}» se sale de su fila`)
+      }
+    }
+  }
+  const coupon = [...document.querySelectorAll('.sm-reward-item button')].find((b) => /Usar en mi pedido/.test(b.textContent))
+  if (!coupon) problems.push('recompensas: el cupón ganado no ofrece «Usar en mi pedido»')
   return problems
 }
 
@@ -365,8 +410,9 @@ async function main() {
         const url = request.url()
         if (/^https?:/.test(url) && !ALLOWED_ORIGINS.has(new URL(url).origin)) foreign.add(new URL(url).origin)
       })
-      if (spec.cart) await page.route(/\/api\/v1\/sesiones\/[^/]+\/carrito\/(\?.*)?$/, (route) => route.request().method() === 'GET'
-        ? route.fulfill({ contentType: 'application/json', body: JSON.stringify(SAMPLE_CART) }) : route.continue())
+      // Respuestas simuladas solo para lecturas de la API; las páginas de verificación no escriben nada.
+      for (const [pattern, body] of MOCKS[spec.mocks] || []) await page.route((url) => url.pathname.startsWith('/api/') && pattern.test(url.pathname + url.search),
+        (route) => route.request().method() === 'GET' ? route.fulfill({ contentType: 'application/json', body: JSON.stringify(body()) }) : route.continue())
       await page.goto(`${base}/${encodeURIComponent(rest)}/${encodeURIComponent(venue)}/${spec.path}/${token ? `?borrador=${encodeURIComponent(token)}` : ''}`, { waitUntil: 'networkidle', timeout: 120000 })
       await page.locator(spec.wait).first().waitFor({ timeout: 60000 })
       // Un teléfono no reserva sitio para la barra de desplazamiento; el Edge de Windows sí (15 px). Se oculta para medir el ancho real.
@@ -387,6 +433,7 @@ async function main() {
       measured.problemas.push(...await page.evaluate(imageCheck))
       if (spec.name !== 'sistema') measured.problemas.push(...await page.evaluate(layoutCheck))
       if (spec.open === 'modalidad') measured.problemas.push(...await page.evaluate(fulfillmentCheck))
+      if (spec.mocks === 'recompensas') measured.problemas.push(...await page.evaluate(rewardsCheck))
       // Plan M: toda foto de plato llega optimizada (WebP) y ligera (menos de 400 KB), la principal y las de galería.
       const photos = await page.evaluate(() => [...new Set([...document.querySelectorAll('.smart-menu img')].map((i) => i.currentSrc || i.src).filter((u) => /\/fotos\/\d+/.test(u)))].slice(0, 12))
       for (const url of photos) {
