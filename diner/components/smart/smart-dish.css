@@ -181,3 +181,25 @@ body:has(.sm-recommendation-dialog[open]) { overflow:hidden; }
 .smart-menu .sm-dish-gallery-dots button::before { content: ''; width: 8px; height: 8px; border-radius: 999px; background: color-mix(in srgb, #fff 60%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, #000 25%, transparent); }
 .smart-menu .sm-dish-gallery-dots button[aria-current='true']::before { width: 20px; background: #fff; }
 
+/* Sugerencias de la ficha: foto, nombre, datos (valoración, tiempo, «solo hoy»), rebaja y abajo precio + acción. La acción
+ * es un «+» redondo; con unidades pasa a un contador horizontal compacto. Todo control mide al menos 44 px. */
+.smart-menu .sm-dish-sides .sm-side { align-items: stretch; min-height: 0; padding: var(--ds-espacio-10); gap: var(--ds-espacio-12); }
+.smart-menu .sm-dish-sides .sm-side > .sm-food-photo { width: 88px; height: 88px; flex: 0 0 88px; align-self: center; }
+.smart-menu .sm-dish-sides .sm-side-info { justify-content: flex-start; gap: var(--ds-espacio-4); }
+.smart-menu .sm-dish-sides .sm-side-info h3 { font-weight: 700; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.smart-menu .sm-side-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-espacio-4) var(--ds-espacio-8); }
+.smart-menu .sm-side-meta:empty { display: none; }
+.smart-menu .sm-side-meta .sm-rating-pill { position: static; }
+.smart-menu .sm-side-badge { display: inline-flex; align-items: center; padding: var(--ds-espacio-2) var(--ds-espacio-8); border-radius: calc(12px * var(--ds-forma-chip)); background: var(--sm-highlight); color: var(--sm-highlight-ink, #212134); font-size: calc(14px * var(--ds-texto)); line-height: calc(20px * var(--ds-texto)); font-weight: 700; }
+.smart-menu .sm-side-info .sm-food-deal { align-self: flex-start; }
+.smart-menu .sm-side-bottom { display: flex; align-items: center; justify-content: space-between; gap: var(--ds-espacio-8); margin-top: auto; }
+.smart-menu .sm-side-bottom > strong { font-size: calc(16px * var(--ds-texto)); font-weight: 800; color: var(--sm-highlight-text); }
+.smart-menu .sm-side-action { display: flex; align-items: center; flex-shrink: 0; }
+.smart-menu .sm-side-action button { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 999px; background: var(--sm-accent); color: var(--t-acento-tinta, #fff); padding: 0; }
+.smart-menu .sm-side-action button:disabled { opacity: .45; }
+.smart-menu .sm-side-action svg { width: 20px; height: 20px; }
+.smart-menu .sm-side-stepper { border-radius: 999px; background: color-mix(in srgb, var(--sm-accent) 14%, var(--sm-surface)); }
+.smart-menu .sm-side-stepper button:first-child { background: transparent; color: var(--sm-ink); }
+.smart-menu .sm-side-stepper output { min-width: 24px; text-align: center; font-weight: 700; font-size: calc(16px * var(--ds-texto)); }
+.smart-menu .sm-dish-sides .sm-side[data-selected="true"] { box-shadow: inset 0 0 0 2px var(--sm-accent); }
+

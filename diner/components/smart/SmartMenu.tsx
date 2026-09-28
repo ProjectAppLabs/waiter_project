@@ -543,6 +543,26 @@ export function SmartDish({ entry, id, onClose, actionTarget }: SmartProps & {on
   const atExtraLimit = Object.values(extras).filter(count=>count>0).length>=19
   const changeExtra = (productId:number, count:number) => {setExtras(e=>({...e,[productId]:Math.max(0,Math.min(99,count))}));setAdded(false)}
   const counter = (extra:Dish) => <div className="sm-extra-counter"><button aria-label={`Menos ${extra.nombre}`} disabled={!extras[extra.id]||sending} onClick={()=>changeExtra(extra.id,(extras[extra.id]||0)-1)}><Icon name="minus"/></button><output aria-label={`Cantidad de ${extra.nombre}`}>{extras[extra.id]||0}</output><button aria-label={`Más ${extra.nombre}`} disabled={extra.agotado||sending||(extras[extra.id]||0)>=99||(atExtraLimit&&!extras[extra.id])} onClick={()=>changeExtra(extra.id,(extras[extra.id]||0)+1)}><Icon name="plus"/></button></div>
+  // Sugerencias: un solo «+» mientras no hay unidades; con unidades, un contador horizontal compacto. Así la tarjeta deja
+  // sitio para lo que ayuda a decidir: valoración, tiempo, «solo hoy» y la rebaja.
+  const sideAction = (extra:Dish) => {
+    const n = extras[extra.id]||0
+    const plus = <button className="sm-side-plus" aria-label={`Más ${extra.nombre}`} disabled={extra.agotado||sending||n>=99||(atExtraLimit&&!n)} onClick={()=>changeExtra(extra.id,n+1)}><Icon name="plus"/></button>
+    if (!n) return <div className="sm-side-action">{plus}</div>
+    return <div className="sm-side-action sm-side-stepper" role="group" aria-label={`Cantidad de ${extra.nombre}`}>
+      <button aria-label={`Menos ${extra.nombre}`} disabled={sending} onClick={()=>changeExtra(extra.id,n-1)}><Icon name="minus"/></button>
+      <output aria-label={`Cantidad de ${extra.nombre}`}>{n}</output>{plus}
+    </div>
+  }
+  const sideCard = (extra:Dish) => { const deal = dealFor(extra); return <div className="sm-side" key={extra.id} data-selected={!!extras[extra.id]}>
+    <FoodPhoto dish={extra}/>
+    <div className="sm-side-info">
+      <h3>{extra.nombre}</h3>
+      <div className="sm-side-meta"><DishRating dish={extra}/><PrepTime dish={extra}/>{extra.atributos?.soloHoy&&<span className="sm-side-badge">Solo hoy</span>}{extra.agotado&&<span className="sm-side-badge">Agotado</span>}</div>
+      {deal&&<span className="sm-food-deal"><em>-{deal.porcentaje}%</em><s aria-label={`Antes ${money(deal.antes)}`}>{money(deal.antes)}</s></span>}
+      <div className="sm-side-bottom"><strong>{money(extra.precio)}</strong>{sideAction(extra)}</div>
+    </div>
+  </div> }
   const purchaseTotal = dish.precio*qty + additions.reduce((sum,d)=>sum+d.precio*(extras[d.id]||0),0)
   return (
     <>
@@ -570,7 +590,7 @@ export function SmartDish({ entry, id, onClose, actionTarget }: SmartProps & {on
             </div>
           )}
           {!!toppings.length && <section className="sm-dish-toppings"><h2>Añade adicionales</h2><div>{toppings.map(extra=><div className="sm-topping" key={extra.id} data-selected={!!extras[extra.id]}><label><input type="checkbox" checked={!!extras[extra.id]} disabled={extra.agotado||sending||(atExtraLimit&&!extras[extra.id])} onChange={e=>changeExtra(extra.id,e.target.checked?1:0)}/><span>{extra.nombre}{extra.agotado&&<small>Agotado</small>}</span><strong>{money(extra.precio)}</strong></label>{!!extras[extra.id]&&counter(extra)}</div>)}</div></section>}
-          {!!sides.length && <section className="sm-dish-sides"><h2>{attrs?.acompanamientos ? 'Acompañamientos recomendados' : 'También te puede gustar'}</h2><div>{sides.map(extra=><div className="sm-side" key={extra.id}><FoodPhoto dish={extra}/><div className="sm-side-info"><h3>{extra.nombre}</h3><DishRating dish={extra} reviews/>{extra.descripcion&&<p>{extra.descripcion}</p>}<strong>{money(extra.precio)}</strong>{extra.agotado&&<small>Agotado</small>}</div>{counter(extra)}</div>)}</div></section>}
+          {!!sides.length && <section className="sm-dish-sides"><h2>{attrs?.acompanamientos ? 'Acompañamientos recomendados' : 'También te puede gustar'}</h2><div>{sides.map(sideCard)}</div></section>}
           {atExtraLimit&&<p className="sm-footnote">Puedes elegir hasta 19 adicionales y acompañamientos distintos por plato.</p>}
           <div className={`sm-dish-purchase ${added ? 'is-added' : ''}${actionTarget ? ' is-inline' : ''}`}>
           {!actionTarget && <div className="sm-quantity-row">
