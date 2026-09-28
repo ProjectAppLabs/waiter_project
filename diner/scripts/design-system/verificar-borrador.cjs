@@ -141,7 +141,7 @@ function imageCheck() {
 
 // Se ejecuta dentro de la página: reglas de maquetación de las pantallas, que son del código y no del tema (el MCP no las
 // cambia), para que ninguna regresión pase sin verse. Espacio vacío al final, contenido cortado por el borde, muelle en una
-// fila, adornos fijos visibles sin sentido y nutrición en una fila.
+// fila, adornos fijos visibles sin sentido, nutrición en una fila y el pedido como una sola tarjeta en texto.
 function layoutCheck() {
   const problems = []
   const visible = (el) => { const r = el.getBoundingClientRect(), cs = getComputedStyle(el); return r.width > 2 && r.height > 2 && cs.visibility !== 'hidden' && cs.display !== 'none' && Number(cs.opacity) > 0.05 }
@@ -200,6 +200,12 @@ function layoutCheck() {
   }
   // 5. Nutrición en una fila.
   const nutrition = [...document.querySelectorAll('.smart-menu .sm-nutrition > div')].filter(visible)
+  // El pedido es una sola tarjeta: lo pedido va en texto dentro del resumen; la foto solo si una plantilla propia la usa.
+  for (const line of document.querySelectorAll('.sm-cart-line')) {
+    const plato = line.querySelector('h2')?.textContent.trim().slice(0, 30) || 'plato'
+    if (!line.closest('.sm-summary')) problems.push(`pedido: «${plato}» va en una tarjeta aparte; lo pedido debe ir dentro del resumen`)
+    if (line.getAttribute('data-plantilla') !== 'propia' && [...line.querySelectorAll('.sm-food-photo')].some(visible)) problems.push(`pedido: «${plato}» lleva foto; en el resumen lo pedido va en texto`)
+  }
   if (nutrition.length > 1 && new Set(nutrition.map((el) => Math.round(el.getBoundingClientRect().top))).size > 1) problems.push('maquetación: la información nutricional no cabe en una fila')
   return [...new Set(problems)]
 }

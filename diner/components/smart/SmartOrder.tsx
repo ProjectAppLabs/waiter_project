@@ -77,19 +77,20 @@ export function SmartCart({ actionTarget }: { actionTarget?: HTMLElement | null 
       </dialog>
       {cart.lineas.length ? (
         <div className="sm-checkout-layout">
-          <section className="sm-cart-lines">
-            {cart.lineas.map((line) => {
-              const dish = dishes.find((d) => d.id === line.producto_id)
-              return (
-                <CartLineItem key={line.id} line={line} dish={dish} swiped={swiped===line.id} onSwipe={(id)=>setSwiped(id)} busy={busy||sending} setQty={setQty} remove={remove} />
-              )
-            })}
-            <Link href={href('carta')} className="sm-secondary">
-              <Icon name="plus" />
-              Agregar algo más
-            </Link>
-          </section>
-          <OrderSummary cart={cart} confirmar={actionTarget ? createPortal(confirmAction, actionTarget) : confirmAction}
+          <OrderSummary cart={cart}
+            lineas={<section className="sm-cart-lines" aria-label="Lo que pediste">
+              {cart.lineas.map((line) => {
+                const dish = dishes.find((d) => d.id === line.producto_id)
+                return (
+                  <CartLineItem key={line.id} line={line} dish={dish} swiped={swiped===line.id} onSwipe={(id)=>setSwiped(id)} busy={busy||sending} setQty={setQty} remove={remove} />
+                )
+              })}
+              <Link href={href('carta')} className="sm-text-button sm-cart-more">
+                <Icon name="plus" />
+                Agregar algo más
+              </Link>
+            </section>}
+            confirmar={actionTarget ? createPortal(confirmAction, actionTarget) : confirmAction}
             pago={<button className="sm-text-button" disabled={busy || sending} onClick={() => go('pago')}>Ver opciones de pago</button>} />
         </div>
       ) : (
@@ -356,8 +357,9 @@ export function CartLineItem({ line, dish, swiped, onSwipe, busy, setQty, remove
   const pointer = useRef<{x:number;y:number}|null>(null)
   const controles = <div className="sm-line-controls">{line.mio ? (<><div className="sm-stepper"><button disabled={busy || line.cantidad <= 1} aria-label={`Menos ${line.nombre}`} onClick={() => void setQty(line.id, line.cantidad - 1)}><Icon name="minus" /></button><output>{line.cantidad}</output><button disabled={busy || line.cantidad >= 99} aria-label={`Más ${line.nombre}`} onClick={() => void setQty(line.id, line.cantidad + 1)}><Icon name="plus" /></button></div><button disabled={busy} className="sm-text-button" aria-label={`Eliminar ${line.nombre}`} onClick={() => void remove(line.id)}>Eliminar</button></>) : (<span>{line.cantidad} unidades</span>)}</div>
   const foto = dish ? <FoodPhoto dish={dish} /> : null
-  const info = <div className="sm-cart-line-info"><h2>{line.nombre}</h2><p>{line.mio ? 'Para ti' : `Comensal ${line.comensal.slice(0, 6)}`}{line.nota && ` · ${line.nota}`}</p><strong>{money(line.subtotal)}</strong>{controles}</div>
-  const factory = <>{foto}{info}</>
+  const info = <div className="sm-cart-line-info"><h2><span className="sm-cart-line-qty">{line.cantidad}×</span> {line.nombre}</h2><strong>{money(line.subtotal)}</strong><p>{line.mio ? 'Para ti' : `Comensal ${line.comensal.slice(0, 6)}`}{line.nota && ` · ${line.nota}`}</p>{controles}</div>
+  // En el resumen lo pedido va en texto: la foto solo aparece si una plantilla usa su ranura.
+  const factory = info
   return (
     <article className="sm-cart-line" data-swiped={swiped} {...marker} onPointerDown={e=>{if(line.mio && !(e.target as HTMLElement).closest('button'))pointer.current={x:e.clientX,y:e.clientY}}} onPointerCancel={()=>{pointer.current=null}} onPointerUp={e=>{if(pointer.current){const dx=e.clientX-pointer.current.x,dy=e.clientY-pointer.current.y;if(Math.abs(dy)<40 && Math.abs(dx)>60)onSwipe(dx<0?line.id:null);pointer.current=null}}}>
       {swiped && <button className="sm-swipe-delete" aria-label={`Confirmar eliminación de ${line.nombre}`} disabled={busy} onClick={()=>void remove(line.id)}><Icon name="close"/>Eliminar</button>}
@@ -394,8 +396,9 @@ export function orderSummaryTemplateData(cart: Cart) {
     'pedido.descuento.monto': monto, 'pedido.total': Math.max(0, cart.total - monto) }
 }
 
-// Plan K, paquete D: la tarjeta de totales del pedido. El cupón, confirmar y el enlace al pago son del código.
-export function OrderSummary({ cart, confirmar, pago }: { cart: Cart; confirmar: ReactNode; pago: ReactNode }) {
+// Plan K, paquete D: la única tarjeta del pedido. Lo pedido va dentro, en texto (ranura «lineas»), antes del cupón y los
+// totales. Las líneas, el cupón, confirmar y el enlace al pago son del código.
+export function OrderSummary({ cart, lineas, confirmar, pago }: { cart: Cart; lineas: ReactNode; confirmar: ReactNode; pago: ReactNode }) {
   const { arbol, marker } = usePlantilla('resumen')
   const cupon = <CouponField />
   const titulo = <h2>Resumen del pedido</h2>
@@ -406,8 +409,8 @@ export function OrderSummary({ cart, confirmar, pago }: { cart: Cart; confirmar:
   </>
   const total = <div className="sm-total"><span>Total estimado</span><strong>{money(Math.max(0, cart.total - (cart.descuento?.monto ?? 0)))}</strong></div>
   const nota = <p>Revisaremos disponibilidad y precios al confirmar. Los pedidos de tu mesa se enviarán juntos después de pagar.</p>
-  const factory = <>{cupon}{titulo}{filas}{total}{nota}{confirmar}{pago}</>
+  const factory = <>{titulo}{lineas}{cupon}{filas}{total}{nota}{confirmar}{pago}</>
   return <aside className="sm-summary" {...marker}>
-    {arbol ? <Plantilla arbol={arbol} datos={orderSummaryTemplateData(cart)} ranuras={{ cupon, titulo, filas, total, nota, confirmar, pago }} fallback={factory} /> : factory}
+    {arbol ? <Plantilla arbol={arbol} datos={orderSummaryTemplateData(cart)} ranuras={{ cupon, titulo, lineas, filas, total, nota, confirmar, pago }} fallback={factory} /> : factory}
   </aside>
 }

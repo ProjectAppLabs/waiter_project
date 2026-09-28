@@ -136,10 +136,9 @@
   [data-ds-ficha="dividida"] .smart-menu .sm-dish-hero { position: sticky; top: 24px; padding-top: 0; }
 }
 
-[data-ds-carrito="compacta"] .smart-menu .sm-cart-lines { gap: 0; }
-[data-ds-carrito="compacta"] .smart-menu .sm-cart-line { min-height: 0; padding: var(--ds-espacio-12); gap: var(--ds-espacio-12); border-radius: 0; border-bottom: 1px solid var(--sm-border); background: var(--t-fondo); }
-[data-ds-carrito="compacta"] .smart-menu .sm-cart-line > .sm-food-photo { width: 64px; height: 64px; flex: 0 0 64px; }
-[data-ds-carrito="compacta"] .smart-menu .sm-line-controls { flex-wrap: wrap; }
+/* Lo pedido va en texto dentro del resumen; la variante compacta solo aprieta las filas. */
+[data-ds-carrito="compacta"] .smart-menu .sm-summary .sm-cart-line { padding: var(--ds-espacio-6) 0; }
+[data-ds-carrito="compacta"] .smart-menu .sm-summary .sm-line-controls { margin-top: 0; flex-wrap: wrap; }
 
 /* El recorte elegido prevalece sobre la distribución; circular prevalece sobre 4:3. */
 [data-ds-imagen="cuadrada"] .smart-menu .sm-food-photo { height: auto !important; min-height: 0 !important; aspect-ratio: 1 !important; }

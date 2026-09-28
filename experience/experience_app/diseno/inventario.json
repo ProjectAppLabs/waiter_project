@@ -965,12 +965,12 @@
       "opciones": [
         {
           "valor": "tarjetas",
-          "descripcion": "Tarjetas separadas, como en J2.",
+          "descripcion": "Lo pedido en texto dentro del resumen, con aire entre líneas.",
           "selector": ".sm-cart-lines"
         },
         {
           "valor": "compacta",
-          "descripcion": "Filas con separadores y fotografías pequeñas; mantiene cantidades, notas y acciones.",
+          "descripcion": "Lo pedido en texto dentro del resumen, en filas más densas; mantiene cantidades, notas y acciones.",
           "selector": "[data-ds-carrito=\"compacta\"]"
         }
       ]
