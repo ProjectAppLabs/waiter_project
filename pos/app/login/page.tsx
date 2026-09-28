@@ -56,14 +56,17 @@ export default function LoginPage() {
   const [codeState, setCodeState] = useState<'idle' | 'sent' | 'invalid' | 'mismatch'>('idle')
 
   useEffect(() => { void hydrate() }, [hydrate])
-  // Plan O: la cuenta opera varios restaurantes y este dispositivo aún no tiene uno: se pregunta antes del PIN.
-  const mustPick = !!user && !restaurant && (restaurants?.length ?? 0) > 1
+  // Plan O: la cuenta opera varios restaurantes y este dispositivo aún no tiene uno: se pregunta antes del PIN. El dueño
+  // puede ir en cambio a la consola: marca su PIN (lo pide Odoo para guardar) y entra sin elegir restaurante.
+  const [consoleIntent, setConsoleIntent] = useState(false)
+  const mustPick = !!user && !restaurant && !consoleIntent && (restaurants?.length ?? 0) > 1
   useEffect(() => {
     if (!user || mustPick) return
     let alive = true
-    listPosEmployees(restaurant?.id ?? session?.configId ?? null).then((list) => { if (alive) setEmployees(list) }).catch(() => { if (alive) setEmployees([]) })
+    listPosEmployees(consoleIntent ? null : restaurant?.id ?? session?.configId ?? null)
+      .then((list) => { if (alive) setEmployees(consoleIntent ? list.filter((e) => e.role === 'owner') : list) }).catch(() => { if (alive) setEmployees([]) })
     return () => { alive = false }
-  }, [user, session, restaurant, mustPick])
+  }, [user, session, restaurant, mustPick, consoleIntent])
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -94,7 +97,7 @@ export default function LoginPage() {
       return result.attemptsLeft > 0 ? t('employee.wrongPinLeft', { left: result.attemptsLeft }) : t('employee.wrongPin')
     }
     await startShift(result.employee, result.attendanceId, result.token)
-    router.push(homePath(effectiveRole(user?.role, result.employee.role), session !== null))
+    router.push(consoleIntent && isOwner(user?.role, result.employee.role) ? '/organizacion' : homePath(effectiveRole(user?.role, result.employee.role), session !== null))
     return null
   }
 
@@ -104,7 +107,7 @@ export default function LoginPage() {
     return (
       <LoginFrame>
         <RestaurantPicker restaurants={restaurants ?? []} owner={isOwner(user.role, null)}
-          onPick={(r) => { setEmployees(null); void chooseRestaurant({ id: r.id, name: r.name }) }} onConsole={() => router.push('/organizacion')} />
+          onPick={(r) => { setEmployees(null); void chooseRestaurant({ id: r.id, name: r.name }) }} onConsole={() => { setEmployees(null); setConsoleIntent(true) }} />
       </LoginFrame>
     )
   }

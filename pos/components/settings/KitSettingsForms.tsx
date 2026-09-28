@@ -76,7 +76,8 @@ export function TaxesList({ taxes }: { taxes: TaxInfo[] }) {
 }
 
 // `employees`: quienes inician turno con PIN (hr.employee); el rol de ellos es el que aplica la tabla de permisos.
-export function UsersForm({ users, employees = [], onChanged }: { users: UserInfo[]; employees?: PosEmployee[]; onChanged: () => Promise<void> }) {
+// `readOnly`: el equipo de un restaurante dentro de su POS (plan O); invitar y asignar se hace en la consola del dueño.
+export function UsersForm({ users, employees = [], onChanged, readOnly = false }: { users: UserInfo[]; employees?: PosEmployee[]; onChanged: () => Promise<void>; readOnly?: boolean }) {
   const t = useTranslations('admin.settings.users')
   const roles = useTranslations('pos.nav.roles')
   const [u, setU] = useState<{ name: string; email: string; role: Role }>({ name: '', email: '', role: 'waiter' })
@@ -95,7 +96,7 @@ export function UsersForm({ users, employees = [], onChanged }: { users: UserInf
               <span className="ml-auto"><StatusPill tone="neutral">{x.role ? roles(x.role) : t('accountRole')}</StatusPill></span>
             </div>
           ))}
-          <p className="text-[15px] font-semibold text-ink">{t('withEmail')}</p>
+          {!readOnly && <p className="text-[15px] font-semibold text-ink">{t('withEmail')}</p>}
         </>}
         {users.map((x) => (
           <div key={x.id} className="flex items-center gap-3 rounded-md bg-muted p-3 text-[15px]">
@@ -111,15 +112,17 @@ export function UsersForm({ users, employees = [], onChanged }: { users: UserInf
           </div>
         ))}
       </section>
-      <section aria-label={t('invite')} className={box}>
-        <p className="text-[15px] font-semibold text-ink">{t('invite')}</p>
-        <div className="grid grid-cols-3 gap-4">
-          <TextInput label={t('name')} value={u.name} onChange={(e) => setU((v) => ({ ...v, name: e.target.value }))} />
-          <TextInput label={t('email')} type="email" value={u.email} onChange={(e) => setU((v) => ({ ...v, email: e.target.value }))} hint={t('emailHint')} />
-          <Select label={t('role')} hint={t('roleHint')} value={u.role} onChange={(e) => setU((v) => ({ ...v, role: e.target.value as Role }))}>{ROLES.map((r) => <option key={r} value={r}>{roles(r)}</option>)}</Select>
-        </div>
-        <SaveBar state={state} onSave={() => save(async () => { await inviteUser(u); setU({ name: '', email: '', role: 'waiter' }); await onChanged() })} disabled={!u.name.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(u.email)} />
-      </section>
+      {!readOnly && (
+        <section aria-label={t('invite')} className={box}>
+          <p className="text-[15px] font-semibold text-ink">{t('invite')}</p>
+          <div className="grid grid-cols-3 gap-4">
+            <TextInput label={t('name')} value={u.name} onChange={(e) => setU((v) => ({ ...v, name: e.target.value }))} />
+            <TextInput label={t('email')} type="email" value={u.email} onChange={(e) => setU((v) => ({ ...v, email: e.target.value }))} hint={t('emailHint')} />
+            <Select label={t('role')} hint={t('roleHint')} value={u.role} onChange={(e) => setU((v) => ({ ...v, role: e.target.value as Role }))}>{ROLES.map((r) => <option key={r} value={r}>{roles(r)}</option>)}</Select>
+          </div>
+          <SaveBar state={state} onSave={() => save(async () => { await inviteUser(u); setU({ name: '', email: '', role: 'waiter' }); await onChanged() })} disabled={!u.name.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(u.email)} />
+        </section>
+      )}
     </div>
   )
 }

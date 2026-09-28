@@ -360,7 +360,7 @@
       "list": "Tu equipo",
       "listHint": "El rol de cada persona decide qué ve y qué puede hacer; ajusta cada rol más abajo.",
       "withPin": "Con PIN en el POS",
-      "withPinHint": "Quienes inician turno con su PIN. Su rol decide qué ven; hoy se crean y cambian desde Odoo.",
+      "withPinHint": "Quienes inician turno con su PIN en este restaurante. El dueño asigna el equipo y los permisos desde su consola.",
       "withEmail": "Con cuenta de correo",
       "noShift": "Sin horario",
       "accountRole": "Rol de su cuenta",

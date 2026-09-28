@@ -21,3 +21,12 @@ export function pickRestaurant<T extends { id: number }>(available: T[], stored:
   if (remembered) return remembered
   return available.length === 1 ? available[0] : null
 }
+
+// Cuántos restaurantes le tocan a cada rol: mesero y cajero, exactamente uno (el suyo); el encargado, uno o varios; el
+// dueño, todos (no se asignan).
+export type RestaurantRule = 'one' | 'many' | 'all'
+export const restaurantRule = (role: string | null): RestaurantRule => (role === 'owner' ? 'all' : role === 'admin' ? 'many' : 'one')
+export const validAssignment = (role: string | null, configIds: number[]) => {
+  const rule = restaurantRule(role)
+  return rule === 'all' || (rule === 'one' ? configIds.length === 1 : configIds.length >= 1)
+}

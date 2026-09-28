@@ -94,10 +94,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
   refreshSession: async () => set({ session: await getOpenSession(get().restaurant?.id ?? null) }),
-  // Cambiar de restaurante suelta al empleado: su PIN y su turno son de un restaurante.
+  // Cambiar de restaurante suelta al empleado: su PIN y su turno son de un restaurante. El dueño no, porque opera todos.
   chooseRestaurant: async (restaurant) => {
     storeDeviceRestaurant(restaurant)
-    if (restaurant?.id !== get().restaurant?.id) { storeEmployee(null); set({ employee: null }) }
+    if (restaurant?.id !== get().restaurant?.id && get().employee?.role !== 'owner') { storeEmployee(null); set({ employee: null }) }
     set({ restaurant, session: restaurant ? await getOpenSession(restaurant.id) : null })
   },
   openRegister: async (configId, cash, notes) => set({ session: await openRegisterRequest(configId, cash, notes) }),

@@ -11,6 +11,8 @@ import { TAB_ROUTES, adminSubtabsFor, tabsFor, type AdminSubtab, type KitTab } f
 import type { RolePolicy } from '@/lib/domain/permissions'
 import { homePath } from '@/lib/domain/navigation'
 import type { Role } from '@/lib/domain/roles'
+import { useIdentity } from '@/lib/hooks/useIdentity'
+import { useAuthStore } from '@/lib/stores/authStore'
 import { useNotificationStore } from '@/lib/stores/notificationStore'
 import { cn, initials } from '@/lib/utils'
 
@@ -38,6 +40,9 @@ export function TopBar({ active, role, policy, userName, unread, activeSubtab, o
     return () => ro.disconnect()
   }, [active, role, administrationOnly, policy])
   const tr = useTranslations('pos.nav.roles')
+  const { owner } = useIdentity()
+  const restaurant = useAuthStore((s) => s.restaurant)
+  const restaurants = useAuthStore((s) => s.restaurants)
   const tabs = tabsFor(role, policy).filter((tab) => !administrationOnly || !['orders', 'kitchen'].includes(tab))
   const subtabs = adminSubtabsFor(role, policy)
   return (
@@ -61,6 +66,9 @@ export function TopBar({ active, role, policy, userName, unread, activeSubtab, o
           </Link>
         </>}
         <div className="ml-auto shrink-0 flex items-center gap-3 relative">
+          {/* Plan O: con varios restaurantes se dice en cuál se está; el dueño vuelve desde aquí a su consola. */}
+          {(restaurants?.length ?? 0) > 1 && restaurant && <span className="hidden min-[1300px]:inline-flex h-12 px-3 items-center gap-2 rounded-md border border-border text-[15px] font-semibold text-ink"><Icon name="store" size={18} />{restaurant.name}</span>}
+          {owner && <Link href="/organizacion" aria-label="Consola de la organización" className="h-12 px-3 flex items-center gap-2 rounded-md border border-primary/40 text-primary text-[15px] font-semibold"><Icon name="layout" size={20} /><span className="hidden min-[1400px]:inline">Organización</span></Link>}
           <button type="button" aria-label={t('bell', { count })} aria-expanded={bell} onClick={() => setBell((v) => !v)} className={cn('relative w-12 h-12 rounded-md border border-border grid place-items-center', bell ? 'text-primary border-primary/40' : 'text-soft')}>
             <Icon name="bell" size={22} />
             {count > 0 && <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 rounded-full bg-danger border-2 border-surface" />}

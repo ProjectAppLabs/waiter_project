@@ -1,0 +1,68 @@
+'use client'
+
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
+import { useCallback, useEffect, useState } from 'react'
+
+import { AuroraBackground } from '@/components/kit/Aurora'
+import { Icon, type KitIcon } from '@/components/kit/Icon'
+import { OrgContext } from '@/components/organization/OrgContext'
+import { Button } from '@/components/ui/Button'
+import { isOwner } from '@/lib/domain/roles'
+import { listRestaurants, type Restaurant } from '@/lib/services/restaurants'
+import { getCompany } from '@/lib/services/settings'
+import { useAuthStore } from '@/lib/stores/authStore'
+import { cn } from '@/lib/utils'
+
+// Plan O: consola del dueño, fuera del POS. Todo lo de la organización (restaurantes, equipo, diseño del menú,
+// promociones, integraciones y empresa) y la puerta a cada POS. Solo entra el dueño, con su PIN ya marcado.
+const SECTIONS: [string, string, KitIcon][] = [
+  ['/organizacion', 'Restaurantes', 'store'], ['/organizacion/equipo', 'Equipo', 'users'], ['/organizacion/diseno', 'Diseño del menú', 'layout'],
+  ['/organizacion/promociones', 'Promociones', 'percentage'], ['/organizacion/integraciones', 'Integraciones IA', 'sparkles'], ['/organizacion/empresa', 'Empresa e impuestos', 'lock'],
+]
+
+export default function OrganizationLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const { user, employee, hydrated, hydrate, endShift } = useAuthStore()
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([])
+  const [companyName, setCompanyName] = useState('')
+  const owner = !!user && !!employee && isOwner(user.role, employee.role)
+  const reload = useCallback(async () => { setRestaurants(await listRestaurants()) }, [])
+
+  useEffect(() => { void hydrate() }, [hydrate])
+  useEffect(() => { if (hydrated && !owner) router.replace('/login') }, [hydrated, owner, router])
+  useEffect(() => {
+    if (!owner) return
+    let alive = true
+    listRestaurants().then((r) => { if (alive) setRestaurants(r) }).catch(() => { if (alive) setRestaurants([]) })
+    getCompany().then((c) => { if (alive) setCompanyName(c.name) }).catch(() => undefined)
+    return () => { alive = false }
+  }, [owner])
+
+  if (!hydrated || !owner) return null
+  return (
+    <OrgContext.Provider value={{ restaurants, reload, companyName }}>
+      <main className="pos-ambient min-h-screen flex text-ink">
+        <AuroraBackground />
+        <nav aria-label="Consola de la organización" className="relative w-[260px] shrink-0 border-r border-border bg-surface/80 p-4 flex flex-col gap-1">
+          <div className="px-3 pb-4">
+            <span className="text-[12px] font-bold uppercase tracking-widest text-primary">Organización</span>
+            <p className="mt-1 text-[18px] font-semibold truncate">{companyName || 'Tu organización'}</p>
+          </div>
+          {SECTIONS.map(([href, label, icon]) => (
+            <Link key={href} href={href} aria-current={pathname === href ? 'page' : undefined}
+              className={cn('flex items-center gap-3 h-12 px-3 rounded-md text-[15px] font-semibold', pathname === href ? 'bg-canvas border border-border text-ink' : 'text-soft hover:bg-muted')}>
+              <Icon name={icon} size={20} /><span>{label}</span>
+            </Link>
+          ))}
+          <div className="mt-auto flex flex-col gap-2 px-3 pt-4 text-[14px] text-soft">
+            <span className="truncate">{employee?.name}</span>
+            <Button size="compact" onClick={() => { void endShift().then(() => router.replace('/login')) }}>Cerrar sesión</Button>
+          </div>
+        </nav>
+        <div className="relative flex-1 min-w-0 overflow-y-auto p-8">{children}</div>
+      </main>
+    </OrgContext.Provider>
+  )
+}
