@@ -1809,3 +1809,8 @@
 .smart-menu .sm-summary .sm-line-controls > .sm-text-button { min-height: 44px; padding: 0; font-size: calc(14px * var(--ds-texto)); }
 .smart-menu .sm-summary .sm-cart-more { display: inline-flex; align-items: center; gap: var(--ds-espacio-6); align-self: flex-start; min-height: 44px; margin-bottom: calc(-1 * var(--ds-espacio-8)); padding: 0; font-weight: 700; color: var(--sm-highlight-text); }
 .smart-menu .sm-summary .sm-cart-more svg { width: 16px; height: 16px; }
+
+/* Modalidad del pedido: la regla general de 44 px de los botones pisaba la altura y el relleno, y los iconos quedaban
+   pegados al borde superior. */
+.smart-menu .sm-fulfillment-dialog .sm-fulfillment-option { min-height: 104px; padding: var(--ds-espacio-16) var(--ds-espacio-12); gap: var(--ds-espacio-10); }
+.smart-menu .sm-fulfillment-dialog .sm-fulfillment-option svg { width: 28px; height: 28px; }

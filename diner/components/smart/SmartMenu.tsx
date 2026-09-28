@@ -68,6 +68,7 @@ export type IconName =
   | 'close'
   | 'logout'
   | 'plate'
+  | 'cutlery'
 const paths: Record<IconName, ReactNode> = {
   star: <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9Z"/>,
   menu: (
@@ -127,6 +128,8 @@ const paths: Record<IconName, ReactNode> = {
       <path d="M2 3v18M22 3v18" />
     </>
   ),
+  // Tenedor y cuchillo: «Comer aquí» en la modalidad del pedido.
+  cutlery: <path d="M5 3v6a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2V3M7.5 3v18M19 15V3a4 4 0 0 0-4 4v6c0 1.1.9 2 2 2h2Zm0 0v6" />,
 }
 export function Icon({
   name,

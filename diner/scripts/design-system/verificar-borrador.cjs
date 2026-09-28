@@ -25,7 +25,19 @@ const PAGES = [
   { name: 'plato', path: 'plato/41', widths: [375, 1024], wait: '.sm-dish-hero', shot: '.smart-menu' },
   ...['favoritos', 'pedido', 'la-cuenta', 'historial', 'recompensas', 'ubicacion', 'cuenta', 'cuenta/entrar', 'cuenta/registro']
     .map((screen) => ({ name: screen, path: screen, widths: [375], wait: '.smart-menu .sm-page', shot: '.smart-menu' })),
+  // El pedido con platos y su diálogo de modalidad: sin sesión el pedido sale vacío, así que el carrito se simula en el
+  // navegador (nada se escribe). El MCP cambia colores y estilos de estas pantallas, no su estructura; se comprueban ambos.
+  { name: 'pedido con platos', path: 'pedido', widths: [375, 1024], wait: '.sm-cart-line', shot: '.smart-menu', cart: true },
+  { name: 'modalidad', path: 'pedido', widths: [375], wait: '.sm-cart-line', shot: 'dialog.sm-fulfillment-dialog', cart: true, open: 'modalidad' },
 ]
+
+// Carrito de muestra para «pedido con platos»: dos líneas propias (una con nota) y una de otra persona de la mesa.
+const SAMPLE_CART = { sesion: 'verificador', total: 133800, mio: 100900, por_comensal: [],
+  lineas: [
+    { id: 1, comensal: 'yo', mio: true, producto_id: 41, nombre: 'Hamburguesa Clásica', precio: 32000, cantidad: 2, nota: 'Sin cebolla', subtotal: 64000 },
+    { id: 2, comensal: 'yo', mio: true, producto_id: 40, nombre: 'Hamburguesa Angus', precio: 36900, cantidad: 1, nota: '', subtotal: 36900 },
+    { id: 3, comensal: 'a1b2c3d4', mio: false, producto_id: 43, nombre: 'Papas Trufadas', precio: 32900, cantidad: 1, nota: '', subtotal: 32900 },
+  ] }
 
 // Orígenes a los que la carta puede pedir recursos: el propio (incluidos los proxys /api y /experience) y Google Fonts.
 const ALLOWED_ORIGINS = new Set([new URL(base).origin, 'https://fonts.googleapis.com', 'https://fonts.gstatic.com'])
@@ -137,6 +149,37 @@ function imageCheck() {
     if (frame === 'sombra' && !shadow) problems.set(`s${where}`, `imágenes: ${where}: la foto no lleva la sombra del sistema de diseño`)
   }
   return [...problems.values()]
+}
+
+// Se ejecuta dentro de la página: estructura del diálogo «¿Dónde vas a disfrutarlo?». El tema puede cambiar sus colores y
+// estilos, pero siempre deben verse las dos modalidades con su icono en una fila, los dos campos, cerrar y continuar, y
+// todo dentro de la pantalla.
+function fulfillmentCheck() {
+  const problems = []
+  const dialog = document.querySelector('dialog.sm-fulfillment-dialog')
+  if (!dialog || !dialog.open) return ['modalidad: el diálogo «¿Dónde vas a disfrutarlo?» no se abrió']
+  const visible = (el) => { const r = el.getBoundingClientRect(), cs = getComputedStyle(el); return r.width > 2 && r.height > 2 && cs.visibility !== 'hidden' && cs.display !== 'none' && Number(cs.opacity) > 0.05 }
+  const options = [...dialog.querySelectorAll('.sm-fulfillment-option')].filter(visible)
+  const names = options.map((o) => o.textContent.trim())
+  if (names.join('|') !== 'Comer aquí|Para llevar') problems.push(`modalidad: se esperaban «Comer aquí» y «Para llevar»; se ven ${names.length ? names.map((n) => `«${n}»`).join(', ') : 'ninguna'}`)
+  for (const o of options) {
+    const icon = o.querySelector('svg')
+    if (!icon || !visible(icon)) problems.push(`modalidad: «${o.textContent.trim()}» no muestra su icono`)
+    const r = o.getBoundingClientRect()
+    if (icon && visible(icon)) { const ir = icon.getBoundingClientRect(); if (ir.top - r.top < 8 || r.bottom - ir.bottom < 8) problems.push(`modalidad: el icono de «${o.textContent.trim()}» queda pegado al borde de la opción`) }
+    if (r.width < 44 || r.height < 44) problems.push(`modalidad: «${o.textContent.trim()}» mide ${Math.round(r.width)}×${Math.round(r.height)} px (mínimo 44×44)`)
+  }
+  if (options.length === 2 && Math.abs(options[0].getBoundingClientRect().top - options[1].getBoundingClientRect().top) > 4) problems.push('modalidad: las dos opciones no comparten fila')
+  if (options.filter((o) => o.getAttribute('aria-pressed') === 'true').length !== 1) problems.push('modalidad: debe haber exactamente una modalidad elegida')
+  const fields = [...dialog.querySelectorAll('.sm-field textarea')].filter(visible)
+  if (fields.length !== 2) problems.push(`modalidad: se esperaban los campos de notas y de alergias; se ven ${fields.length}`)
+  if (![...dialog.querySelectorAll('button.sm-icon')].some(visible)) problems.push('modalidad: falta el botón de cerrar')
+  const go = [...dialog.querySelectorAll('.sm-primary')].filter(visible)
+  if (go.length !== 1 || !/Continuar al pago/.test(go[0].textContent)) problems.push('modalidad: falta «Continuar al pago»')
+  const box = dialog.getBoundingClientRect()
+  if (box.left < -1 || box.right > innerWidth + 1) problems.push('modalidad: el diálogo se sale de la pantalla a lo ancho')
+  if (box.height > innerHeight + 1 && dialog.scrollHeight <= dialog.clientHeight + 1) problems.push('modalidad: el diálogo es más alto que la pantalla y no se desplaza')
+  return problems
 }
 
 // Se ejecuta dentro de la página: reglas de maquetación de las pantallas, que son del código y no del tema (el MCP no las
@@ -320,12 +363,19 @@ async function main() {
         const url = request.url()
         if (/^https?:/.test(url) && !ALLOWED_ORIGINS.has(new URL(url).origin)) foreign.add(new URL(url).origin)
       })
+      if (spec.cart) await page.route(/\/api\/v1\/sesiones\/[^/]+\/carrito\/(\?.*)?$/, (route) => route.request().method() === 'GET'
+        ? route.fulfill({ contentType: 'application/json', body: JSON.stringify(SAMPLE_CART) }) : route.continue())
       await page.goto(`${base}/${encodeURIComponent(rest)}/${encodeURIComponent(venue)}/${spec.path}/${token ? `?borrador=${encodeURIComponent(token)}` : ''}`, { waitUntil: 'networkidle', timeout: 120000 })
       await page.locator(spec.wait).first().waitFor({ timeout: 60000 })
       // Un teléfono no reserva sitio para la barra de desplazamiento; el Edge de Windows sí (15 px). Se oculta para medir el ancho real.
       await page.addStyleTag({ content: 'html { scrollbar-width: none } ::-webkit-scrollbar { display: none }' })
       await page.evaluate(() => document.fonts.ready)
       await page.waitForTimeout(600)
+      if (spec.open === 'modalidad') {
+        await page.locator('.sm-cart-submit .sm-primary').first().click()
+        await page.locator('dialog.sm-fulfillment-dialog[open]').waitFor({ timeout: 15000 })
+        await page.waitForTimeout(400)
+      }
       const measured = await page.evaluate(measureRoots)
       if (errors.length) measured.problemas.push(...errors.map((e) => `error de JavaScript: ${e}`))
       // Con borrador la página no debe escribir nada; lo publicado sí abre la sesión de mesa (POST /sesiones), que es lo normal.
@@ -334,6 +384,7 @@ async function main() {
       measured.problemas.push(...await page.evaluate(contrastCheck))
       measured.problemas.push(...await page.evaluate(imageCheck))
       if (spec.name !== 'sistema') measured.problemas.push(...await page.evaluate(layoutCheck))
+      if (spec.open === 'modalidad') measured.problemas.push(...await page.evaluate(fulfillmentCheck))
       // Plan M: toda foto de plato llega optimizada (WebP) y ligera (menos de 400 KB), la principal y las de galería.
       const photos = await page.evaluate(() => [...new Set([...document.querySelectorAll('.smart-menu img')].map((i) => i.currentSrc || i.src).filter((u) => /\/fotos\/\d+/.test(u)))].slice(0, 12))
       for (const url of photos) {
