@@ -10,6 +10,7 @@ from . import users
 from . import floor_plan
 
 from . import menu_benefits
+from . import benefit_actions
 from . import channel_orders
 from . import gateway_payments
 

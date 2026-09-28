@@ -335,8 +335,10 @@ def save_verified(restaurant: str, venue: str, body: dict) -> VenueMenuSettings:
 # Plan K4: las decoraciones de la sede solo existen para su propia sede. Estas envolturas fijan la sede en contexto
 # para que el validador de plantillas (diseno/plantillas.py) las reconozca al resolver, leer y preparar el tema.
 def resolve_template(tenant: Tenant) -> dict:
+    from experience_app.services import rewards
+    actions = rewards.actions(tenant)
     with component_templates.for_venue(tenant.restaurant_slug, tenant.venue_slug):
-        return _resolve_template_sin_sede(tenant)
+        return {**_resolve_template_sin_sede(tenant), 'acciones': actions}
 
 
 def settings_view(restaurant: str, venue: str) -> dict:

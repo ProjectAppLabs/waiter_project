@@ -14,7 +14,7 @@ from experience_app.adapters.odoo import pos
 from experience_app.adapters.odoo.client import OdooClient, OdooError
 from experience_app.adapters.registry.client import resolve
 from experience_app.models import CartLine, Diner, DinerAccount, Order, TableSession, SignupDiscountClaim
-from experience_app.services import benefits, discount
+from experience_app.services import benefits, discount, rewards
 from experience_app.services.sessions import PAID_STATES, close_paid, open_lines
 from experience_app.utils.errors import ConfirmationBusy, NothingToConfirm, SessionAlreadyPaid
 
@@ -98,6 +98,8 @@ def _confirm(session: TableSession, diner: Diner | None = None, takeaway: bool |
     if not new_lines and (order is None or order.state not in (Order.SENT, Order.CHECKOUT)):
         raise NothingToConfirm()
     tenant = resolve(session.restaurant_slug, session.venue_slug, session.table_token)
+    if diner is not None and diner.account_id:
+        rewards.sync(tenant, diner.account)
     client = OdooClient(tenant.odoo)
     # También se verifica al pagar sin líneas nuevas: el POS puede haber cobrado entretanto.
     if order is not None and order.state in (Order.SENT, Order.CHECKOUT) and order.odoo_order_id:
@@ -116,6 +118,7 @@ def _confirm(session: TableSession, diner: Diner | None = None, takeaway: bool |
         new_lines = list(open_lines(session).filter(order=order))
         benefits.reserve(tenant, new_lines)
         _first_purchase_discount(tenant, diner, new_lines, order)
+        rewards.reserve(tenant, diner, new_lines, order)
     all_lines = list(session.lines.filter(status=CartLine.CONFIRMED).order_by('created_at')) + new_lines
     try:
         pos_session_id = pos.ensure_open_session(client, tenant.odoo.pos_config_id)
@@ -144,6 +147,7 @@ def _confirm(session: TableSession, diner: Diner | None = None, takeaway: bool |
         session.lines.filter(id__in=[line.id for line in new_lines]).update(status=CartLine.CONFIRMED, order=order)
         if not order.requires_payment:
             DinerAccount.objects.filter(discount_order=order, discount_used_at=None).update(discount_used_at=timezone.now())
+            rewards.use_reserved(order)
         session.state = TableSession.CONFIRMED
         session.save(update_fields=['state'])
     return order, True
@@ -165,6 +169,7 @@ def status_view(order: Order) -> dict:
             return {**base, 'estado': 'pendiente_pago' if status.kitchen == 'none' else STATUS_BY_KITCHEN[status.kitchen]}
         Order.objects.filter(id=order.id, state=Order.CHECKOUT).update(state=Order.SENT, sent_at=timezone.now())
         DinerAccount.objects.filter(discount_order=order, discount_used_at=None).update(discount_used_at=timezone.now())
+        rewards.use_reserved(order)
         if status.kitchen != 'served':
             return {**base, 'estado': STATUS_BY_KITCHEN[status.kitchen]}
     if status.state in PAID_STATES:

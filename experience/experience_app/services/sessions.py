@@ -8,7 +8,7 @@ from experience_app.adapters.odoo.client import OdooClient, OdooError
 from experience_app.adapters.odoo.pos import Product
 from experience_app.adapters.registry.client import Tenant
 from experience_app.models import CartLine, Diner, Order, TableSession
-from experience_app.services import discount
+from experience_app.services import discount, rewards
 from experience_app.utils.errors import ConfirmationBusy, NotOwner
 
 PAID_STATES = {'paid', 'done', 'invoiced'}
@@ -97,6 +97,7 @@ def open_lines(session: TableSession):
 def cart_view(session: TableSession, diner: Diner, discount_percent: float = discount.DEFAULT_PERCENT) -> dict:
     """Lo abierto (aún sin confirmar), a precio de lista con impuestos. `descuento` es lo que el comensal descontará al
     confirmar si tiene cuenta verificada con el descuento sin usar; los totales no lo restan porque todavía no se aplicó."""
+    rewards.sync_for_diner(diner)
     lines = list(open_lines(session))
     per_diner: dict[str, Decimal] = {}
     for line in lines:
@@ -129,6 +130,7 @@ def table_call(tenant: Tenant, session: TableSession, kind: str) -> bool:
 def bill_summary(session: TableSession, diner: Diner, discount_percent: float = discount.DEFAULT_PERCENT, include_open: bool = False) -> dict:
     """Todo / lo mío / dividir sobre lo ya confirmado (lo abierto aún no es cuenta). Los totales son netos: ya restan el
     descuento que viajó a Odoo con cada línea; `descuento` dice cuánto fue (aplicado) y si aún puede aplicarse (aplicable)."""
+    rewards.sync_for_diner(diner)
     lines = list(session.lines.filter(status__in=[CartLine.CONFIRMED, CartLine.OPEN] if include_open else [CartLine.CONFIRMED]).select_related('diner'))
     per: dict[str, Decimal] = {}
     for line in lines:
@@ -141,4 +143,4 @@ def bill_summary(session: TableSession, diner: Diner, discount_percent: float = 
     diners = max(1, session.diners.count())
     return {'total': float(total), 'mio': float(per.get(str(diner.id), Decimal(0))),
             'porComensal': [{'comensal': k, 'total': float(v)} for k, v in per.items()], 'partes': diners, 'porParte': float(round(total / diners)) if total else 0.0,
-            'descuento': discount.view(lines, diner, discount_percent)}
+            'descuento': discount_view}

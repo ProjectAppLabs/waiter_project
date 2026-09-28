@@ -58,6 +58,11 @@ def view(lines: list[CartLine], diner: Diner, percent: float) -> dict:
                 'aplicado': applied > 0, 'registrado': bool(diner.account_id), 'error': error}
     projected = Decimal(0)
     can_apply = percent > 0 and applicable(diner)
+    if not can_apply:
+        from experience_app.services import rewards
+        reward_view = rewards.discount_view(lines, diner)
+        if reward_view is not None:
+            return reward_view
     if can_apply:
         pending = sum((line.subtotal for line in mine if line.status == CartLine.OPEN and not line.discount), Decimal(0))
         projected = (pending * Decimal(str(percent)) / 100).quantize(Decimal('0.01'))

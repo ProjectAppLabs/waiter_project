@@ -3,7 +3,7 @@
     "summary": "Campos sin interfaz para el backoffice propio: quién originó cada pedido, umbrales de alerta, supuestos del ROI, "
                "marca del restaurante, origen de cada foto y los datos que el kit CloudPos necesita (silla de bebé, prefijo y "
                "número del pedido, PIN de empleado con bloqueo, turno, preferencias de notificación, presets y fidelización).",
-    "version": "19.0.2.3.0",
+    "version": "19.0.2.4.0",
     "license": "LGPL-3",
     "author": "ProjectApp",
     "category": "Point of Sale",

@@ -137,3 +137,128 @@ class TestMenuBenefits(CommonPosTest):
         order.recompute_prices()
         self._pay(order)
         self.assertEqual(card.points, 2.5)
+
+    def _action(self, action='opinion', **overrides):
+        values = {'action': action, 'active': True, 'reward': 'descuento', 'percent': 12, 'couponId': None, 'points': 10}
+        values.update(overrides)
+        return self.config.waiter_benefits_settings(action=values)
+
+    def test_action_defaults_and_signup_compatibility(self):
+        # Falla si desaparecen las cuatro filas, cambia su orden o se pierde el descuento anterior.
+        self.config.signup_discount_percent = 7
+        rows = self.config.waiter_benefits_settings()['actions']
+        self.assertEqual([r['action'] for r in rows], ['cuenta', 'opinion', 'novedades', 'pago_en_linea'])
+        self.assertEqual(rows[0], {'action': 'cuenta', 'active': True, 'reward': 'descuento', 'percent': 7, 'couponId': None, 'points': 10})
+        self.assertEqual(rows[1], {'action': 'opinion', 'active': False, 'reward': 'descuento', 'percent': 5, 'couponId': None, 'points': 10})
+        self.assertEqual(self.config.waiter_benefit_actions(), [{'accion': 'cuenta', 'premio': {'tipo': 'descuento', 'porcentaje': 7}}])
+        self._action('cuenta', percent=15)
+        self.assertEqual(self.config.signup_discount_percent, 15)
+        self._action('cuenta', active=False)
+        self.assertEqual(self.config.signup_discount_percent, 0)
+        self.assertFalse(self.config.waiter_benefit_actions())
+        self._action('cuenta', reward='puntos', points=40)
+        self.assertEqual(self.config.signup_discount_percent, 0)
+        self.assertEqual(self.env['waiter.benefit.action'].with_context(active_test=False).search_count([
+            ('config_id', '=', self.config.id), ('action', '=', 'cuenta')]), 1)
+
+    def test_actions_validate_prizes_and_venue(self):
+        # Falla si se guarda un porcentaje inválido, puntos sin programa o un cupón de otra sede.
+        for invalid in ({'percent': 0}, {'percent': 101}, {'percent': float('nan')}, {'percent': float('inf')},
+                        {'reward': 'puntos', 'points': 0}, {'reward': 'puntos', 'points': 1.5}, {'reward': 'cupon'}):
+            with self.assertRaises(ValidationError), self.env.cr.savepoint():
+                self._action(**invalid)
+        coupon = self._coupon()
+        program = self.env['loyalty.program'].browse(coupon['id'])
+        self._action(reward='cupon', couponId=program.id)
+        program.pos_config_ids = False
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            self._action(reward='cupon', couponId=program.id)
+        points_program = self.config._waiter_points_program()
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            self._action(reward='cupon', couponId=points_program.id)
+        # Sin ningún programa de puntos: la copia de la base puede traer otros, también los que no se atan a un POS.
+        self.config._get_program_ids().filtered(lambda p: p.program_type == 'loyalty').write({'active': False})
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            self._action(reward='puntos')
+
+    def test_active_actions_omit_unavailable_coupons_and_points(self):
+        # Falla si el menú promete un cupón vencido/inactivo o puntos de un programa desactivado.
+        self.config.signup_discount_percent = 0
+        coupon = self._coupon()
+        self._action(reward='cupon', couponId=coupon['id'])
+        self._action('novedades', reward='puntos', points=25)
+        rows = self.config.waiter_benefit_actions()
+        self.assertEqual(rows[0], {'accion': 'opinion', 'premio': {'tipo': 'cupon', 'codigo': coupon['code'],
+            'nombre': coupon['name'], 'porcentaje': 20, 'minimo': 10000}})
+        self.assertEqual(rows[1], {'accion': 'novedades', 'premio': {'tipo': 'puntos', 'puntos': 25,
+            'programa': self.config._waiter_points_program().name}})
+        program = self.env['loyalty.program'].browse(coupon['id'])
+        for change in ({'active': False}, {'active': True, 'date_to': fields.Date.today() - timedelta(days=1)},
+                       {'date_to': False, 'date_from': fields.Date.today() + timedelta(days=1)}):
+            program.write(change)
+            self.assertEqual([a['accion'] for a in self.config.waiter_benefit_actions()], ['novedades'])
+        self.config._get_program_ids().filtered(lambda p: p.program_type == 'loyalty').write({'active': False})
+        self.assertFalse(self.config.waiter_benefit_actions())
+
+    def test_points_grant_is_idempotent_and_audited(self):
+        # Falla si un reintento duplica el saldo o usa una tarjeta distinta a la cuenta del comensal.
+        identity, card = self._member()
+        key = 'cuenta:%s:' % identity['id']
+        result = self.config.waiter_grant_points(identity, key, 30, 'Premio por verificar la cuenta')
+        self.assertEqual(result, {'tarjeta': card.id, 'puntos': 30, 'otorgados': 30})
+        self.assertEqual(self.config.waiter_grant_points(identity, key, 50, 'Reintento'),
+                         {'tarjeta': card.id, 'puntos': 30, 'otorgados': 0})
+        grant = self.env['waiter.benefit.grant'].search([('config_id', '=', self.config.id), ('key', '=', key)])
+        self.assertEqual((len(grant), grant.points), (1, 30))
+        history = self.env['loyalty.history'].search([('order_model', '=', 'waiter.benefit.grant'), ('order_id', '=', grant.id)])
+        self.assertEqual((len(history), history.card_id, history.issued, history.used), (1, card, 30, 0))
+        self.config.waiter_grant_points(identity, 'opinion:%s:pedido' % identity['id'], 10, 'Premio por opinar')
+        self.assertEqual(self.config.waiter_diner_benefits(identity)['puntos'], 40)
+        other, _ = self._member()
+        with self.assertRaises(ValidationError):
+            self.config.waiter_grant_points(other, key, 30, 'Otra cuenta')
+
+    def test_grant_requires_positive_integer_points_and_program(self):
+        # Falla si el administrador acredita cantidades inválidas o sin programa de puntos.
+        identity, card = self._member()
+        for points in (0, -1, 1.5, True):
+            with self.assertRaises(ValidationError):
+                self.config.waiter_grant_points(identity, 'invalido', points, 'Premio')
+        self.config._get_program_ids().filtered(lambda p: p.program_type == 'loyalty').write({'active': False})
+        with self.assertRaises(UserError):
+            self.config.waiter_grant_points(identity, 'sin-programa', 10, 'Premio')
+        self.assertEqual(card.points, 0)
+
+    def test_cashier_only_reads_actions_and_grants(self):
+        # Falla si el cajero cambia acciones o se otorga puntos mediante RPC o acceso directo al modelo.
+        self._action()
+        user = new_test_user(self.env, login='actions-cashier', groups='point_of_sale.group_pos_user')
+        self.assertTrue(self.config.with_user(user).waiter_benefit_actions())
+        with self.assertRaises(AccessError):
+            self.config.with_user(user).waiter_benefits_settings(action={'action': 'opinion'})
+        with self.assertRaises(AccessError):
+            self.config.with_user(user).waiter_grant_points({'id': str(uuid.uuid4())}, 'clave', 100, 'Premio')
+        for model in ('waiter.benefit.action', 'waiter.benefit.grant'):
+            with self.assertRaises(AccessError):
+                self.env[model].with_user(user).check_access('create')
+
+    def test_action_migration_preserves_enabled_disabled_and_existing_settings(self):
+        # Falla si actualizar el addon cambia el porcentaje, activa un descuento apagado o duplica una acción.
+        import runpy
+        from pathlib import Path
+        migrate = runpy.run_path(str(Path(__file__).resolve().parents[1] / 'migrations/19.0.2.4.0/post-migrate.py'))['migrate']
+        Action = self.env['waiter.benefit.action'].with_context(active_test=False)
+        Action.search([('config_id', '=', self.config.id), ('action', '=', 'cuenta')]).unlink()
+        self.config.signup_discount_percent = 9
+        migrate(self.env.cr, '19.0.2.3.0')
+        migrate(self.env.cr, '19.0.2.3.0')
+        row = Action.search([('config_id', '=', self.config.id), ('action', '=', 'cuenta')])
+        self.assertEqual((len(row), row.active, row.percent), (1, True, 9))
+        row.unlink()
+        self.config.signup_discount_percent = 0
+        migrate(self.env.cr, '19.0.2.3.0')
+        row = Action.search([('config_id', '=', self.config.id), ('action', '=', 'cuenta')])
+        self.assertEqual((row.active, row.percent, self.config.signup_discount_percent), (False, 5, 0))
+        self._action('cuenta', reward='puntos', points=25)
+        migrate(self.env.cr, '19.0.2.3.0')
+        self.assertEqual(row.reward, 'puntos')

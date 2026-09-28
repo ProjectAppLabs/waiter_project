@@ -10,6 +10,7 @@ __all__ = ['CartLine', 'Diner', 'DinerAccount', 'MenuTemplate', 'Order', 'TableS
 
 from .diner_favorite import DinerFavorite
 from .diner_feedback import DinerFeedback
+from .diner_reward import DinerReward
 from .channel_order import ChannelOrder
 from .agent_conversation import AgentConversation, AgentDailyUsage
 from .agent_conversation import AgentCartSelection

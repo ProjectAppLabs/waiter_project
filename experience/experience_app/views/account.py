@@ -86,6 +86,9 @@ def profile(request):
         for field, value in changes.items():
             setattr(diner.account, field, value)
         diner.account.save(update_fields=list(changes))
+        if changes.get('marketing'):
+            from experience_app.services import rewards
+            rewards.sync_for_diner(diner)
     # `pedidos` es la clave que consume el comensal (Contrato 3 / diner AccountSummary).
     profile = accounts.profile_view(diner.account)
     profile['descuentoDisponible'] = discount.applicable(diner)

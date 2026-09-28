@@ -87,6 +87,8 @@ def verify(account: DinerAccount, diner: Diner, code) -> DinerAccount:
     account.refresh_from_db()
     diner.account = account
     diner.save(update_fields=['account'])
+    from experience_app.services import rewards
+    rewards.sync_for_diner(diner)
     return account
 
 

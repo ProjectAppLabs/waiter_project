@@ -1,5 +1,17 @@
 # Plan N · Promociones: cupones, puntos y acciones que dan beneficios
 
+**Estado (2026-09-28): hecho.** N1–N2 por Codex, N3–N5 por Claude.
+- Odoo: 133/133 pruebas. Experience: 693. Comensal: 504. POS: 533.
+- Verificador de Chromium sin problemas en 22 combinaciones de página y ancho.
+- En desarrollo, el addon está en 19.0.2.4.0, la migración 0028 está aplicada y hay una configuración de demostración:
+  - cupón `BIENVENIDA10`;
+  - opinión → 50 puntos;
+  - novedades → ese cupón;
+  - pago en línea → 8 %;
+  - cuenta → 5 %.
+- Al integrar se corrigió un error: la validación de «puntos» heredaba `active_test=False` y aceptaba un programa
+  desactivado.
+
 **Qué.** El POS agrupa tres tipos de promoción en «Promociones»: **cupones** (ya existen), **puntos de fidelización** (ya
 existen) y **acciones**: lo que el comensal hace en el menú y le da un premio configurable. El premio de una acción enlaza
 los otros dos tipos: puede ser **un % de descuento en su próxima compra**, **activarle un cupón** de la pestaña Cupones o

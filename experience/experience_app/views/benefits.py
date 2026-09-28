@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from experience_app.adapters.odoo.client import OdooClient, OdooError
 from experience_app.adapters.registry.client import resolve
 from experience_app.models import TableSession, Diner
-from experience_app.services import benefits
+from experience_app.services import benefits, rewards as action_rewards
 from experience_app.views.sessions import COOKIE, diner_for, cart_of
 
 
@@ -27,7 +27,8 @@ def rewards(request, restaurant, venue):
     if not diner.account_id or not diner.account.verified:
         return Response({'detail': 'Entra a tu cuenta para consultar tus puntos.'}, status=401)
     tenant = resolve(restaurant, venue, None)
-    return Response(benefits.account_benefits(tenant, diner.account))
+    action_rewards.sync(tenant, diner.account)
+    return Response({**action_rewards.view(tenant, diner.account), **benefits.account_benefits(tenant, diner.account)})
 
 
 @api_view(['PUT', 'DELETE'])

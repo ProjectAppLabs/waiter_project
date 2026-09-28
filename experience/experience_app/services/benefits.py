@@ -25,7 +25,7 @@ def account_benefits(tenant, account, order_uuid=None):
 
 
 def reserve(tenant, new_lines):
-    """Snapshot per-person coupon and points card before sending to POS; retries preserve it."""
+    """Fija el cupón y la tarjeta de cada persona antes del envío al POS y los conserva al reintentar."""
     groups = {}
     for line in new_lines:
         groups.setdefault(line.diner_id, []).append(line)
@@ -53,3 +53,6 @@ def reserve(tenant, new_lines):
             line.account_id = diner.account_id
             line.benefits_reserved = True
             line.save(update_fields=['coupon_code', 'discount', 'loyalty_card_id', 'account', 'benefits_reserved'])
+        if diner.coupon_code:
+            from experience_app.services import rewards
+            rewards.use_coupon(tenant, diner, diner.coupon_code, fresh[0].order)
