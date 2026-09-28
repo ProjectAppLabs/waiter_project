@@ -205,7 +205,11 @@ def _settings_view_sin_sede(restaurant: str, venue: str) -> dict:
 
 
 # ---- validación y guardado (PUT interno) --------------------------------------------------------------------------
-def validate(body: dict) -> tuple[MenuTemplate, dict, dict]:
+def validate(body: dict, *, keep_display: str | None = None, ink_on_background: str | None = None) -> tuple[MenuTemplate, dict, dict]:
+    """`keep_display`: la fuente de títulos que la sede ya tiene guardada (p. ej. una de Google Fonts elegida por el
+    sistema de diseño). El formulario antiguo del POS la reenvía tal cual y no debe rechazarse por no estar en su lista.
+    `ink_on_background`: la tinta del tema v2 para el texto sobre el fondo (`tintaFondo`); si existe, el contraste con el
+    fondo lo decide el validador del tema y `tinta` solo tiene que leerse sobre las tarjetas."""
     if not isinstance(body, dict):
         raise InvalidSettings('El cuerpo debe ser un objeto con plantilla, paleta y tipografia.')
     code = body.get('plantilla')
@@ -241,7 +245,7 @@ def validate(body: dict) -> tuple[MenuTemplate, dict, dict]:
     if display:
         if not customizable.get('tipografiaDisplay', True):
             raise InvalidSettings(f'La plantilla {template.code} no permite cambiar la tipografía de títulos.')
-        if display not in MENU_FONTS and display != spec['tokens'].get('displayFont'):
+        if display not in MENU_FONTS and display != spec['tokens'].get('displayFont') and display != keep_display:
             raise InvalidSettings(f'La tipografía «{display}» no está en la lista: {", ".join(FONTS)} o la de la plantilla.')
         typography = {'display': display}
     else:
@@ -251,7 +255,9 @@ def validate(body: dict) -> tuple[MenuTemplate, dict, dict]:
     ratio = contrast(accent, ink_for(accent))
     if ratio < MIN_CONTRAST:
         raise InvalidSettings(f'El color de acción {accent} no contrasta lo suficiente con su texto ({ratio:.2f}:1; mínimo {MIN_CONTRAST}:1).')
-    if palette.keys() & {'tinta', 'fondo', 'superficie'}:
+    # Con tema v2 (tintaFondo), el texto sobre el fondo lo comprueba el validador del tema con sus propios pares; aquí solo
+    # el contrato antiguo, donde tinta sirve para todo.
+    if palette.keys() & {'tinta', 'fondo', 'superficie'} and not ink_on_background:
         ratio = contrast(tokens['tinta'], tokens['fondo'])
         if ratio < MIN_CONTRAST:
             raise InvalidSettings(f'La tinta {tokens["tinta"]} no se lee sobre el fondo {tokens["fondo"]} ({ratio:.2f}:1; mínimo {MIN_CONTRAST}:1).')
@@ -260,12 +266,22 @@ def validate(body: dict) -> tuple[MenuTemplate, dict, dict]:
     return template, palette, typography
 
 
+def _saved_foundation(chosen) -> dict:
+    """Fundamentos del tema guardado de la sede (plantilla por defecto): lo que el formulario antiguo no sabe editar."""
+    if chosen is None or chosen.template_id != DEFAULT_CODE:
+        return {}
+    tokens = final_tokens(chosen.template.spec, {}, chosen.palette, chosen.typography)
+    return design.resolve(chosen.theme, tokens)['fundamentos']
+
+
 def _prepare_sin_sede(restaurant: str, venue: str, body: dict, *, chosen=None) -> tuple[MenuTemplate, dict, dict, dict]:
     """Valida ambos contratos; el POS anterior conserva fundamentos que no sabe editar."""
-    template, palette, typography = validate(body)
+    chosen = chosen if chosen is not None else get_settings(restaurant, venue)
+    foundation = _saved_foundation(chosen)
+    template, palette, typography = validate(body, keep_display=foundation.get('tipografia', {}).get('display'),
+                                             ink_on_background=foundation.get('colores', {}).get('tintaFondo'))
     if 'tema' in body:
         return template, palette, typography, design.validate(body['tema'])
-    chosen = chosen if chosen is not None else get_settings(restaurant, venue)
     old_palette = chosen.palette if chosen and chosen.template_id == DEFAULT_CODE else {}
     old_typography = chosen.typography if chosen and chosen.template_id == DEFAULT_CODE else {}
     old_tokens = final_tokens(template.spec, {}, old_palette, old_typography)

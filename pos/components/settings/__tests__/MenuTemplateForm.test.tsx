@@ -19,7 +19,8 @@ beforeEach(() => {
   jest.mocked(saveBrandLogo).mockResolvedValue(undefined)
   jest.mocked(saveBrandGreeting).mockResolvedValue(undefined)
 })
-// Falla si editar previsualiza con ajustes crudos, publica antes de guardar o deja de pasar por la pasarela.
+// Falla si editar previsualiza con ajustes crudos, publica antes de guardar, deja de pasar por la pasarela o vuelve a
+// incrustar el menú en lugar de dar el enlace al menú de prueba.
 it('shows one design, previews changes without saving and persists only the chosen branding', async () => {
   wrap()
   await screen.findByText('Tu restaurante, tu identidad')
@@ -27,10 +28,12 @@ it('shows one design, previews changes without saving and persists only the chos
   fireEvent.change(screen.getByLabelText('Botones y color principal · HEX'), { target: { value: '#145A52' } })
   fireEvent.change(screen.getByLabelText('Tipografía del menú'), { target: { value: 'DM Sans' } })
   await waitFor(() => {
-    const url = screen.getByTitle('Vista previa del menú').getAttribute('src')!
+    const url = screen.getByRole('link', { name: 'Abrir menú de prueba ↗' }).getAttribute('href')!
     expect(url).toBe('http://diner/burger-house/poblado/carta?borrador=borrador-pos')
     expect(gateway).toHaveBeenCalledWith('preview', { plantilla: 'S1', paleta: { acento: '#145A52' }, tipografia: { display: 'DM Sans' } })
   })
+  expect(screen.queryByTitle('Vista previa del menú')).not.toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Abrir menú de prueba ↗' })).toHaveAttribute('target', '_blank')
   expect(screen.getByRole('link', { name: 'Sistema de diseño ↗' })).toHaveAttribute('href', 'http://diner/burger-house/poblado/design-system?borrador=borrador-pos')
   expect(gateway).not.toHaveBeenCalledWith('set', expect.anything())
   fireEvent.click(screen.getByRole('button', { name: /^Guardar$/ }))
@@ -69,10 +72,40 @@ it('saves the menu greeting only when it changed', async () => {
 
 // Falla si un rechazo de validación se oculta tras una vista previa anterior aparentemente válida.
 it('muestra el rechazo del borrador sin publicar los cambios', async () => {
-  wrap(); await screen.findByTitle('Vista previa del menú')
+  wrap(); await screen.findByRole('link', { name: 'Abrir menú de prueba ↗' })
   jest.mocked(gateway).mockRejectedValueOnce(new Error('Contraste insuficiente'))
   fireEvent.change(screen.getByLabelText('Botones y color principal · HEX'), { target: { value: '#234567' } })
   expect(await screen.findByRole('alert')).toHaveTextContent('Contraste insuficiente')
-  expect(screen.queryByTitle('Vista previa del menú')).not.toBeInTheDocument()
+  expect(screen.queryByRole('link', { name: 'Abrir menú de prueba ↗' })).not.toBeInTheDocument()
   expect(gateway).not.toHaveBeenCalledWith('set', expect.anything())
+})
+
+// Falla si «Copiar enlace» no copia el enlace del menú de prueba o no confirma que lo copió.
+it('copia el enlace del menú de prueba', async () => {
+  const writeText = jest.fn().mockResolvedValue(undefined)
+  Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+  wrap(); await screen.findByRole('link', { name: 'Abrir menú de prueba ↗' })
+  fireEvent.click(screen.getByRole('button', { name: 'Copiar enlace' }))
+  await waitFor(() => expect(writeText).toHaveBeenCalledWith('http://diner/burger-house/poblado/carta?borrador=borrador-pos'))
+  expect(await screen.findByRole('button', { name: 'Enlace copiado' })).toBeInTheDocument()
+})
+
+// Falla si una fuente elegida por el sistema de diseño (fuera de la lista del POS) desaparece del selector o no se reenvía
+// tal cual al preparar el menú de prueba.
+it('conserva la fuente elegida en el sistema de diseño', async () => {
+  jest.mocked(gateway).mockImplementation((action: string) => Promise.resolve(action === 'get' ? { ...ctx, ajustes: { plantilla: 'S1', paleta: {}, tipografia: { display: 'Anton' } } } : action === 'preview' ? { borrador: 'borrador-pos', caduca: '2026-09-25T01:00:00Z' } : { codigo: 'S1' }) as never)
+  wrap(); await screen.findByRole('link', { name: 'Abrir menú de prueba ↗' })
+  expect(screen.getByLabelText('Tipografía del menú')).toHaveValue('Anton')
+  expect(screen.getByRole('option', { name: 'Anton · elegida en el sistema de diseño' })).toBeInTheDocument()
+  expect(gateway).toHaveBeenCalledWith('preview', { plantilla: 'S1', paleta: {}, tipografia: { display: 'Anton' } })
+})
+
+// Falla si con un fondo oscuro y su propia tinta de fondo (tema v2) el formulario bloquea «Guardar» por comparar la tinta
+// de las tarjetas con el fondo.
+it('usa la tinta del fondo del tema para decidir si se lee', async () => {
+  const ajustes = { plantilla: 'S1', paleta: { fondo: '#51141E', superficie: '#FCF7F2', tinta: '#240E10' }, tipografia: {}, tema: { fundamentos: { colores: { tintaFondo: '#FCF7F2' } } } }
+  jest.mocked(gateway).mockImplementation((action: string) => Promise.resolve(action === 'get' ? { ...ctx, ajustes } : action === 'preview' ? { borrador: 'borrador-pos', caduca: '2026-09-25T01:00:00Z' } : { codigo: 'S1' }) as never)
+  wrap(); await screen.findByText('Tu restaurante, tu identidad')
+  expect(screen.queryByText(/El texto debe contrastar/)).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: /^Guardar$/ })).toBeEnabled()
 })

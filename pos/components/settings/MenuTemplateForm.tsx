@@ -59,6 +59,8 @@ export function MenuTemplateForm() {
   const [brand, setBrand] = useState<BrandInfo | null>(null)
   const [palette, setPalette] = useState<MenuSettings['paleta']>({})
   const [font, setFont] = useState('DM Sans')
+  // La fuente guardada puede venir del sistema de diseño (Google Fonts, por el MCP) y no estar en la lista del POS.
+  const [savedFont, setSavedFont] = useState<string | null>(null)
   const [logo, setLogo] = useState<string | null>(null)
   const [logoChange, setLogoChange] = useState<LogoChange | undefined>()
   const [greeting, setGreeting] = useState('')
@@ -66,6 +68,11 @@ export function MenuTemplateForm() {
   const [previewError, setPreviewError] = useState<string | null>(null)
   const [previewBusy, setPreviewBusy] = useState(false)
   const [previewVersion, setPreviewVersion] = useState(0)
+  const [copied, setCopied] = useState(false)
+  const copyLink = async (url: string) => {
+    try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000) }
+    catch { setPreviewError('No pudimos copiar el enlace; ábrelo y cópialo desde el navegador.') }
+  }
   const [error, setError] = useState<string | null>(null)
   const [logoError, setLogoError] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
@@ -91,12 +98,10 @@ export function MenuTemplateForm() {
         setSpec(s)
         setLogo(image)
         setPalette(c.ajustes.plantilla === 'S1' ? c.ajustes.paleta : {})
-        setFont(
-          c.ajustes.plantilla === 'S1'
-            ? c.ajustes.tipografia.display || s.tokens.displayFont
-            : s.tokens.displayFont,
-        )
-        loadTemplateFonts(FONTS)
+        const current = c.ajustes.plantilla === 'S1' ? c.ajustes.tipografia.display || s.tokens.displayFont : s.tokens.displayFont
+        setFont(current)
+        setSavedFont(FONTS.includes(current) ? null : current)
+        loadTemplateFonts(FONTS.includes(current) ? FONTS : [...FONTS, current])
       })
       .catch((e: unknown) => {
         if (alive) {
@@ -133,8 +138,10 @@ export function MenuTemplateForm() {
   const effective = (key: ColorToken) =>
     isHex(palette[key] ?? '') ? palette[key]! : spec.tokens[key]
   const valid = Object.values(palette).every((value) => isHex(value ?? ''))
+  // Con el tema v2, el texto sobre el fondo usa su propia tinta (`tintaFondo`); `tinta` es la de las tarjetas.
+  const inkOnBackground = ctx.ajustes.tema?.fundamentos?.colores?.tintaFondo ?? effective('tinta')
   const readable =
-    contrast(effective('tinta'), effective('fondo')) >= 4.5 &&
+    contrast(inkOnBackground, effective('fondo')) >= 4.5 &&
     contrast(effective('tinta'), effective('superficie')) >= 4.5
   const shownLogo = logoChange
     ? 'remove' in logoChange
@@ -180,8 +187,27 @@ export function MenuTemplateForm() {
           en todas las pantallas.
         </p>
       </div>
-      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_390px]">
+      <div>
         <div className="flex max-w-xl flex-col gap-6">
+          {/* El menú se prueba en su propia pestaña (o en el teléfono): dentro de Configuración quedaba demasiado apretado. */}
+          <section aria-labelledby="menu-prueba" className="rounded-[20px] border border-border bg-surface p-5">
+            <h3 id="menu-prueba" className="text-lg font-bold">Prueba tu menú</h3>
+            <p className="mt-2 text-sm text-soft">
+              Ábrelo en otra pestaña o compártelo a tu teléfono. El menú de prueba muestra tus cambios de color y fuente
+              antes de guardarlos (el logo y el saludo, al guardar). El enlace caduca a los 30 minutos.
+            </p>
+            {previewBusy && <p role="status" className="mt-3 text-sm">Preparando el menú de prueba…</p>}
+            {previewError && <p role="alert" className="mt-3 text-sm text-danger">No pudimos preparar el menú de prueba. {previewError}</p>}
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              {src && <a href={src} target="_blank" rel="noreferrer" className="inline-flex h-tap-min items-center rounded-md bg-brand-500 px-4 text-[15px] font-bold text-white hover:bg-brand-600">Abrir menú de prueba ↗</a>}
+              {src && <Button size="compact" onClick={() => void copyLink(src)}>{copied ? 'Enlace copiado' : 'Copiar enlace'}</Button>}
+              <Button size="compact" variant="ghost" disabled={previewBusy} onClick={() => setPreviewVersion(v => v + 1)}>Generar un enlace nuevo</Button>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-4 border-t border-border pt-4">
+              <a href={`${ctx.dinerUrl}/${ctx.restaurante}/${ctx.sede}/`} target="_blank" rel="noreferrer" className="text-sm font-medium text-primary">Menú publicado ↗</a>
+              <a href={designSystemUrl(ctx.dinerUrl, ctx.restaurante, ctx.sede, preview?.borrador)} target="_blank" rel="noreferrer" className="text-sm font-medium text-primary">Sistema de diseño ↗</a>
+            </div>
+          </section>
           <section className="rounded-[20px] border border-border bg-surface p-5">
             <h3 className="mb-4 text-lg font-bold">Saludo del menú</h3>
             <TextInput
@@ -234,8 +260,8 @@ export function MenuTemplateForm() {
               }}
             />
             <p className="mt-2 text-xs text-soft">
-              PNG o JPG. El logo se adapta sin deformarse. La vista previa del
-              menú lo mostrará al guardar.
+              PNG o JPG. El logo se adapta sin deformarse y aparece en el menú
+              al guardar.
             </p>
             {shownLogo && (
               <Button
@@ -325,6 +351,7 @@ export function MenuTemplateForm() {
               value={font}
               onChange={(e) => setFont(e.target.value)}
             >
+              {savedFont && <option value={savedFont}>{savedFont} · elegida en el sistema de diseño</option>}
               {FONTS.map((f) => (
                 <option key={f} value={f}>
                   {f}
@@ -343,40 +370,6 @@ export function MenuTemplateForm() {
             error={error}
           />
         </div>
-        <aside className="self-start xl:sticky xl:top-4">
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="font-bold">Vista previa</h3>
-            <a
-              href={`${ctx.dinerUrl}/${ctx.restaurante}/${ctx.sede}/`}
-              target="_blank"
-              rel="noreferrer"
-              className="text-sm font-medium text-primary"
-            >
-              Abrir menú ↗
-            </a>
-          </div>
-          {src && (
-            <iframe
-              key={`${src}-${previewVersion}`}
-              src={src}
-              title="Vista previa del menú"
-              width={390}
-              height={780}
-              className="max-w-full rounded-[26px] border border-border bg-surface"
-            />
-          )}
-          {previewBusy && <p role="status">Preparando vista previa…</p>}
-          {previewError && <p role="alert">No pudimos preparar la vista previa. {previewError}</p>}
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            {src && <a href={src} target="_blank" rel="noreferrer" className="text-sm font-medium text-primary">Abrir borrador ↗</a>}
-            <a href={designSystemUrl(ctx.dinerUrl, ctx.restaurante, ctx.sede, preview?.borrador)} target="_blank" rel="noreferrer" className="text-sm font-medium text-primary">Sistema de diseño ↗</a>
-            <Button size="compact" disabled={previewBusy} onClick={() => setPreviewVersion(v => v + 1)}>Actualizar vista previa</Button>
-          </div>
-          <p className="mt-3 text-xs text-soft">
-            Explora el diseño antes de guardar. Los cambios de color y fuente
-            solo aparecen en el borrador hasta que los guardes. El enlace caduca a los 30 minutos.
-          </p>
-        </aside>
       </div>
     </div>
   )
