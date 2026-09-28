@@ -1815,3 +1815,10 @@
 .smart-menu .sm-fulfillment-dialog .sm-fulfillment-option { min-height: 104px; padding: var(--ds-espacio-16) var(--ds-espacio-12); gap: var(--ds-espacio-10); }
 .smart-menu .sm-fulfillment-dialog .sm-fulfillment-option svg { width: 28px; height: 28px; }
 .sm-screen-pago .sm-online-pay{padding-bottom:0}
+
+/* Plan O: portada de la organización (/<org>/), para elegir restaurante. */
+.smart-menu .sm-organization-head { display: flex; flex-direction: column; gap: var(--ds-espacio-8); padding: var(--ds-espacio-32) 0 var(--ds-espacio-8); }
+.smart-menu .sm-organization-head h1 { font-size: calc(28px * var(--ds-texto)); }
+.smart-menu .sm-organization-head p { color: var(--sm-muted); font-size: calc(15px * var(--ds-texto)); }
+.smart-menu .sm-organization-logo { width: 88px; height: 88px; object-fit: contain; }
+.smart-menu .sm-venue-card { min-height: 44px; text-decoration: none; }

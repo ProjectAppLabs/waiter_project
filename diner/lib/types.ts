@@ -127,3 +127,6 @@ export interface RewardOffer { accion: RewardAction; premio: RewardPrize; hecha?
 export interface EarnedReward { id: number | string; accion: RewardAction; premio: RewardPrize; estado: 'disponible' | 'reservado' | 'usado' | 'acreditado'; fecha: string }
 export interface DinerRewards {tarjeta:number|null;codigo:string;puntos:number;ganados:number;programa:string;valorPunto:number;minimoCanje:number;beneficios?:EarnedReward[];acciones?:RewardOffer[]}
 export interface VenueLocation {direccion:string;latitud:number|null;longitud:number|null}
+
+// Plan O: portada de la organización (`GET /api/v1/<org>/`): sus restaurantes para elegir a cuál entrar.
+export interface OrganizationEntry { organizacion: { slug: string; nombre: string; marca?: Record<string, unknown> }; restaurantes: { slug: string; nombre: string; direccion?: string }[] }
