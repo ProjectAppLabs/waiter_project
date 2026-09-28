@@ -210,5 +210,5 @@ body:has(.sm-recommendation-dialog[open]) { overflow:hidden; }
 .smart-menu .sm-dock-stepper button:disabled { opacity: .4; }
 .smart-menu .sm-dock-stepper svg { width: 18px; height: 18px; }
 .smart-menu .sm-dock-stepper output { min-width: 20px; text-align: center; font-weight: 800; font-size: calc(16px * var(--ds-texto)); }
-.smart-menu .sm-dish-dock-action .sm-primary { flex: 1 1 auto; min-width: 0; padding-inline: var(--ds-espacio-14); gap: var(--ds-espacio-8); }
+.smart-menu .sm-dish-dock-action .sm-primary { flex: 1 1 auto; min-width: 0; padding-inline: var(--ds-espacio-14); gap: var(--ds-espacio-8); white-space: nowrap; overflow: hidden; }
 

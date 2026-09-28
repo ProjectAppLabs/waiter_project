@@ -665,11 +665,15 @@ export function SmartDish({ entry, id, onClose, actionTarget }: SmartProps & {on
     </>
   )
 }
-// Animación del muelle (GSAP): al pasar a compacto, el botón del mesero se encoge desde su ancho anterior hasta el círculo
-// del icono y el pedido crece a su lado; cada vez que cambia la cantidad, el pedido da un pequeño pulso. Sin animación si el
-// sistema pide movimiento reducido.
+// Animación del muelle (GSAP): al entrar en la ficha, el botón del mesero se encoge desde su ancho de la carta hasta el
+// círculo del icono y aparecen la cantidad y «Agregar»; cada vez que cambia la cantidad del pedido, su botón da un pequeño
+// pulso. Sin animación si el sistema pide movimiento reducido.
+// Al navegar de la carta a la ficha se vuelve a montar la experiencia; el último estado del muelle vive fuera del
+// componente para que la animación sepa desde qué ancho encoger al mesero.
+const lastDock: { current: { compact: boolean; chat: number; count: number } | null } = { current: null }
+
 function useDockMotion(dock: React.RefObject<HTMLDivElement | null>, compact: boolean, count: number) {
-  const previous = useRef<{ compact: boolean; chat: number; count: number } | null>(null)
+  const previous = lastDock
   useLayoutEffect(() => {
     const el = dock.current
     if (!el) return
@@ -677,7 +681,11 @@ function useDockMotion(dock: React.RefObject<HTMLDivElement | null>, compact: bo
     const before = previous.current
     const calm = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
     if (!calm) {
-      if (compact && chat && before && !before.compact && before.chat > 0) gsap.from(chat, { width: before.chat, duration: .5, ease: 'power3.out', clearProps: 'width' })
+      if (compact && chat && before && !before.compact && before.chat > 0) {
+        gsap.from(chat, { width: before.chat, duration: .5, ease: 'power3.out', clearProps: 'width' })
+        const slot = el.querySelector<HTMLElement>('.sm-dish-dock-action')
+        if (slot) gsap.from(slot, { opacity: 0, x: 16, duration: .4, delay: .12, ease: 'power2.out', clearProps: 'opacity,transform' })
+      }
       if (cart && count > 0 && (!before || before.count !== count)) gsap.fromTo(cart, { scale: .9, opacity: before?.count ? 1 : 0 }, { scale: 1, opacity: 1, duration: .45, ease: 'back.out(2)', clearProps: 'transform,opacity' })
     }
     previous.current = { compact, chat: chat?.getBoundingClientRect().width ?? 0, count }
@@ -705,8 +713,19 @@ export function SmartExperience({
     .reduce((n, l) => n + l.cantidad, 0)
   const showConfirm = screen === 'pedido' && !!cart?.lineas.length
   const showCart = count > 0 && ['portada', 'carta', 'favoritos', 'historial', 'cuenta'].includes(screen)
-  // Con otra acción al lado (pedido, confirmar o agregar), «Mi mesero» se queda solo con su icono y la acción gana el ancho.
-  const compactDock = showCart || showConfirm || screen === 'plato'
+  // Solo en la ficha del plato: «Mi mesero» se queda con su icono (el comensal ya lo conoce de la carta) y deja sitio a la
+  // cantidad y a «Agregar». En la carta y el pedido, los dos botones van completos. Se encoge cuando la ficha ya puso sus
+  // acciones en el muelle; mientras el plato carga, el mesero sigue completo y la animación se ve al llegar el contador.
+  const [dishActionsReady, setDishActionsReady] = useState(false)
+  useEffect(() => {
+    if (!dishActionTarget) { setDishActionsReady(false); return }
+    const sync = () => setDishActionsReady(dishActionTarget.childElementCount > 0)
+    sync()
+    const observer = new MutationObserver(sync)
+    observer.observe(dishActionTarget, { childList: true })
+    return () => observer.disconnect()
+  }, [dishActionTarget])
+  const compactDock = screen === 'plato' && dishActionsReady
   const dockRef = useRef<HTMLDivElement>(null)
   useDockMotion(dockRef, compactDock, count)
   return (
@@ -748,7 +767,7 @@ export function SmartExperience({
         {screen === 'cuenta/registro' && <SmartSignup />}
         {screen === 'cuenta/codigo' && <SmartCode />}
       </div>
-      {screen !== 'reserva' && <div ref={dockRef} className={`sm-action-dock${compactDock ? ' sm-action-dock-pair sm-action-dock-compacto' : ''}`}>
+      {screen !== 'reserva' && <div ref={dockRef} className={`sm-action-dock${showCart || showConfirm || compactDock ? ' sm-action-dock-pair' : ''}${compactDock ? ' sm-action-dock-compacto' : ''}`}>
         <SmartChat key={`${props.rest}/${props.venue}/${props.token}`} entry={props.entry} rest={props.rest} venue={props.venue} token={props.token}/>
         {showConfirm && <div className="sm-confirm-slot" ref={setCartActionTarget}/>}
         {screen === 'plato' && <div className="sm-confirm-slot" ref={setDishActionTarget}/>}
