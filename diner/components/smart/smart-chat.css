@@ -35,3 +35,10 @@
 .smart-menu.sm-screen-pedido .sm-action-dock .sm-cart-submit{position:static;inset:auto;padding:0;border-radius:0;background:transparent;width:100%;display:flex}
 .smart-menu .sm-action-dock .sm-cart-submit>.sm-primary{width:100%;min-width:0;min-height:58px;margin:0;padding:var(--ds-espacio-10) var(--ds-espacio-12);border-radius:calc(18px * var(--ds-forma-boton));font-size:calc(14px * var(--ds-texto));white-space:nowrap;justify-content:center}
 .smart-menu.sm-screen-pedido .sm-page{padding-bottom:120px}
+
+/* Muelle compacto: con otra acción al lado (pedido, confirmar o agregar), «Mi mesero» queda como un círculo con su icono (el
+ * nombre sigue para lectores de pantalla) y la acción ocupa el resto; así caben la cantidad de artículos y el total. */
+.sm-action-dock-compacto { grid-template-columns: auto minmax(0, 1fr); }
+.smart-menu .sm-action-dock-compacto .sm-chat-launch { width: 58px; padding: 0; grid-template-columns: 1fr; place-items: center; overflow: hidden; }
+.smart-menu .sm-action-dock-compacto .sm-chat-launch > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+

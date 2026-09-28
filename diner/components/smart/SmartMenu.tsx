@@ -4,7 +4,8 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { gsap } from 'gsap'
 import { createPortal } from 'react-dom'
 import { pathFor, type Route, type Screen } from '@/lib/domain/route'
 import type { TemplateData, TemplateSlots } from '@/lib/domain/plantillas'
@@ -526,7 +527,7 @@ export function SmartDish({ entry, id, onClose, actionTarget }: SmartProps & {on
       const selected=Object.entries(extras).filter(([,count])=>count>0)
       if(selected.length)await addBundle([{producto_id:dish.id,cantidad:qty,nota:''},...selected.map(([productId,count])=>({producto_id:Number(productId),cantidad:count,nota:`Acompaña: ${dish.nombre}`.slice(0,200)}))])
       else await add(dish.id, qty, '')
-      if (!useDinerStore.getState().error) setAdded(true)
+      if (!useDinerStore.getState().error) { if (actionTarget) go('carta'); else setAdded(true) }
     } finally {
       lock.current = false
       setSending(false)
@@ -619,7 +620,13 @@ export function SmartDish({ entry, id, onClose, actionTarget }: SmartProps & {on
               </button>
             </div>
           </div>}
-          {(() => { const action = <>
+          {(() => { const dockStepper = actionTarget && !dish.agotado ? <div className="sm-dock-stepper" role="group" aria-label="Cantidad">
+              <button aria-label="Menos unidades" disabled={qty <= 1 || sending} onClick={() => setQty(qty - 1)}><Icon name="minus" /></button>
+              <output aria-live="polite">{qty}</output>
+              <button aria-label="Más unidades" disabled={qty >= 99 || sending} onClick={() => setQty(qty + 1)}><Icon name="plus" /></button>
+            </div> : null
+          const action = <>
+            {dockStepper}
             {added ? (
             <div className="sm-added">
               <p role="status">
@@ -658,6 +665,25 @@ export function SmartDish({ entry, id, onClose, actionTarget }: SmartProps & {on
     </>
   )
 }
+// Animación del muelle (GSAP): al pasar a compacto, el botón del mesero se encoge desde su ancho anterior hasta el círculo
+// del icono y el pedido crece a su lado; cada vez que cambia la cantidad, el pedido da un pequeño pulso. Sin animación si el
+// sistema pide movimiento reducido.
+function useDockMotion(dock: React.RefObject<HTMLDivElement | null>, compact: boolean, count: number) {
+  const previous = useRef<{ compact: boolean; chat: number; count: number } | null>(null)
+  useLayoutEffect(() => {
+    const el = dock.current
+    if (!el) return
+    const chat = el.querySelector<HTMLElement>('.sm-chat-launch'), cart = el.querySelector<HTMLElement>('.sm-cart-float')
+    const before = previous.current
+    const calm = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    if (!calm) {
+      if (compact && chat && before && !before.compact && before.chat > 0) gsap.from(chat, { width: before.chat, duration: .5, ease: 'power3.out', clearProps: 'width' })
+      if (cart && count > 0 && (!before || before.count !== count)) gsap.fromTo(cart, { scale: .9, opacity: before?.count ? 1 : 0 }, { scale: 1, opacity: 1, duration: .45, ease: 'back.out(2)', clearProps: 'transform,opacity' })
+    }
+    previous.current = { compact, chat: chat?.getBoundingClientRect().width ?? 0, count }
+  }, [dock, compact, count])
+}
+
 export function SmartExperience({
   route,
   ...props
@@ -679,6 +705,10 @@ export function SmartExperience({
     .reduce((n, l) => n + l.cantidad, 0)
   const showConfirm = screen === 'pedido' && !!cart?.lineas.length
   const showCart = count > 0 && ['portada', 'carta', 'favoritos', 'historial', 'cuenta'].includes(screen)
+  // Con otra acción al lado (pedido, confirmar o agregar), «Mi mesero» se queda solo con su icono y la acción gana el ancho.
+  const compactDock = showCart || showConfirm || screen === 'plato'
+  const dockRef = useRef<HTMLDivElement>(null)
+  useDockMotion(dockRef, compactDock, count)
   return (
     <div className={`smart-menu sm-screen-${screen.replaceAll("/", "-")}`}>
       <div className="sm-page">
@@ -718,7 +748,7 @@ export function SmartExperience({
         {screen === 'cuenta/registro' && <SmartSignup />}
         {screen === 'cuenta/codigo' && <SmartCode />}
       </div>
-      {screen !== 'reserva' && <div className={`sm-action-dock${showCart || showConfirm || screen === 'plato' ? ' sm-action-dock-pair' : ''}`}>
+      {screen !== 'reserva' && <div ref={dockRef} className={`sm-action-dock${compactDock ? ' sm-action-dock-pair sm-action-dock-compacto' : ''}`}>
         <SmartChat key={`${props.rest}/${props.venue}/${props.token}`} entry={props.entry} rest={props.rest} venue={props.venue} token={props.token}/>
         {showConfirm && <div className="sm-confirm-slot" ref={setCartActionTarget}/>}
         {screen === 'plato' && <div className="sm-confirm-slot" ref={setDishActionTarget}/>}

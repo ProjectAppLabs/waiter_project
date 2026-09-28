@@ -173,6 +173,12 @@ function layoutCheck() {
     const tops = items.map((el) => Math.round(el.getBoundingClientRect().top))
     if (items.length > 1 && Math.max(...tops) - Math.min(...tops) > 4) problems.push('maquetación: los botones del muelle no comparten fila')
     for (const b of dock.querySelectorAll('a, button')) if (visible(b) && b.getBoundingClientRect().height > 72) problems.push(`maquetación: el botón «${b.textContent.trim().slice(0, 24)}» del muelle parte su texto en varias líneas`)
+    // Muelle compacto: el mesero queda como icono y la acción de al lado no recorta su texto (cantidad y total del pedido).
+    if (dock.classList.contains('sm-action-dock-compacto')) {
+      const chat = dock.querySelector('.sm-chat-launch')
+      if (chat && visible(chat) && chat.getBoundingClientRect().width > 64) problems.push(`maquetación: con el muelle compacto, «Mi mesero» mide ${Math.round(chat.getBoundingClientRect().width)} px (debe quedar como icono)`)
+      for (const el of dock.querySelectorAll('.sm-cart-float, .sm-cart-float *, .sm-confirm-slot .sm-primary')) if (visible(el) && el.scrollWidth > el.clientWidth + 1) problems.push(`maquetación: el muelle recorta «${el.textContent.trim().slice(0, 30)}»`)
+    }
   }
   // 4. Adornos fijos: las órbitas de la ficha solo acompañan a una foto circular.
   const orbits = document.querySelector('.smart-menu .sm-dish-orbits'), photo = document.querySelector('.smart-menu .sm-dish-hero .sm-dish-photo')
