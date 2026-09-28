@@ -5,12 +5,14 @@ Corren con el runner de Odoo (`-u projectapp_notify --test-enable --test-tags /p
 from odoo import fields
 from odoo.tests import TransactionCase, tagged
 from odoo.tests.common import new_test_user
+from odoo.addons.projectapp_ops.tests.common_waiter import single_restaurant
 
 
 @tagged("post_install", "-at_install")
 class TestNotify(TransactionCase):
     def setUp(self):
         super().setUp()
+        single_restaurant(self.env)
         self.Notification = self.env["waiter.notification"]
         self.config = self.env["pos.config"].search([("module_pos_restaurant", "=", True)], limit=1) or self.env["pos.config"].search([], limit=1)
         self.session = self.config.current_session_id or self.env["pos.session"].create({"config_id": self.config.id, "user_id": self.env.uid})

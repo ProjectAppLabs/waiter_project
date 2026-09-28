@@ -11,11 +11,13 @@ from odoo import fields
 from odoo.exceptions import AccessError, UserError
 from odoo.tests import TransactionCase, tagged
 from odoo.tests.common import new_test_user
+from odoo.addons.projectapp_ops.tests.common_waiter import single_restaurant
 
 
 class KitCase(TransactionCase):
     def setUp(self):
         super().setUp()
+        single_restaurant(self.env)
         self.env["waiter.seed"].seed_kit()
         self.config = self.env["waiter.seed"]._demo_config()
         self.assertTrue(self.config, "hace falta un pos.config (demo)")

@@ -102,6 +102,9 @@ class TestRestaurants(TransactionCase):
         self.assertEqual(len(second_cash), 1)
         self.assertFalse(first_cash & second_cash)
         self.assertNotEqual(first_cash.journal_id, second_cash.journal_id)
+        # Nace con una sesión ya cerrada y ninguna caja abierta (el menú no debe abrirle una al leer la carta).
+        sessions = self.env['pos.session'].search([('config_id', '=', self.second.id)])
+        self.assertEqual(sessions.mapped('state'), ['closed'])
         self.assertEqual(len(self.second.floor_ids), 1)
         self.assertFalse(self.second.floor_ids.table_ids)
         self.assertEqual((self.second.alert_late_minutes, self.second.roi_hour_cost), (27, 34567))

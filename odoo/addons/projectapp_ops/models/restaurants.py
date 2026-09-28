@@ -222,6 +222,11 @@ class PosConfig(models.Model):
             else:
                 self.env['restaurant.floor'].sudo().create({'name': 'Salón', 'pos_config_ids': [Command.set(config.ids)]})
             config._waiter_sync_employee_lists()
+            # Una sesión vacía abierta y cerrada al darlo de alta: el menú del comensal lee la carta con `load_data` sobre
+            # la última sesión del restaurante, y sin ninguna abría una caja en «opening_control» a la primera visita.
+            session = self.env['pos.session'].sudo().create({'config_id': config.id})
+            session.set_opening_control(0, '')
+            session.close_session_from_ui()
             return {'id': config.id, 'slug': config.waiter_slug}
 
     def _waiter_validate_restriction(self, config_ids):
