@@ -34,7 +34,8 @@ Reglas:
 - **Las reseñas de Google no se premian**: Google no permite saber quién dejó una reseña y sus políticas prohíben dar
   incentivos por ellas. Fuera de alcance.
 - **Aviso de producción:** la verificación de cuenta es de demostración (cualquier código de 6 dígitos). Antes de producción
-  hace falta el envío real del código; mientras tanto los premios se pueden abusar con cuentas falsas.
+  hace falta el envío real del código; mientras tanto los premios se pueden abusar con cuentas falsas. Queda para el
+  [sprint de integraciones pendientes](2026-09-28-sprint-integraciones-pendientes.md) (autenticación con WhatsApp).
 
 ## Contrato común
 

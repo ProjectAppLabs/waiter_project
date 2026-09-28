@@ -18,6 +18,9 @@ prueba que su integración externa exista.
 
 ## Orden de lectura
 
+**Integraciones pendientes para un sprint propio al final:** autenticación con la API de WhatsApp (también para el
+asistente), Bold y Wompi real. Ver el [sprint de integraciones pendientes](planes/2026-09-28-sprint-integraciones-pendientes.md).
+
 La integración de WhatsApp comienza por el [puente de pedidos al POS](planes/2026-09-14-whatsapp-pos.md).
 El [chat del menú](planes/2026-09-14-chat-menu.md) ya utiliza un núcleo de conversación compartido. Meta y la pasarela siguen pendientes.
 

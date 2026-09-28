@@ -1,0 +1,69 @@
+# Sprint de integraciones pendientes: WhatsApp, Bold y Wompi
+
+**Estado: pendiente, a propósito.** Por decisión del dueño (2026-09-28), estas integraciones se atacan juntas en un sprint
+propio **al final**, después de cerrar el producto del menú y del POS. Hasta entonces, el sistema funciona con los
+sustitutos de demostración que se indican abajo, y ningún plan intermedio debe darlas por hechas.
+
+## 1. Autenticación con la API de WhatsApp (Meta WhatsApp Business Platform)
+
+**Para qué:** verificar de verdad la cuenta del comensal con un código enviado por WhatsApp, y servir de base al
+**asistente de WhatsApp**, que usará el mismo número, las mismas credenciales y la misma plantilla de mensajes.
+
+**Hoy:**
+- La verificación de cuenta es de demostración: cualquier código de 6 dígitos vale, y en producción se rechaza
+  (`experience_app/services/account.py`, `require_demo`).
+- El puente de pedidos de WhatsApp al POS existe sin Meta ([plan](2026-09-14-whatsapp-pos.md)): no envía ni recibe
+  mensajes.
+
+**Por qué urge antes de producción:** los premios de las acciones del [Plan N](2026-09-27-plan-N-promociones.md) y el
+descuento de primera compra dependen de una cuenta verificada. Con la verificación de demostración se abusan con cuentas
+falsas.
+
+**Alcance del sprint:**
+- Número y plantilla de autenticación aprobados en Meta.
+- Envío del código de un solo uso, con caducidad, intentos limitados y límite por teléfono y por dispositivo.
+- Verificación en el servidor.
+- Cada número de Meta vinculado a una sede en el servidor.
+- Webhook firmado.
+- Secretos cifrados, como los de Wompi.
+- Canal de correo como respaldo (la pantalla «cuenta/canal» ya ofrece elegir).
+- Después, conectar el asistente a este mismo canal.
+
+## 2. Bold (datáfono y pagos)
+
+**Hoy:**
+- El POS cobra con datáfono de forma manual: el datáfono aprueba y el cajero lo confirma.
+- La interfaz ya quedó preparada para una semi-integración con Bold (`pos/lib/payments/terminal.ts`, `TerminalAdapter`
+  con `name: 'manual' | 'bold'`).
+- No hay adaptador Bold ni credenciales.
+
+**Alcance del sprint:**
+- Adaptador Bold del datáfono (cobro, estado, anulación).
+- Conciliación con el pedido de Odoo, sin cobros dobles.
+- Configuración por sede desde el POS, con secretos cifrados.
+- Pruebas en su entorno de pruebas.
+
+## 3. Wompi (pagos dentro del menú)
+
+**Hoy:**
+- Implementación inicial instalada ([plan](2026-09-14-wompi.md)): configuración en el POS, pantalla de pago del menú,
+  adaptador, webhook firmado y conciliación idempotente con Odoo.
+- Nunca se probó contra el sandbox real: faltan las cuatro credenciales de pruebas.
+- El pago en vivo sigue bloqueado con `PAYMENTS_LIVE_ENABLED=false`.
+
+**Alcance del sprint:**
+- Cargar las credenciales de sandbox y validar los cuatro medios: transferencia y QR de Bancolombia, Nequi y tarjeta con
+  3DS.
+- Publicar la URL del webhook por HTTPS.
+- Probar la conciliación con interrupciones.
+- Regenerar los secretos de producción expuestos antes.
+- Solo después, habilitar producción.
+- La acción «pagar en línea» del Plan N empezará a premiar pagos reales cuando esto esté activo.
+
+## Criterio de cierre del sprint
+
+Cada integración:
+- se prueba contra el entorno de pruebas real del proveedor, no solo con respuestas simuladas;
+- tiene sus secretos fuera del repositorio y cifrados;
+- no deja un camino que cobre, verifique o premie dos veces;
+- queda documentada en este plan con su evidencia.
