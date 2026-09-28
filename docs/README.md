@@ -18,6 +18,11 @@ prueba que su integración externa exista.
 
 ## Orden de lectura
 
+**Multirrestaurante (en curso):** un dueño con muchos restaurantes; una base de Odoo por organización y un
+`pos.config` por restaurante. Ver el [Plan O](planes/2026-09-28-plan-O-multirrestaurante.md), su
+[inventario](inventario/2026-09-28-inventario-multirrestaurante.md) y la
+[decisión](decisiones/2026-09-28-una-base-por-organizacion.md).
+
 **Integraciones pendientes para un sprint propio al final:** autenticación con la API de WhatsApp (también para el
 asistente), Bold, Wompi real y una IA de decisiones de código abierto para guiar a las personas. Ver el [sprint de integraciones pendientes](planes/2026-09-28-sprint-integraciones-pendientes.md).
 

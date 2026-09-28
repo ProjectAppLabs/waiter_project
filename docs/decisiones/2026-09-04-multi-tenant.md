@@ -1,7 +1,7 @@
 # Decisión: una base de datos por restaurante
 
 - **Fecha:** 2026-09-04
-- **Estado:** aceptada
+- **Estado:** aceptada; **enmendada el 2026-09-28** por [una base por organización](2026-09-28-una-base-por-organizacion.md): el inquilino es la organización (el dueño) y cada restaurante es un `pos.config` dentro de su base.
 - **Contexto previo:** [spike de Odoo Community](2026-09-04-spike-odoo-community.md)
 
 ## Decisión
