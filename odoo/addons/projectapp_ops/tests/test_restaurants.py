@@ -177,3 +177,20 @@ class TestRestaurants(TransactionCase):
         coupon = self.env['loyalty.program'].search([('waiter_menu_coupon', '=', True), ('rule_ids.code', '=', 'TODOSO')])
         self.assertFalse(coupon.pos_config_ids)
         self.assertEqual(self.second.waiter_coupon_quote('TODOSO', 100)['porcentaje'], 10)
+
+    def test_catalog_price_per_restaurant_keeps_the_organization_price_elsewhere(self):
+        # Falla si el precio local de un plato cambia el de otro restaurante, si volver al de la organización no quita el
+        # local o si un encargado de otro restaurante puede cambiarlo.
+        dish = self.env['product.template'].create({'name': 'Plato precio O', 'list_price': 20000, 'available_in_pos': True, 'taxes_id': [(6, 0, [])]})
+        variant = dish.product_variant_id.id
+        self.assertEqual(self.second.waiter_set_catalog_price(dish.id, 23500), 23500)
+        self.assertEqual(self.second.waiter_catalog_prices([variant])[str(variant)], 23500)
+        self.assertEqual(self.first.waiter_catalog_prices([variant])[str(variant)], 20000)
+        self.assertEqual(self.second.waiter_set_catalog_price(dish.id, 24000), 24000)
+        self.assertEqual(len(self.second.pricelist_id.item_ids.filtered(lambda i: i.product_tmpl_id == dish)), 1)
+        self.assertEqual(self.second.waiter_set_catalog_price(dish.id, None), 20000)
+        manager = self.user('admin', self.first, 'encargado-precios')
+        with self.assertRaises(AccessError):
+            self.second.with_user(manager).waiter_set_catalog_price(dish.id, 1000)
+        with self.assertRaises(ValidationError):
+            self.second.waiter_set_catalog_price(dish.id, -5)

@@ -37,8 +37,8 @@ export async function loadPosData(sessionId: number | null, restaurantId: number
       favorite: Boolean(t.is_favorite), storable: Boolean(t.is_storable), soldOut: false, hasImage: Boolean(t.image_128) }] : []
   })
   const configId = raw['pos.config'][0]?.id ?? null
-  const [out, closedHere] = await Promise.all([soldOutIds(base), unavailableHere(configId)])
-  const products = base.map((p) => ({ ...p, soldOut: out.has(p.id) || closedHere.has(p.templateId) }))
+  const [out, closedHere, localPrices] = await Promise.all([soldOutIds(base), unavailableHere(configId), restaurantPrices(configId, base.map((p) => p.id))])
+  const products = base.map((p) => ({ ...p, price: localPrices[String(p.id)] ?? p.price, soldOut: out.has(p.id) || closedHere.has(p.templateId) }))
   const categories: Category[] = raw['pos.category'].map(({ id, name, sequence, kitchen_station }) => ({ id, name, sequence, station: kitchen_station || null }))
   // load_data manda el fondo del plano en base64: aquí solo interesa si existe; la imagen se pide por /web/image.
   const floors: Floor[] = raw['restaurant.floor'].map(({ id, name, table_ids, floor_background_image }) => ({ id, name, tableIds: table_ids, hasBackground: Boolean(floor_background_image) }))
@@ -54,6 +54,12 @@ export async function loadPosData(sessionId: number | null, restaurantId: number
   settings.waiterCanCharge = settings.rolePermissions.waiter.actions.includes('charge_orders')
   settings.waiterCanEditInventory = settings.rolePermissions.waiter.actions.includes('edit_inventory')
   return { company, settings, products, categories, floors, tables, paymentMethods }
+}
+
+// Plan O: el precio de cada plato en este restaurante (su lista de precios; sin precio local, el de la organización).
+async function restaurantPrices(configId: number | null, productIds: number[]): Promise<Record<string, number>> {
+  if (configId === null || productIds.length === 0) return {}
+  try { return await callKw<Record<string, number>>('pos.config', 'waiter_catalog_prices', [[configId], productIds]) } catch { return {} }
 }
 
 // Plan O: los platos que este restaurante marcó como agotados (`waiter_unavailable_config_ids`); el catálogo sigue siendo
