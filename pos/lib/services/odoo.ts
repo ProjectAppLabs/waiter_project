@@ -18,8 +18,11 @@ export const http = axios.create({ baseURL: '/odoo', timeout: 60_000, withCreden
 let nextId = 1
 
 export async function jsonRpc<T>(path: string, params: Record<string, unknown>): Promise<T> {
+  // Plan O: las pasarelas de administración del addon (/waiter/admin/*) necesitan saber qué restaurante se opera; la
+  // organización la ponen ellas mismas.
+  const configId = path.startsWith('/waiter/admin/') && !('config_id' in params) ? currentConfigId() : null
   const { data } = await http.post<JsonRpcResponse<T>>(path, {
-    jsonrpc: '2.0', method: 'call', id: nextId++, params,
+    jsonrpc: '2.0', method: 'call', id: nextId++, params: configId !== null ? { ...params, config_id: configId } : params,
   })
   if (data.error) {
     const detail = data.error.data ?? {}
