@@ -25,6 +25,8 @@ import {
 import { getRecipe } from '@/lib/services/restaurantInventory'
 import { archiveIngredient, requestIngredient } from '@/lib/services/pantry'
 import { useAuthStore } from '@/lib/stores/authStore'
+import { currentConfigId } from '@/lib/services/odoo'
+import { closedDishes, setDishAvailability } from '@/lib/services/masterCatalog'
 import { useCatalogStore } from '@/lib/stores/catalogStore'
 import { usePantryStore } from '@/lib/stores/pantryStore'
 import { toast } from '@/lib/stores/toastStore'
@@ -51,6 +53,25 @@ export default function InventarioPage() {
   useEffect(() => { void load() }, [load])
 
   const openDetail = useCallback(async (dish: Dish) => { setDetail(dish) }, [])
+  // Plan O: los platos que este restaurante tiene agotados (el catálogo es de la organización). Solo el encargado los cambia.
+  const configId = currentConfigId()
+  const [closedHere, setClosedHere] = useState<Set<number>>(new Set())
+  const dishIds = s.dishes.map((d) => d.id).join(',')
+  useEffect(() => {
+    if (configId === null || !dishIds) return
+    let alive = true
+    closedDishes(dishIds.split(',').map(Number), configId).then((ids) => { if (alive) setClosedHere(ids) }).catch(() => undefined)
+    return () => { alive = false }
+  }, [configId, dishIds])
+  const toggleHere = async (dish: Dish) => {
+    if (configId === null) return
+    const closed = closedHere.has(dish.id)
+    try {
+      await setDishAvailability(dish.id, configId, closed)
+      setClosedHere((v) => { const next = new Set(v); if (closed) next.delete(dish.id); else next.add(dish.id); return next })
+      void reloadCatalog(session?.id ?? null)
+    } catch (e) { toast({ title: e instanceof Error ? e.message : String(e), tone: 'danger' }) }
+  }
   useEffect(()=>{const id=Number(new URLSearchParams(window.location.search).get('plato'));if(!id)return;let alive=true;getRecipe(id).then(d=>{if(alive){setDetail({id,name:d.name});window.history.replaceState(null,'','/inventario')}}).catch(e=>{if(alive)toast({title:e.message,tone:'danger'})});return()=>{alive=false}},[])
   useEffect(()=>{const timer=setInterval(()=>{void refresh().catch(()=>{})},15000);return()=>clearInterval(timer)},[refresh])
 
@@ -132,7 +153,7 @@ export default function InventarioPage() {
             {s.error && <p role="alert" className="m-4 p-3 rounded-md bg-danger-soft text-danger-ink text-[14px]">{s.error}</p>}
             {s.tab === 'menu' && (dishes.length === 0 && !s.loading
               ? <KitEmptyState icon="inventory" title={t('menu.empty')} body={t('menu.emptyBody')} />
-              : <div className="p-2.5 grid grid-cols-3 gap-2.5 content-start">{dishes.map((d) => <DishCard key={d.id} dish={d} category={posCategoryName(d.categoryIds)} onOpen={() => void openDetail(d)} onEdit={role === 'admin' ? () => setMenuAdmin({ kind: 'product', id: d.id }) : undefined} />)}</div>)}
+              : <div className="p-2.5 grid grid-cols-3 gap-2.5 content-start">{dishes.map((d) => <DishCard key={d.id} dish={d} category={posCategoryName(d.categoryIds)} onOpen={() => void openDetail(d)} onEdit={role === 'admin' ? () => setMenuAdmin({ kind: 'product', id: d.id }) : undefined} closedHere={closedHere.has(d.id)} onToggleHere={role === 'admin' && configId !== null ? () => void toggleHere(d) : undefined} />)}</div>)}
             {s.tab === 'ingredients' && (ingredients.length === 0 && !s.loading
               ? <KitEmptyState icon="inventory" title={t('ingredients.empty')} body={t('ingredients.emptyBody')} />
               : <ul className="p-2.5 flex flex-col gap-2">{ingredients.map((i) => <IngredientRow key={i.id} ingredient={i} onEdit={() => setIngredientModal({ kind: 'edit', ingredient: i })} onRequest={() => void request(i)} onDelete={() => setIngredientModal({ kind: 'delete', ingredient: i })} mayEdit={mayEdit} onControl={()=>setControl(i)} />)}</ul>)}

@@ -1,8 +1,11 @@
 # Plan O · Multirrestaurante: un dueño con muchos restaurantes
 
-**Estado (2026-09-28): hecho de O0 a O5**, con estos pendientes:
-- el control para marcar «agotado en este restaurante» desde el POS (el POS ya lo respeta);
-- la vista del catálogo maestro, con precio y disponibilidad por restaurante, en la consola del dueño.
+**Estado (2026-09-28): hecho, de O0 a O5.**
+- **Catálogo maestro en la consola del dueño:** precio por restaurante (lista de precios propia creada al primer precio
+  local con `pos.config.waiter_set_catalog_price`; vacío vuelve al de la organización) y disponibilidad por
+  restaurante.
+- **Inventario del POS:** el encargado agota o vuelve a ofrecer un plato solo en su restaurante.
+- **POS y menú:** usan el precio del restaurante.
 
 Pruebas:
 - Odoo: 184/184 sobre una base con dos restaurantes.

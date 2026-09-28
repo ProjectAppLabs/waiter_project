@@ -10,9 +10,11 @@ import { cn } from '@/lib/utils'
 
 // Tarjeta del "Menu List": foto con badge Disponible, nombre, categoría y pie "Se pueden servir: N" con el nivel.
 // `onEdit` (solo administradores) abre la ficha comercial: precio, foto, categoría, mostrarlo u ocultarlo.
-export function DishCard({ dish, category, onOpen, onEdit }: { dish: Dish; category: string; onOpen: () => void; onEdit?: () => void }) {
+// Plan O: `closedHere` es el agotado de este restaurante (el plato sigue en el catálogo de la organización);
+// `onToggleHere` (encargado) lo cambia.
+export function DishCard({ dish, category, onOpen, onEdit, closedHere = false, onToggleHere }: { dish: Dish; category: string; onOpen: () => void; onEdit?: () => void; closedHere?: boolean; onToggleHere?: () => void }) {
   const t = useTranslations('pantry')
-  const available = dishAvailable(dish)
+  const available = dishAvailable(dish) && !closedHere
   const servings = dishServings(dish)
   return (
     <div className="relative flex">
@@ -22,7 +24,7 @@ export function DishCard({ dish, category, onOpen, onEdit }: { dish: Dish; categ
       <div className="relative aspect-[230/122] rounded-sm overflow-hidden bg-muted grid place-items-center text-dim">
         {dish.hasImage ? <img src={imageUrl(dish.id)} alt="" className="absolute inset-0 w-full h-full object-cover" /> : <Icon name="photo" size={28} />}
         <span className="absolute top-2 left-2 h-7 px-2.5 rounded-full bg-surface text-[13px] font-semibold text-ink flex items-center gap-1.5">
-          <span className={cn('w-2 h-2 rounded-full', available ? 'bg-success' : 'bg-danger')} aria-hidden />{t(available ? 'menu.available' : 'menu.unavailable')}
+          <span className={cn('w-2 h-2 rounded-full', available ? 'bg-success' : 'bg-danger')} aria-hidden />{closedHere ? t('menu.closedHere') : t(available ? 'menu.available' : 'menu.unavailable')}
         </span>
       </div>
       <div className="px-1.5 pt-2.5 pb-2 flex flex-col gap-0.5">
@@ -34,6 +36,10 @@ export function DishCard({ dish, category, onOpen, onEdit }: { dish: Dish; categ
         <LevelBadge level={dish.level} />
       </div>
     </button>
+    {onToggleHere && <button type="button" onClick={onToggleHere} aria-pressed={closedHere} aria-label={t(closedHere ? 'menu.reopenHereLabel' : 'menu.closeHereLabel', { name: dish.name })}
+      className={cn('absolute bottom-12 right-3.5 z-10 h-9 px-3 rounded-full text-[13px] font-semibold shadow', closedHere ? 'bg-success text-white' : 'bg-surface text-danger-ink border border-danger/30')}>
+      {t(closedHere ? 'menu.reopenHere' : 'menu.closeHere')}
+    </button>}
     </div>
   )
 }

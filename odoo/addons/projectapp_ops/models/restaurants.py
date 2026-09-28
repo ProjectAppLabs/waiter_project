@@ -252,6 +252,52 @@ class PosConfig(models.Model):
         return {str(product.id): self.pricelist_id._get_product_price(product, 1.0)
                 if self.pricelist_id else product.lst_price for product in products}
 
+    def _waiter_own_pricelist(self):
+        """La lista de precios propia del restaurante. La primera vez se crea heredando la que tenía (o el precio base
+        del catálogo), así solo cambian los platos a los que se les pone un precio local."""
+        self.ensure_one()
+        own = self.env['product.pricelist'].sudo().search([('waiter_config_id', '=', self.id)], limit=1)
+        if own:
+            return own
+        base = self.pricelist_id
+        own = self.env['product.pricelist'].sudo().create({
+            'name': 'Precios · ' + self.name, 'waiter_config_id': self.id, 'company_id': self.company_id.id,
+            'currency_id': self.company_id.currency_id.id,
+            'item_ids': [Command.create({'applied_on': '3_global', 'compute_price': 'formula', 'base': 'pricelist',
+                                         'base_pricelist_id': base.id})] if base else [],
+        })
+        self.sudo().write({'pricelist_id': own.id, 'available_pricelist_ids': [Command.link(own.id)], 'use_pricelist': True})
+        return own
+
+    def waiter_set_catalog_price(self, product_tmpl_id, price):
+        """Plan O: precio de un plato del catálogo maestro en este restaurante. `price` fijo (con impuestos según el
+        régimen del catálogo) o `None`/`False` para volver al precio de la organización. Dueño, o encargado de este
+        restaurante. Devuelve el precio resultante."""
+        self.ensure_one()
+        self.check_access('read')
+        user = self.env.user
+        if not (user.has_group('projectapp_ops.group_waiter_owner') or user.has_group('base.group_system')
+                or (user.waiter_role == 'admin' and self in user.waiter_config_ids)):
+            raise AccessError('Solo el dueño o el encargado de este restaurante cambia sus precios.')
+        if type(product_tmpl_id) is not int:
+            raise ValidationError('Indica el plato.')
+        template = self.env['product.template'].browse(product_tmpl_id).exists()
+        if not template or (template.company_id and template.company_id != self.company_id):
+            raise ValidationError('El plato no pertenece a esta organización.')
+        if price not in (None, False) and (type(price) not in (int, float) or not math.isfinite(price) or price < 0 or price > 1e9):
+            raise ValidationError('El precio debe ser un número positivo.')
+        pricelist = self._waiter_own_pricelist()
+        items = pricelist.item_ids.filtered(lambda i: i.applied_on == '1_product' and i.product_tmpl_id == template)
+        if price in (None, False):
+            items.unlink()
+        elif items:
+            items[:1].write({'compute_price': 'fixed', 'fixed_price': price})
+            items[1:].unlink()
+        else:
+            self.env['product.pricelist.item'].sudo().create({'pricelist_id': pricelist.id, 'applied_on': '1_product',
+                                                             'product_tmpl_id': template.id, 'compute_price': 'fixed', 'fixed_price': price})
+        return pricelist._get_product_price(template.product_variant_id, 1.0)
+
     def _waiter_sync_employee_lists(self):
         for config in self.sudo():
             employees = self.env['hr.employee'].sudo().search(config._employee_domain(self.env.uid))
@@ -355,3 +401,10 @@ class PosPayment(models.Model):
     _inherit = 'pos.payment'
 
     config_id = fields.Many2one(related='pos_order_id.config_id', store=True, index=True)
+
+
+class ProductPricelist(models.Model):
+    _inherit = 'product.pricelist'
+
+    # Plan O: la lista de precios propia de un restaurante (la crea `waiter_set_catalog_price`).
+    waiter_config_id = fields.Many2one('pos.config', string='Restaurante', index=True, ondelete='set null', copy=False)

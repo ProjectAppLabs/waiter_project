@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils'
 // Plan O: consola del dueño, fuera del POS. Todo lo de la organización (restaurantes, equipo, diseño del menú,
 // promociones, integraciones y empresa) y la puerta a cada POS. Solo entra el dueño, con su PIN ya marcado.
 const SECTIONS: [string, string, KitIcon][] = [
-  ['/organizacion', 'Restaurantes', 'store'], ['/organizacion/equipo', 'Equipo', 'users'], ['/organizacion/diseno', 'Diseño del menú', 'layout'],
+  ['/organizacion', 'Restaurantes', 'store'], ['/organizacion/catalogo', 'Catálogo', 'bag'], ['/organizacion/equipo', 'Equipo', 'users'], ['/organizacion/diseno', 'Diseño del menú', 'layout'],
   ['/organizacion/promociones', 'Promociones', 'percentage'], ['/organizacion/integraciones', 'Integraciones IA', 'sparkles'], ['/organizacion/empresa', 'Empresa e impuestos', 'lock'],
 ]
 

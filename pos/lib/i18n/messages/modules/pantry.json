@@ -45,6 +45,11 @@
     "available": "Disponible",
     "unavailable": "No disponible",
     "canServe": "Se pueden servir:",
+    "closedHere": "Agotado aquí",
+    "closeHere": "Agotar aquí",
+    "reopenHere": "Volver a ofrecer",
+    "closeHereLabel": "Marcar {name} como agotado en este restaurante",
+    "reopenHereLabel": "Volver a ofrecer {name} en este restaurante",
     "noRecipe": "Sin receta",
     "empty": "No hay platos con esos filtros",
     "emptyBody": "Cambia los filtros o agrega un plato nuevo."
