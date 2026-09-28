@@ -337,7 +337,6 @@
       "restaurant": "Restaurante",
       "brand": "Marca",
       "menuTemplate": "Diseño del menú",
-      "floors": "Pisos y mesas",
       "payments": "Métodos de pago",
       "taxes": "Impuestos",
       "users": "Usuarios",
@@ -345,18 +344,7 @@
       "roi": "Supuestos del ROI",
       "display": "Pantalla y sonido",
       "integrations": "Integraciones IA",
-      "benefits": "Promociones",
-      "reservationHours": "Horario de reservas"
-    },
-    "floors": {
-      "tables": "{n, plural, one {# mesa} other {# mesas}}",
-      "number": "Número",
-      "seats": "Puestos",
-      "active": "Activa",
-      "newTable": "Agregar mesa",
-      "newFloor": "Nuevo piso",
-      "floorName": "Nombre del piso",
-      "table": "Mesa {n}"
+      "benefits": "Promociones"
     },
     "payments": {
       "hint": "Los métodos se crean en Odoo por el aprovisionamiento; aquí se ven los del canal.",

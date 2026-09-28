@@ -9,6 +9,9 @@ import { Icon } from '@/components/kit/Icon'
 import { ReservationDetailModal } from '@/components/reservations/ReservationDetailModal'
 import { ReservationTimeline, TimelineSkeleton } from '@/components/reservations/ReservationTimeline'
 import { ReservationWizard } from '@/components/reservations/ReservationWizard'
+import { Modal } from '@/components/kit/Modal'
+import { ReservationHoursForm } from '@/components/settings/ReservationHoursForm'
+import { useIdentity } from '@/lib/hooks/useIdentity'
 import { Button } from '@/components/ui/Button'
 import { useCatalogStore } from '@/lib/stores/catalogStore'
 import { useAuthStore } from '@/lib/stores/authStore'
@@ -23,6 +26,9 @@ export default function ReservasPage() {
   const configId = session?.configId ?? catalog?.settings.configId ?? null
   const r = useReservationsStore()
   const [detail, setDetail] = useState<number | null>(null)
+  // El horario de reservas se configura aquí, en su módulo (antes estaba en Configuración); solo lo edita un administrador.
+  const { role } = useIdentity()
+  const [hours, setHours] = useState(false)
 
   useEffect(() => { if (configId) void r.load(configId) }, [configId, r.date, r.floorId]) // eslint-disable-line react-hooks/exhaustive-deps
   // Cada visita trae la grilla fresca: al salir se olvida lo cargado (lo que se evita es repetir la misma petición
@@ -41,6 +47,7 @@ export default function ReservasPage() {
           <Icon name="reservations" size={18} className="text-soft" />
           <input type="date" aria-label={t('day')} value={r.date} onChange={(e) => r.setDate(e.target.value)} className="bg-transparent text-ink focus:outline-none" />
         </label>
+        {role === 'admin' && <Button size="compact" disabled={!configId} onClick={() => setHours(true)}><Icon name="clock" size={18} />{t('hoursButton')}</Button>}
         <Button variant="primary" size="compact" disabled={!configId} onClick={r.openWizard}><Icon name="plus" size={18} />{t('add')}</Button>
       </header>
 
@@ -50,6 +57,9 @@ export default function ReservasPage() {
 
       <ReservationDetailModal reservationId={detail} open={detail !== null} onClose={() => setDetail(null)} configId={configId} onChanged={() => { if (configId) void r.load(configId, true) }}
         onAction={(id, state) => { if (configId) { void r.changeState(id, state, configId); setDetail(null) } }} />
+      {configId && role === 'admin' && <Modal open={hours} onClose={() => setHours(false)} title={t('hoursTitle')} size="wide">
+        <div className="overflow-y-auto p-5"><ReservationHoursForm configId={configId} /></div>
+      </Modal>}
       {configId && <ReservationWizard configId={configId} onCreated={(created) => {
         toast({ title: t('created', { name: created.name }), body: created.customerEmail ? t('createdMail') : t('createdBody') })
         // Con anticipo pendiente, el siguiente paso es cobrarlo: se abre el detalle con el enlace de pago listo para compartir.

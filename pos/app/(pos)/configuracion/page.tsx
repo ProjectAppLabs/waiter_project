@@ -5,11 +5,10 @@ import { useTranslations } from 'next-intl'
 import { Suspense, useEffect, useState } from 'react'
 
 import { Icon, type KitIcon } from '@/components/kit/Icon'
-import { CompanyForm, DisplayForm, FloorsForm, PaymentMethodsList, TaxesList, UsersForm } from '@/components/settings/KitSettingsForms'
+import { CompanyForm, DisplayForm, PaymentMethodsList, TaxesList, UsersForm } from '@/components/settings/KitSettingsForms'
 import { RolePermissionsForm } from '@/components/settings/RolePermissionsForm'
 import { TaxRegimeForm } from '@/components/settings/TaxRegimeForm'
 import { KitchenPaymentPolicyForm } from '@/components/settings/KitchenPaymentPolicyForm'
-import { ReservationHoursForm } from '@/components/settings/ReservationHoursForm'
 import { PaymentGatewayForm } from '@/components/settings/PaymentGatewayForm'
 import { BenefitsForm } from '@/components/settings/BenefitsForm'
 import { McpInvite } from '@/components/settings/McpInvite'
@@ -18,13 +17,13 @@ import { McpKeysForm } from '@/components/settings/McpKeysForm'
 import { MenuTemplateForm } from '@/components/settings/MenuTemplateForm'
 import { ThresholdsForm } from '@/components/settings/SettingsForms'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { getCompany, listFloors, listPaymentMethods, listTaxes, listUsers, saveSettings, type CompanyInfo, type FloorInfo, type PaymentMethodInfo, type TaxInfo, type UserInfo } from '@/lib/services/settings'
+import { getCompany, listPaymentMethods, listTaxes, listUsers, saveSettings, type CompanyInfo, type PaymentMethodInfo, type TaxInfo, type UserInfo } from '@/lib/services/settings'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useCatalogStore } from '@/lib/stores/catalogStore'
 import { cn } from '@/lib/utils'
 
-const SECTIONS: [Section, KitIcon][] = [['restaurant', 'store'], ['menuTemplate', 'layout'], ['benefits', 'percentage'], ['floors', 'grid'], ['reservationHours', 'reservations'], ['payments', 'card'], ['taxes', 'percentage'], ['users', 'users'], ['permissions', 'lock'], ['alerts', 'alert'], ['roi', 'chartLine'], ['display', 'tablet'], ['integrations', 'sparkles']]
-type Section = 'integrations' | 'permissions' | 'benefits' | 'reservationHours' | 'restaurant' | 'brand' | 'menuTemplate' | 'floors' | 'payments' | 'taxes' | 'users' | 'alerts' | 'roi' | 'display'
+const SECTIONS: [Section, KitIcon][] = [['restaurant', 'store'], ['menuTemplate', 'layout'], ['benefits', 'percentage'], ['payments', 'card'], ['taxes', 'percentage'], ['users', 'users'], ['permissions', 'lock'], ['alerts', 'alert'], ['roi', 'chartLine'], ['display', 'tablet'], ['integrations', 'sparkles']]
+type Section = 'integrations' | 'permissions' | 'benefits' | 'restaurant' | 'brand' | 'menuTemplate' | 'payments' | 'taxes' | 'users' | 'alerts' | 'roi' | 'display'
 
 // Configuración con la estructura del modal "Setting" del kit (Account Setting / Profile.png): pestañas verticales con
 // icono a la izquierda y panel con cabecera a la derecha, para las secciones del restaurante.
@@ -36,13 +35,11 @@ function ConfiguracionInner() {
   const initialSection: Section = params.get('seccion') === 'alertas' ? 'alerts' : 'restaurant'
   const [section, setSection] = useState<Section>(initialSection)
   const [company, setCompany] = useState<CompanyInfo | null>(null)
-  const [floors, setFloors] = useState<FloorInfo[]>([])
   const [methods, setMethods] = useState<PaymentMethodInfo[]>([])
   const [taxes, setTaxes] = useState<TaxInfo[]>([])
   const [users, setUsers] = useState<UserInfo[]>([])
-  const reloadFloors = () => listFloors().then(setFloors)
   const reloadUsers = () => listUsers().then(setUsers)
-  useEffect(() => { void getCompany().then(setCompany); void reloadFloors(); void listPaymentMethods().then(setMethods); void listTaxes().then(setTaxes); void reloadUsers() }, [])
+  useEffect(() => { void getCompany().then(setCompany); void listPaymentMethods().then(setMethods); void listTaxes().then(setTaxes); void reloadUsers() }, [])
   if (!catalog) return null
   const onSaveSettings = async (s: typeof catalog.settings) => { await saveSettings(s); await load(session?.id ?? null) }
   return (
@@ -65,8 +62,6 @@ function ConfiguracionInner() {
               {section === 'benefits' && <BenefitsForm configId={catalog.settings.configId} />}
               {section === 'integrations' && <McpKeysForm />}
               {section === 'menuTemplate' && <><McpInvite onConnect={() => setSection('integrations')} /><MenuTemplateForm /><MenuDecorationsForm /></>}
-              {section === 'floors' && <FloorsForm floors={floors} configId={catalog.settings.configId} onChanged={reloadFloors} />}
-              {section === 'reservationHours' && <ReservationHoursForm configId={catalog.settings.configId} />}
               {section === 'payments' && <><PaymentMethodsList methods={methods} /><PaymentGatewayForm methods={methods} /></>}
               {section === 'taxes' && <div className="space-y-8"><TaxRegimeForm configId={catalog.settings.configId} /><TaxesList taxes={taxes} /></div>}
               {section === 'users' && <UsersForm users={users} onChanged={reloadUsers} />}

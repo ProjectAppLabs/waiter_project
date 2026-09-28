@@ -6,14 +6,13 @@ import { useEffect, useState } from 'react'
 import { Chip } from '@/components/kit/Chip'
 import { Icon } from '@/components/kit/Icon'
 import { StatusPill } from '@/components/kit/StatusPill'
-import { Toggle } from '@/components/kit/Toggle'
 import { MapsLinkField, type MapsStatus } from '@/components/settings/MapsLinkField'
 import { SaveBar, useSaveState } from '@/components/settings/SettingsForms'
 import { Button } from '@/components/ui/Button'
 import { Select, TextInput } from '@/components/ui/Field'
 import { play, setStation, type SoundId, type Station } from '@/lib/audio/sounds'
 import { ROLES, type Role } from '@/lib/domain/roles'
-import { inviteUser, resendInvite, saveCompany, saveFloor, saveTable, setUserRole, type CompanyInfo, type FloorInfo, type PaymentMethodInfo, type TaxInfo, type UserInfo } from '@/lib/services/settings'
+import { inviteUser, resendInvite, saveCompany, setUserRole, type CompanyInfo, type PaymentMethodInfo, type TaxInfo, type UserInfo } from '@/lib/services/settings'
 
 // Secciones de Configuración dibujadas con los componentes del kit (tarjetas, chips, píldoras, toggles).
 // Marca y Plantilla del menú tienen su propio componente; umbrales y ROI usan ThresholdsForm.
@@ -40,39 +39,6 @@ export function CompanyForm({ initial }: { initial: CompanyInfo }) {
       <p className="text-sm text-soft">{t('addressHint')}</p>
       <MapsLinkField initial={start} onChange={(point, status) => { setMaps(status); if (status === 'found' || status === 'empty') setC((v) => ({ ...v, waiter_latitude: point ? String(point.lat) : '', waiter_longitude: point ? String(point.lng) : '' })) }} />
       <SaveBar state={state} onSave={() => save(() => saveCompany(c))} disabled={!c.name.trim() || mapsBlocks} />
-    </div>
-  )
-}
-
-export function FloorsForm({ floors, configId, onChanged }: { floors: FloorInfo[]; configId: number; onChanged: () => Promise<void> }) {
-  const t = useTranslations('admin.settings.floors')
-  const ts = useTranslations('admin.common')
-  const [newFloor, setNewFloor] = useState('')
-  const [drafts, setDrafts] = useState<Record<number, { number: number; seats: number; active: boolean }>>({})
-  const draft = (id: number, base: { number: number; seats: number; active: boolean }) => drafts[id] ?? base
-  const edit = (id: number, base: { number: number; seats: number; active: boolean }, patch: Partial<{ number: number; seats: number; active: boolean }>) => setDrafts((x) => ({ ...x, [id]: { ...draft(id, base), ...patch } }))
-  return (
-    <div className="flex flex-col gap-4">
-      {floors.map((f) => (
-        <section key={f.id} aria-label={f.name} className={box}>
-          <div className="flex items-center gap-3"><span className="w-10 h-10 rounded-md bg-primary-soft text-primary grid place-items-center"><Icon name="grid" size={20} /></span><span className="text-[16px] font-semibold text-ink">{f.name}</span><span className="ml-auto text-[13px] text-soft">{t('tables', { n: f.tables.length })}</span></div>
-          <div className="flex flex-col gap-2">
-            {f.tables.map((tb) => {
-              const d = draft(tb.id, tb)
-              return (
-                <div key={tb.id} className="grid grid-cols-[120px_120px_1fr_auto] gap-3 items-end rounded-md bg-muted p-3">
-                  <TextInput label={t('number')} type="number" value={d.number} onChange={(e) => edit(tb.id, tb, { number: Number(e.target.value) })} className="tabular" />
-                  <TextInput label={t('seats')} type="number" value={d.seats} onChange={(e) => edit(tb.id, tb, { seats: Number(e.target.value) })} className="tabular" />
-                  <div className="flex items-center gap-3 h-tap-min"><Toggle checked={d.active} onChange={(v) => edit(tb.id, tb, { active: v })} label={`${t('active')} ${t('table', { n: d.number })}`} /><span className="text-[15px] text-ink">{t('active')}</span></div>
-                  <Button size="compact" variant={drafts[tb.id] ? 'primary' : 'secondary'} disabled={!drafts[tb.id]} onClick={async () => { await saveTable(tb.id, f.id, d); await onChanged(); setDrafts((x) => { const { [tb.id]: _omit, ...rest } = x; void _omit; return rest }) }}>{ts('save')}</Button>
-                </div>
-              )
-            })}
-          </div>
-          <Button size="compact" className="self-start" onClick={async () => { await saveTable(null, f.id, { number: Math.max(0, ...f.tables.map((x) => x.number)) + 1, seats: 4, active: true }); await onChanged() }}><Icon name="plus" size={18} />{t('newTable')}</Button>
-        </section>
-      ))}
-      <div className="flex items-end gap-3 max-w-md"><TextInput label={t('floorName')} value={newFloor} onChange={(e) => setNewFloor(e.target.value)} /><Button variant="primary" disabled={!newFloor.trim()} onClick={async () => { await saveFloor(null, newFloor.trim(), configId); setNewFloor(''); await onChanged() }}><Icon name="plus" size={18} />{t('newFloor')}</Button></div>
     </div>
   )
 }
