@@ -38,6 +38,7 @@ function loginError(error: unknown, tl: (key: string) => string): string {
 export default function LoginPage() {
   const t = useTranslations('account')
   const tl = useTranslations('pos.login')
+  const tr = useTranslations('account.restaurant')
   const router = useRouter()
   const { user, session, restaurant, restaurants, hydrated, hydrate, login, startShift, chooseRestaurant } = useAuthStore()
   const [view, setView] = useState<View>('main')
@@ -113,8 +114,24 @@ export default function LoginPage() {
   }
 
   if (user) {
+    // Plan O: en la pantalla del PIN se ve en qué restaurante está el dispositivo y se puede cambiar; el dueño entra desde
+    // aquí también a su consola (antes solo se llegaba desde el selector, que no sale si el dispositivo ya tiene restaurante).
+    const owner = isOwner(user.role, null)
+    const many = (restaurants?.length ?? 0) > 1
+    const place = consoleIntent ? tr('consolePin') : restaurant && many ? tr('here', { name: restaurant.name }) : null
     return (
       <LoginFrame>
+        {(place || owner || many) && view !== 'forgot' && (
+          <nav aria-label={tr('list')} className="w-[440px] max-w-full mb-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[14px]">
+            {place && <span className="text-dim">{place}</span>}
+            {consoleIntent
+              ? <button type="button" className="font-semibold text-primary" onClick={() => { setEmployees(null); setConsoleIntent(false) }}>{tr('back')}</button>
+              : <>
+                  {many && <button type="button" className="font-semibold text-primary" onClick={() => { setEmployees(null); void chooseRestaurant(null) }}>{tr('change')}</button>}
+                  {owner && <button type="button" className="font-semibold text-primary" onClick={() => { setEmployees(null); setConsoleIntent(true) }}>{tr('console')}</button>}
+                </>}
+          </nav>
+        )}
         {view === 'forgot'
           ? <ForgotPin initialEmail={storedEmail} onRequest={async (e) => { await forgotPin(e) }} onBack={() => setView('main')} />
           : <EmployeeLogin employees={employees ?? []} loading={employees === null} onStart={onStart} onForgot={() => setView('forgot')} />}

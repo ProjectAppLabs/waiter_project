@@ -94,3 +94,21 @@ it('tells the real reason when the failure is not a wrong credential', async () 
   await userEvent.click(screen.getByRole('button', { name: 'Entrar' }))
   await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Correo o contraseña incorrectos'))
 })
+
+// Falla si el dueño, con el dispositivo ya en un restaurante, no ve en qué restaurante está ni puede cambiarlo o ir a su
+// consola desde la pantalla del PIN (antes solo se llegaba desde el selector de restaurante).
+it('en la pantalla del PIN el dueño ve el restaurante, puede cambiarlo y entra a su consola', async () => {
+  const owner = { id: 9, name: 'Dueña', code: null, role: 'owner' as const, shift: null }
+  ;(listPosEmployees as jest.Mock).mockResolvedValue([demo, owner])
+  const chooseRestaurant = jest.fn(async () => undefined)
+  useAuthStore.setState({ hydrated: true, user: { uid: 2, name: 'Admin', companyId: 1, role: 'owner' }, session: null, employee: null, chooseRestaurant,
+    restaurant: { id: 2, name: 'Laureles' }, restaurants: [{ id: 1, name: 'Poblado' }, { id: 2, name: 'Laureles' }] as never })
+  wrap()
+  expect(await screen.findByText('Este dispositivo: Laureles')).toBeInTheDocument()
+  await userEvent.click(screen.getByRole('button', { name: 'Cambiar de restaurante' }))
+  expect(chooseRestaurant).toHaveBeenCalledWith(null)
+  await userEvent.click(screen.getByRole('button', { name: 'Ir a la consola de la organización' }))
+  expect(await screen.findByText('Consola de la organización: marca tu PIN de dueño.')).toBeInTheDocument()
+  await waitFor(() => expect(listPosEmployees).toHaveBeenLastCalledWith(null))
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Empleado' })).toHaveTextContent('Dueña'))
+})

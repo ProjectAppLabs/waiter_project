@@ -17,7 +17,10 @@
     "closed": "Caja cerrada",
     "console": "Ir a la consola de la organización",
     "consoleHint": "Todos tus restaurantes, el catálogo, el diseño del menú y el equipo.",
-    "change": "Cambiar de restaurante"
+    "change": "Cambiar de restaurante",
+    "here": "Este dispositivo: {name}",
+    "consolePin": "Consola de la organización: marca tu PIN de dueño.",
+    "back": "Volver al POS del restaurante"
   },
   "employee": {
     "title": "Inicio de empleado",
