@@ -172,3 +172,5 @@ body { background: var(--color-canvas); color: var(--color-ink); font-family: va
 .scroll-rail { background-color: color-mix(in srgb, var(--kit-surface) 92%, transparent); scrollbar-width: auto; scrollbar-color: var(--kit-border) transparent; }
 .scroll-rail::-webkit-scrollbar { height: 12px; }
 .scroll-rail::-webkit-scrollbar-thumb { background-color: var(--kit-border); border-radius: 6px; }
+/* Fila de grupo de una tabla (p. ej. un restaurante en Equipo): banda gris a todo el ancho, sin quedarse fija ella misma. */
+.data-table :is(th, td).group-row { position: static; background-color: var(--kit-muted); box-shadow: none; }
