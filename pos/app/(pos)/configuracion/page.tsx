@@ -6,28 +6,26 @@ import { Suspense, useEffect, useState } from 'react'
 import { Icon, type KitIcon } from '@/components/kit/Icon'
 import { DisplayForm, PaymentMethodsList, UsersForm } from '@/components/settings/KitSettingsForms'
 import { KitchenPaymentPolicyForm } from '@/components/settings/KitchenPaymentPolicyForm'
-import { PaymentGatewayForm } from '@/components/settings/PaymentGatewayForm'
 import { RestaurantInfoForm } from '@/components/settings/RestaurantInfoForm'
-import { ThresholdsForm } from '@/components/settings/SettingsForms'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { listPaymentMethods, saveSettings, type PaymentMethodInfo } from '@/lib/services/settings'
+import { listPaymentMethods, type PaymentMethodInfo } from '@/lib/services/settings'
 import { getRestaurantInfo, type RestaurantInfo } from '@/lib/services/restaurantInfo'
-import { useAuthStore } from '@/lib/stores/authStore'
 import { listPosEmployees, type PosEmployee } from '@/lib/services/employees'
 import { useCatalogStore } from '@/lib/stores/catalogStore'
 import { cn } from '@/lib/utils'
 
 // Plan O: aquí queda solo lo del restaurante. Diseño del menú, promociones, integraciones, empresa e impuestos, el
 // equipo de la organización y los permisos por rol son de la organización y viven en la consola del dueño.
-const SECTIONS: [Section, KitIcon][] = [['restaurant', 'store'], ['payments', 'card'], ['users', 'users'], ['roi', 'chartLine'], ['display', 'tablet']]
-type Section = 'restaurant' | 'payments' | 'users' | 'roi' | 'display'
+// Plan Q: los supuestos del retorno de inversión, la pasarela de pago y «cobrar antes de cocina» los decide el dueño en su
+// consola; aquí el encargado ve los medios de pago y la política de su restaurante.
+const SECTIONS: [Section, KitIcon][] = [['restaurant', 'store'], ['payments', 'card'], ['users', 'users'], ['display', 'tablet']]
+type Section = 'restaurant' | 'payments' | 'users' | 'display'
 
 // Configuración con la estructura del modal "Setting" del kit (Account Setting / Profile.png): pestañas verticales con
 // icono a la izquierda y panel con cabecera a la derecha, para las secciones del restaurante.
 function ConfiguracionInner() {
   const t = useTranslations('admin.settings')
-  const session = useAuthStore((s) => s.session)
-  const { catalog, load } = useCatalogStore()
+  const { catalog } = useCatalogStore()
   const [section, setSection] = useState<Section>('restaurant')
   const configId = catalog?.settings.configId ?? null
   const [info, setInfo] = useState<RestaurantInfo | null>(null)
@@ -42,7 +40,6 @@ function ConfiguracionInner() {
     return () => { alive = false }
   }, [configId])
   if (!catalog) return null
-  const onSaveSettings = async (s: typeof catalog.settings) => { await saveSettings(s); await load(session?.id ?? null) }
   return (
     <>
       <PageHeader title={t('title')} />
@@ -60,13 +57,13 @@ function ConfiguracionInner() {
             <header className="h-14 px-5 flex items-center border-b border-border shrink-0"><h2 className="text-[16px] font-semibold text-ink">{t(`sections.${section}`)}</h2></header>
             <div className="flex-1 min-h-0 overflow-y-auto p-5">
               {section === 'restaurant' && info && <RestaurantInfoForm key={info.id} initial={info} />}
-              {section === 'payments' && <><PaymentMethodsList methods={methods} /><PaymentGatewayForm methods={methods} /></>}
+              {section === 'payments' && <div className="flex max-w-4xl flex-col gap-4"><PaymentMethodsList methods={methods} />
+                <p className="text-sm text-soft">La pasarela de pago y sus credenciales las configura el dueño en su consola (Pagos).</p></div>}
               {/* El equipo de este restaurante y quién cobra antes de cocina; asignar personas y permisos es de la consola del dueño. */}
               {section === 'users' && <div className="flex max-w-4xl flex-col gap-10">
                 <UsersForm users={[]} employees={employees} onChanged={async () => undefined} readOnly />
-                <KitchenPaymentPolicyForm configId={catalog.settings.configId} />
+                <KitchenPaymentPolicyForm configId={catalog.settings.configId} readOnly />
               </div>}
-              {section === 'roi' && <ThresholdsForm key="roi" initial={catalog.settings} section="roi" onSave={onSaveSettings} />}
               {section === 'display' && <DisplayForm />}
             </div>
           </section>

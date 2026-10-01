@@ -149,3 +149,124 @@ visibilidad. Ese cambio aplica **a toda la organización**. Se corrige en el ser
 | Odoo: permisos del grupo dueño (Q1), resumen por sede (Q2), cuadres (Q3) y rentabilidad (Q4), con pruebas | Codex |
 | POS y consola: mover vistas, ocultar y redirigir, Resumen, Cuadres, Rentabilidad | Claude |
 | Verificación en Docker y Chromium | Claude |
+
+## Contrato común
+
+**«Dueño»** = `projectapp_ops.group_waiter_owner` o `base.group_system`. El encargado (`waiter_role = 'admin'`) no
+lo es, aunque tenga `point_of_sale.group_pos_manager`. Versiones: `projectapp_ops` 19.0.2.7.0,
+`projectapp_pantry` 19.0.2.6.0 y `projectapp_notify` 19.0.2.7.0.
+
+### Q1 · Solo el dueño (`AccessError` para los demás, con un mensaje en español)
+
+- **Facturación contable:**
+  - `pos.order.waiter_account_invoice`;
+  - `pos.order.waiter_billing_review`;
+  - `account.move.waiter_accounting_detail`;
+  - `pos.config.waiter_billing_settings` cuando escribe;
+  - `pos.config.waiter_set_tip_account`;
+  - leer `account.move` del POS.
+
+  La factura que pide el cliente al cobrar sigue disponible para cajero y encargado.
+- **Supuestos del ROI:** escribir en `pos.config` los campos del ROI que guarda «Configuración → ROI».
+- **Pasarela de pago:** escribir en `/waiter/admin/payment_gateways` y en los métodos de pago. El encargado puede leer,
+  sin ver los secretos.
+- **«Cobrar antes de cocina»:** `pos.config.waiter_kitchen_policy` cuando escribe.
+- **Régimen tributario:** `pos.config.waiter_tax_regime` cuando escribe.
+- **Ficha comercial y alta de platos:**
+  - `product.template.waiter_save_catalog_product`, `waiter_set_catalog_photos` y `waiter_create_dish`;
+  - `waiter_update_recipe`;
+  - `create` y `write` de `pos.category`;
+  - escribir en `product.template` o `product.product` los campos `list_price`, `taxes_id`, `available_in_pos`,
+    `pos_categ_ids` y `name`.
+- **Costo del ingrediente:** en `product.template.waiter_inventory_settings(cost, minimum, maximum, employee_id, token)`
+  el encargado puede cambiar el mínimo y el máximo, pero si el costo cambia es `AccessError`.
+- **Lo que no se toca:** agotar por restaurante, existencias, solicitudes de compra y clientes al cobrar siguen para el
+  encargado y el cajero.
+
+### Q2 · `pos.config.waiter_org_summary(date_from, date_to)` (solo dueño)
+
+Fechas `YYYY-MM-DD` inclusivas en la zona de la empresa. El periodo anterior tiene la misma duración y termina el día
+antes de `date_from`.
+
+```json
+{"currency": "COP", "date_from": "...", "date_to": "...", "previous_from": "...", "previous_to": "...",
+ "restaurants": [{"config_id": 1, "name": "Poblado", "sales": 0.0, "orders": 0, "ticket": 0.0, "guests": 0, "tips": 0.0,
+                  "previous": {"sales": 0.0, "orders": 0, "ticket": 0.0, "guests": 0, "tips": 0.0}}],
+ "total": {"sales": 0.0, "orders": 0, "ticket": 0.0, "guests": 0, "tips": 0.0, "previous": {"...": "igual"}}}
+```
+
+- **Ventas:** con impuestos, sin propina.
+- **Qué pedidos cuentan:** estado `paid`, `done` o `invoiced`. Los reembolsos restan.
+
+### Q3 · Cuadres de caja
+
+- **`pos.session.waiter_cash_closings(date_from, date_to, config_ids=None, only_differences=False)`:**
+  - el dueño ve todos;
+  - el encargado, solo sus restaurantes (un `config_ids` ajeno es `AccessError`).
+
+  Devuelve la lista, de la más nueva a la más antigua:
+
+  ```json
+  [{"session_id": 9, "name": "POS/00009", "config_id": 1, "config_name": "Poblado", "closed_at": "<ISO UTC con Z>",
+    "closed_by": {"user_id": 7, "name": "Laura Encargada"}, "expected": 0.0, "counted": 0.0, "difference": 0.0,
+    "notes": "", "over_tolerance": false}]
+  ```
+
+  `closed_by` es quien cerró la sesión. Si Odoo no lo guarda, se usa `user_id` y se documenta.
+- **Tolerancia:** `res.company.waiter_cash_tolerance` (Monetary, 0 por defecto).
+  - `res.company.waiter_cash_settings(tolerance=None)` la lee siempre y la escribe solo el dueño.
+  - Devuelve `{"tolerance": 2000.0, "currency": "COP"}`.
+- **Aviso:** al cerrar una sesión con `abs(difference) > tolerance`, se crea un `waiter.notification` de tipo `cash`
+  (nuevo en la selección) para el dueño y los encargados de ese restaurante, con `config_id` y
+  `res_model = 'pos.session'`. Texto: «Caja de Poblado cerró con $ 12.000 de diferencia (Laura Encargada)».
+
+### Q4 · `product.template.waiter_profitability(date_from, date_to, config_id=None)`
+
+- **Quién:**
+  - el dueño, con `config_id` o con `None`, que es toda la organización;
+  - el encargado, solo con un `config_id` suyo (`None` o uno ajeno es `AccessError`).
+- **Costo:** la suma de la receta (la misma de `waiter_recipe_detail`).
+- **Precio:**
+  - el de la lista de precios del restaurante si se pidió uno;
+  - con `None`, el precio de la organización.
+- **Unidades e ingresos:** las líneas de pedidos válidos del periodo (y del restaurante, si se pidió).
+- **Margen** = precio sin impuestos − costo. **Food cost** = costo / precio sin impuestos × 100.
+- **Clasificación** (ingeniería de menú; solo platos con ventas y con costo):
+  - popular si sus unidades ≥ 70 % de (unidades totales / número de platos);
+  - rentable si su margen ≥ margen promedio ponderado por unidades;
+  - estrella = popular y rentable; caballo de batalla = popular, no rentable; rompecabezas = rentable, no popular;
+    perro = ninguna de las dos.
+- Sin receta o sin costo: `cost`, `margin` y `food_cost_pct` en `null` y `class` en `null`.
+
+```json
+{"currency": "COP", "config_id": 1, "date_from": "...", "date_to": "...",
+ "thresholds": {"popularity_units": 0.0, "margin": 0.0},
+ "rows": [{"template_id": 3, "name": "Hamburguesa", "category": "Platos", "price": 0.0, "cost": 0.0, "margin": 0.0,
+           "food_cost_pct": 0.0, "units": 0, "revenue": 0.0, "gross_profit": 0.0,
+           "class": "star|plowhorse|puzzle|dog|null"}]}
+```
+
+## Estado (2026-10-01)
+
+- **Q1–Q5 hechos** en `feat/01102026-plan-q-negocio-del-dueno`.
+  - Odoo: 260/260 pruebas (Codex escribió la parte de Odoo; Claude la integró y la corrigió).
+  - POS: `tsc` y 576 pruebas de `jest`.
+- **Recorrido en Chromium y por RPC:**
+  - El dueño ve el Resumen por sede (Poblado $ 97.716 en 30 días), los cuadres con el faltante de Laura y la rentabilidad.
+  - Las Papas Trufadas salen «Estrella», con food cost del 14 %.
+  - La encargada ve en su POS los cuadres y la rentabilidad de Poblado, y el aviso de caja en la campana y arriba en
+    «Para atender ahora».
+  - El servidor le niega el resumen, otras sedes, el precio de un plato y la tolerancia.
+  - Sus enlaces viejos (`/facturacion`) la devuelven a su inicio.
+- **Hallazgos corregidos durante la verificación:**
+  - **Recetas:** guardar una receta fallaba para cualquiera sin el grupo de fabricación. La lista de materiales se
+    escribe con sudo después de autorizar.
+  - **Tablero:** sumaba en la zona del usuario, vacía y por tanto UTC. Una venta del domingo a las 11 p. m. salía en
+    «esta semana». Ahora usa la zona de la empresa.
+  - **Tolerancia:** no se podía llamar sin registro. Ahora es `@api.model`.
+  - **Aviso de caja:** el POS no conocía el tipo `cash`.
+- **Datos de demostración** en la base de desarrollo:
+  - tolerancia de $ 2.000;
+  - recetas de Papas Trufadas y de Cheese Burger (este plato está archivado y no sale en la rentabilidad);
+  - un cierre de Poblado con un faltante de $ 12.000.
+- **Pendiente:** 23 platos de la base de desarrollo no tienen receta y salen «Sin costo» hasta que el dueño las cargue.

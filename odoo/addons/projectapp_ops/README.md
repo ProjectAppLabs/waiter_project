@@ -330,3 +330,64 @@ Claude debe ejecutar `scripts/odoo-test.sh projectapp_ops,projectapp_notify` sob
 integración del POS, especialmente el rechazo HTTP con aviso persistido, `session_ends` en UTC y la renovación de
 identidad después de caducar. El sistema de pruebas debe conservar el comportamiento de los cursores de Odoo bajo
 `HttpCase`; la prueba HTTP del aviso comprueba el resultado posterior al rechazo real.
+
+## Plan Q · Negocio del dueño (Q1–Q4)
+
+Versiones del contrato: `projectapp_ops` **19.0.2.7.0**, `projectapp_pantry` **19.0.2.6.0** y
+`projectapp_notify` **19.0.2.7.0**. Actualizar los tres addons. No hay migración de datos: la actualización de Odoo
+crea la tolerancia (cero), el responsable del cierre (vacío en históricos), las reglas contables y el tipo `cash`.
+
+**Autorización.** `models/owner_permissions.py` centraliza la comprobación de
+`projectapp_ops.group_waiter_owner` o `base.group_system`. El grupo administrador del POS no basta.
+Además de las APIs del contrato, se protegen el alta directa de productos vendibles, las escrituras de costos,
+`waiter_set_recipe`, `waiter_set_catalog_price` y las listas de precios por ORM: son vías alternativas para cambiar
+las mismas decisiones comerciales. Los ajustes de mínimo/máximo y el agotado por restaurante siguen operativos.
+`waiter_billing_settings()` es una consulta sin argumentos de escritura; sigue siendo legible. Su mutación existente,
+`waiter_set_tip_account(account_id)`, exige dueño. La lectura de pasarela entrega datos públicos e indicadores booleanos
+de configuración, nunca los tres secretos. Tanto guardar como probar credenciales requieren dueño.
+
+**Factura al cobrar.** La vía es `pos.order.action_pos_order_invoice()`, que llama a
+`_generate_pos_order_invoice()`, también usado por el POS nativo. La autorización RPC en `role_permissions.py` la
+asocia con `charge_orders`. Las APIs `waiter_account_invoice` y `waiter_billing_review` siguen separadas y exigen dueño.
+La generación interna verifica el acceso de escritura al pedido antes de elevar solo la operación contable, para que
+las reglas de lectura de asientos y partidas no impidan la factura del cliente. La prueba nueva cobra, emite con un
+cajero real y cierra esa sesión con un encargado.
+
+**Cierre.** Se sobrescribe `pos.session._validate_session(balancing_account=False, amount_to_balance=0,
+bank_payment_method_diffs=None)`. Se bloquea la fila y se verifica el acceso antes de la validación contable; solo después
+de que el padre deje `state='closed'` se registra `env.uid` en `waiter_closed_by_id` y se genera el aviso. Los reintentos
+no repiten el aviso. Se conserva el resultado del padre, incluidos sus asistentes por descuadre contable.
+La nota procede de `closing_notes` y la fecha de `stop_at`. `user_id` identifica a quien abrió: se usa únicamente como
+respaldo para cierres anteriores a Q3. `write_uid` puede cambiar después y no sirve como responsable del cierre.
+El archivo local indicado no estaba disponible; se verificó la firma y estos campos en el
+[código oficial de Odoo 19](https://github.com/odoo/odoo/blob/19.0/addons/point_of_sale/models/pos_session.py).
+`projectapp_notify/models/cash.py` implementa el generador sin introducir una dependencia circular con ops.
+Acceso fuera de turno y caja comparten `pos.config._waiter_management_recipients()`.
+
+**Decisiones de los informes.**
+
+- La zona proviene de `company.resource_calendar_id.tz`, con respaldo en `company.partner_id.tz` y UTC, igual que
+  el Plan P. Los límites de consulta son inicio incluido y medianoche del día siguiente excluida. Se incluyen sedes
+  archivadas para conservar sus cifras históricas; siempre dentro de la empresa activa.
+- En Q2, ventas y propinas conservan el signo del reembolso. Pedidos cuenta documentos válidos, también reembolsos;
+  comensales suma `customer_count` tal como está registrado. Ticket es venta neta de propinas / documentos, incluso
+  en el total de la organización. Las propinas se identifican por el producto configurado en cada restaurante.
+- En Q3, `only_differences` usa la precisión monetaria para excluir ceros. `over_tolerance` y los avisos usan
+  `abs(difference) > tolerance` estrictamente; el informe aplica la tolerancia vigente, no una copia histórica.
+- Q4 consulta la carta vendible actual, usa su variante principal para el precio y agrupa ventas de todas sus variantes.
+  `price` es el precio vigente del catálogo/lista, con la inclusión de impuestos que tenga el producto; `margin` y
+  `food_cost_pct` usan ese precio sin impuestos. `revenue` son subtotales históricos sin impuestos, con sus descuentos
+  y reembolsos; `gross_profit = revenue - cost * units` usa el costo actual. Las cifras monetarias se expresan en la
+  moneda de la empresa; ventas en otras monedas se convierten a la fecha del pedido.
+- Detalle de receta y rentabilidad comparten `_pantry_recipe_costs`: cantidades convertidas a la unidad de stock y
+  divididas por rendimiento, por `standard_price` de cada ingrediente. Una receta sin ingredientes o con algún
+  ingrediente sin costo tiene costo, margen, food cost y beneficio bruto nulos. El precio cero deja food cost nulo.
+  Solo platos con costo completo y unidades netas positivas participan en los dos umbrales y en la clasificación.
+
+**Verificación pendiente en Docker.** Se añadieron 45 pruebas, con datos propios por prueba y sin archivar las sedes
+de desarrollo, en `tests/test_business_permissions.py`, `tests/test_business_reports.py`,
+`projectapp_pantry/tests/test_business_profitability.py` y `projectapp_notify/tests/test_cash.py`.
+Los datos compartidos están en `tests/common_business.py`. La prueba anterior de galería ahora usa un dueño.
+Se comprobó sintaxis con `python3 -m py_compile`, XML y `git diff --check`; no se ejecutó Odoo en esta máquina.
+Claude debe correr `scripts/odoo-test.sh projectapp_ops,projectapp_pantry,projectapp_notify` y comprobar en particular
+la actualización del esquema, emisión y cierre reales, reglas contables, avisos y los nuevos contratos JSON con el POS.

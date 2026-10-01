@@ -1,4 +1,4 @@
-import { IconAddressBook, IconAdjustments, IconAlarm, IconAlertTriangle, IconArmchair, IconArrowBackUp, IconArrowDown, IconArrowForwardUp, IconArrowLeft,
+import { IconCoins, IconDownload, IconScale, IconAddressBook, IconAdjustments, IconAlarm, IconAlertTriangle, IconArmchair, IconArrowBackUp, IconArrowDown, IconArrowForwardUp, IconArrowLeft,
   IconArrowRight, IconArrowUp, IconArrowsExchange2, IconArrowsMaximize, IconArrowsMove, IconBabyCarriage, IconBackspace,
   IconBell, IconBox, IconBuildingStore, IconCalendarEvent, IconCash, IconCashBanknote, IconCashRegister, IconChartBar,
   IconChartLine, IconCheck, IconChecks, IconChefHat, IconChevronDown, IconChevronLeft, IconChevronRight, IconCircleCheck,
@@ -14,6 +14,7 @@ import type { ComponentType } from 'react'
 
 // Nombres del kit → Tabler Icons (el kit los declara en su página "Icons"). Solo se añaden aquí.
 const ICONS = {
+  download: IconDownload, scale: IconScale, coins: IconCoins,
   dashboard: IconLayoutDashboard, orders: IconFileText, tables: IconDeviceDesktop, reservations: IconCalendarEvent,
   history: IconHistory, inventory: IconBox, cash: IconCashRegister, kitchen: IconToolsKitchen2, admin: IconAdjustments,
   sales: IconChartBar, catalog: IconPackage, customers: IconAddressBook, billing: IconFileInvoice, settings: IconSettings,

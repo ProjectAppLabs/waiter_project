@@ -1,5 +1,5 @@
-import { DEFAULT_ROLE_POLICY } from '@/lib/domain/permissions'
-import { administrationPath, ADMIN_SUBTABS, TAB_ROUTES, adminSubtabsFor, tabForPath, tabsFor, homePath, withShell } from '@/lib/domain/navigation'
+import { DEFAULT_ROLE_POLICY, type RoleView } from '@/lib/domain/permissions'
+import { administrationPath, ADMIN_SUBTABS, TAB_ROUTES, adminSubtabsFor, tabForPath, tabsFor, homePath, withShell, pathAllowed } from '@/lib/domain/navigation'
 import { allowedPath } from '@/lib/domain/roles'
 
 // Falla si el mesero ve pestañas de cocina o administración, o si el cajero y el admin las pierden.
@@ -57,11 +57,20 @@ it('lets an admin open Inicio with the register closed', () => {
   expect(administrationPath('/dashboard')).toBe(true)
 })
 
-// Falla si la barra de navegación aparece en las pantallas a pantalla completa (cocina, operación en vivo, mesero IA)
-// o desaparece de las demás, ahora que la pinta el layout y no cada página.
+// Falla si la barra de navegación aparece en las pantallas a pantalla completa (cocina, operación en vivo) o desaparece
+// de las demás, ahora que la pinta el layout y no cada página.
 it('knows which screens carry the navigation bar', () => {
-  for (const path of ['/dashboard', '/pedidos', '/salon', '/reservas', '/automatizacion', '/ventas']) expect(withShell(path)).toBe(true)
-  for (const path of ['/kds', '/operacion', '/automatizacion/ia', '/automatizacion/ia/configurar']) expect(withShell(path)).toBe(false)
+  for (const path of ['/dashboard', '/pedidos', '/salon', '/reservas', '/ventas', '/configuracion']) expect(withShell(path)).toBe(true)
+  for (const path of ['/kds', '/operacion']) expect(withShell(path)).toBe(false)
+})
+
+// Falla si Administración del POS vuelve a ofrecer lo que es del dueño (clientes, facturación, retorno de inversión), o
+// si un cajero con permiso de ventas no ve Ventas, o si ve los cuadres y la rentabilidad del encargado (plan Q).
+it('Administración del POS solo trae lo del restaurante', () => {
+  expect(adminSubtabsFor('admin').map(([key]) => key)).toEqual(['sales', 'cash', 'profit', 'settings'])
+  const policy = { ...DEFAULT_ROLE_POLICY, cashier: { views: ['orders', 'sales', 'billing', 'customers'] as RoleView[], actions: [] } }
+  expect(adminSubtabsFor('cashier', policy).map(([key]) => key)).toEqual(['sales'])
+  expect(pathAllowed('cashier', '/facturacion', policy)).toBe(false)
 })
 
 

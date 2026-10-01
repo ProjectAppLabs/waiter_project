@@ -877,6 +877,8 @@
           "customers": "Clientes",
           "billing": "Facturación",
           "roi": "Retorno",
+          "cash": "Cuadres de caja",
+          "profit": "Rentabilidad",
           "settings": "Configuración"
         }
       },

@@ -7,7 +7,8 @@ import type { Role } from '@/lib/domain/roles'
 
 const roles: [Role, string][] = [['waiter', 'Mesero'], ['cashier', 'Cajero'], ['admin', 'Administrador']]
 type Policy = { require_payment_roles: Role[] }
-export function KitchenPaymentPolicyForm({ configId }: { configId: number }) {
+// `readOnly` (plan Q): el encargado ve la política de su restaurante; la decide el dueño desde su consola.
+export function KitchenPaymentPolicyForm({ configId, readOnly = false }: { configId: number; readOnly?: boolean }) {
   const [policy, setPolicy] = useState<Policy | null>(null)
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState('')
   useEffect(() => {
@@ -34,10 +35,10 @@ export function KitchenPaymentPolicyForm({ configId }: { configId: number }) {
     {error && <p role="alert" className="text-danger">{error}</p>}
     {notice && <p role="status">{notice}</p>}
     {policy && <form onSubmit={e => { e.preventDefault(); void save() }} className="flex flex-col gap-4">
-      <fieldset disabled={busy} className="flex flex-col gap-3">
+      <fieldset disabled={busy || readOnly} className="flex flex-col gap-3">
         {roles.map(([role, label]) => <label key={role} className="flex items-center gap-3"><input type="checkbox" checked={policy.require_payment_roles.includes(role)} onChange={e => { setNotice(''); setPolicy({ require_payment_roles: e.target.checked ? [...policy.require_payment_roles, role] : policy.require_payment_roles.filter(r => r !== role) }) }}/>{label}: cobrar antes de enviar</label>)}
       </fieldset>
-      <div><Button type="submit" disabled={busy}>Guardar permisos de cocina</Button></div>
+      {readOnly ? <p className="text-sm text-soft">La decide el dueño en su consola (Pagos).</p> : <div><Button type="submit" disabled={busy}>Guardar permisos de cocina</Button></div>}
     </form>}
   </section>
 }

@@ -1,6 +1,7 @@
 """`waiter.notification`: la campana del kit CloudPos (Dashboard › Notification), sin vistas.
 
-Tipos: `kitchen` (plato listo), `inventory` (stock bajo), `system` y `access` (acceso fuera del turno).
+Tipos: `kitchen` (plato listo), `inventory` (stock bajo), `system`, `access` (acceso fuera del turno)
+y `cash` (cierre de caja fuera de tolerancia).
 Una notificación sin `user_id` es para todos los usuarios del terminal; con `user_id`, solo para ese usuario
 (regla de registro `waiter_notification_rule_user`). El POS la lee con
 `waiter.notification.search_read([('user_id', 'in', [False, uid])], [...])`.
@@ -17,7 +18,7 @@ Generadores:
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
-KINDS = [("kitchen", "Cocina"), ("inventory", "Inventario"), ("system", "Sistema"), ("access", "Acceso")]
+KINDS = [("kitchen", "Cocina"), ("inventory", "Inventario"), ("system", "Sistema"), ("access", "Acceso"), ("cash", "Caja")]
 
 
 class WaiterNotification(models.Model):

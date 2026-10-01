@@ -154,3 +154,10 @@ it('el intento de entrada fuera de turno va antes que todo', () => {
   expect(items[0]).toEqual({ key: 'access-41', kind: 'accessDenied', tone: 'danger', href: '/organizacion/equipo', values: { body: 'Mateo intentó entrar a las 23:40, fuera de su turno (14:00–22:00).' } })
   expect(items[1].kind).toBe('ready')
 })
+
+// Falla si un cierre de caja que superó la tolerancia no sale en «Para atender ahora» o no lleva a los cuadres (plan Q3).
+it('el cierre de caja con diferencia sale arriba y lleva a los cuadres', () => {
+  const items = attentionItems({ nowHour: 20, ready: 0, reservations: [], ingredients: [], soldOut: [],
+    cash: [{ id: 9, body: 'Caja de Poblado cerró con $ 12.000 de diferencia (Laura Encargada)' }], cashHref: '/cuadres' })
+  expect(items[0]).toMatchObject({ kind: 'cashDifference', tone: 'danger', href: '/cuadres' })
+})

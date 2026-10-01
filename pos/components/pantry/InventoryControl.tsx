@@ -6,7 +6,9 @@ import { formatQty, unitLabel, type Ingredient } from '@/lib/domain/pantry'
 import { uuid } from '@/lib/domain/uuid'
 import { getInventory, inventorySettings, moveInventory, type InventoryDetail } from '@/lib/services/restaurantInventory'
 const kinds:Record<string,string>={receipt:'Entrada recibida',waste:'Merma',count:'Conteo físico',sale:'Venta POS',stock:'Movimiento de inventario'}
-export function InventoryControl({ingredient,mayEdit,onClose,onSaved}:{ingredient:Ingredient;mayEdit:boolean;onClose:()=>void;onSaved:()=>Promise<void>}){
+// `mayEditCost` (plan Q): el costo del ingrediente es de toda la organización y lo fija el dueño; el encargado lo ve y
+// ajusta mínimo y máximo de su restaurante.
+export function InventoryControl({ingredient,mayEdit,mayEditCost=true,onClose,onSaved}:{ingredient:Ingredient;mayEdit:boolean;mayEditCost?:boolean;onClose:()=>void;onSaved:()=>Promise<void>}){
  const [data,setData]=useState<InventoryDetail|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false)
  const [kind,setKind]=useState('receipt'),[qty,setQty]=useState(''),[reason,setReason]=useState('')
  const [cost,setCost]=useState(0),[min,setMin]=useState(0),[max,setMax]=useState(0)
@@ -36,7 +38,7 @@ export function InventoryControl({ingredient,mayEdit,onClose,onSaved}:{ingredien
     <p className="text-sm text-soft">{kind==='receipt'?'Registra mercancía físicamente recibida e indica su documento de compra. Si ya la recibiste en Odoo, no la registres otra vez.':kind==='waste'?'Retira ingredientes dañados, vencidos o desperdiciados.':'Reemplaza las existencias por lo que acabas de contar. Termina antes los pedidos que usan este ingrediente.'}</p>
     <button disabled={busy} className="self-end px-4 py-2 bg-primary text-primary-ink rounded" onClick={()=>void submit()}>{busy?'Guardando…':'Registrar movimiento'}</button>
    </section>}
-   {mayEdit&&<details><summary className="cursor-pointer font-semibold">Costo y alertas de reposición</summary><div className="grid grid-cols-3 gap-2 mt-3">{([['Costo por unidad',cost,setCost],['Mínimo',min,setMin],['Máximo',max,setMax]] as const).map(([label,value,set])=><label key={label}>{label}<input className={INPUT} type="number" min={0} step="any" value={value} onChange={e=>set(Number(e.target.value))}/></label>)}</div><button disabled={busy} className="mt-3 px-4 py-2 border border-border rounded" onClick={()=>void submit(true)}>Guardar costo y alertas</button></details>}
+   {mayEdit&&<details><summary className="cursor-pointer font-semibold">Costo y alertas de reposición</summary><div className="grid grid-cols-3 gap-2 mt-3">{([['Costo por unidad',cost,setCost],['Mínimo',min,setMin],['Máximo',max,setMax]] as const).map(([label,value,set])=><label key={label}>{label}<input className={INPUT} type="number" min={0} step="any" value={value} disabled={label==='Costo por unidad'&&!mayEditCost} onChange={e=>set(Number(e.target.value))}/></label>)}</div>{!mayEditCost&&<p className="mt-2 text-sm text-soft">El costo lo fija el dueño para toda la organización.</p>}<button disabled={busy} className="mt-3 px-4 py-2 border border-border rounded" onClick={()=>void submit(true)}>{mayEditCost?'Guardar costo y alertas':'Guardar alertas'}</button></details>}
    <h3 className="font-semibold">Últimos movimientos</h3>
    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="text-left"><th>Fecha</th><th>Movimiento</th><th>Cantidad</th><th>Motivo / documento</th><th>Registrado por</th></tr></thead><tbody>{data.history.map(m=><tr key={m.id} className="border-t border-border"><td className="py-2">{m.date}</td><td>{kinds[m.kind]??m.kind}</td><td className={m.qty<0?'text-danger-ink':'text-success'}>{m.qty>0?'+':''}{formatQty(m.qty)}</td><td>{m.reason}</td><td>{m.employee}</td></tr>)}</tbody></table>{!data.history.length&&<p>Sin movimientos registrados.</p>}</div>
   </>}

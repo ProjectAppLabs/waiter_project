@@ -1,7 +1,7 @@
 // Centro de notificaciones del kit (Dashboard / Notification Expand.png) sobre el modelo `waiter.notification`
 // de `projectapp_notify`: cocina (plato listo), inventario (stock bajo), sistema y acceso (plan P: alguien intentó
-// entrar fuera de su turno; le llega al encargado y al dueño).
-export type NotificationKind = 'kitchen' | 'inventory' | 'system' | 'access'
+// entrar fuera de su turno; le llega al encargado y al dueño) y caja (plan Q: un cierre superó la tolerancia).
+export type NotificationKind = 'kitchen' | 'inventory' | 'system' | 'access' | 'cash'
 export type NotificationTab = 'all' | 'inventory' | 'kitchen'
 
 export interface Notification {
@@ -22,3 +22,6 @@ export const canRequest = (n: Notification): boolean => n.action === 'request_in
 
 // «Para atender ahora»: los intentos de entrada fuera de turno que nadie ha visto todavía.
 export const unreadAccess = (items: Notification[]): Notification[] => items.filter((n) => n.kind === 'access' && !n.read)
+
+// «Para atender ahora»: los cierres de caja que superaron la tolerancia y nadie ha visto.
+export const unreadCash = (items: Notification[]): Notification[] => items.filter((n) => n.kind === 'cash' && !n.read)

@@ -15,11 +15,15 @@ import { getCompany } from '@/lib/services/settings'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { cn } from '@/lib/utils'
 
-// Plan O: consola del dueño, fuera del POS. Todo lo de la organización (restaurantes, equipo, diseño del menú,
-// promociones, integraciones y empresa) y la puerta a cada POS. Solo entra el dueño, con su propia cuenta.
-const SECTIONS: [string, string, KitIcon][] = [
-  ['/organizacion', 'Restaurantes', 'store'], ['/organizacion/catalogo', 'Catálogo', 'bag'], ['/organizacion/equipo', 'Equipo', 'users'], ['/organizacion/diseno', 'Diseño del menú', 'layout'],
-  ['/organizacion/promociones', 'Promociones', 'percentage'], ['/organizacion/integraciones', 'Integraciones IA', 'sparkles'], ['/organizacion/empresa', 'Empresa e impuestos', 'lock'],
+// Consola del dueño, fuera del POS (planes O y Q): lo del negocio y lo de la organización, agrupado por para qué sirve, y
+// la puerta al POS de cada restaurante. Solo entra el dueño, con su propia cuenta.
+const GROUPS: [string, [string, string, KitIcon][]][] = [
+  ['Negocio', [['/organizacion', 'Resumen', 'dashboard'], ['/organizacion/ventas', 'Ventas', 'sales'], ['/organizacion/cuadres', 'Cuadres de caja', 'scale'],
+    ['/organizacion/rentabilidad', 'Rentabilidad', 'coins'], ['/organizacion/retorno', 'Retorno de inversión', 'chartLine']]],
+  ['Contabilidad', [['/organizacion/facturacion', 'Facturación', 'billing'], ['/organizacion/pagos', 'Pagos', 'card'], ['/organizacion/empresa', 'Empresa e impuestos', 'lock']]],
+  ['Clientes y marca', [['/organizacion/clientes', 'Clientes', 'customers'], ['/organizacion/promociones', 'Promociones', 'percentage'], ['/organizacion/diseno', 'Diseño del menú', 'layout']]],
+  ['Organización', [['/organizacion/restaurantes', 'Restaurantes', 'store'], ['/organizacion/catalogo', 'Catálogo', 'bag'], ['/organizacion/equipo', 'Equipo', 'users'],
+    ['/organizacion/integraciones', 'Integraciones IA', 'sparkles']]],
 ]
 
 export default function OrganizationLayout({ children }: { children: React.ReactNode }) {
@@ -57,11 +61,16 @@ export default function OrganizationLayout({ children }: { children: React.React
               <span className="text-[12px] font-bold uppercase tracking-widest text-primary">Organización</span>
               <p className="mt-1 text-[18px] font-semibold truncate">{companyName || 'Tu organización'}</p>
             </div>
-            {SECTIONS.map(([href, label, icon]) => (
-              <Link key={href} href={href} aria-current={pathname === href ? 'page' : undefined}
-                className={cn('flex items-center gap-3 h-12 px-3 rounded-md text-[15px] font-semibold', pathname === href ? 'bg-canvas border border-border text-ink' : 'text-soft hover:bg-muted')}>
-                <Icon name={icon} size={20} /><span>{label}</span>
-              </Link>
+            {GROUPS.map(([group, links]) => (
+              <div key={group} className="flex flex-col gap-1 pb-3">
+                <span className="px-3 pt-2 pb-1 text-[12px] font-semibold uppercase tracking-wider text-dim">{group}</span>
+                {links.map(([href, label, icon]) => (
+                  <Link key={href} href={href} aria-current={pathname === href ? 'page' : undefined}
+                    className={cn('flex items-center gap-3 h-11 px-3 rounded-md text-[15px] font-semibold', pathname === href ? 'bg-canvas border border-border text-ink' : 'text-soft hover:bg-muted')}>
+                    <Icon name={icon} size={20} /><span>{label}</span>
+                  </Link>
+                ))}
+              </div>
             ))}
             <div className="mt-auto flex flex-col gap-2 px-3 pt-4 text-[14px] text-soft">
               <span className="truncate">{employee?.name}</span>

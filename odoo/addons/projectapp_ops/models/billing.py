@@ -1,16 +1,24 @@
 """Revisión contable del POS. No transmite documentos ni acredita validación DIAN."""
 from odoo import models
-from odoo.exceptions import AccessError, UserError
+from odoo.exceptions import UserError
+from .owner_permissions import require_owner
 
 
 def _billing_access(env):
-    if not (env.user.has_group('point_of_sale.group_pos_manager') or
-            env.user.has_group('account.group_account_invoice')):
-        raise AccessError('Necesitas permisos de administración del POS o de facturación.')
+    require_owner(env)
 
 
 class PosOrder(models.Model):
     _inherit = 'pos.order'
+
+    def _generate_pos_order_invoice(self):
+        """Factura pedida al cobrar: action_pos_order_invoice y el POS nativo usan esta vía.
+
+        La contabilidad interna puede leer los asientos que las reglas Q1 ocultan al cajero.
+        Se valida primero el pedido con sus permisos y su restaurante; no se abre una API contable.
+        """
+        self.check_access('write')
+        return super(PosOrder, self.sudo())._generate_pos_order_invoice()
 
     def _waiter_consumer_final(self, create=False):
         """Un tercero genérico por empresa; consultar no crea contactos."""
@@ -162,7 +170,7 @@ class PosConfig(models.Model):
     def waiter_billing_settings(self):
         self.ensure_one()
         self = self.with_context(lang='es_CO', tz='America/Bogota')
-        _billing_access(self.env)
+        # Esta API solo lee. La escritura se realiza en waiter_set_tip_account.
         self.check_access('read')
         config = self.with_company(self.company_id)
         tip = config.tip_product_id

@@ -3,6 +3,9 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { DEFAULT_ROLE_POLICY, ROLE_ACTIONS, ROLE_VIEWS, type RolePolicy } from '@/lib/domain/permissions'
+
+// Plan Q: Clientes y Facturación ya no son pantallas del POS (son de la consola del dueño): no se ofrecen por rol.
+const POS_VIEWS = ROLE_VIEWS.filter((view) => view !== 'customers' && view !== 'billing')
 import { rolePolicy } from '@/lib/services/rolePermissions'
 import { useCatalogStore } from '@/lib/stores/catalogStore'
 
@@ -36,7 +39,7 @@ export function RolePermissionsForm({ configId, initial, counts }: { configId: n
       <div className="grid grid-cols-[1fr_110px_110px] gap-2 px-4 py-3 bg-muted text-sm font-semibold"><span>Permiso</span>{ROLES.map(([key, label]) => <span key={key} className="flex flex-col items-center text-center">{label}{counts && <small className="text-xs font-normal text-soft">{peopleLabel(counts[key] ?? 0)}</small>}</span>)}</div>
       {(['views', 'actions'] as const).map((kind) => <div key={kind}>
         <h4 className="px-4 py-2 border-t border-border bg-surface/40 text-xs font-semibold text-soft">{kind === 'views' ? 'Vistas disponibles' : 'Acciones permitidas'}</h4>
-        {(kind === 'views' ? ROLE_VIEWS : ROLE_ACTIONS).map((permission) => <div key={permission} className="grid grid-cols-[1fr_110px_110px] items-center gap-2 px-4 py-2 border-t border-border text-sm">
+        {(kind === 'views' ? POS_VIEWS : ROLE_ACTIONS).map((permission) => <div key={permission} className="grid grid-cols-[1fr_110px_110px] items-center gap-2 px-4 py-2 border-t border-border text-sm">
           <span>{LABELS[permission]}</span>{ROLES.map(([role, label]) => <label key={role} className="min-h-11 flex items-center justify-center cursor-pointer"><span className="sr-only">{label}: {LABELS[permission]}</span>
             <input type="checkbox" className="w-5 h-5 accent-primary" checked={(policy[role][kind] as readonly string[]).includes(permission)} onChange={(e) => {
               const checked = e.target.checked

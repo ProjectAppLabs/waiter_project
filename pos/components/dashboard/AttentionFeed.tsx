@@ -8,7 +8,7 @@ import { ListSkeleton } from '@/components/kit/Skeleton'
 import type { AttentionItem, AttentionKind } from '@/lib/domain/insights'
 import { cn } from '@/lib/utils'
 
-const ICON: Record<AttentionKind, KitIcon> = { accessDenied: 'lock', ready: 'chef', reservationSoon: 'reservations', depositPending: 'wallet', stockEmpty: 'inventory', stockLow: 'inventory', soldOut: 'alert', stockEmptyMore: 'inventory', stockLowMore: 'inventory', soldOutMore: 'alert' }
+const ICON: Record<AttentionKind, KitIcon> = { accessDenied: 'lock', cashDifference: 'scale', ready: 'chef', reservationSoon: 'reservations', depositPending: 'wallet', stockEmpty: 'inventory', stockLow: 'inventory', soldOut: 'alert', stockEmptyMore: 'inventory', stockLowMore: 'inventory', soldOutMore: 'alert' }
 const TONE = { danger: 'bg-danger-soft text-danger-ink', warning: 'bg-progress-soft text-progress-ink', info: 'bg-primary-soft text-primary' }
 
 // «Para atender ahora»: lo que pide acción, ya ordenado por urgencia (`attentionItems`). Cada renglón lleva a la pantalla

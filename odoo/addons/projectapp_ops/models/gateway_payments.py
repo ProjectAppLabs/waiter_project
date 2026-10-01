@@ -2,6 +2,7 @@
 import re
 from odoo import api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
+from .owner_permissions import require_owner
 
 _POLICY_WRITE = object()
 _ROLES = ('waiter', 'cashier', 'admin', 'owner')
@@ -22,6 +23,7 @@ class PosConfig(models.Model):
         if self.company_id not in self.env.companies:
             raise AccessError('El terminal no pertenece a la compañía activa.')
         if roles is not None:
+            require_owner(self.env)
             from .floor_plan import authorize
             authorize(self.env, employee_id, token)
             self.check_access('write')

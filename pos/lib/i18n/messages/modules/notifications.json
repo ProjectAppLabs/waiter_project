@@ -3,7 +3,7 @@
   "bell": "Notificaciones, {count} sin leer",
   "markAllRead": "Marcar todas como leídas",
   "tabs": { "all": "Todas", "inventory": "Inventario", "kitchen": "Cocina" },
-  "kind": { "inventory": "⚠️", "kitchen": "🍽️", "system": "🔔", "access": "🔒" },
+  "kind": { "inventory": "⚠️", "kitchen": "🍽️", "system": "🔔", "access": "🔒", "cash": "⚖️" },
   "empty": "Sin notificaciones por ahora.",
   "kitchenReady": { "deliver": "Ir a entregarlo" },
   "lowStock": {

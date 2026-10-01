@@ -2,6 +2,7 @@
 import json
 from odoo import models
 from odoo.exceptions import AccessError, ValidationError
+from .owner_permissions import require_owner
 
 ROLES = ('waiter', 'cashier', 'admin')
 VIEWS = ('dashboard', 'tables', 'orders', 'reservations', 'history', 'inventory', 'kitchen', 'sales', 'customers', 'billing')
@@ -96,10 +97,10 @@ class PosConfig(models.Model):
                     for row in rows:
                         if row.get('state', 'draft') != 'draft' or row.get('payment_ids') or row.get('amount_paid'):
                             self._waiter_require_permission(role, 'charge_orders')
-            elif method in ('add_payment', 'action_pos_order_paid', 'waiter_gateway_paid', 'waiter_gateway_check'):
+            elif method in ('add_payment', 'action_pos_order_paid', 'action_pos_order_invoice', 'waiter_gateway_paid', 'waiter_gateway_check'):
                 permission = 'charge_orders'
-            elif method.startswith('waiter_billing') or method in ('waiter_account_invoice', 'action_pos_order_invoice'):
-                permission = 'billing'
+            elif method.startswith('waiter_billing') or method == 'waiter_account_invoice':
+                require_owner(self.env)
             elif method == 'write':
                 if set(values) & {'payment_ids', 'amount_paid', 'amount_return', 'is_tipped', 'tip_amount', 'state'}:
                     permission = 'charge_orders'
@@ -126,7 +127,7 @@ class PosConfig(models.Model):
         elif model in ('product.template', 'product.product', 'stock.quant') and (mutation or method == 'waiter_set_availability'):
             permission = 'edit_inventory'
         elif model == 'account.move':
-            permission = 'billing'
+            require_owner(self.env)
         elif mutation and model in ('res.users', 'hr.employee', 'res.company', 'pos.config', 'restaurant.floor', 'restaurant.table', 'ir.config_parameter'):
             permission = 'admin'
         if permission:

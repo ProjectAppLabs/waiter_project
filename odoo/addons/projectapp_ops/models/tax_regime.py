@@ -17,6 +17,7 @@ from odoo import models
 from odoo.exceptions import AccessError, UserError
 
 from .role_permissions import employee_role
+from .owner_permissions import require_owner
 
 REGIMES = ('inc', 'iva', 'none')
 RATE = {'inc': 8.0, 'iva': 19.0}
@@ -57,12 +58,14 @@ class PosConfig(models.Model):
         return tax
 
     def waiter_tax_regime(self, employee_id=None, token=None, regime=None):
-        """Lee el régimen vigente; con `regime` lo cambia (solo administrador).
+        """Lee el régimen vigente; con `regime` lo cambia (solo dueño).
 
         El régimen se deduce de lo que llevan los productos, no de un campo aparte: así la pantalla no puede
         decir "INC 8 %" mientras la carta cobra otra cosa. Si los productos no coinciden entre sí, lo dice.
         """
         self.ensure_one()
+        if regime is not None:
+            require_owner(self.env)
         self.check_access('read')
         employee, role = employee_role(self.env, employee_id, token)
         if employee.company_id != self.company_id:
@@ -70,8 +73,8 @@ class PosConfig(models.Model):
 
         products = self._waiter_taxable_products()
         if regime is not None:
-            if role not in ('admin', 'owner'):
-                raise AccessError(self.env._('Solo un administrador puede cambiar el régimen tributario.'))
+            if employee.waiter_role not in ('admin', 'owner'):
+                raise AccessError(self.env._('Valida la sesión de un empleado autorizado para cambiar el régimen tributario.'))
             if regime not in REGIMES:
                 raise UserError(self.env._('Régimen desconocido.'))
             self.check_access('write')

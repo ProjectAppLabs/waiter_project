@@ -16,7 +16,7 @@ import { MenuAdmin, type MenuAdminRequest } from '@/components/pantry/MenuAdmin'
 import { PantryHeader } from '@/components/pantry/PantryHeader'
 import { RequestList } from '@/components/pantry/RequestList'
 import { Button } from '@/components/ui/Button'
-import { can } from '@/lib/domain/roles'
+import { can, isOwner } from '@/lib/domain/roles'
 import { useIdentity } from '@/lib/hooks/useIdentity'
 import {
   PANTRY_CATEGORIES, STOCK_LEVELS, dishAvailable, filterDishes, filterIngredients, groupCounts,
@@ -41,6 +41,9 @@ export default function InventarioPage() {
   const canEditSetting = useCatalogStore((c) => c.catalog?.settings.waiterCanEditInventory ?? false)
   const policy = useCatalogStore((c) => c.catalog?.settings.rolePermissions)
   const mayEdit = can.editInventory(role, canEditSetting, policy)
+  // Plan Q: el plato es de toda la organización. Crearlo, su ficha comercial, sus categorías y su receta son del dueño; el
+  // encargado opera existencias, solicitudes y agotados de su restaurante.
+  const owner = useAuthStore((a) => isOwner(a.user?.role, a.employee?.role))
   const [detail, setDetail] = useState<{id:number;name:string} | null>(null)
   const [control, setControl] = useState<Ingredient | null>(null)
   const [addDish, setAddDish] = useState(false)
@@ -130,7 +133,7 @@ export default function InventarioPage() {
 
   // Ver el inventario lo hace cualquiera; crear, editar o borrar es un permiso que da el restaurante.
   const header = s.tab === 'menu'
-    ? { query: s.dishFilters.query, onQuery: (query: string) => s.setDishFilters({ query }), placeholder: t('search.dish'), action: mayEdit ? t('actions.addDish') : undefined, onAction: mayEdit ? () => setAddDish(true) : undefined }
+    ? { query: s.dishFilters.query, onQuery: (query: string) => s.setDishFilters({ query }), placeholder: t('search.dish'), action: mayEdit && owner ? t('actions.addDish') : undefined, onAction: mayEdit && owner ? () => setAddDish(true) : undefined }
     : s.tab === 'ingredients'
       ? { query: s.ingredientFilters.query, onQuery: (query: string) => s.setIngredientFilters({ query }), placeholder: t('search.ingredient'), action: mayEdit ? t('actions.addIngredient') : undefined, onAction: mayEdit ? () => setIngredientModal({ kind: 'add' }) : undefined }
       : { query: s.requestQuery, onQuery: s.setRequestQuery, placeholder: t('search.request'), action: undefined, onAction: undefined }
@@ -145,7 +148,7 @@ export default function InventarioPage() {
         <section aria-label={listTitle} className="flex-1 min-w-0 min-h-0 ambient-panel border border-border rounded-lg flex flex-col">
           <header className="h-14 px-4 flex items-center border-b border-border shrink-0"><h2 className="text-[16px] font-semibold text-ink">{listTitle}</h2>
             {/* Lo que antes era Administración → Catálogo: categorías de la carta y platos ocultos o sin categoría. */}
-            {s.tab === 'menu' && role === 'admin' && <span className="ml-4 flex gap-2">
+            {s.tab === 'menu' && owner && <span className="ml-4 flex gap-2">
               <Button size="compact" onClick={() => setMenuAdmin({ kind: 'categories' })}>{t('menuAdmin.categories')}</Button>
               <Button size="compact" onClick={() => setMenuAdmin({ kind: 'offMenu' })}>{t('menuAdmin.offMenu')}</Button>
             </span>}<button className="ml-auto text-sm text-primary" onClick={()=>void s.refresh().catch(e=>toast({title:String(e),tone:'danger'}))}>Actualizar</button></header>
@@ -153,7 +156,7 @@ export default function InventarioPage() {
             {s.error && <p role="alert" className="m-4 p-3 rounded-md bg-danger-soft text-danger-ink text-[14px]">{s.error}</p>}
             {s.tab === 'menu' && (dishes.length === 0 && !s.loading
               ? <KitEmptyState icon="inventory" title={t('menu.empty')} body={t('menu.emptyBody')} />
-              : <div className="p-2.5 grid grid-cols-3 gap-2.5 content-start">{dishes.map((d) => <DishCard key={d.id} dish={d} category={posCategoryName(d.categoryIds)} onOpen={() => void openDetail(d)} onEdit={role === 'admin' ? () => setMenuAdmin({ kind: 'product', id: d.id }) : undefined} closedHere={closedHere.has(d.id)} onToggleHere={role === 'admin' && configId !== null ? () => void toggleHere(d) : undefined} />)}</div>)}
+              : <div className="p-2.5 grid grid-cols-3 gap-2.5 content-start">{dishes.map((d) => <DishCard key={d.id} dish={d} category={posCategoryName(d.categoryIds)} onOpen={() => void openDetail(d)} onEdit={owner ? () => setMenuAdmin({ kind: 'product', id: d.id }) : undefined} closedHere={closedHere.has(d.id)} onToggleHere={role === 'admin' && configId !== null ? () => void toggleHere(d) : undefined} />)}</div>)}
             {s.tab === 'ingredients' && (ingredients.length === 0 && !s.loading
               ? <KitEmptyState icon="inventory" title={t('ingredients.empty')} body={t('ingredients.emptyBody')} />
               : <ul className="p-2.5 flex flex-col gap-2">{ingredients.map((i) => <IngredientRow key={i.id} ingredient={i} onEdit={() => setIngredientModal({ kind: 'edit', ingredient: i })} onRequest={() => void request(i)} onDelete={() => setIngredientModal({ kind: 'delete', ingredient: i })} mayEdit={mayEdit} onControl={()=>setControl(i)} />)}</ul>)}
@@ -162,8 +165,8 @@ export default function InventarioPage() {
         </section>
       </div>
       {menuAdmin && <MenuAdmin key={JSON.stringify(menuAdmin)} request={menuAdmin} onClose={() => setMenuAdmin(null)} onChanged={() => { void s.refresh(); void reloadCatalog(session?.id ?? null) }} />}
-      {detail&&<RecipeEditor key={detail.id} dish={detail} ingredients={s.ingredients} units={s.units} mayEdit={role==='admin'} onClose={()=>setDetail(null)} onSaved={s.refresh}/>}
-      {control&&<InventoryControl key={control.id} ingredient={control} mayEdit={role==='admin'} onClose={()=>setControl(null)} onSaved={s.refresh}/>}
+      {detail&&<RecipeEditor key={detail.id} dish={detail} ingredients={s.ingredients} units={s.units} mayEdit={owner} onClose={()=>setDetail(null)} onSaved={s.refresh}/>}
+      {control&&<InventoryControl key={control.id} ingredient={control} mayEdit={role==='admin'} mayEditCost={owner} onClose={()=>setControl(null)} onSaved={s.refresh}/>}
       <AddDishWizard open={addDish} onClose={() => setAddDish(false)} categories={s.posCategories} ingredients={s.ingredients} units={s.units} onSaved={s.refresh} />
       {(ingredientModal?.kind === 'add' || ingredientModal?.kind === 'edit') && (
         <AddIngredientWizard open onClose={() => setIngredientModal(null)} initial={ingredientModal.kind === 'edit' ? ingredientModal.ingredient : null}

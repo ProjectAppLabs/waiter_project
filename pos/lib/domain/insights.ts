@@ -161,7 +161,7 @@ export function dishStats(history: SalesHistory, menu: { id: number; templateId:
 
 // ------------------------------------------------------------------ para atender
 export type AttentionTone = 'danger' | 'warning' | 'info'
-export type AttentionKind = 'accessDenied' | 'ready' | 'reservationSoon' | 'depositPending' | 'stockEmpty' | 'stockLow' | 'soldOut' | 'stockEmptyMore' | 'stockLowMore' | 'soldOutMore'
+export type AttentionKind = 'accessDenied' | 'cashDifference' | 'ready' | 'reservationSoon' | 'depositPending' | 'stockEmpty' | 'stockLow' | 'soldOut' | 'stockEmptyMore' | 'stockLowMore' | 'soldOutMore'
 export interface AttentionItem { key: string; kind: AttentionKind; tone: AttentionTone; href: string; values: Record<string, string | number> }
 
 export interface AttentionInput {
@@ -173,6 +173,9 @@ export interface AttentionInput {
   // Plan P: intentos de entrada fuera de turno sin leer, con el texto que armó Odoo («Mateo intentó entrar a las 23:40…»).
   access?: { id: number; body: string }[]
   accessHref?: string
+  // Plan Q3: cierres de caja que superaron la tolerancia («Caja de Poblado cerró con $ 12.000 de diferencia…»).
+  cash?: { id: number; body: string }[]
+  cashHref?: string
 }
 export const SOON_HOURS = 2
 export const MAX_PER_GROUP = 3 // de cada tipo de aviso de inventario; el resto se resume en un renglón para no tapar lo demás
@@ -183,6 +186,7 @@ export function attentionItems(input: AttentionInput): AttentionItem[] {
   const items: AttentionItem[] = []
   // Alguien intentó entrar fuera de su turno: es seguridad, va antes que todo.
   for (const a of input.access ?? []) items.push({ key: `access-${a.id}`, kind: 'accessDenied', tone: 'danger', href: input.accessHref ?? '/dashboard', values: { body: a.body } })
+  for (const c of input.cash ?? []) items.push({ key: `cash-${c.id}`, kind: 'cashDifference', tone: 'danger', href: input.cashHref ?? '/cuadres', values: { body: c.body } })
   if (input.ready > 0) items.push({ key: 'ready', kind: 'ready', tone: 'danger', href: '/pedidos', values: { count: input.ready } })
   for (const r of input.reservations.filter((x) => x.timeStart - input.nowHour <= SOON_HOURS && x.timeStart - input.nowHour > -0.5).sort((a, b) => a.timeStart - b.timeStart)) {
     const minutes = Math.round((r.timeStart - input.nowHour) * 60)

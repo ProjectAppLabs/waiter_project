@@ -23,7 +23,10 @@ class PosConfig(models.Model):
         """
         self.ensure_one()
         self.check_access('read')
-        tz = pytz.timezone(self.env.context.get('tz') or self.env.user.tz or 'UTC')
+        # La zona de la empresa (la misma del resumen del dueño): con la del usuario, quien no la tiene configurada sumaba en
+        # UTC y una venta del domingo a las 11 p. m. en Bogotá salía en «esta semana».
+        company = self.company_id or self.env.company
+        tz = pytz.timezone(company.resource_calendar_id.tz or company.partner_id.tz or self.env.user.tz or 'UTC')
         today = datetime.now(tz).date()
 
         def utc_start(day):  # medianoche local de ese día, en UTC sin zona (como guarda Odoo)
