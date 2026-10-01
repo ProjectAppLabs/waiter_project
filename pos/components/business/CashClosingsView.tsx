@@ -19,7 +19,7 @@ const when = (iso: string) => new Date(iso).toLocaleString('es-CO', { dateStyle:
 // Plan Q3: cada cierre de caja con quién la cerró, lo esperado, lo contado y la diferencia. El dueño ve todos sus
 // restaurantes y fija la tolerancia; el encargado (`restaurants` con uno solo) ve los de su sede.
 export function CashClosingsView({ restaurants, canSetTolerance }: { restaurants: { id: number; name: string }[]; canSetTolerance: boolean }) {
-  const [span, setSpan] = useState<DateSpan>(() => presetSpan('month'))
+  const [span, setSpan] = useState<DateSpan>(() => presetSpan('last30'))
   const [configId, setConfigId] = useState<number | null>(restaurants.length === 1 ? restaurants[0].id : null)
   const [onlyDiff, setOnlyDiff] = useState(false)
   const [data, setData] = useState<{ key: string; rows: CashClosing[] } | null>(null)

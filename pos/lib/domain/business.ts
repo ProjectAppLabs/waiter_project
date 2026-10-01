@@ -1,6 +1,6 @@
 // Plan Q: reglas puras de las vistas del negocio (periodos de consulta, variación, exportar).
 
-export type PeriodPreset = 'today' | 'week' | 'month' | 'lastMonth'
+export type PeriodPreset = 'today' | 'week' | 'month' | 'lastMonth' | 'last30'
 export interface DateSpan { from: string; to: string }
 
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -13,6 +13,8 @@ export function presetSpan(preset: PeriodPreset, now = new Date()): DateSpan {
     const monday = new Date(day); monday.setDate(day.getDate() - ((day.getDay() + 6) % 7))
     return { from: iso(monday), to: iso(day) }
   }
+  // Por omisión en las vistas del negocio: no queda vacío el día 1 ni el lunes.
+  if (preset === 'last30') { const from = new Date(day); from.setDate(day.getDate() - 29); return { from: iso(from), to: iso(day) } }
   if (preset === 'month') return { from: iso(new Date(day.getFullYear(), day.getMonth(), 1)), to: iso(day) }
   return { from: iso(new Date(day.getFullYear(), day.getMonth() - 1, 1)), to: iso(new Date(day.getFullYear(), day.getMonth(), 0)) }
 }

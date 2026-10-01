@@ -24,7 +24,7 @@ const CLASSES = Object.keys(MENU_CLASS) as MenuClass[]
 // Plan Q4: costo de cada plato según su receta, margen, food cost y su lugar en la matriz de ingeniería de menú. El dueño ve
 // toda la organización o un restaurante; el encargado (`restaurants` con uno solo), el suyo.
 export function ProfitabilityView({ restaurants, allowOrganization }: { restaurants: { id: number; name: string }[]; allowOrganization: boolean }) {
-  const [span, setSpan] = useState<DateSpan>(() => presetSpan('month'))
+  const [span, setSpan] = useState<DateSpan>(() => presetSpan('last30'))
   const [configId, setConfigId] = useState<number | null>(allowOrganization ? null : restaurants[0]?.id ?? null)
   const [filter, setFilter] = useState<MenuClass | 'all' | 'noCost'>('all')
   const [data, setData] = useState<{ key: string; value: Profitability } | null>(null)
@@ -44,13 +44,13 @@ export function ProfitabilityView({ restaurants, allowOrganization }: { restaura
   const count = (c: MenuClass) => result?.rows.filter((r) => r.menuClass === c).length ?? 0
   const noCost = result?.rows.filter((r) => r.cost === null).length ?? 0
   const exportCsv = () => result && downloadCsv(`rentabilidad-${span.from}-a-${span.to}.csv`, toCsv(
-    ['Plato', 'Categoría', 'Precio sin impuestos', 'Costo', 'Margen', 'Food cost %', 'Unidades', 'Ingresos', 'Utilidad bruta', 'Clase'],
+    ['Plato', 'Categoría', 'Precio de carta', 'Costo', 'Margen', 'Food cost %', 'Unidades', 'Ingresos', 'Utilidad bruta', 'Clase'],
     result.rows.map((r) => [r.name, r.category, r.price, r.cost, r.margin, r.foodCostPct, r.units, r.revenue, r.grossProfit, r.menuClass ? MENU_CLASS[r.menuClass].label : 'Sin costo'])))
   return (
     <section className="flex flex-col gap-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div><h1 className="text-[26px] font-bold">Rentabilidad por plato</h1>
-          <p className="mt-1 text-soft">El costo sale de la receta de cada plato; el margen es el precio sin impuestos menos ese costo (no incluye mano de obra ni arriendo).</p></div>
+          <p className="mt-1 text-soft">El costo sale de la receta de cada plato; el margen es el precio de carta sin impuestos menos ese costo (no incluye mano de obra ni arriendo).</p></div>
         <Button onClick={exportCsv} disabled={!result}><Icon name="download" size={18} />Exportar CSV</Button>
       </div>
       <PeriodPicker onChange={setSpan} />
@@ -76,7 +76,7 @@ export function ProfitabilityView({ restaurants, allowOrganization }: { restaura
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full text-[15px]">
             <thead><tr className="text-left text-soft border-b border-border">
-              {['Plato', 'Precio', 'Costo', 'Margen', 'Food cost', 'Unidades', 'Utilidad bruta', 'Clase'].map((h, i) => <th key={h} className={cn('px-4 py-3 font-semibold', i > 0 && i < 7 && 'text-right')}>{h}</th>)}</tr></thead>
+              {['Plato', 'Precio de carta', 'Costo', 'Margen', 'Food cost', 'Unidades', 'Utilidad bruta', 'Clase'].map((h, i) => <th key={h} className={cn('px-4 py-3 font-semibold', i > 0 && i < 7 && 'text-right')}>{h}</th>)}</tr></thead>
             <tbody>{rows.map((r) => (
               <tr key={r.templateId} className="border-b border-border last:border-0">
                 <td className="px-4 py-3"><div className="font-semibold">{r.name}</div><div className="text-[13px] text-dim">{r.category}</div></td>

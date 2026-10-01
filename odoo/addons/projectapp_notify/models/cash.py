@@ -18,8 +18,10 @@ class PosSession(models.Model):
                 ('res_model', '=', 'pos.session'), ('res_id', '=', session.id),
             ]).user_id
             actor = session.waiter_closed_by_id or session.user_id
-            amount = format(difference, ',.0f').replace(',', '.')
-            body = 'Caja de %s cerró con $ %s de diferencia (%s)' % (session.config_id.name, amount, actor.name)
+            # «Faltante» o «sobrante» dice más que un signo: «$ -12.000» se leía como un error de formato.
+            amount = format(abs(difference), ',.0f').replace(',', '.')
+            kind = 'un faltante' if difference < 0 else 'un sobrante'
+            body = 'Caja de %s cerró con %s de $ %s (%s)' % (session.config_id.name, kind, amount, actor.name)
             notifications.create([{
                 'kind': 'cash', 'config_id': session.config_id.id, 'user_id': user.id,
                 'title': 'Diferencia en el cierre de caja', 'body': body,

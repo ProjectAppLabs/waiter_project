@@ -24,7 +24,7 @@ function Delta({ current, previous }: { current: number; previous: number }) {
 
 // Plan Q2: cómo va cada restaurante frente a los demás y frente a su periodo anterior. Es la primera pantalla del dueño.
 export function SummaryView() {
-  const [span, setSpan] = useState<DateSpan>(() => presetSpan('month'))
+  const [span, setSpan] = useState<DateSpan>(() => presetSpan('last30'))
   const [data, setData] = useState<{ key: string; value: OrgSummary } | null>(null)
   const [error, setError] = useState('')
   const key = `${span.from}|${span.to}`

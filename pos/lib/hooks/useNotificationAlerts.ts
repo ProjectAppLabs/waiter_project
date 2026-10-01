@@ -17,9 +17,9 @@ import { toast } from '@/lib/stores/toastStore'
 // en el acto, así que el sonido y la pantalla llegan juntos sin doblar el tráfico pesado.
 const POLL_MS = 5_000
 const POLL_WITH_BUS_MS = 60_000
-const SOUND: Record<NotificationKind, SoundId> = { kitchen: 'listo', inventory: 'demora', system: 'tap', access: 'demora' }
-const POPUP: Record<NotificationKind, keyof NotifyPrefs> = { kitchen: 'kitchen_popup', inventory: 'inventory_popup', system: 'system_popup', access: 'system_popup' }
-const SOUND_PREF: Record<NotificationKind, keyof NotifyPrefs> = { kitchen: 'kitchen_sound', inventory: 'inventory_sound', system: 'system_sound', access: 'system_sound' }
+const SOUND: Record<NotificationKind, SoundId> = { kitchen: 'listo', inventory: 'demora', system: 'tap', access: 'demora', cash: 'demora' }
+const POPUP: Record<NotificationKind, keyof NotifyPrefs> = { kitchen: 'kitchen_popup', inventory: 'inventory_popup', system: 'system_popup', access: 'system_popup', cash: 'system_popup' }
+const SOUND_PREF: Record<NotificationKind, keyof NotifyPrefs> = { kitchen: 'kitchen_sound', inventory: 'inventory_sound', system: 'system_sound', access: 'system_sound', cash: 'system_sound' }
 
 // El mesero no vive mirando la pantalla: cuando cocina saca un plato hay que llamarle. Cada aviso nuevo
 // suena y salta en pantalla según lo que el usuario tenga marcado en Ajustes › Notificaciones.

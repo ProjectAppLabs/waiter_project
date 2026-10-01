@@ -21,7 +21,7 @@ import { useKitOrders } from '@/lib/hooks/useKitOrders'
 import { getSalesHistory } from '@/lib/services/insights'
 import { listIngredients } from '@/lib/services/pantry'
 import { getTimeline } from '@/lib/services/reservations'
-import { unreadAccess } from '@/lib/domain/notifications'
+import { unreadAccess, unreadCash } from '@/lib/domain/notifications'
 import { isOwner } from '@/lib/domain/roles'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useNotificationStore } from '@/lib/stores/notificationStore'
@@ -47,6 +47,7 @@ export default function DashboardPage() {
   const owner = useAuthStore((s) => isOwner(s.user?.role, s.employee?.role))
   const notifications = useNotificationStore((s) => s.items)
   const access = useMemo(() => unreadAccess(notifications).map((n) => ({ id: n.id, body: n.body || n.title })), [notifications])
+  const cash = useMemo(() => unreadCash(notifications).map((n) => ({ id: n.id, body: n.body || n.title })), [notifications])
   const { orders } = useKitOrders()
   const [reservations, setReservations] = useState<ReservationCard[] | null>(null)
   const [ingredients, setIngredients] = useState<Ingredient[] | null>(null)
@@ -92,7 +93,8 @@ export default function DashboardPage() {
     ingredients: (ingredients ?? []).map((i) => ({ id: i.id, name: i.name, level: i.level, stock: i.qty, min: i.min, uom: i.uomName })),
     soldOut: (catalog?.products ?? []).filter((p) => p.soldOut).map((p) => ({ id: p.id, name: p.name })),
     access, accessHref: owner ? '/organizacion/equipo' : '/configuracion',
-  }), [nowHour, ready.length, confirmed, ingredients, catalog, access, owner])
+    cash, cashHref: owner ? '/organizacion/cuadres' : '/cuadres',
+  }), [nowHour, ready.length, confirmed, ingredients, catalog, access, cash, owner])
   // La carta son los productos con categoría del POS: una tarjeta de regalo o la propina se venden, pero no son platos.
   const stats = useMemo(() => (history && catalog ? dishStats(history, catalog.products.filter((p) => p.categoryIds.length > 0).map((p) => ({ id: p.id, templateId: p.templateId, name: p.name }))) : null), [history, catalog])
   const forecast = useMemo(() => (history ? forecastNextMonth(history) : null), [history])

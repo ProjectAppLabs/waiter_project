@@ -59,3 +59,20 @@ class TestSalesInsights(TransactionCase):
         row = next(p for p in self.config.waiter_sales_insights()['products'] if p['product_id'] == stopped.id)
         self.assertEqual((row['qty'], row['prev_qty'], row['amount']), (0, 6, 0))
 
+
+    # Falla si el tablero suma por día en la zona del usuario y no en la de la empresa: quien no la tiene configurada sumaba
+    # en UTC, y una venta del domingo a las 11 p. m. en Bogotá salía el lunes («esta semana»), distinta del resumen del dueño.
+    def test_days_are_counted_in_the_company_timezone(self):
+        company = self.config.company_id
+        company.resource_calendar_id.tz = 'America/Bogota'
+        self.env.user.tz = False
+        before = self.config.waiter_sales_insights()
+        order = self._order(0, [(self.burger, 1, 20000)])
+        today = fields.Date.to_date(before['today'])
+        # 23:30 de ayer en Bogotá = 04:30 UTC de hoy.
+        order.date_order = fields.Datetime.to_datetime(f'{today.isoformat()} 04:30:00')
+        after = self.config.waiter_sales_insights()
+        yesterday = (today - timedelta(days=1)).isoformat()
+        total = lambda data, day: next((r['total'] for r in data['daily'] if r['date'] == day), 0.0)
+        self.assertEqual(total(after, yesterday) - total(before, yesterday), 20000)
+        self.assertEqual(total(after, today.isoformat()) - total(before, today.isoformat()), 0)

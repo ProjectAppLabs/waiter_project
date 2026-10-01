@@ -8,6 +8,7 @@ it('arma los periodos de consulta', () => {
   expect(presetSpan('week', NOW)).toEqual({ from: '2026-09-28', to: '2026-10-01' })
   expect(presetSpan('month', NOW)).toEqual({ from: '2026-10-01', to: '2026-10-01' })
   expect(presetSpan('lastMonth', NOW)).toEqual({ from: '2026-09-01', to: '2026-09-30' })
+  expect(presetSpan('last30', NOW)).toEqual({ from: '2026-09-02', to: '2026-10-01' })
   expect(validSpan({ from: '2026-10-02', to: '2026-10-01' })).toBe(false)
 })
 
