@@ -10,7 +10,8 @@ import { formatCop } from '@/lib/domain/money'
 import { orgSummary, type OrgSummary, type SummaryFigures } from '@/lib/services/business'
 import { cn } from '@/lib/utils'
 
-const money = (v: number) => `$ ${formatCop(Math.round(v))}`
+// «$» y el valor unidos con espacio duro: nunca quedan en líneas distintas.
+const money = (v: number) => `$\u00a0${formatCop(Math.round(v))}`
 const METRICS: [keyof SummaryFigures, string, (v: number) => string][] = [
   ['sales', 'Ventas', money], ['orders', 'Pedidos', (v) => String(v)], ['ticket', 'Ticket promedio', money], ['guests', 'Comensales', (v) => String(v)], ['tips', 'Propinas', money],
 ]
@@ -62,7 +63,7 @@ export function SummaryView() {
         </dl>
         <p className="text-[13px] text-dim">Comparado con {summary.previousFrom} a {summary.previousTo}.</p>
         <div className="overflow-x-auto rounded-lg border border-border">
-          <table className="w-full text-[15px]">
+          <table className="data-table text-[15px]">
             <thead><tr className="text-left text-soft border-b border-border"><th className="px-4 py-3 font-semibold">Restaurante</th>
               {METRICS.map(([k, label]) => <th key={k} className="px-4 py-3 font-semibold text-right">{label}</th>)}</tr></thead>
             <tbody>

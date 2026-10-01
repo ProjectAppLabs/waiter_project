@@ -23,7 +23,8 @@ export function KitTable<T>({ columns, rows, rowKey, empty, onRowClick, selected
             <Tag key={key} role="row" type={onRowClick ? 'button' : undefined} onClick={onRowClick ? () => onRowClick(row) : undefined}
               className={cn('w-full grid gap-3 px-5 min-h-12 py-2 items-center border-b border-border text-[15px] text-ink text-left', onRowClick && 'hover:bg-muted', selectedKey === key && 'bg-primary-soft')}
               style={{ gridTemplateColumns: template }}>
-              {columns.map((c) => <span key={c.key} role="cell" className={cn('min-w-0 truncate', c.align === 'right' && 'text-right')}>{c.render(row)}</span>)}
+              {/* Lo alineado a la derecha son importes: no se truncan (se veía «$ 12.0…» o el «$» solo). */}
+              {columns.map((c) => <span key={c.key} role="cell" className={cn(c.align === 'right' ? 'text-right whitespace-nowrap' : 'min-w-0 truncate')}>{c.render(row)}</span>)}
             </Tag>
           )
         })}

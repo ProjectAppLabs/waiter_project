@@ -95,7 +95,7 @@ export function BillingView() {
             </div>
             {loading ? <ListSkeleton rows={5} /> : error ? <div role="alert" className="p-5 text-danger-ink">{t('loadError')}</div> : count === 0 ? <KitEmptyState icon="billing" title={t('emptyResults')} body={t('emptyHint')} /> : (
               <div className="flex-1 min-h-0 overflow-auto">
-                <table className="w-full min-w-[660px] text-left text-[14px]">
+                <table className="data-table text-left text-[14px]">
                   <caption className="sr-only">{t(tab === 'pending' ? 'pendingTitle' : 'invoicesTitle')}</caption>
                   <thead className="sticky top-0 z-10 bg-surface text-soft text-[12px]">
                     <tr>{headers.map((key) => <th key={key} scope="col" className="px-4 py-3 border-b border-border font-semibold">{t(`cols.${key}`)}</th>)}</tr>
@@ -106,7 +106,7 @@ export function BillingView() {
                         <td className={cell}><p className="font-semibold text-ink">{order.reference || `#${order.id}`}</p><p className="mt-1 text-[12px] text-soft">{billingDate(order.date, true)}</p></td>
                         <td className={cell}><p className="text-ink">{order.partnerName || t('noCustomer')}</p><p className="mt-1 text-[12px] text-soft">{tableNumberOf(order.tableId) !== null ? t('tableName', { number: tableNumberOf(order.tableId)! }) : order.tableId !== null ? t('tableAssigned') : t('noTable')}</p></td>
                         <td className={cell}><p className="text-ink">{order.payments.map((p) => p.method).join(' + ') || t('unknownPayment')}</p>{order.payments.length > 1 && <p className="mt-1 text-[12px] text-soft">{t('mixedPayment')}</p>}</td>
-                        <td className={cn(cell, 'font-semibold text-ink tabular whitespace-nowrap')}>$ {formatCop(order.total)}</td>
+                        <td className={cn(cell, 'font-semibold text-ink tabular whitespace-nowrap')}>$&nbsp;{formatCop(order.total)}</td>
                         <td className={cell}><Button size="compact" aria-label={t('reviewOrder', { reference: order.reference || String(order.id) })} aria-pressed={selection?.kind === 'order' && selection.order.id === order.id} onClick={() => setSelection({ kind: 'order', order })}>{t('review')}</Button></td>
                       </tr>
                     ))}

@@ -13,7 +13,7 @@ import { formatCop } from '@/lib/domain/money'
 import { cashClosings, cashSettings, type CashClosing } from '@/lib/services/business'
 import { cn } from '@/lib/utils'
 
-const money = (v: number) => `${v < 0 ? '− ' : ''}$ ${formatCop(Math.round(Math.abs(v)))}`
+const money = (v: number) => `${v < 0 ? '−\u00a0' : ''}$\u00a0${formatCop(Math.round(Math.abs(v)))}`
 const when = (iso: string) => new Date(iso).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })
 
 // Plan Q3: cada cierre de caja con quién la cerró, lo esperado, lo contado y la diferencia. El dueño ve todos sus
@@ -68,7 +68,7 @@ export function CashClosingsView({ restaurants, canSetTolerance }: { restaurants
       {!rows ? !error && <p role="status" className="text-soft">Leyendo los cierres…</p>
         : rows.length === 0 ? <p className="text-soft">No hay cierres de caja en este periodo.</p> : (
           <div className="overflow-x-auto rounded-lg border border-border">
-            <table className="w-full text-[15px]">
+            <table className="data-table text-[15px]">
               <thead><tr className="text-left text-soft border-b border-border">
                 {['Restaurante', 'Cierre', 'Cerró', 'Esperado', 'Contado', 'Diferencia', 'Nota'].map((h, i) => <th key={h} className={cn('px-4 py-3 font-semibold', i >= 3 && i <= 5 && 'text-right')}>{h}</th>)}</tr></thead>
               <tbody>{rows.map((r) => (
@@ -80,7 +80,7 @@ export function CashClosingsView({ restaurants, canSetTolerance }: { restaurants
                   <td className="px-4 py-3 text-right tabular">{money(r.counted)}</td>
                   <td className="px-4 py-3 text-right tabular">{r.difference === 0 ? <span className="text-soft">Cuadra</span>
                     : <StatusPill tone={r.overTolerance ? 'danger' : 'progress'}>{money(r.difference)}</StatusPill>}</td>
-                  <td className="px-4 py-3 text-[14px] text-soft max-w-[28ch]">{r.notes || '—'}</td>
+                  <td className="cell-wrap px-4 py-3 text-[14px] text-soft">{r.notes || '—'}</td>
                 </tr>))}</tbody>
             </table>
           </div>)}

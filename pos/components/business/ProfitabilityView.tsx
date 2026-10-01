@@ -11,7 +11,7 @@ import { formatCop } from '@/lib/domain/money'
 import { profitability, type MenuClass, type Profitability } from '@/lib/services/business'
 import { cn } from '@/lib/utils'
 
-const money = (v: number) => `$ ${formatCop(Math.round(v))}`
+const money = (v: number) => `$\u00a0${formatCop(Math.round(v))}`
 // Ingeniería de menú: popularidad (unidades) × margen (lo que deja cada plato sobre su receta).
 export const MENU_CLASS: Record<MenuClass, { label: string; hint: string; tone: string }> = {
   star: { label: 'Estrella', hint: 'Se vende mucho y deja mucho: cuídalo y destácalo.', tone: 'bg-success-soft text-success-ink' },
@@ -77,7 +77,7 @@ export function ProfitabilityView({ restaurants, allowOrganization }: { restaura
           {allowOrganization && <> · <a href="/organizacion/catalogo?filtro=sin-receta" className="font-semibold text-primary">Completar recetas en Catálogo</a></>}</p>}
         <p className="text-[13px] text-dim">Popular: {result.thresholds.popularityUnits.toFixed(1)} unidades o más · Rentable: margen de {money(result.thresholds.margin)} o más.</p>
         <div className="overflow-x-auto rounded-lg border border-border">
-          <table className="w-full text-[15px]">
+          <table className="data-table text-[15px]">
             <thead><tr className="text-left text-soft border-b border-border">
               {['Plato', 'Precio de carta', 'Costo', 'Margen', 'Food cost', 'Unidades', 'Utilidad bruta', 'Clase'].map((h, i) => <th key={h} className={cn('px-4 py-3 font-semibold', i > 0 && i < 7 && 'text-right')}>{h}</th>)}</tr></thead>
             <tbody>{rows.map((r) => (

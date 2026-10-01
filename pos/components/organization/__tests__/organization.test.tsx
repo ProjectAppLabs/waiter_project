@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
-import { OrgContext } from '../OrgContext'
+import { anyConfigId, OrgContext } from '../OrgContext'
 import { RestaurantsView } from '../RestaurantsView'
 import { TeamView } from '../TeamView'
 import { messages } from '@/lib/i18n/messages'
@@ -117,4 +117,15 @@ it('edita, reenvía la invitación y desactiva', async () => {
   expect(deactivatePerson).not.toHaveBeenCalled()
   fireEvent.click(within(screen.getByRole('dialog', { name: '¿Desactivar a Sofía Mesera?' })).getByRole('button', { name: 'Desactivar' }))
   await waitFor(() => expect(deactivatePerson).toHaveBeenCalledWith(7))
+})
+
+// Falla si los ajustes de la organización (promociones, permisos, empresa) se guardan por un restaurante distinto del
+// que va en cada petición: Odoo respondía «La operación pertenece a otro restaurante».
+it('los ajustes de la organización usan el restaurante en uso', () => {
+  const list = [R(1, 'Poblado'), R(2, 'Laureles')]
+  expect(anyConfigId(list, 1)).toBe(1)
+  expect(anyConfigId(list, 2)).toBe(2)
+  expect(anyConfigId(list, 99)).toBe(1)
+  expect(anyConfigId(list, null)).toBe(1)
+  expect(anyConfigId([], null)).toBeNull()
 })

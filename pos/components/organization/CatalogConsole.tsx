@@ -27,7 +27,7 @@ const FILTERS: [DishFilter, string][] = [['all', 'Todos'], ['noRecipe', 'Sin rec
 const STATE: Record<RecipeState, { label: string; tone: 'success' | 'neutral' | 'progress' }> = {
   costed: { label: 'Con costo', tone: 'success' }, noRecipe: { label: 'Sin receta', tone: 'neutral' }, missingCost: { label: 'Ingrediente sin costo', tone: 'progress' },
 }
-const money = (v: number) => `$ ${formatCop(Math.round(v))}`
+const money = (v: number) => `$\u00a0${formatCop(Math.round(v))}`
 // «por kg», «por unidad»: Odoo nombra la unidad «Units» (en inglés).
 const perUnit = (uom: string) => (uom === 'Units' ? 'unidad' : uom)
 const INPUT = 'h-11 px-3 rounded-md border border-border bg-surface text-[15px] text-ink'
@@ -81,7 +81,7 @@ function DishesTab({ dishes, initialFilter, onChanged }: { dishes: OverviewDish[
         <Button variant="primary" onClick={() => setAdding(true)}><Icon name="plus" size={18} />Nuevo plato</Button>
       </div>
       <div className="overflow-x-auto rounded-lg border border-border">
-        <table className="w-full text-[15px]">
+        <table className="data-table text-[15px]">
           <thead><tr className="text-left text-soft border-b border-border">
             {['Plato', 'Precio de carta', 'Receta', 'Costo', 'Food cost', ''].map((h, i) => <th key={i} className={cn('px-4 py-3 font-semibold', (i === 1 || i === 3 || i === 4) && 'text-right')}>{h}</th>)}</tr></thead>
           <tbody>{shown.map((d) => {
@@ -92,7 +92,7 @@ function DishesTab({ dishes, initialFilter, onChanged }: { dishes: OverviewDish[
                   <div className="text-[13px] text-dim">{d.categories.join(' · ') || 'Sin categoría'}{!d.hasImage && ' · sin foto'}</div></td>
                 <td className="px-4 py-3 text-right tabular">{money(d.listPrice)}</td>
                 <td className="px-4 py-3"><StatusPill tone={STATE[state].tone}>{STATE[state].label}</StatusPill>
-                  {state === 'missingCost' && <div className="mt-1 text-[13px] text-soft">Falta el costo de {d.missingCosts.join(', ')}</div>}</td>
+                  {state === 'missingCost' && <div className="mt-1 text-[13px] text-soft whitespace-normal max-w-[22rem]">Falta el costo de {d.missingCosts.join(', ')}</div>}</td>
                 <td className="px-4 py-3 text-right tabular">{d.recipeCost === null ? '—' : money(d.recipeCost)}</td>
                 <td className="px-4 py-3 text-right tabular">{d.recipeCost === null || !d.listPrice ? '—' : `${((d.recipeCost / d.listPrice) * 100).toFixed(0)} %`}</td>
                 <td className="px-4 py-3"><div className="flex justify-end gap-2">
@@ -152,7 +152,7 @@ function IngredientsTab({ ingredients, pantryIngredients, onChanged }: { ingredi
       {error && <p role="alert" className="text-danger">{error}</p>}
       {notice && <p role="status" className="text-success-ink">{notice}</p>}
       <div className="overflow-x-auto rounded-lg border border-border">
-        <table className="w-full text-[15px]">
+        <table className="data-table text-[15px]">
           <thead><tr className="text-left text-soft border-b border-border">
             {['Ingrediente', 'Costo por unidad', 'En platos', ''].map((h, i) => <th key={i} className={cn('px-4 py-3 font-semibold', i === 2 && 'text-right')}>{h}</th>)}</tr></thead>
           <tbody>{shown.map((i) => {
