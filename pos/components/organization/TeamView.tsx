@@ -9,6 +9,7 @@ import { StatusPill } from '@/components/kit/StatusPill'
 import { useOrg } from '@/components/organization/OrgContext'
 import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { ScrollTable } from '@/components/ui/ScrollTable'
 import { Select, TextInput } from '@/components/ui/Field'
 import { hoursToTime, shiftLabel, timeToHours } from '@/lib/domain/employees'
 import { restaurantRule, validAssignment } from '@/lib/domain/restaurant'
@@ -57,27 +58,30 @@ export function TeamView() {
       </div>
       {error && <p role="alert" className="text-danger">{error}</p>}
       {notice && <p role="status" className="text-success-ink">{notice}</p>}
-      <ul aria-label="Personas" className="flex flex-col gap-2">
-        {people === null ? <li className="text-soft">Cargando…</li> : people.map((p) => (
-          <li key={p.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-border p-4">
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold truncate">{p.name}{p.username && <span className="ml-2 font-mono text-[13px] text-soft">{p.username}</span>}</p>
-              <p className="text-[13px] text-soft truncate">
-                {p.role ? roles(p.role) : 'Sin rol'} · {restaurantRule(p.role) === 'all' ? 'Todos los restaurantes' : names(p.configIds) || 'Sin restaurante'}
-                {(p.role === 'waiter' || p.role === 'cashier') && ` · ${shiftLabel(p.shift, 'Sin turno: entra a cualquier hora')}`}
-              </p>
-            </div>
-            <StatusPill tone={STATUS[p.status].tone}>{STATUS[p.status].label}</StatusPill>
-            <div className="flex flex-wrap gap-2">
-              <Button size="compact" onClick={() => setEditing(p)} disabled={p.status === 'no_account'}>Editar</Button>
-              <Button size="compact" disabled={p.status === 'no_account' || !p.email}
-                onClick={() => void act(() => resendInvite(p.id), p.status === 'pending' ? `Invitación reenviada a ${p.email}.` : `Enviamos a ${p.email} un código para restablecer la contraseña.`)}>
-                {p.status === 'pending' ? 'Reenviar invitación' : 'Restablecer contraseña'}</Button>
-              {p.userId !== myUid && <Button size="compact" variant="ghost" disabled={p.status === 'no_account'} onClick={() => setLeaving(p)}>Desactivar</Button>}
-            </div>
-          </li>
-        ))}
-      </ul>
+      {/* Tabla con la persona fija a la izquierda: en pantallas angostas los botones se desplazan sin cortar los nombres. */}
+      {people === null ? <p className="text-soft">Cargando…</p> : (
+        <ScrollTable label="el equipo">
+          <table aria-label="Personas" className="data-table text-[15px]">
+            <thead><tr className="text-left text-soft border-b border-border">
+              {['Persona', 'Rol', 'Restaurantes', 'Turno', 'Estado', ''].map((h, i) => <th key={i} className="px-4 py-3 font-semibold">{h}</th>)}</tr></thead>
+            <tbody>{people.map((p) => (
+              <tr key={p.id} className="border-b border-border last:border-0">
+                <td className="px-4 py-3"><div className="font-semibold">{p.name}</div>{p.username && <div className="font-mono text-[13px] text-soft">{p.username}</div>}</td>
+                <td className="px-4 py-3">{p.role ? roles(p.role) : 'Sin rol'}</td>
+                <td className="px-4 py-3">{restaurantRule(p.role) === 'all' ? 'Todos' : names(p.configIds) || 'Sin restaurante'}</td>
+                <td className="px-4 py-3 text-soft">{p.role === 'waiter' || p.role === 'cashier' ? shiftLabel(p.shift, 'Sin turno') : 'Sin restricción'}</td>
+                <td className="px-4 py-3"><StatusPill tone={STATUS[p.status].tone}>{STATUS[p.status].label}</StatusPill></td>
+                <td className="px-4 py-3"><div className="flex justify-end gap-2">
+                  <Button size="compact" onClick={() => setEditing(p)} disabled={p.status === 'no_account'}>Editar</Button>
+                  <Button size="compact" disabled={p.status === 'no_account' || !p.email}
+                    onClick={() => void act(() => resendInvite(p.id), p.status === 'pending' ? `Invitación reenviada a ${p.email}.` : `Enviamos a ${p.email} un código para restablecer la contraseña.`)}>
+                    {p.status === 'pending' ? 'Reenviar invitación' : 'Restablecer contraseña'}</Button>
+                  {p.userId !== myUid && <Button size="compact" variant="ghost" disabled={p.status === 'no_account'} onClick={() => setLeaving(p)}>Desactivar</Button>}
+                </div></td>
+              </tr>))}</tbody>
+          </table>
+        </ScrollTable>
+      )}
       {editing && <PersonModal person={editing === 'new' ? null : editing} onClose={() => setEditing(null)}
         onSaved={(message) => { setEditing(null); setNotice(message); setError(''); reload() }} />}
       <ConfirmDialog open={!!leaving} title={`¿Desactivar a ${leaving?.name}?`} destructive confirmLabel="Desactivar" cancelLabel="Cancelar"

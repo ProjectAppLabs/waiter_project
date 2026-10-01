@@ -11,6 +11,7 @@ import { AddIngredientWizard } from '@/components/pantry/AddIngredientWizard'
 import { MenuAdmin, type MenuAdminRequest } from '@/components/pantry/MenuAdmin'
 import { RecipeEditor } from '@/components/pantry/RecipeEditor'
 import { Button } from '@/components/ui/Button'
+import { ScrollTable } from '@/components/ui/ScrollTable'
 import { Segmented } from '@/components/ui/Segmented'
 import { formatCop } from '@/lib/domain/money'
 import type { Ingredient } from '@/lib/domain/pantry'
@@ -80,7 +81,7 @@ function DishesTab({ dishes, initialFilter, onChanged }: { dishes: OverviewDish[
         <input aria-label="Buscar plato" placeholder="Buscar plato" value={query} onChange={(e) => setQuery(e.target.value)} className={cn(INPUT, 'ml-auto w-64')} />
         <Button variant="primary" onClick={() => setAdding(true)}><Icon name="plus" size={18} />Nuevo plato</Button>
       </div>
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <ScrollTable label="los platos">
         <table className="data-table text-[15px]">
           <thead><tr className="text-left text-soft border-b border-border">
             {['Plato', 'Precio de carta', 'Receta', 'Costo', 'Food cost', ''].map((h, i) => <th key={i} className={cn('px-4 py-3 font-semibold', (i === 1 || i === 3 || i === 4) && 'text-right')}>{h}</th>)}</tr></thead>
@@ -103,7 +104,7 @@ function DishesTab({ dishes, initialFilter, onChanged }: { dishes: OverviewDish[
           })}</tbody>
         </table>
         {shown.length === 0 && <p className="p-6 text-center text-soft">No hay platos con este filtro.</p>}
-      </div>
+      </ScrollTable>
       <p className="text-[13px] text-dim">El food cost aquí es sobre el precio de carta con impuestos; Rentabilidad lo calcula sin impuestos y con las ventas de cada periodo.</p>
       <AddDishWizard open={adding} onClose={() => setAdding(false)} categories={pantry.posCategories} ingredients={pantry.ingredients} units={pantry.units} onSaved={onChanged} />
       {sheet && <MenuAdmin key={JSON.stringify(sheet)} request={sheet} onClose={() => setSheet(null)} onChanged={() => void onChanged()} />}
@@ -151,7 +152,7 @@ function IngredientsTab({ ingredients, pantryIngredients, onChanged }: { ingredi
       </div>
       {error && <p role="alert" className="text-danger">{error}</p>}
       {notice && <p role="status" className="text-success-ink">{notice}</p>}
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <ScrollTable label="los ingredientes">
         <table className="data-table text-[15px]">
           <thead><tr className="text-left text-soft border-b border-border">
             {['Ingrediente', 'Costo por unidad', 'En platos', ''].map((h, i) => <th key={i} className={cn('px-4 py-3 font-semibold', i === 2 && 'text-right')}>{h}</th>)}</tr></thead>
@@ -174,7 +175,7 @@ function IngredientsTab({ ingredients, pantryIngredients, onChanged }: { ingredi
           })}</tbody>
         </table>
         {shown.length === 0 && <p className="p-6 text-center text-soft">No hay ingredientes con este filtro.</p>}
-      </div>
+      </ScrollTable>
       {editing && <AddIngredientWizard open onClose={() => setEditing(null)} initial={editing === 'new' ? null : editing} units={pantry.units} suppliers={pantry.suppliers}
         onSaved={async () => { setEditing(null); await onChanged() }} />}
     </div>

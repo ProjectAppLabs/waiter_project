@@ -18,7 +18,7 @@ export function CustomerPanel({ customer, loyalty, history, onEdit }: CustomerPa
   const t = useTranslations('admin.customers.panel')
   const field = (label: string, value: string) => <div className="min-w-0"><p className="text-[13px] text-soft">{label}</p><p className="text-[15px] text-ink truncate">{value || '—'}</p></div>
   return (
-    <Card title={t('title')} className="w-[400px] shrink-0" action={customer ? <Button size="compact" onClick={onEdit}><Icon name="edit" size={18} />{t('edit')}</Button> : undefined}>
+    <Card title={t('title')} className="w-full xl:w-[400px] shrink-0" action={customer ? <Button size="compact" onClick={onEdit}><Icon name="edit" size={18} />{t('edit')}</Button> : undefined}>
       {!customer ? <KitEmptyState icon="user" title={t('empty')} body={t('emptyBody')} /> : (
         <div className="h-full overflow-y-auto flex flex-col">
           <div className="p-5 flex items-center gap-3 border-b border-border">

@@ -94,13 +94,14 @@ it('da de alta a una persona con usuario sugerido, un restaurante y su turno', a
 it('edita, reenvía la invitación y desactiva', async () => {
   jest.mocked(listPeople).mockResolvedValue([P({}), P({ id: 8, name: 'Laura', role: 'admin', configIds: [1, 2], shift: null, username: 'laura', email: 'laura@x.co', status: 'pending', userId: 21 }), P({ id: 1, name: 'Dueña', role: 'owner', configIds: [], userId: 1, username: 'admin' })])
   org(<TeamView />)
-  const list = await screen.findByRole('list', { name: 'Personas' })
-  const [sofia, laura, owner] = Array.from(list.children) as HTMLElement[]
+  // Plan R: el equipo es una tabla (persona fija a la izquierda) para que los nombres no se corten.
+  await screen.findByRole('table', { name: 'Personas' })
+  const [sofia, laura, owner] = ['Sofía Mesera', 'Laura', 'Dueña'].map((name) => screen.getByRole('row', { name: new RegExp(`^${name}`) }))
   expect(sofia).toHaveTextContent('Activa')
   expect(sofia).toHaveTextContent('2:00 p. m. – 10:00 p. m.')
   expect(laura).toHaveTextContent('Invitación pendiente')
   expect(laura).toHaveTextContent('Poblado · Laureles')
-  expect(owner).toHaveTextContent('Todos los restaurantes')
+  expect(owner).toHaveTextContent('Todos')
   expect(within(owner).queryByRole('button', { name: 'Desactivar' })).toBeNull()
 
   fireEvent.click(within(laura).getByRole('button', { name: 'Reenviar invitación' }))

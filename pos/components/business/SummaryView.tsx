@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { PeriodPicker } from '@/components/business/PeriodPicker'
 import { Icon } from '@/components/kit/Icon'
 import { Button } from '@/components/ui/Button'
+import { ScrollTable } from '@/components/ui/ScrollTable'
 import { change, downloadCsv, presetSpan, toCsv, type DateSpan } from '@/lib/domain/business'
 import { formatCop } from '@/lib/domain/money'
 import { orgSummary, type OrgSummary, type SummaryFigures } from '@/lib/services/business'
@@ -18,7 +19,7 @@ const METRICS: [keyof SummaryFigures, string, (v: number) => string][] = [
 
 function Delta({ current, previous }: { current: number; previous: number }) {
   const pct = change(current, previous)
-  if (pct === null) return <span className="text-[13px] text-dim">sin periodo anterior</span>
+  if (pct === null) return <span className="text-[13px] text-dim whitespace-nowrap">sin comparación</span>
   const up = pct >= 0
   return <span className={cn('text-[13px] font-semibold tabular', up ? 'text-success-ink' : 'text-danger-ink')}>{up ? '↑' : '↓'} {Math.abs(pct).toFixed(0)} %</span>
 }
@@ -52,17 +53,18 @@ export function SummaryView() {
       <PeriodPicker onChange={setSpan} />
       {error && <p role="alert" className="text-danger">{error}</p>}
       {!summary ? !error && <p role="status" className="text-soft">Sumando ventas…</p> : <>
-        <dl aria-label="Total de la organización" className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        {/* Tantas tarjetas por fila como quepan con al menos 11 rem: a cinco fijas se apretaban en pantallas angostas. */}
+        <dl aria-label="Total de la organización" className="grid grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-3">
           {METRICS.map(([k, label, fmt]) => (
             <div key={k} className="rounded-lg border border-border p-4 flex flex-col gap-1">
               <dt className="text-[14px] text-soft">{label}</dt>
-              <dd className="text-[24px] font-semibold tabular">{fmt(summary.total[k])}</dd>
+              <dd className="text-[24px] font-semibold tabular whitespace-nowrap">{fmt(summary.total[k])}</dd>
               <dd><Delta current={summary.total[k]} previous={summary.total.previous[k]} /></dd>
             </div>
           ))}
         </dl>
         <p className="text-[13px] text-dim">Comparado con {summary.previousFrom} a {summary.previousTo}.</p>
-        <div className="overflow-x-auto rounded-lg border border-border">
+        <ScrollTable label="el resumen">
           <table className="data-table text-[15px]">
             <thead><tr className="text-left text-soft border-b border-border"><th className="px-4 py-3 font-semibold">Restaurante</th>
               {METRICS.map(([k, label]) => <th key={k} className="px-4 py-3 font-semibold text-right">{label}</th>)}</tr></thead>
@@ -75,7 +77,7 @@ export function SummaryView() {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollTable>
       </>}
     </section>
   )

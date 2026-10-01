@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { useOrg } from '@/components/organization/OrgContext'
+import { ScrollTable } from '@/components/ui/ScrollTable'
 import { formatCop } from '@/lib/domain/money'
 import { loadMasterCatalog, setDishAvailability, setDishPrice, type MasterCatalog, type MasterDish } from '@/lib/services/masterCatalog'
 import { cn } from '@/lib/utils'
@@ -30,7 +31,7 @@ export function CatalogView() {
         <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} className="h-tap-min px-3.5 rounded-[10px] border border-border bg-surface" /></label>
       {error && <p role="alert" className="text-danger">{error}</p>}
       {!data ? <p className="text-soft">Cargando el catálogo…</p> : (
-        <div className="overflow-x-auto rounded-xl border border-border">
+        <ScrollTable label="los precios">
           <table className="data-table text-[14px]">
             <thead className="bg-muted text-left"><tr><th className="p-3">Plato</th><th className="p-3">Precio de la organización</th>
               {restaurants.map((r) => <th key={r.id} className="p-3">{r.name}</th>)}</tr></thead>
@@ -44,7 +45,7 @@ export function CatalogView() {
               </tr>
             ))}</tbody>
           </table>
-        </div>
+        </ScrollTable>
       )}
     </section>
   )

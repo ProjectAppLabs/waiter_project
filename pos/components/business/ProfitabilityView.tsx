@@ -6,6 +6,7 @@ import { PeriodPicker } from '@/components/business/PeriodPicker'
 import { Chip } from '@/components/kit/Chip'
 import { Icon } from '@/components/kit/Icon'
 import { Button } from '@/components/ui/Button'
+import { ScrollTable } from '@/components/ui/ScrollTable'
 import { downloadCsv, presetSpan, toCsv, type DateSpan } from '@/lib/domain/business'
 import { formatCop } from '@/lib/domain/money'
 import { profitability, type MenuClass, type Profitability } from '@/lib/services/business'
@@ -76,7 +77,7 @@ export function ProfitabilityView({ restaurants, allowOrganization }: { restaura
           {/* Plan R: el dueño las completa en Consola → Catálogo; el encargado no carga recetas. */}
           {allowOrganization && <> · <a href="/organizacion/catalogo?filtro=sin-receta" className="font-semibold text-primary">Completar recetas en Catálogo</a></>}</p>}
         <p className="text-[13px] text-dim">Popular: {result.thresholds.popularityUnits.toFixed(1)} unidades o más · Rentable: margen de {money(result.thresholds.margin)} o más.</p>
-        <div className="overflow-x-auto rounded-lg border border-border">
+        <ScrollTable label="la rentabilidad">
           <table className="data-table text-[15px]">
             <thead><tr className="text-left text-soft border-b border-border">
               {['Plato', 'Precio de carta', 'Costo', 'Margen', 'Food cost', 'Unidades', 'Utilidad bruta', 'Clase'].map((h, i) => <th key={h} className={cn('px-4 py-3 font-semibold', i > 0 && i < 7 && 'text-right')}>{h}</th>)}</tr></thead>
@@ -93,7 +94,7 @@ export function ProfitabilityView({ restaurants, allowOrganization }: { restaura
                   : <span className="text-[13px] text-dim">{r.cost === null ? 'Sin costo' : 'Sin ventas'}</span>}</td>
               </tr>))}</tbody>
           </table>
-        </div>
+        </ScrollTable>
       </>}
     </section>
   )

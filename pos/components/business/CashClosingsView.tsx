@@ -7,6 +7,7 @@ import { Chip } from '@/components/kit/Chip'
 import { Icon } from '@/components/kit/Icon'
 import { StatusPill } from '@/components/kit/StatusPill'
 import { Button } from '@/components/ui/Button'
+import { ScrollTable } from '@/components/ui/ScrollTable'
 import { TextInput } from '@/components/ui/Field'
 import { downloadCsv, presetSpan, toCsv, type DateSpan } from '@/lib/domain/business'
 import { formatCop } from '@/lib/domain/money'
@@ -67,7 +68,7 @@ export function CashClosingsView({ restaurants, canSetTolerance }: { restaurants
       {notice && <p role="status" className="text-success-ink">{notice}</p>}
       {!rows ? !error && <p role="status" className="text-soft">Leyendo los cierres…</p>
         : rows.length === 0 ? <p className="text-soft">No hay cierres de caja en este periodo.</p> : (
-          <div className="overflow-x-auto rounded-lg border border-border">
+          <ScrollTable label="los cuadres">
             <table className="data-table text-[15px]">
               <thead><tr className="text-left text-soft border-b border-border">
                 {['Restaurante', 'Cierre', 'Cerró', 'Esperado', 'Contado', 'Diferencia', 'Nota'].map((h, i) => <th key={h} className={cn('px-4 py-3 font-semibold', i >= 3 && i <= 5 && 'text-right')}>{h}</th>)}</tr></thead>
@@ -83,7 +84,7 @@ export function CashClosingsView({ restaurants, canSetTolerance }: { restaurants
                   <td className="cell-wrap px-4 py-3 text-[14px] text-soft">{r.notes || '—'}</td>
                 </tr>))}</tbody>
             </table>
-          </div>)}
+          </ScrollTable>)}
     </section>
   )
 }
