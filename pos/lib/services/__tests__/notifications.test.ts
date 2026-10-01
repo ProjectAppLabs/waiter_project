@@ -19,6 +19,13 @@ it('reads waiter.notification newest first and normalizes the Odoo falses', asyn
   expect(items[1]).toMatchObject({ body: '', resModel: null, resId: null, action: null, read: true })
 })
 
+// Falla si el encargado (que por regla ve los avisos de todos) recibe también los dirigidos a otra persona (plan P).
+it('pide solo los avisos propios y los generales', async () => {
+  rpc.mockResolvedValueOnce([])
+  await listNotifications(7)
+  expect(rpc.mock.calls[0][2][0]).toEqual(['|', ['user_id', '=', false], ['user_id', '=', 7]])
+})
+
 // Falla si marcar como leídas se resuelve en el dispositivo en vez de en el servidor.
 it('marks read on the server', async () => {
   rpc.mockResolvedValue(true)

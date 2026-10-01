@@ -6,10 +6,12 @@ import type { ReactNode } from 'react'
 import { Aurora } from '@/components/kit/Aurora'
 import { BrandMark } from '@/components/kit/BrandMark'
 
-// Acceso (1 – Authentication, 2 – Forgot PIN) en pantalla partida. A la izquierda, un panel azul noche con manchas
+// Acceso (inicio de sesión y recuperar o activar la cuenta) en pantalla partida. A la izquierda, un panel azul noche con manchas
 // de color que derivan despacio: son los colores del propio salón (mesa libre, en curso, lista, reservada). A la
 // derecha, el formulario de siempre. En pantallas angostas el panel se vuelve una franja superior con la marca.
 // La animación vive en components/kit/Aurora.tsx y está documentada en la vista /kit.
+export const LOGIN_INPUT = 'w-full h-12 px-4 rounded-md border border-border bg-surface text-[16px] text-ink placeholder:text-dim focus:outline-none focus:border-primary'
+
 export function LoginFrame({ children }: { children: ReactNode }) {
   const t = useTranslations('pos.login')
   return (

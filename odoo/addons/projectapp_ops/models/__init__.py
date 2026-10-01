@@ -7,6 +7,8 @@ from . import product_photo
 from . import seed
 from . import users
 from . import restaurants
+from . import access
+from . import people
 
 from . import floor_plan
 

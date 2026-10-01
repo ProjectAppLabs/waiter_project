@@ -53,3 +53,8 @@ export async function ensureOpenSession(configId: number): Promise<PosSession> {
   await callKw<void>('pos.session', 'action_pos_session_open', [[id]])
   return { id, configId, state: 'opening_control' }
 }
+
+// Plan P: cada persona cambia su propia contraseña; Odoo comprueba la actual antes de guardar la nueva.
+export function changePassword(current: string, next: string): Promise<boolean> {
+  return callKw<boolean>('res.users', 'change_password', [current, next])
+}

@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
-import { ChangePinModal } from '@/components/account/ChangePinModal'
+import { ChangePasswordModal } from '@/components/account/ChangePasswordModal'
 import { EmployeeInfoPanel } from '@/components/account/EmployeeInfoPanel'
 import { ShiftClock } from '@/components/account/ShiftClock'
 import { Icon, type KitIcon } from '@/components/kit/Icon'
@@ -40,7 +40,7 @@ export function SettingsModal({ open, onClose, onLogout }: { open: boolean; onCl
   const t = useTranslations('account.settings')
   const [tab, setTab] = useState<Tab>('profile')
   const [confirming, setConfirming] = useState(false)
-  const [changingPin, setChangingPin] = useState(false)
+  const [changingPassword, setChangingPassword] = useState(false)
   const { mode, setMode } = useTheme()
   const employee = useAuthStore((s) => s.employee)
   const uid = useAuthStore((s) => s.user?.uid ?? null)
@@ -97,8 +97,8 @@ export function SettingsModal({ open, onClose, onLogout }: { open: boolean; onCl
                 ))}
                 {tab === 'security' && (
                   <div className="flex items-center justify-between">
-                    <div><p className="text-[16px] font-semibold text-ink">{t('security.pin')}</p><p className="text-[13px] text-soft">{t('security.pinBody')}</p></div>
-                    <Button size="compact" disabled={!employee} onClick={() => setChangingPin(true)}>{t('security.changePin')}<Icon name="chevronRight" size={16} /></Button>
+                    <div><p className="text-[16px] font-semibold text-ink">{t('security.password')}</p><p className="text-[13px] text-soft">{t('security.passwordBody')}</p></div>
+                    <Button size="compact" onClick={() => setChangingPassword(true)}>{t('security.changePassword')}<Icon name="chevronRight" size={16} /></Button>
                   </div>
                 )}
                 {tab === 'display' && (
@@ -123,7 +123,7 @@ export function SettingsModal({ open, onClose, onLogout }: { open: boolean; onCl
           </section>
         </div>
       </Modal>
-      {employee && <ChangePinModal open={changingPin} employeeId={employee.id} token={employee.token} onClose={() => setChangingPin(false)} />}
+      <ChangePasswordModal open={changingPassword} onClose={() => setChangingPassword(false)} />
       <Modal open={confirming} onClose={() => setConfirming(false)} footer={
         <div className="flex gap-3"><Button className="flex-1 h-12" onClick={() => setConfirming(false)}>{t('logoutNo')}</Button><Button variant="primary" className="flex-1 h-12" onClick={() => { setConfirming(false); void onLogout() }}>{t('logoutYes')}</Button></div>
       }>

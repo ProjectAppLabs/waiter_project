@@ -11,7 +11,6 @@ import { EditorHint, EditorToolbar } from '@/components/tables/editor/EditorTool
 import { TOOLS, type Tool } from '@/components/tables/editor/parts'
 import { TableShape } from '@/components/tables/TableShape'
 import { savePlan } from '@/lib/services/floorPlan'
-import { checkPin } from '@/lib/services/employees'
 import { useStableCallback } from '@/lib/hooks/useStableCallback'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { DECOR_INFO, rotateDecor, type Decor, type DecorAsset } from '@/lib/domain/decor'
@@ -28,7 +27,6 @@ const keyOf = (item: {key?: string; id?: string | number | null}) => item.key ??
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#a855f7', '#ef4444', '#06b6d4']
 // Paredes: pizarra (la de siempre), casi negro, ladrillo, madera, verde de jardinera y gris claro de vidrio o baranda.
 const WALL_COLORS = ['#475569', '#1e293b', '#9a3412', '#a16207', '#15803d', '#94a3b8']
-const inputClass = 'w-full rounded-md border border-border bg-surface p-2 text-sm text-ink'
 const typing = (target: EventTarget | null) => target instanceof HTMLElement && (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable)
 
 // Una mesa del lienzo. Memoizada: cambiar el color de una zona o mover una pared no vuelve a dibujar las mesas, que son
@@ -52,8 +50,6 @@ export function FloorEditor({ initial, configId, background, onCancel, onSaved }
  const [redo, setRedo] = useState<Draft[]>([])
  const [busy, setBusy] = useState(false)
  const [error, setError] = useState('')
- const [needsPin, setNeedsPin] = useState(false)
- const [pin, setPin] = useState('')
  const [panel, setPanel] = useState(false)
  const [panning, setPanning] = useState(false)
  const svg = useRef<SVGSVGElement>(null)
@@ -207,24 +203,15 @@ export function FloorEditor({ initial, configId, background, onCancel, onSaved }
  async function save() {
   if (!valid || busy) return
   setBusy(true);setError('')
-  try {
-   if (needsPin) {
-    const auth = useAuthStore.getState()
-    if (!auth.employee) throw new Error('Inicia sesión como administrador para guardar el plano.')
-    const result = await checkPin(auth.employee.id, pin)
-    setPin('')
-    if (!result.ok) throw new Error(result.reason === 'locked' ? 'PIN bloqueado temporalmente. Inténtalo más tarde.' : 'El PIN no coincide. Revisa e intenta de nuevo.')
-    await auth.startShift(result.employee, result.attendanceId, result.token)
-    setNeedsPin(false)
-   }
-   const result=await savePlan(configId,normalizePlan(plan));await onSaved(result)
-  }
+  const send=async()=>{const result=await savePlan(configId,normalizePlan(plan));await onSaved(result)}
+  try { await send() }
   catch(e) {
-   const message = e instanceof Error ? e.message : String(e)
-   if (message.includes('Valida el PIN de un administrador')) {
-    setNeedsPin(true)
-    setError('Tu validación anterior venció. Confirma tu PIN aquí; los cambios del plano se conservan.')
-   } else setError(message)
+   // Plan P: si el token del turno venció a mitad de la edición, se renueva con la sesión de la cuenta (ya prueba quién
+   // es) y se guarda otra vez; los cambios del plano no se pierden.
+   if (e instanceof Error && e.message.includes('Valida el PIN de un administrador')) {
+    try { await useAuthStore.getState().renewShift(); await send() }
+    catch(again) { setError(again instanceof Error ? again.message : String(again)) }
+   } else setError(e instanceof Error ? e.message : String(e))
   }
   finally {setBusy(false)}
  }
@@ -335,13 +322,10 @@ export function FloorEditor({ initial, configId, background, onCancel, onSaved }
    <div className="min-w-0 flex-1"><h1 className="text-[16px] font-semibold leading-tight">Editar plano del restaurante</h1><p className="truncate text-[13px] text-dim">Nada cambia en el salón hasta que guardes.</p></div>
    {blocker && <button type="button" onClick={()=>{if(invalid[0]){setSelection({kind:'tables',id:invalid[0].key});setTool('select')}}} className="hidden md:flex h-10 px-3 items-center gap-2 rounded-md bg-danger-soft text-[13px] font-semibold text-danger-ink"><Icon name="alert" size={16}/>{blocker}</button>}
    <button type="button" className="h-11 px-4 flex items-center gap-2 border border-border rounded-md text-[15px] font-semibold hover:bg-muted" onClick={onCancel} disabled={busy}><Icon name="close" size={18}/>Cancelar</button>
-   <button type="button" className="h-11 px-5 flex items-center gap-2 bg-primary text-primary-ink rounded-md text-[15px] font-semibold disabled:opacity-40" disabled={!valid||busy||(needsPin&&pin.length!==6)} onClick={()=>void save()}><Icon name={busy?'loader':'check'} size={18} className={busy?'animate-spin':undefined}/>{busy?'Guardando…':'Guardar'}</button>
+   <button type="button" className="h-11 px-5 flex items-center gap-2 bg-primary text-primary-ink rounded-md text-[15px] font-semibold disabled:opacity-40" disabled={!valid||busy} onClick={()=>void save()}><Icon name={busy?'loader':'check'} size={18} className={busy?'animate-spin':undefined}/>{busy?'Guardando…':'Guardar'}</button>
   </header>
   {error && <p role="alert" className="px-4 py-2 flex items-center gap-2 bg-danger-soft text-[14px] text-danger-ink"><Icon name="alert" size={16}/>{error}</p>}
-  {needsPin && <form className="flex items-end gap-3 px-4 py-3 border-b border-border bg-surface" onSubmit={e=>{e.preventDefault();if(pin.length===6) void save()}}>
-   <label className="text-sm flex flex-col gap-1">PIN del administrador<input type="password" inputMode="numeric" autoComplete="off" maxLength={6} value={pin} onChange={e=>setPin(e.target.value.replace(/\D/g,''))} className={inputClass} disabled={busy}/></label>
-   <button type="submit" disabled={busy||pin.length!==6} className="h-10 px-4 rounded-md bg-primary text-primary-ink font-semibold disabled:opacity-40">Validar y guardar</button>
-  </form>}
+
   <div className="relative flex flex-1 min-h-0">
    <EditorPalette name={plan.name} onName={onName} onAddTable={onAddTable} onAddDecor={onAddDecor} busy={busy}
     hasImage={Boolean(shownBackground)} imageCount={(shownBackground?1:0)+plan.images.length} canAddImage={!shownBackground||plan.images.length<MAX_EXTRA_IMAGES} imagePercent={Math.round(backgroundSize.width/12)} onImageFile={onImageFile}

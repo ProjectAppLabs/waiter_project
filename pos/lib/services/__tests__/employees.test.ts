@@ -1,4 +1,4 @@
-import { changePin, checkPin, endShift, forgotPin, getEmployeeProfile, listPosEmployees } from '@/lib/services/employees'
+import { endShift, getEmployeeProfile, listPosEmployees, startMyShift } from '@/lib/services/employees'
 import { callKw } from '@/lib/services/odoo'
 
 jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn(), inRestaurant: (d: unknown[]) => d, currentConfigId: () => null }))
@@ -18,27 +18,24 @@ it('lists the terminal employees with code, role and today shift', async () => {
   expect(list[1]).toMatchObject({ code: null, shift: null })
 })
 
-// Falla si el PIN se compara en el cliente en vez de en `waiter_check_pin`, o si el bloqueo se lee como error genérico.
-it('checkPin delegates to the server and maps every refusal', async () => {
-  rpc.mockResolvedValueOnce({ ok: true, attendance_id: 9, employee: { id: 2, name: 'Sofía Mesera', waiter_role: 'waiter', employee_code: 'WT-0001', shift_start: 8, shift_end: 16, user_id: false } })
-  const ok = await checkPin(2, '123456')
-  expect(rpc).toHaveBeenCalledWith('hr.employee', 'waiter_check_pin', [2, '123456'])
-  expect(ok).toMatchObject({ ok: true, attendanceId: 9, employee: { id: 2, userId: null } })
-  rpc.mockResolvedValueOnce({ ok: false, reason: 'wrong', attempts_left: 3 })
-  expect(await checkPin(2, '000000')).toEqual({ ok: false, reason: 'wrong', attemptsLeft: 3 })
-  rpc.mockResolvedValueOnce({ ok: false, reason: 'locked', locked_until: '2026-09-06 10:10:00' })
-  expect(await checkPin(2, '000000')).toEqual({ ok: false, reason: 'locked', lockedUntil: '2026-09-06 10:10:00' })
+// Falla si abrir el turno no pide al servidor el de la cuenta conectada en su restaurante, o pierde el fin de la sesión
+// y el motivo de un rechazo (plan P).
+it('startMyShift opens the shift of the signed-in account and maps the refusals', async () => {
+  rpc.mockResolvedValueOnce({ ok: true, attendance_id: 9, token: 'tok', session_ends: '2026-10-01T22:30:00Z', config_ids: [1],
+    employee: { id: 2, name: 'Sofía Mesera', waiter_role: 'waiter', employee_code: 'WT-0001', shift_start: 14, shift_end: 22, user_id: 5 } })
+  expect(await startMyShift(1)).toEqual({ ok: true, attendanceId: 9, token: 'tok', sessionEnds: '2026-10-01T22:30:00Z', configIds: [1],
+    employee: { id: 2, name: 'Sofía Mesera', code: 'WT-0001', role: 'waiter', shift: { from: 14, to: 22 }, userId: 5 } })
+  expect(rpc).toHaveBeenCalledWith('hr.employee', 'waiter_start_my_shift', [], { config_id: 1 })
+  rpc.mockResolvedValueOnce({ ok: false, reason: 'outside_hours', window: '14:00–22:00' })
+  expect(await startMyShift(null)).toEqual({ ok: false, reason: 'outside_hours', window: '14:00–22:00' })
+  expect(rpc).toHaveBeenLastCalledWith('hr.employee', 'waiter_start_my_shift', [], {})
 })
 
-// Falla si cambiar el PIN, pedirlo por correo o cerrar el turno dejan de usar los métodos del servidor.
-it('changePin, forgotPin and endShift call their server methods', async () => {
-  rpc.mockResolvedValue(true)
-  await changePin(2, '654321', 'tok-demo')
-  expect(rpc).toHaveBeenCalledWith('hr.employee', 'waiter_change_pin', [2, '654321', 'tok-demo'])
-  await forgotPin('sofia.mesera@example.com')
-  expect(rpc).toHaveBeenCalledWith('hr.employee', 'waiter_forgot_pin', ['sofia.mesera@example.com'])
+// Falla si cerrar el turno deja de usar el método del servidor.
+it('endShift calls its server method', async () => {
   rpc.mockResolvedValueOnce({ ok: true, attendance_id: 9, worked_hours: 4.25 })
   expect(await endShift(2, 'tok-demo')).toEqual({ ok: true, attendanceId: 9, workedHours: 4.25 })
+  expect(rpc).toHaveBeenCalledWith('hr.employee', 'waiter_end_shift', [2, 'tok-demo'])
 })
 
 // Falla si un usuario sin RR. HH. deja el perfil sin cargar en vez de mostrar "—" en los campos privados.

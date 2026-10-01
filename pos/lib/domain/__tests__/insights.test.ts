@@ -146,3 +146,11 @@ it('ranks a dish that stopped selling ahead of dishes that never sold', () => {
   expect(bottom[0]).toMatchObject({ name: 'Zanahoria glaseada', qty: 0, change: -1 })
   expect(bottom).toHaveLength(5)
 })
+
+// Falla si un intento de entrada fuera de turno no sale primero en «Para atender ahora» con el texto de Odoo (plan P).
+it('el intento de entrada fuera de turno va antes que todo', () => {
+  const items = attentionItems({ nowHour: 23.5, ready: 2, reservations: [], ingredients: [], soldOut: [],
+    access: [{ id: 41, body: 'Mateo intentó entrar a las 23:40, fuera de su turno (14:00–22:00).' }], accessHref: '/organizacion/equipo' })
+  expect(items[0]).toEqual({ key: 'access-41', kind: 'accessDenied', tone: 'danger', href: '/organizacion/equipo', values: { body: 'Mateo intentó entrar a las 23:40, fuera de su turno (14:00–22:00).' } })
+  expect(items[1].kind).toBe('ready')
+})

@@ -24,7 +24,10 @@ export function RestaurantInfoForm({ initial }: { initial: RestaurantInfo }) {
       <div className="grid grid-cols-2 gap-4">{field('name', t('name'))}{field('phone', t('phone'))}{field('street', t('street'))}{field('city', t('city'))}</div>
       <p className="text-sm text-soft">{t('addressHint')}</p>
       <MapsLinkField initial={start} onChange={(point, status) => { setMaps(status); if (status === 'found' || status === 'empty') setR((v) => ({ ...v, latitude: point ? String(point.lat) : '', longitude: point ? String(point.lng) : '' })) }} />
-      <SaveBar state={state} onSave={() => save(() => saveRestaurantInfo(r))} disabled={!r.name.trim() || mapsBlocks} />
+      <TextInput label="Margen de acceso al turno (minutos)" type="number" min={0} max={240} step={5} value={r.accessMargin}
+        onChange={(e) => setR((v) => ({ ...v, accessMargin: Number(e.target.value) }))}
+        hint="Meseros y cajeros de este local pueden entrar desde estos minutos antes de su turno y hasta estos minutos después. Encargado y dueño entran a cualquier hora." />
+      <SaveBar state={state} onSave={() => save(() => saveRestaurantInfo(r))} disabled={!r.name.trim() || mapsBlocks || !Number.isFinite(r.accessMargin) || r.accessMargin < 0} />
     </div>
   )
 }

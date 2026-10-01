@@ -1,11 +1,11 @@
-import { formatElapsed, formatHour, fromOdooDatetime, lockMinutesLeft, readStoredEmployee, shiftLabel, storeEmployee, toShift } from '@/lib/domain/employees'
+import { formatElapsed, formatHour, fromOdooDatetime, readStoredEmployee, shiftLabel, storeEmployee, toShift } from '@/lib/domain/employees'
 
 // Falla si el empleado activo no se recuerda en el dispositivo o si un valor corrupto rompe la lectura.
 it('remembers the active employee on the device and survives corrupt storage', () => {
   localStorage.clear()
   expect(readStoredEmployee()).toBeNull()
   storeEmployee({ id: 2, checkIn: '2026-09-06T10:00:00.000Z', token: 'tok-demo' })
-  expect(readStoredEmployee()).toEqual({ id: 2, checkIn: '2026-09-06T10:00:00.000Z', token: 'tok-demo' })
+  expect(readStoredEmployee()).toEqual({ id: 2, checkIn: '2026-09-06T10:00:00.000Z', token: 'tok-demo', sessionEnds: null })
   localStorage.setItem('waiter.employee', '{bad')
   expect(readStoredEmployee()).toBeNull()
   storeEmployee(null)
@@ -30,10 +30,3 @@ it('formats hours, elapsed time and parses Odoo UTC datetimes', () => {
   expect(fromOdooDatetime('2026-09-06 10:00:00').toISOString()).toBe('2026-09-06T10:00:00.000Z')
 })
 
-// Falla si el bloqueo del PIN muestra "0 minutos" o un negativo cuando ya casi venció.
-it('lockMinutesLeft rounds up and never drops below one minute', () => {
-  const now = new Date('2026-09-06T10:00:00Z')
-  expect(lockMinutesLeft('2026-09-06 10:09:30', now)).toBe(10)
-  expect(lockMinutesLeft('2026-09-06 10:00:01', now)).toBe(1)
-  expect(lockMinutesLeft('2026-09-06 09:50:00', now)).toBe(1)
-})

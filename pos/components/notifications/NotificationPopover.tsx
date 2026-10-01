@@ -14,11 +14,12 @@ import { toast } from '@/lib/stores/toastStore'
 import { cn } from '@/lib/utils'
 
 const TABS: NotificationTab[] = ['all', 'inventory', 'kitchen']
-const ICON: Record<NotificationKind, KitIcon> = { inventory: 'inventory', kitchen: 'chef', system: 'settings' }
+const ICON: Record<NotificationKind, KitIcon> = { inventory: 'inventory', kitchen: 'chef', system: 'settings', access: 'lock' }
 const TONE: Record<NotificationKind, string> = {
   inventory: 'bg-progress-soft border-progress/40 text-progress-ink',
   kitchen: 'bg-info-soft border-info/40 text-info-ink',
   system: 'bg-primary-soft border-primary/40 text-primary',
+  access: 'bg-danger-soft border-danger/40 text-danger-ink',
 }
 
 // Popover de la campana (3 – Dashboard / Notification Expand.png): pestañas Todas / Inventario / Cocina,

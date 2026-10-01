@@ -21,7 +21,10 @@ import { useKitOrders } from '@/lib/hooks/useKitOrders'
 import { getSalesHistory } from '@/lib/services/insights'
 import { listIngredients } from '@/lib/services/pantry'
 import { getTimeline } from '@/lib/services/reservations'
+import { unreadAccess } from '@/lib/domain/notifications'
+import { isOwner } from '@/lib/domain/roles'
 import { useAuthStore } from '@/lib/stores/authStore'
+import { useNotificationStore } from '@/lib/stores/notificationStore'
 import { useCatalogStore } from '@/lib/stores/catalogStore'
 
 const REFRESH_MS = 60_000
@@ -39,6 +42,10 @@ export default function DashboardPage() {
   // Con la caja cerrada el Dashboard sigue vivo (informes, reservas, inventario); el saludo invita a abrirla (el botón
   // está en la barra superior).
   const registerClosed = useAuthStore((s) => !s.session)
+  // Plan P: los intentos de entrada fuera de turno salen arriba; el dueño los resuelve en Equipo de su consola.
+  const owner = useAuthStore((s) => isOwner(s.user?.role, s.employee?.role))
+  const notifications = useNotificationStore((s) => s.items)
+  const access = useMemo(() => unreadAccess(notifications).map((n) => ({ id: n.id, body: n.body || n.title })), [notifications])
   const { orders } = useKitOrders()
   const [reservations, setReservations] = useState<ReservationCard[] | null>(null)
   const [ingredients, setIngredients] = useState<Ingredient[] | null>(null)
@@ -83,7 +90,8 @@ export default function DashboardPage() {
     reservations: confirmed.map((r) => ({ id: r.id, name: r.name, customer: r.customerName, timeStart: r.timeStart, label: r.label, people: r.people, tables: tablesLabel(r.tableNumbers), depositPending: r.depositState === 'pending' })),
     ingredients: (ingredients ?? []).map((i) => ({ id: i.id, name: i.name, level: i.level, stock: i.qty, min: i.min, uom: i.uomName })),
     soldOut: (catalog?.products ?? []).filter((p) => p.soldOut).map((p) => ({ id: p.id, name: p.name })),
-  }), [nowHour, ready.length, confirmed, ingredients, catalog])
+    access, accessHref: owner ? '/organizacion/equipo' : '/configuracion',
+  }), [nowHour, ready.length, confirmed, ingredients, catalog, access, owner])
   // La carta son los productos con categoría del POS: una tarjeta de regalo o la propina se venden, pero no son platos.
   const stats = useMemo(() => (history && catalog ? dishStats(history, catalog.products.filter((p) => p.categoryIds.length > 0).map((p) => ({ id: p.id, templateId: p.templateId, name: p.name }))) : null), [history, catalog])
   const forecast = useMemo(() => (history ? forecastNextMonth(history) : null), [history])

@@ -2,9 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { FloorEditor } from '@/components/tables/FloorEditor'
 import type { FloorDocument } from '@/lib/domain/floorPlan'
 import { savePlan } from '@/lib/services/floorPlan'
-import { checkPin } from '@/lib/services/employees'
 import { useAuthStore } from '@/lib/stores/authStore'
-jest.mock('@/lib/services/employees',()=>({checkPin:jest.fn()}))
 jest.mock('@/lib/stores/authStore',()=>({useAuthStore:{getState:jest.fn()}}))
 jest.mock('@/lib/services/floorPlan',()=>({savePlan:jest.fn()}))
 const initial:FloorDocument={id:1,name:'Sala',revision:0,walls:[],zones:[],tables:[{id:1,key:'1',number:1,seats:6,zone:'',x:40,y:40,width:120,height:240},{id:2,key:'2',number:2,seats:4,zone:'',x:200,y:40,width:120,height:120}]}
@@ -38,25 +36,19 @@ it('cancel leaves capacity edits unsaved',()=>{
  expect(savePlan).not.toHaveBeenCalled()
 })
 
-it('renews an expired PIN in place and saves the retained edits only after a valid PIN',async()=>{
- const saved=jest.fn(), startShift=jest.fn()
- ;(useAuthStore.getState as jest.Mock).mockReturnValue({employee:{id:7},startShift})
+// Falla si un token vencido a mitad de la edición hace perder los cambios del plano o vuelve a pedir un PIN (plan P).
+it('renews the expired shift token with the account session and saves the retained edits',async()=>{
+ const saved=jest.fn(), renewShift=jest.fn().mockResolvedValue(undefined)
+ ;(useAuthStore.getState as jest.Mock).mockReturnValue({employee:{id:7},renewShift})
  ;(savePlan as jest.Mock).mockRejectedValueOnce(new Error('Valida el PIN de un administrador para modificar el plano o las zonas.')).mockResolvedValue(initial)
- ;(checkPin as jest.Mock).mockResolvedValueOnce({ok:false,reason:'wrong'}).mockResolvedValueOnce({ok:true,employee:{id:7,role:'admin'},attendanceId:3,token:'renewed'})
  render(<FloorEditor initial={initial} configId={1} onCancel={jest.fn()} onSaved={saved}/> )
  fireEvent.change(screen.getByLabelText('Nombre del piso'),{target:{value:'Sala editada'}})
  fireEvent.click(screen.getByRole('button',{name:'Guardar'}))
- const pin=await screen.findByLabelText('PIN del administrador')
- fireEvent.change(pin,{target:{value:'000000'}})
- fireEvent.click(screen.getByRole('button',{name:'Validar y guardar'}))
- await screen.findByText('El PIN no coincide. Revisa e intenta de nuevo.')
- expect(savePlan).toHaveBeenCalledTimes(1)
- expect(startShift).not.toHaveBeenCalled()
- fireEvent.change(pin,{target:{value:'123456'}})
- fireEvent.click(screen.getByRole('button',{name:'Validar y guardar'}))
  await waitFor(()=>expect(saved).toHaveBeenCalled())
- expect(startShift).toHaveBeenCalledWith({id:7,role:'admin'},3,'renewed')
+ expect(renewShift).toHaveBeenCalledTimes(1)
+ expect(savePlan).toHaveBeenCalledTimes(2)
  expect(savePlan).toHaveBeenLastCalledWith(1,expect.objectContaining({name:'Sala editada'}))
+ expect(screen.queryByLabelText('PIN del administrador')).toBeNull()
 })
 it('selects covered zones and the image from layers and moves only the chosen element',async()=>{
  const saved=jest.fn()

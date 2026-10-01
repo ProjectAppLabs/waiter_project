@@ -31,7 +31,7 @@ export function CatalogView() {
         <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} className="h-tap-min px-3.5 rounded-[10px] border border-border bg-surface" /></label>
       {error && <p role="alert" className="text-danger">{error}</p>}
       {!data ? <p className="text-soft">Cargando el catálogo…</p> : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+        <div className="overflow-x-auto rounded-xl border border-border">
           <table className="w-full min-w-[720px] text-[14px]">
             <thead className="bg-muted text-left"><tr><th className="p-3">Plato</th><th className="p-3">Precio de la organización</th>
               {restaurants.map((r) => <th key={r.id} className="p-3">{r.name}</th>)}</tr></thead>

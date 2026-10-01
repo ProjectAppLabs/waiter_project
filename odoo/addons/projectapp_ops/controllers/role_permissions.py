@@ -13,7 +13,7 @@ class WaiterDataSet(DataSet):
         supplied = context.pop('waiter_pos_identity', None)
         kwargs = {**kwargs, 'context': context}
         # El intercambio del PIN y el cierre del turno ya verifican sus propias credenciales.
-        if model == 'hr.employee' and method in ('waiter_check_pin', 'waiter_end_shift', 'waiter_forgot_pin', 'waiter_login_list'):
+        if model == 'hr.employee' and method in ('waiter_start_my_shift', 'waiter_check_pin', 'waiter_end_shift', 'waiter_forgot_pin', 'waiter_login_list'):
             return kwargs
         identity = supplied or request.session.get('waiter_pos_identity')
         if not identity:
@@ -27,6 +27,27 @@ class WaiterDataSet(DataSet):
             raise
         if supplied:
             request.session['waiter_pos_identity'] = {'id': employee.id, 'token': identity['token'], 'config_id': identity.get('config_id')}
+        if model == 'hr.employee' and method in (
+                'waiter_invite_person', 'waiter_update_person', 'waiter_resend_invite', 'waiter_deactivate_person'):
+            if role not in ('admin', 'owner'):
+                raise AccessError('Tu rol no puede administrar personas.')
+            if role == 'admin':
+                # También limita la identidad antigua por PIN cuando la cuenta del terminal era dueña.
+                values = args[0] if args and method == 'waiter_invite_person' else (
+                    args[1] if len(args) > 1 and method == 'waiter_update_person' else kwargs.get('values', {}))
+                target = request.env['hr.employee'].sudo().browse()
+                if method != 'waiter_invite_person':
+                    target_id = args[0] if args else kwargs.get('employee_id')
+                    if type(target_id) is not int:
+                        raise AccessError('Indica la persona.')
+                    target = target.with_context(active_test=False).browse(target_id).exists()
+                if (not isinstance(values, dict) or values.get('role') == 'owner' or
+                        any(row.waiter_role == 'owner' for row in target) or
+                        not isinstance(values.get('config_ids', []), list) or
+                        any(type(i) is not int for i in values.get('config_ids', [])) or
+                        not (set(target.waiter_config_ids.ids) | set(values.get('config_ids', []))) <= set(employee.waiter_config_ids.ids)):
+                    raise AccessError('El encargado solo puede administrar personas de sus restaurantes.')
+            return kwargs
         # La consola puede listar o crear locales antes de seleccionar uno para operar.
         if model == 'pos.config' and method in ('waiter_restaurants', 'waiter_create_restaurant'):
             if role not in ('admin', 'owner') or (method == 'waiter_create_restaurant' and role != 'owner'):
@@ -106,8 +127,13 @@ class WaiterDataSet(DataSet):
     def call_kw(self, model, method, args, kwargs, path=None):
         kwargs = self._waiter_guard(model, method, args, kwargs)
         result = super().call_kw(model, method, args, kwargs, path)
-        if model == 'hr.employee' and method == 'waiter_check_pin' and result.get('ok'):
+        if model == 'hr.employee' and method in ('waiter_check_pin', 'waiter_start_my_shift') and result.get('ok'):
             request.session['waiter_pos_identity'] = {'id': result['employee']['id'], 'token': result['token']}
+            if method == 'waiter_start_my_shift':
+                config_id = args[0] if args else kwargs.get('config_id')
+                if config_id is None and len(result['config_ids']) == 1:
+                    config_id = result['config_ids'][0]
+                request.session['waiter_pos_identity']['config_id'] = config_id
         if model == 'hr.employee' and method == 'waiter_end_shift':
             request.session.pop('waiter_pos_identity', None)
         return result

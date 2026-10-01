@@ -7,6 +7,7 @@ import { administrationPath, homePath, withShell } from '@/lib/domain/navigation
 import { rolePolicy } from '@/lib/services/rolePermissions'
 import { Button } from '@/components/ui/Button'
 import { KitShell } from '@/components/kit/KitShell'
+import { SessionGuard } from '@/components/account/SessionGuard'
 import { AuroraBackground } from '@/components/kit/Aurora'
 import { PageSkeleton, Skeleton } from '@/components/kit/Skeleton'
 import { allowedPath, effectiveRole } from '@/lib/domain/roles'
@@ -30,7 +31,7 @@ export default function PosLayout({ children }: { children: React.ReactNode }) {
     if (!hydrated) return
     // Sin usuario: login. Con usuario pero sin caja abierta: abrir caja (no es un error, es el inicio del turno).
     if (!user) { router.replace('/login'); return }
-    // Con sesión de Odoo pero sin empleado activo (pos_hr): al "Inicio de empleado" a elegir cuenta y PIN.
+    // Sin empleado activo (su turno se cerró en otra pestaña): a entrar de nuevo con su cuenta.
     if (!employee) { router.replace('/login'); return }
     if (!session && (effectiveRole(user.role, employee.role) !== 'admin' || !administrationPath(pathname))) { router.replace('/caja'); return }
     // Rol: una pantalla que no le toca lo devuelve al salón, sin pantalla de error.
@@ -76,7 +77,9 @@ export default function PosLayout({ children }: { children: React.ReactNode }) {
   if (!policy) return <BootSkeleton />
   // La barra vive aquí y no en cada página: así persiste al cambiar de pantalla. Antes cada página montaba la suya, y
   // cada navegación la desmontaba y volvía a pedir los avisos (dos llamadas a Odoo por cambio de pantalla).
-  return withShell(pathname) ? <KitShell>{children}</KitShell> : <>{children}</>
+  // La inactividad solo cierra las pantallas de operación con barra: la cocina queda encendida sin que nadie la toque.
+  const shell = withShell(pathname)
+  return <>{shell ? <KitShell>{children}</KitShell> : children}<SessionGuard idle={shell} /></>
 }
 
 // El armazón de la app (barra y contenido) en esqueleto, mientras se recupera la sesión.

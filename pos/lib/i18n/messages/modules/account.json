@@ -2,54 +2,23 @@
   "brand": "Waiter.",
   "brandBy": "By ProjectApp.",
   "terminal": {
-    "title": "Inicio de terminal",
-    "subtitle": "Entra con el correo del terminal para conectar este dispositivo.",
+    "title": "Inicia sesión",
+    "subtitle": "Entra con tu usuario o tu correo y tu contraseña.",
     "submit": "Entrar",
     "forgot": "¿Olvidaste tu contraseña?",
-    "codeTitle": "Tengo un código",
     "back": "Volver a iniciar sesión"
   },
   "restaurant": {
-    "title": "¿En qué restaurante está este dispositivo?",
-    "subtitle": "Este equipo quedará trabajando en el restaurante que elijas. Se puede cambiar después.",
+    "title": "¿En qué restaurante trabajas ahora?",
+    "subtitle": "Eres encargado de varios. Este dispositivo recordará tu elección y puedes cambiarla después.",
     "list": "Restaurantes",
     "open": "Caja abierta",
     "closed": "Caja cerrada",
-    "console": "Ir a la consola de la organización",
-    "consoleHint": "Todos tus restaurantes, el catálogo, el diseño del menú y el equipo.",
-    "change": "Cambiar de restaurante"
+    "change": "Cambiar de restaurante",
+    "here": "Este dispositivo: {name}"
   },
   "employee": {
-    "title": "Inicio de empleado",
-    "subtitle": "Elige tu cuenta para iniciar tu turno.",
-    "select": "Empleado",
-    "list": "Lista de empleados",
-    "pinHint": "Escribe tu PIN para validarte.",
-    "pin": "PIN",
-    "forgot": "¿Olvidaste tu PIN?",
-    "start": "Iniciar turno",
-    "wrongPin": "PIN incorrecto. Inténtalo de nuevo.",
-    "noEmployees": "No hay empleados para este terminal. Crea empleados en Odoo (Empleados) o revisa el terminal.",
-    "noShift": "Sin horario",
-    "loading": "Cargando empleados…",
-    "pinLength": "Escribe los 6 dígitos de tu PIN.",
-    "wrongPinLeft": "PIN incorrecto. Te quedan {left} intentos antes de bloquearlo.",
-    "locked": "PIN bloqueado por demasiados intentos. Vuelve a intentarlo en {minutes} minutos.",
-    "unknown": "Este empleado ya no está disponible. Elige otra cuenta.",
-    "pinFailed": "No se pudo validar el PIN. Revisa la conexión con Odoo."
-  },
-  "forgot": {
-    "title": "¿Olvidaste tu PIN?",
-    "subtitle": "Tranquilo, te enviamos tu PIN",
-    "email": "Correo",
-    "placeholder": "Escribe tu correo",
-    "submit": "Solicitar PIN",
-    "back": "Volver a iniciar sesión",
-    "checkTitle": "Revisa tu correo",
-    "checkBody": "Enviamos un PIN a",
-    "notReceived": "¿No recibiste el correo?",
-    "resend": "Reenviar",
-    "resent": "Enviado de nuevo."
+    "loading": "Cargando…"
   },
   "mockup": {
     "greeting": "Buenos días",
@@ -125,14 +94,18 @@
     },
     "security": {
       "heading": "Seguridad",
-      "pin": "PIN",
-      "pinBody": "Cambia el PIN de tu cuenta",
-      "changePin": "Cambiar PIN",
-      "newPin": "Escribe tu nuevo PIN",
-      "successTitle": "¡PIN cambiado!",
-      "successBody": "Tu PIN se cambió correctamente, no olvides tu nuevo PIN.",
+      "password": "Contraseña",
+      "passwordBody": "Cambia la contraseña con la que entras. Si la olvidaste, usa «¿Olvidaste tu contraseña?» en el inicio.",
+      "changePassword": "Cambiar contraseña",
+      "current": "Contraseña actual",
+      "next": "Nueva contraseña (mínimo 8)",
+      "confirm": "Repite la nueva contraseña",
+      "mismatch": "Las contraseñas nuevas no coinciden.",
+      "wrongCurrent": "La contraseña actual no es correcta.",
+      "successTitle": "¡Contraseña cambiada!",
+      "successBody": "Desde ahora entras con tu nueva contraseña.",
       "ok": "Ok",
-      "failed": "No se pudo cambiar el PIN. Inténtalo de nuevo."
+      "failed": "No se pudo cambiar la contraseña. Inténtalo de nuevo."
     },
     "display": {
       "heading": "Pantalla",
@@ -142,5 +115,12 @@
       "light": "Claro",
       "dark": "Oscuro"
     }
+  },
+  "guard": {
+    "idleEnding": "Por inactividad, la sesión se cerrará en {minutes} min.",
+    "shiftEnding": "Tu turno termina: la sesión se cerrará en {minutes} min.",
+    "stay": "Seguir aquí",
+    "closedIdle": "Cerramos tu sesión por inactividad. Vuelve a entrar con tu usuario.",
+    "closedShift": "Tu turno terminó y cerramos tu sesión."
   }
 }

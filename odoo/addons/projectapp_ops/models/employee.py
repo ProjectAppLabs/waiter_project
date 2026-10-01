@@ -1,15 +1,7 @@
-"""Empleado del kit CloudPos sobre `hr.employee` (pos_hr + hr_attendance), sin vistas.
+"""Identidad del empleado y asistencia sobre pos_hr + hr_attendance.
 
-Los meseros no tienen usuario de Odoo (Plan I, «Identidad y sesión»): el terminal abre una sesión con su
-propio usuario y cada empleado se identifica con un PIN de 6 dígitos (`hr.employee.pin`, de `hr`).
-El PIN se compara siempre en el servidor (`waiter_check_pin`), nunca por hash en el cliente como hace el
-POS de Odoo; cinco fallos seguidos bloquean el PIN diez minutos. Validar el PIN abre la asistencia del
-día (`hr.attendance`) y «Log Out» la cierra (`waiter_end_shift`).
-
-Como todos los empleados comparten la sesión de Odoo del terminal, `self.env.user` no dice quién llama:
-validar el PIN emite un **token de sesión de empleado** (`waiter_session_token`, caduca en SESSION_HOURS)
-y las acciones sensibles —cambiar el PIN, cerrar el turno— exigen ese token, el PIN actual, o que quien
-llame sea un encargado. Sin eso, cualquier tablet podría cambiarle el PIN al administrador y suplantarlo.
+El Plan P vincula cada persona a su cuenta y abre la identidad con waiter_start_my_shift.
+El PIN se conserva por compatibilidad; ambos accesos emiten el mismo token y respetan el horario.
 """
 import secrets
 from datetime import timedelta
@@ -88,16 +80,19 @@ class HrEmployee(models.Model):
         """Ojo: llámalo SIN sudo. Bajo sudo `self.env.user` es el superusuario y no responde por los grupos."""
         return any(self.env.user.has_group(group) for group in MANAGER_GROUPS)
 
-    def _waiter_new_session(self):
+    def _waiter_new_session(self, expires=None):
         """Emite el token que prueba «soy este empleado» durante el turno."""
         self.ensure_one()
         # Un segundo acceso con PIN no debe expulsar las otras pantallas del turno.
         self.env.cr.execute("SELECT id FROM hr_employee WHERE id = %s FOR UPDATE", [self.id])
         self.invalidate_recordset(["waiter_session_token", "waiter_session_expires"])
         if self._waiter_session_ok(self.waiter_session_token):
+            if expires and self.waiter_session_expires != expires:
+                self.write({"waiter_session_expires": expires})
             return self.waiter_session_token
         token = secrets.token_urlsafe(32)
-        self.write({"waiter_session_token": token, "waiter_session_expires": fields.Datetime.now() + timedelta(hours=SESSION_HOURS)})
+        self.write({"waiter_session_token": token,
+                    "waiter_session_expires": expires or fields.Datetime.now() + timedelta(hours=SESSION_HOURS)})
         return token
 
     def _waiter_session_ok(self, token):
@@ -106,6 +101,8 @@ class HrEmployee(models.Model):
         if not token or not self.waiter_session_token or not self.waiter_session_expires:
             return False
         if self.waiter_session_expires <= fields.Datetime.now():
+            return False
+        if not self.active or (self.user_id and not self.user_id.active) or not self._waiter_access_window()['allowed']:
             return False
         return secrets.compare_digest(self.waiter_session_token, str(token))
 
@@ -180,12 +177,16 @@ class HrEmployee(models.Model):
             return {"ok": False, "reason": "locked", "locked_until": fields.Datetime.to_string(employee.waiter_pin_locked_until)}
         pin = str(pin or "")
         if employee.pin and secrets.compare_digest(employee.pin, pin):
+            window = employee._waiter_access_window()
+            if not window['allowed']:
+                employee._waiter_notify_outside_hours(window)
+                return {'ok': False, 'reason': 'outside_hours', 'window': window['label']}
             employee.write({"waiter_pin_attempts": 0, "waiter_pin_locked_until": False})
             attendance = employee._waiter_open_attendance()
             if not attendance:
                 attendance = self.env["hr.attendance"].sudo().create({"employee_id": employee.id, "check_in": now})
             return {"ok": True, "employee": employee._waiter_employee_dict(), "attendance_id": attendance.id,
-                    "token": employee._waiter_new_session()}
+                    "token": employee._waiter_new_session(expires=window['end'])}
         return employee._waiter_register_failure()
 
     @api.model
@@ -245,7 +246,9 @@ class HrEmployee(models.Model):
         employee = self.sudo().browse(int(employee_id)).exists()
         if not employee:
             return {"ok": False, "attendance_id": False, "worked_hours": 0.0}
-        employee._waiter_authorize(token=token, current_pin=current_pin, is_manager=is_manager)
+        # Al vencer session_ends, el token ya no autoriza operar, pero la cuenta propia aún puede cerrar su asistencia.
+        employee._waiter_authorize(token=token, current_pin=current_pin,
+                                   is_manager=is_manager or employee.user_id.id == self.env.uid)
         attendance = employee._waiter_open_attendance()
         employee.write({"waiter_session_token": False, "waiter_session_expires": False})
         if not attendance:

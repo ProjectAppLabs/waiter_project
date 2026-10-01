@@ -17,6 +17,7 @@
   "attention": {
     "title": "Para atender ahora", "loading": "Revisando qué hay pendiente…",
     "emptyTitle": "Todo en orden", "emptyBody": "No hay platos por entregar, reservas cerca ni nada agotándose en el inventario.",
+    "accessDenied": { "title": "Intento de entrada fuera de turno", "body": "{body}" },
     "ready": { "title": "{count, plural, one {# plato listo sin entregar} other {# platos listos sin entregar}}", "body": "Se enfrían en el pase: llévalos a la mesa." },
     "reservationSoon": { "title": "{late, plural, =1 {Ya debería haber llegado: {customer}} other {Reserva en {minutes} min: {customer}}}", "body": "{time} · {people} personas · {tables, plural, other {mesa {tables}}}" },
     "depositPending": { "title": "Anticipo sin pagar: {customer}", "body": "Reserva {code}. Reenvíale el enlace de pago antes de que llegue." },
