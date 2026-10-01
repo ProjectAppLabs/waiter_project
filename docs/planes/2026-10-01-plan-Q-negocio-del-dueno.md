@@ -245,3 +245,28 @@ antes de `date_from`.
            "food_cost_pct": 0.0, "units": 0, "revenue": 0.0, "gross_profit": 0.0,
            "class": "star|plowhorse|puzzle|dog|null"}]}
 ```
+
+## Estado (2026-10-01)
+
+- **Q1–Q5 hechos** en `feat/01102026-plan-q-negocio-del-dueno`.
+  - Odoo: 260/260 pruebas (Codex escribió la parte de Odoo; Claude la integró y la corrigió).
+  - POS: `tsc` y 576 pruebas de `jest`.
+- **Recorrido en Chromium y por RPC:**
+  - El dueño ve el Resumen por sede (Poblado $ 97.716 en 30 días), los cuadres con el faltante de Laura y la rentabilidad.
+  - Las Papas Trufadas salen «Estrella», con food cost del 14 %.
+  - La encargada ve en su POS los cuadres y la rentabilidad de Poblado, y el aviso de caja en la campana y arriba en
+    «Para atender ahora».
+  - El servidor le niega el resumen, otras sedes, el precio de un plato y la tolerancia.
+  - Sus enlaces viejos (`/facturacion`) la devuelven a su inicio.
+- **Hallazgos corregidos durante la verificación:**
+  - **Recetas:** guardar una receta fallaba para cualquiera sin el grupo de fabricación. La lista de materiales se
+    escribe con sudo después de autorizar.
+  - **Tablero:** sumaba en la zona del usuario, vacía y por tanto UTC. Una venta del domingo a las 11 p. m. salía en
+    «esta semana». Ahora usa la zona de la empresa.
+  - **Tolerancia:** no se podía llamar sin registro. Ahora es `@api.model`.
+  - **Aviso de caja:** el POS no conocía el tipo `cash`.
+- **Datos de demostración** en la base de desarrollo:
+  - tolerancia de $ 2.000;
+  - recetas de Papas Trufadas y de Cheese Burger (este plato está archivado y no sale en la rentabilidad);
+  - un cierre de Poblado con un faltante de $ 12.000.
+- **Pendiente:** 23 platos de la base de desarrollo no tienen receta y salen «Sin costo» hasta que el dueño las cargue.
