@@ -30,7 +30,8 @@ if (( free_mb < MIN_FREE_MB )); then
   exit 1
 fi
 
-cleanup() { docker exec odoo-spike-db-1 dropdb -U odoo --if-exists --force "$DB" >/dev/null 2>&1; rm -f "$LOG"; }
+# KEEP_LOG=<ruta> guarda el registro completo (con las trazas) antes de borrarlo.
+cleanup() { docker exec odoo-spike-db-1 dropdb -U odoo --if-exists --force "$DB" >/dev/null 2>&1; [[ -n ${KEEP_LOG:-} ]] && cp "$LOG" "$KEEP_LOG"; rm -f "$LOG"; }
 trap cleanup EXIT
 
 tags=""

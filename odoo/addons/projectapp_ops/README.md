@@ -48,7 +48,7 @@ Viaja en `load_data` (`res.users`) y es legible/escribible por el propio usuario
 | Leer | `res.users.get_waiter_notify()` sobre `[uid]` | dict con las seis claves |
 | Guardar | `res.users.set_waiter_notify(notify)` sobre `[uid]`; `notify` es dict o cadena JSON, parcial | dict resultante (lo que falta conserva su valor) |
 
-### `hr.employee` (empleados del kit; los meseros no tienen usuario de Odoo)
+### `hr.employee` (API histórica del kit; el Plan P añade una cuenta por persona)
 
 | Campo | Tipo | Qué |
 |---|---|---|
@@ -254,3 +254,79 @@ vence a las 48 h) y lo envía por `mail.mail` desde `mail.default.from`.
 Endpoints públicos (`controllers/auth.py`): `POST /waiter/auth/request_code`
 y `POST /waiter/auth/activate` (JSON-RPC, sin sesión). El correo saliente se
 configura con `odoo/provisioning/configure-mail.sh` desde `compose/.env`.
+
+## Inicio de sesión personal (Plan P1, 19.0.2.6.0)
+
+Cada persona entra con su usuario o correo y su contraseña. `models/access.py` sobrescribe los métodos reales de
+[res.users en Odoo 19](https://github.com/odoo/odoo/blob/19.0/odoo/addons/base/models/res_users.py):
+`_get_login_domain(self, login)` para resolver la identidad, `_check_credentials(self, credential, env)` para el
+horario y `_check_uid_passwd(self, uid, passwd)` para revisar el horario incluso cuando la contraseña RPC está
+en caché. Se conserva el diccionario `auth_info` del padre y se comprueban primero las credenciales.
+Los endpoints de código usan la misma búsqueda exacta, insensible a mayúsculas, con `%`, `_` y `\` escapados como
+caracteres literales. Si datos antiguos producen una identidad ambigua, se rechaza en vez de elegir una cuenta.
+Las cuentas técnicas anteriores conservan sus usuarios; el formato nuevo se valida al invitar y al migrar.
+
+La ventana usa `employee.company_id.resource_calendar_id.tz`, con respaldo en `company_id.partner_id.tz` y finalmente
+UTC si ambos están vacíos; nunca la zona del navegador o del usuario.
+El margen de cada restaurante está en `pos.config.waiter_access_margin_minutes`, entero no negativo, por defecto 30.
+El comienzo se incluye y el fin se excluye. Se contempla el día anterior para turnos nocturnos y el siguiente para
+el margen de un turno que comienza a medianoche. Como Float no distingue vacío de cero, extremos iguales significan
+sin turno definido; un único extremo cero representa medianoche. Dueños y encargados no tienen límite horario.
+El token de meseros/cajeros caduca al terminar la ventana; sin turno, dueño y encargado conservan las 16 horas.
+`session_ends` lleva ISO 8601 UTC con `Z`.
+
+`hr.employee.waiter_start_my_shift(config_id=None)` devuelve exactamente
+`{ok, employee, attendance_id, token, session_ends, config_ids}`. Los errores son `{ok: false, reason: 'no_employee'}`
+y `{ok: false, reason: 'outside_hours', window: '14:00–22:00'}`. Un restaurante ajeno provoca `AccessError`.
+El dueño recibe todos los restaurantes activos de su empresa; un encargado puede abrir la identidad antes de elegir
+entre sus locales. El controlador guarda `waiter_pos_identity`; `authorize` y la política de roles aceptan el token.
+Repetir el inicio conserva token y asistencia abiertos. El PIN histórico también respeta la ventana.
+La cuenta conectada puede cerrar su propia asistencia incluso después de caducar el token, para que el cierre
+automático al llegar `session_ends` no deje una asistencia abierta; no permite cerrar la de otra persona.
+
+`models/people.py` implementa los cuatro métodos del contrato en `hr.employee`:
+
+| Método | Resultado |
+|---|---|
+| `waiter_invite_person(values)` | `{employee_id, user_id}`; cuenta pendiente sin contraseña, empleado e invitación |
+| `waiter_update_person(employee_id, values)` | `True`; sincroniza rol, locales y correo, y revoca el token anterior |
+| `waiter_resend_invite(employee_id)` | `True` si envió; `False` durante los 60 segundos del límite existente |
+| `waiter_deactivate_person(employee_id)` | `True`; archiva ambos, revoca token y código y cierra asistencia abierta |
+
+Solo dueño y encargado pueden llamarlos. El encargado queda limitado a sus restaurantes y no puede crear ni gestionar
+dueños. Se validan formato y unicidad de usuario/correo, incluidas cuentas archivadas, y la cantidad de restaurantes.
+El usuario se normaliza a minúsculas al crear y no se cambia al editar; editar admite también corregir el nombre.
+Cambiar correo invalida códigos anteriores. Reenviar a una cuenta activada conserva su estado y contraseña hasta que
+la persona use el código para restablecerla. No se permite desactivar la propia cuenta ni invitar cuentas archivadas.
+Las operaciones de alta/edición usan un savepoint; un fallo de correo revierte el alta completa.
+
+Con `projectapp_notify` instalado, los rechazos de horario generan un aviso `access` por dueño de la empresa y por
+encargado del restaurante. Cada aviso lleva `config_id` y `user_id`. Para `AccessDenied` se confirma únicamente una
+transacción independiente de avisos; así el rollback de autenticación no los borra ni confirma otros cambios de la
+petición. Los errores JSON de `waiter_start_my_shift` guardan el aviso en su transacción normal. No se avisa ante una
+contraseña incorrecta. Actualizar **ambos addons** para registrar el tipo nuevo; notify depende de ops.
+
+### Migración y revisión de Claude
+
+La migración `migrations/19.0.2.6.0/post-migrate.py` crea cuentas para empleados sin usuario, incluidos los archivados.
+Normaliza nombres sin tildes, separa con puntos, limita a 32 caracteres y añade sufijos ante colisiones.
+Conserva rol, restaurantes, correo y PIN. `Administrator` se vincula a `admin`, conservando el rol y la contraseña de
+admin. Repetir la migración no cambia cuentas ya vinculadas. Un correo duplicado con otra cuenta detiene la migración
+con un mensaje para corregir los datos; no se reasigna silenciosamente a otra persona.
+
+**La base de desarrollo debe tener `projectapp.demo_mode = 'true'` antes de actualizar** si se desea la contraseña
+`waiter-demo-2026`. Odoo no recibe automáticamente `DINER_DEMO_ENABLED` del servicio del comensal. Con el parámetro
+ausente o distinto de `'true'`, las cuentas nuevas no tienen contraseña y quedan pendientes de activar por código.
+La migración no envía correos: se solicitan/reenvían desde los endpoints o desde Equipo. Una persona sin correo necesita
+que el dueño lo complete antes de solicitar código. La migración no altera contraseñas de cuentas ya vinculadas.
+
+Pruebas añadidas en `tests/test_personal_access.py`: `TestPersonalAccess`, `TestPersonalLogin` y
+`TestPersonalMigration`. Usan dos restaurantes sin archivar los de la copia de desarrollo. Cubren el contrato de
+identidad, los endpoints HTTP, ventanas y medianoche, caché RPC, permisos del encargado, invitaciones, edición,
+desactivación, persistencia de avisos y migración en producción/demo. El correo saliente se sustituye en las pruebas.
+
+En este entorno solo se comprobó sintaxis con `python3 -m py_compile` y espacios con `git diff --check`; no hay Docker.
+Claude debe ejecutar `scripts/odoo-test.sh projectapp_ops,projectapp_notify` sobre la copia desechable y revisar la
+integración del POS, especialmente el rechazo HTTP con aviso persistido, `session_ends` en UTC y la renovación de
+identidad después de caducar. El sistema de pruebas debe conservar el comportamiento de los cursores de Odoo bajo
+`HttpCase`; la prueba HTTP del aviso comprueba el resultado posterior al rechazo real.

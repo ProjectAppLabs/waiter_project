@@ -18,3 +18,4 @@ from . import test_company_brand
 from . import test_product_photos
 
 from . import test_restaurants
+from . import test_personal_access

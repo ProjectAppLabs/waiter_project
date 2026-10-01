@@ -7,15 +7,14 @@ from odoo.http import request
 
 
 def _find_user(login):
-    """Coincidencia EXACTA sobre el login normalizado. Nunca `ilike`: un `%` casaría con el primer usuario activo."""
-    login = str(login or "").strip().lower()
-    if len(login) < 3 or any(ch in login for ch in ("%", "_", "\\")):
-        return request.env["res.users"].sudo()
-    return request.env["res.users"].sudo().search([("login", "=", login), ("active", "=", True), ("share", "=", False)], limit=1)
+    """Misma identidad exacta que la autenticación; admite puntos y correos con guion bajo."""
+    return request.env['res.users'].sudo()._waiter_find_login(login).filtered(lambda user: not user.share)
 
 
 class WaiterAuth(http.Controller):
-    @http.route("/waiter/auth/request_code", type="jsonrpc", auth="none", methods=["POST"], csrf=False)
+    # readonly=False: en Odoo 19 una ruta auth="none" es de solo lectura por omisión, y el código (que escribe el hash y
+    # el correo) fallaba en silencio dentro del try: nunca llegaba ningún correo.
+    @http.route("/waiter/auth/request_code", type="jsonrpc", auth="none", methods=["POST"], csrf=False, readonly=False)
     def request_code(self, login=None, **kw):
         user = _find_user(login)
         if user:
@@ -25,7 +24,7 @@ class WaiterAuth(http.Controller):
                 pass
         return {"ok": True}
 
-    @http.route("/waiter/auth/activate", type="jsonrpc", auth="none", methods=["POST"], csrf=False)
+    @http.route("/waiter/auth/activate", type="jsonrpc", auth="none", methods=["POST"], csrf=False, readonly=False)
     def activate(self, login=None, code=None, password=None, **kw):
         user = _find_user(login)
         if not user or not password or len(str(password)) < 8 or not user.waiter_check_code(code):
