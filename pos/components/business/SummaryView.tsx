@@ -6,9 +6,11 @@ import { PeriodPicker } from '@/components/business/PeriodPicker'
 import { Icon } from '@/components/kit/Icon'
 import { Button } from '@/components/ui/Button'
 import { ScrollTable } from '@/components/ui/ScrollTable'
+import { SortTh, TableSearch } from '@/components/ui/SortTh'
 import { change, downloadCsv, presetSpan, toCsv, type DateSpan } from '@/lib/domain/business'
 import { formatCop } from '@/lib/domain/money'
-import { orgSummary, type OrgSummary, type SummaryFigures } from '@/lib/services/business'
+import { orgSummary, type OrgSummary, type SummaryFigures, type SummaryRow } from '@/lib/services/business'
+import { useTableView, type Sorters } from '@/lib/hooks/useTableView'
 import { cn } from '@/lib/utils'
 
 // «$» y el valor unidos con espacio duro: nunca quedan en líneas distintas.
@@ -37,6 +39,9 @@ export function SummaryView() {
     return () => { alive = false }
   }, [span, key])
   const summary = data?.key === key ? data.value : null
+  // Ordenar por cualquier columna (quién vende más, quién tiene el ticket más alto) y buscar un restaurante.
+  const sorters = Object.fromEntries([['name', (r: SummaryRow) => r.name], ...METRICS.map(([k]) => [k, (r: SummaryRow) => r[k]])]) as Sorters<SummaryRow>
+  const table = useTableView(summary?.restaurants ?? [], sorters, (r) => r.name)
   const exportCsv = () => {
     if (!summary) return
     const header = ['Restaurante', ...METRICS.flatMap(([, label]) => [label, `${label} (anterior)`])]
@@ -64,12 +69,13 @@ export function SummaryView() {
           ))}
         </dl>
         <p className="text-[13px] text-dim">Comparado con {summary.previousFrom} a {summary.previousTo}.</p>
+        {summary.restaurants.length > 6 && <TableSearch value={table.query} onChange={table.setQuery} placeholder="Buscar restaurante" className="w-72" />}
         <ScrollTable label="el resumen">
           <table className="data-table text-[15px]">
-            <thead><tr className="text-left text-soft border-b border-border"><th className="px-4 py-3 font-semibold">Restaurante</th>
-              {METRICS.map(([k, label]) => <th key={k} className="px-4 py-3 font-semibold text-right">{label}</th>)}</tr></thead>
+            <thead><tr className="text-left text-soft border-b border-border"><SortTh label="Restaurante" sortKey="name" sort={table.sort} onSort={table.toggle} />
+              {METRICS.map(([k, label]) => <SortTh key={k} label={label} sortKey={k} sort={table.sort} onSort={table.toggle} align="right" />)}</tr></thead>
             <tbody>
-              {summary.restaurants.map((r) => (
+              {table.view.map((r) => (
                 <tr key={r.configId} className="border-b border-border last:border-0">
                   <th scope="row" className="px-4 py-3 text-left font-semibold">{r.name}</th>
                   {METRICS.map(([k, , fmt]) => <td key={k} className="px-4 py-3 text-right tabular"><div>{fmt(r[k])}</div><Delta current={r[k]} previous={r.previous[k]} /></td>)}

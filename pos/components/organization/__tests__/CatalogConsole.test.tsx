@@ -76,3 +76,23 @@ it('guarda el costo de un ingrediente', async () => {
   await waitFor(() => expect(catalogOverview).toHaveBeenCalledTimes(2))
   expect(await screen.findByRole('status')).toHaveTextContent('Costo de Papa criolla guardado')
 })
+
+// Falla si tocar una cabecera no ordena (ascendente, descendente y de vuelta al original), si los platos sin costo no
+// quedan al final o si la búsqueda distingue tildes.
+it('ordena por columna y busca sin tildes', async () => {
+  render(<CatalogConsole />)
+  await screen.findByRole('row', { name: /Papas/ })
+  const names = () => screen.getAllByRole('row').slice(1).map((r) => r.textContent?.match(/^(Papas|Arepa|Bowl)/)?.[0])
+  const cost = screen.getByRole('button', { name: 'Costo' })
+  fireEvent.click(cost)
+  expect(screen.getByRole('columnheader', { name: 'Costo' })).toHaveAttribute('aria-sort', 'ascending')
+  expect(names()).toEqual(['Papas', 'Arepa', 'Bowl'])
+  fireEvent.click(screen.getByRole('button', { name: 'Plato' }))
+  expect(names()).toEqual(['Arepa', 'Bowl', 'Papas'])
+  fireEvent.click(screen.getByRole('button', { name: 'Plato' }))
+  expect(names()).toEqual(['Papas', 'Bowl', 'Arepa'])
+  fireEvent.click(screen.getByRole('button', { name: 'Plato' }))
+  expect(screen.getByRole('columnheader', { name: 'Plato' })).toHaveAttribute('aria-sort', 'none')
+  fireEvent.change(screen.getByLabelText('Buscar plato'), { target: { value: 'AREPA' } })
+  expect(names()).toEqual(['Arepa'])
+})

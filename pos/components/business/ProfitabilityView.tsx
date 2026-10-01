@@ -7,9 +7,11 @@ import { Chip } from '@/components/kit/Chip'
 import { Icon } from '@/components/kit/Icon'
 import { Button } from '@/components/ui/Button'
 import { ScrollTable } from '@/components/ui/ScrollTable'
+import { SortTh, TableSearch } from '@/components/ui/SortTh'
 import { downloadCsv, presetSpan, toCsv, type DateSpan } from '@/lib/domain/business'
 import { formatCop } from '@/lib/domain/money'
-import { profitability, type MenuClass, type Profitability } from '@/lib/services/business'
+import { profitability, type DishProfit, type MenuClass, type Profitability } from '@/lib/services/business'
+import { useTableView, type Sorters } from '@/lib/hooks/useTableView'
 import { cn } from '@/lib/utils'
 
 const money = (v: number) => `$\u00a0${formatCop(Math.round(v))}`
@@ -39,9 +41,14 @@ export function ProfitabilityView({ restaurants, allowOrganization }: { restaura
     return () => { alive = false }
   }, [span, configId, key, allowOrganization])
   const result = data?.key === key ? data.value : null
-  const rows = useMemo(() => (result?.rows ?? [])
-    .filter((r) => filter === 'all' || (filter === 'noCost' ? r.cost === null : r.menuClass === filter))
-    .sort((a, b) => (b.grossProfit ?? -Infinity) - (a.grossProfit ?? -Infinity)), [result, filter])
+  const filtered = useMemo(() => (result?.rows ?? []).filter((r) => filter === 'all' || (filter === 'noCost' ? r.cost === null : r.menuClass === filter)), [result, filter])
+  // Por omisión, la utilidad bruta de mayor a menor; cualquier columna se ordena al tocarla y se busca por plato o categoría.
+  const CLASS_ORDER: Record<MenuClass, number> = { star: 0, plowhorse: 1, puzzle: 2, dog: 3 }
+  const table = useTableView(filtered, {
+    name: (r) => r.name, price: (r) => r.price, cost: (r) => r.cost, margin: (r) => r.margin, foodCost: (r) => r.foodCostPct,
+    units: (r) => r.units, gross: (r) => r.grossProfit, menuClass: (r) => (r.menuClass ? CLASS_ORDER[r.menuClass] : null),
+  } as Sorters<DishProfit>, (r) => `${r.name} ${r.category}`, { key: 'gross', dir: 'desc' })
+  const rows = table.view
   const count = (c: MenuClass) => result?.rows.filter((r) => r.menuClass === c).length ?? 0
   const noCost = result?.rows.filter((r) => r.cost === null).length ?? 0
   const exportCsv = () => result && downloadCsv(`rentabilidad-${span.from}-a-${span.to}.csv`, toCsv(
@@ -77,10 +84,12 @@ export function ProfitabilityView({ restaurants, allowOrganization }: { restaura
           {/* Plan R: el dueño las completa en Consola → Catálogo; el encargado no carga recetas. */}
           {allowOrganization && <> · <a href="/organizacion/catalogo?filtro=sin-receta" className="font-semibold text-primary">Completar recetas en Catálogo</a></>}</p>}
         <p className="text-[13px] text-dim">Popular: {result.thresholds.popularityUnits.toFixed(1)} unidades o más · Rentable: margen de {money(result.thresholds.margin)} o más.</p>
+        <TableSearch value={table.query} onChange={table.setQuery} placeholder="Buscar plato o categoría" className="w-72 max-w-full" />
         <ScrollTable label="la rentabilidad">
           <table className="data-table text-[15px]">
             <thead><tr className="text-left text-soft border-b border-border">
-              {['Plato', 'Precio de carta', 'Costo', 'Margen', 'Food cost', 'Unidades', 'Utilidad bruta', 'Clase'].map((h, i) => <th key={h} className={cn('px-4 py-3 font-semibold', i > 0 && i < 7 && 'text-right')}>{h}</th>)}</tr></thead>
+              {([['name', 'Plato'], ['price', 'Precio de carta'], ['cost', 'Costo'], ['margin', 'Margen'], ['foodCost', 'Food cost'], ['units', 'Unidades'], ['gross', 'Utilidad bruta'], ['menuClass', 'Clase']] as const)
+                .map(([k, h], i) => <SortTh key={k} label={h} sortKey={k} sort={table.sort} onSort={table.toggle} align={i > 0 && i < 7 ? 'right' : 'left'} />)}</tr></thead>
             <tbody>{rows.map((r) => (
               <tr key={r.templateId} className="border-b border-border last:border-0">
                 <td className="px-4 py-3"><div className="font-semibold">{r.name}</div><div className="text-[13px] text-dim">{r.category}</div></td>

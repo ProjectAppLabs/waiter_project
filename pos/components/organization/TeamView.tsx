@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowMenu } from '@/components/ui/RowMenu'
 import { ScrollTable } from '@/components/ui/ScrollTable'
+import { SortTh, TableSearch } from '@/components/ui/SortTh'
+import { filterRows, nextSort, sortRows, type Sorters, type TableSort } from '@/lib/hooks/useTableView'
 import { Select, TextInput } from '@/components/ui/Field'
 import { hoursToTime, shiftLabel, timeToHours } from '@/lib/domain/employees'
 import { restaurantRule, validAssignment } from '@/lib/domain/restaurant'
@@ -86,26 +88,32 @@ function PeopleTable({ people, roles, names, myUid, onEdit, onLeave, onResend }:
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<RoleFilter>('all')
   const [toggled, setToggled] = useState<Record<string, boolean>>({})
+  const [sort, setSort] = useState<TableSort | null>(null)
   if (people === null) return <p className="text-soft">Cargando…</p>
-  const q = query.trim().toLowerCase()
+  const q = query.trim()
   const passes = (p: Person, f: RoleFilter) => f === 'all' || (f === 'pending' ? p.status === 'pending' : p.role === f)
-  const shown = people.filter((p) => passes(p, filter) && (!q || `${p.name} ${p.username ?? ''} ${p.email ?? ''}`.toLowerCase().includes(q)))
-  const groups = groupPeople(shown, restaurants)
+  const shown = filterRows(people.filter((p) => passes(p, filter)), q, (p) => `${p.name} ${p.username ?? ''} ${p.email ?? ''}`)
+  // Al tocar una cabecera se ordena dentro de cada grupo (el restaurante sigue mandando); sin orden, encargado primero.
+  const sorters: Sorters<Person> = {
+    name: (p) => p.name, role: (p) => (p.role ? roles(p.role) : null), restaurants: (p) => names(p.configIds),
+    shift: (p) => p.shift?.from ?? null, status: (p) => STATUS[p.status].label,
+  }
+  const groups = groupPeople(shown, restaurants).map((g) => ({ ...g, people: sortRows(g.people, sort, sorters) }))
   // Abierto por omisión si son pocos o si se está buscando o filtrando; el dueño puede abrir o cerrar cada grupo.
   const openByDefault = people.length < COLLAPSE_FROM || !!q || filter !== 'all'
   const isOpen = (key: string) => toggled[key] ?? openByDefault
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <input aria-label="Buscar persona" placeholder="Buscar por nombre, usuario o correo" value={query} onChange={(e) => setQuery(e.target.value)}
-          className="h-11 w-72 px-3 rounded-md border border-border bg-surface text-[15px] text-ink" />
+        <TableSearch value={query} onChange={setQuery} placeholder="Buscar persona" className="w-72 max-w-full" />
         {ROLE_FILTERS.map(([f, label]) => <Chip key={f} label={label} count={people.filter((p) => passes(p, f)).length} active={filter === f} onClick={() => setFilter(f)} />)}
       </div>
       {groups.length === 0 ? <p className="text-soft">Nadie coincide con la búsqueda.</p> : (
         <ScrollTable label="el equipo">
           <table aria-label="Personas" className="data-table text-[15px]">
             <thead><tr className="text-left text-soft border-b border-border">
-              {['Persona', 'Rol', 'Restaurantes', 'Turno', 'Estado', ''].map((h, i) => <th key={i} className="px-4 py-3 font-semibold">{h}</th>)}</tr></thead>
+              {([['name', 'Persona'], ['role', 'Rol'], ['restaurants', 'Restaurantes'], ['shift', 'Turno'], ['status', 'Estado']] as const)
+                .map(([k, h]) => <SortTh key={k} label={h} sortKey={k} sort={sort} onSort={(key) => setSort((s) => nextSort(s, key))} />)}<th /></tr></thead>
             {groups.map((g) => (
               <tbody key={g.key}>
                 <tr className="border-y border-border">

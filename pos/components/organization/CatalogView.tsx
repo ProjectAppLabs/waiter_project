@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { useOrg } from '@/components/organization/OrgContext'
 import { ScrollTable } from '@/components/ui/ScrollTable'
+import { SortTh, TableSearch } from '@/components/ui/SortTh'
+import { useTableView, type Sorters } from '@/lib/hooks/useTableView'
 import { formatCop } from '@/lib/domain/money'
 import { loadMasterCatalog, setDishAvailability, setDishPrice, type MasterCatalog, type MasterDish } from '@/lib/services/masterCatalog'
 import { cn } from '@/lib/utils'
@@ -14,7 +16,6 @@ export function CatalogView() {
   const { restaurants } = useOrg()
   const ids = useMemo(() => restaurants.map((r) => r.id), [restaurants])
   const [data, setData] = useState<MasterCatalog | null>(null)
-  const [query, setQuery] = useState('')
   const [error, setError] = useState('')
   useEffect(() => {
     if (!ids.length) return
@@ -22,19 +23,23 @@ export function CatalogView() {
     loadMasterCatalog(ids).then((d) => { if (alive) setData(d) }).catch((e: unknown) => { if (alive) setError(e instanceof Error ? e.message : 'No se pudo leer el catálogo.') })
     return () => { alive = false }
   }, [ids])
-  const shown = (data?.dishes ?? []).filter((d) => `${d.name} ${d.category}`.toLowerCase().includes(query.trim().toLowerCase()))
+  // Orden por plato o precio (también el de cada restaurante) y búsqueda por plato o categoría.
+  const price = (d: MasterDish, id: number) => data?.prices[id]?.[d.templateId] ?? d.basePrice
+  const table = useTableView(data?.dishes ?? [], Object.fromEntries([['name', (d: MasterDish) => d.name], ['base', (d: MasterDish) => d.basePrice],
+    ...restaurants.map((r) => [`r${r.id}`, (d: MasterDish) => price(d, r.id)])]) as Sorters<MasterDish>, (d) => `${d.name} ${d.category}`)
+  const shown = table.view
   const patch = (fn: (d: MasterCatalog) => MasterCatalog) => setData((d) => (d ? fn(d) : d))
   return (
     <section className="flex flex-col gap-5">
       <p className="text-soft">El precio de cada restaurante (vacío es el de la organización) y si lo ofrece hoy.</p>
-      <label className="max-w-md flex flex-col gap-1.5 text-[15px] font-medium">Buscar plato
-        <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} className="h-tap-min px-3.5 rounded-[10px] border border-border bg-surface" /></label>
+      <TableSearch value={table.query} onChange={table.setQuery} placeholder="Buscar plato o categoría" className="w-72 max-w-full" />
       {error && <p role="alert" className="text-danger">{error}</p>}
       {!data ? <p className="text-soft">Cargando el catálogo…</p> : (
         <ScrollTable label="los precios">
           <table className="data-table text-[14px]">
-            <thead className="bg-muted text-left"><tr><th className="p-3">Plato</th><th className="p-3">Precio de la organización</th>
-              {restaurants.map((r) => <th key={r.id} className="p-3">{r.name}</th>)}</tr></thead>
+            <thead className="bg-muted text-left"><tr><SortTh label="Plato" sortKey="name" sort={table.sort} onSort={table.toggle} className="p-3" />
+              <SortTh label="Precio de la organización" sortKey="base" sort={table.sort} onSort={table.toggle} className="p-3" />
+              {restaurants.map((r) => <SortTh key={r.id} label={r.name} sortKey={`r${r.id}`} sort={table.sort} onSort={table.toggle} className="p-3" />)}</tr></thead>
             <tbody>{shown.map((d) => (
               <tr key={d.templateId} className="border-t border-border align-top">
                 <td className="p-3"><p className="font-semibold">{d.name}</p><p className="text-[13px] text-soft">{d.category}</p></td>

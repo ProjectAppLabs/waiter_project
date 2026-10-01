@@ -12,6 +12,8 @@ import { MenuAdmin, type MenuAdminRequest } from '@/components/pantry/MenuAdmin'
 import { RecipeEditor } from '@/components/pantry/RecipeEditor'
 import { Button } from '@/components/ui/Button'
 import { ScrollTable } from '@/components/ui/ScrollTable'
+import { SortTh, TableSearch } from '@/components/ui/SortTh'
+import { useTableView, type Sorters } from '@/lib/hooks/useTableView'
 import { Segmented } from '@/components/ui/Segmented'
 import { formatCop } from '@/lib/domain/money'
 import type { Ingredient } from '@/lib/domain/pantry'
@@ -68,23 +70,30 @@ export function CatalogConsole({ initialTab = 'dishes', initialFilter = 'all' }:
 function DishesTab({ dishes, initialFilter, onChanged }: { dishes: OverviewDish[]; initialFilter: DishFilter; onChanged: () => Promise<void> }) {
   const pantry = usePantryStore()
   const [filter, setFilter] = useState<DishFilter>(initialFilter)
-  const [query, setQuery] = useState('')
   const [adding, setAdding] = useState(false)
   const [sheet, setSheet] = useState<MenuAdminRequest | null>(null)
   const [recipe, setRecipe] = useState<{ id: number; name: string } | null>(null)
   const count = (f: DishFilter) => (f === 'all' ? dishes.length : dishes.filter((d) => recipeState(d) === f).length)
-  const shown = useMemo(() => dishes.filter((d) => (filter === 'all' || recipeState(d) === filter) && `${d.name} ${d.categories.join(' ')}`.toLowerCase().includes(query.trim().toLowerCase())), [dishes, filter, query])
+  const byState = useMemo(() => dishes.filter((d) => filter === 'all' || recipeState(d) === filter), [dishes, filter])
+  // Orden por cualquier columna y búsqueda por plato o categoría (sin tildes ni mayúsculas).
+  const STATE_ORDER: Record<RecipeState, number> = { costed: 0, missingCost: 1, noRecipe: 2 }
+  const table = useTableView(byState, {
+    name: (d) => d.name, price: (d) => d.listPrice, state: (d) => STATE_ORDER[recipeState(d)], cost: (d) => d.recipeCost,
+    foodCost: (d) => (d.recipeCost === null || !d.listPrice ? null : d.recipeCost / d.listPrice),
+  } as Sorters<OverviewDish>, (d) => `${d.name} ${d.categories.join(' ')}`)
+  const shown = table.view
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
         {FILTERS.map(([f, label]) => <Chip key={f} label={label} count={count(f)} active={filter === f} onClick={() => setFilter(f)} />)}
-        <input aria-label="Buscar plato" placeholder="Buscar plato" value={query} onChange={(e) => setQuery(e.target.value)} className={cn(INPUT, 'ml-auto w-64')} />
+        <TableSearch value={table.query} onChange={table.setQuery} placeholder="Buscar plato" className="ml-auto w-64" />
         <Button variant="primary" onClick={() => setAdding(true)}><Icon name="plus" size={18} />Nuevo plato</Button>
       </div>
       <ScrollTable label="los platos">
         <table className="data-table text-[15px]">
           <thead><tr className="text-left text-soft border-b border-border">
-            {['Plato', 'Precio de carta', 'Receta', 'Costo', 'Food cost', ''].map((h, i) => <th key={i} className={cn('px-4 py-3 font-semibold', (i === 1 || i === 3 || i === 4) && 'text-right')}>{h}</th>)}</tr></thead>
+            {([['name', 'Plato'], ['price', 'Precio de carta'], ['state', 'Receta'], ['cost', 'Costo'], ['foodCost', 'Food cost']] as const)
+              .map(([k, h], i) => <SortTh key={k} label={h} sortKey={k} sort={table.sort} onSort={table.toggle} align={i === 1 || i === 3 || i === 4 ? 'right' : 'left'} />)}<th /></tr></thead>
           <tbody>{shown.map((d) => {
             const state = recipeState(d)
             return (
@@ -103,7 +112,7 @@ function DishesTab({ dishes, initialFilter, onChanged }: { dishes: OverviewDish[
               </tr>)
           })}</tbody>
         </table>
-        {shown.length === 0 && <p className="p-6 text-center text-soft">No hay platos con este filtro.</p>}
+        {shown.length === 0 && <p className="p-6 text-center text-soft">No hay platos con este filtro o búsqueda.</p>}
       </ScrollTable>
       <p className="text-[13px] text-dim">El food cost aquí es sobre el precio de carta con impuestos; Rentabilidad lo calcula sin impuestos y con las ventas de cada periodo.</p>
       <AddDishWizard open={adding} onClose={() => setAdding(false)} categories={pantry.posCategories} ingredients={pantry.ingredients} units={pantry.units} onSaved={onChanged} />
@@ -131,11 +140,12 @@ function CategoriesTab({ onChanged }: { onChanged: () => void }) {
 function IngredientsTab({ ingredients, pantryIngredients, onChanged }: { ingredients: OverviewIngredient[]; pantryIngredients: Ingredient[]; onChanged: () => Promise<void> }) {
   const pantry = usePantryStore()
   const [drafts, setDrafts] = useState<Record<number, string>>({})
-  const [query, setQuery] = useState('')
   const [onlyMissing, setOnlyMissing] = useState(false)
   const [editing, setEditing] = useState<Ingredient | 'new' | null>(null)
   const [error, setError] = useState(''), [notice, setNotice] = useState('')
-  const shown = ingredients.filter((i) => (!onlyMissing || i.cost <= 0) && i.name.toLowerCase().includes(query.trim().toLowerCase()))
+  const missing = useMemo(() => ingredients.filter((i) => !onlyMissing || i.cost <= 0), [ingredients, onlyMissing])
+  const table = useTableView(missing, { name: (i) => i.name, cost: (i) => i.cost, usedIn: (i) => i.usedIn } as Sorters<OverviewIngredient>, (i) => `${i.name} ${i.uom}`)
+  const shown = table.view
   const save = async (i: OverviewIngredient) => {
     const value = Number(drafts[i.templateId])
     if (!Number.isFinite(value) || value < 0) { setError('Escribe un costo mayor o igual a cero.'); return }
@@ -147,7 +157,7 @@ function IngredientsTab({ ingredients, pantryIngredients, onChanged }: { ingredi
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
         <label className="flex items-center gap-2 text-[15px]"><input type="checkbox" className="w-5 h-5 accent-primary" checked={onlyMissing} onChange={(e) => setOnlyMissing(e.target.checked)} />Solo sin costo</label>
-        <input aria-label="Buscar ingrediente" placeholder="Buscar ingrediente" value={query} onChange={(e) => setQuery(e.target.value)} className={cn(INPUT, 'ml-auto w-64')} />
+        <TableSearch value={table.query} onChange={table.setQuery} placeholder="Buscar ingrediente" className="ml-auto w-64" />
         <Button variant="primary" onClick={() => setEditing('new')}><Icon name="plus" size={18} />Nuevo ingrediente</Button>
       </div>
       {error && <p role="alert" className="text-danger">{error}</p>}
@@ -155,7 +165,8 @@ function IngredientsTab({ ingredients, pantryIngredients, onChanged }: { ingredi
       <ScrollTable label="los ingredientes">
         <table className="data-table text-[15px]">
           <thead><tr className="text-left text-soft border-b border-border">
-            {['Ingrediente', 'Costo por unidad', 'En platos', ''].map((h, i) => <th key={i} className={cn('px-4 py-3 font-semibold', i === 2 && 'text-right')}>{h}</th>)}</tr></thead>
+            <SortTh label="Ingrediente" sortKey="name" sort={table.sort} onSort={table.toggle} /><SortTh label="Costo por unidad" sortKey="cost" sort={table.sort} onSort={table.toggle} />
+            <SortTh label="En platos" sortKey="usedIn" sort={table.sort} onSort={table.toggle} align="right" /><th /></tr></thead>
           <tbody>{shown.map((i) => {
             const draft = drafts[i.templateId]
             const full = pantryIngredients.find((p) => p.id === i.templateId)
