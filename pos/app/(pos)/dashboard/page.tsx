@@ -26,6 +26,7 @@ import { isOwner } from '@/lib/domain/roles'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useNotificationStore } from '@/lib/stores/notificationStore'
 import { useCatalogStore } from '@/lib/stores/catalogStore'
+import { cn } from '@/lib/utils'
 
 const REFRESH_MS = 60_000
 const todayIso = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
@@ -137,9 +138,10 @@ export default function DashboardPage() {
         </div>
 
         {seesSales && (
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px] items-start">
+          <div className={cn('grid gap-4 items-start', owner && 'lg:grid-cols-[minmax(0,1fr)_380px]')}>
             <DishStatsCard stats={stats} windowDays={history?.windowDays ?? 28} loaded={history !== null || historyFailed} />
-            <ForecastCard forecast={forecast} loaded={history !== null || historyFailed} />
+            {/* Plan Q: la proyección del mes que viene es del negocio: la ve el dueño, no el encargado. */}
+            {owner && <ForecastCard forecast={forecast} loaded={history !== null || historyFailed} />}
           </div>
         )}
       </div>

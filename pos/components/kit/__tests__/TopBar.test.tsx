@@ -20,12 +20,9 @@ it('renders kit tabs for the role, the bell with unread dot and the user chip', 
 it('shows the administration row with the subtabs of the role', () => {
   wrap(<TopBar active="admin" role="admin" userName="Ana" activeSubtab="settings" onOpenSettings={() => undefined} />)
   expect(screen.getByRole('link', { name: 'Configuración' })).toHaveAttribute('aria-current', 'page')
-  wrap(<TopBar active="admin" role="cashier" userName="Luis" onOpenSettings={() => undefined} />)
-  expect(screen.getAllByRole('link', { name: 'Facturación' })).toHaveLength(1)
-  // «Retorno» es solo del administrador: aparece una vez (la suya), no dos. El Catálogo dejó de ser una pestaña: la
-  // ficha comercial del plato se edita desde Inventario.
-  expect(screen.getAllByRole('link', { name: 'Retorno' })).toHaveLength(1)
-  expect(screen.queryByRole('link', { name: 'Catálogo' })).not.toBeInTheDocument()
+  // Plan Q: Facturación, Clientes y Retorno son de la consola del dueño; el Catálogo se edita desde Inventario.
+  for (const name of ['Facturación', 'Clientes', 'Retorno', 'Catálogo']) expect(screen.queryByRole('link', { name })).not.toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Ventas' })).toBeInTheDocument()
 })
 
 // Falla si el Dashboard desaparece con la caja cerrada (sus informes no dependen de la caja), si Pedidos sigue ahí sin

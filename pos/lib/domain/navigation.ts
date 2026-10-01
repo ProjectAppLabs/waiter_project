@@ -10,13 +10,13 @@ export const TAB_ROUTES: Record<KitTab, string> = {
   inventory: '/inventario', kitchen: '/kds', admin: '/ventas',
 }
 
-// Segunda fila de Administración (chips "Tab Menu" del kit). Caja vive en Ventas hasta la oleada I.7. El Catálogo dejó de
-// ser una pestaña: repetía la lista de platos de Inventario, y la ficha comercial del plato ahora se edita allí.
-export const ADMIN_SUBTABS = [['sales', '/ventas'], ['customers', '/clientes'], ['billing', '/facturacion'], ['roi', '/automatizacion'], ['settings', '/configuracion']] as const
+// Segunda fila de Administración (chips "Tab Menu" del kit): lo del restaurante. Plan Q: Clientes, Facturación y Retorno
+// de inversión son del negocio y viven en la consola del dueño; sus rutas viejas redirigen (MovedToConsole).
+export const ADMIN_SUBTABS = [['sales', '/ventas'], ['settings', '/configuracion']] as const
 export type AdminSubtab = (typeof ADMIN_SUBTABS)[number][0]
 
 export const tabsFor = (role: Role, policy: RolePolicy = DEFAULT_ROLE_POLICY): KitTab[] => KIT_TABS.filter((tab) =>
-  tab === 'admin' ? role === 'admin' || ['sales', 'customers', 'billing'].some((view) => policy[role].views.includes(view as RoleView)) : roleCan(role, tab, policy))
+  tab === 'admin' ? role === 'admin' || policy[role].views.includes('sales') : roleCan(role, tab, policy))
 export const adminSubtabsFor = (role: Role, policy: RolePolicy = DEFAULT_ROLE_POLICY) => ADMIN_SUBTABS.filter(([key]) => role === 'admin' || policy[role].views.includes(key as RoleView))
 
 const PATH_TAB: [RegExp, KitTab][] = [
@@ -48,9 +48,9 @@ export function homePath(role: Role, hasOpenSession: boolean, policy: RolePolicy
   return tab === 'admin' ? adminSubtabsFor(role, policy)[0]?.[1] ?? '/salon' : TAB_ROUTES[tab ?? 'tables']
 }
 
-// Pantallas a pantalla completa, sin la barra de navegación: la cocina, la operación en vivo y el mesero IA.
+// Pantallas a pantalla completa, sin la barra de navegación: la cocina y la operación en vivo.
 export function withShell(pathname: string): boolean {
-  return !/^\/(kds|operacion|automatizacion\/ia)(\/|$)/.test(pathname)
+  return !/^\/(kds|operacion)(\/|$)/.test(pathname)
 }
 
 export function administrationPath(pathname: string): boolean {

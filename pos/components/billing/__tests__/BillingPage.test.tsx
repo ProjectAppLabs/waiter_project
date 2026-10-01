@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 
-import FacturacionPage from '@/app/(pos)/facturacion/page'
+import { BillingView as FacturacionPage } from '@/components/business/BillingView'
 import { messages } from '@/lib/i18n/messages'
 import { invoiceOrder, listInvoices, listPaidOrders } from '@/lib/services/invoices'
 
