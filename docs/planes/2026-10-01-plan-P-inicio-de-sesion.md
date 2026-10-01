@@ -123,3 +123,25 @@ Decisiones del dueño (2026-10-01):
   - da de alta a una persona;
   - la persona entra con su usuario y llega a su restaurante;
   - un mesero fuera de turno es rechazado y el dueño ve la alerta.
+
+## Estado (2026-10-01)
+
+- **P1, P2 y P3 hechos** en la rama `feat/01102026-plan-p-inicio-de-sesion`. Odoo: 212/212 pruebas. POS: `tsc` y
+  565 pruebas de `jest`.
+- **Recorrido en Chromium:**
+  - el dueño entra con su usuario y llega a la consola;
+  - da de alta a una persona;
+  - esa persona, fuera de su turno, es rechazada con su horario;
+  - la mesera entra con su usuario y va a Caja;
+  - la encargada entra con su correo y ve el aviso arriba en «Para atender ahora»;
+  - el dueño lo ve en la campana del restaurante.
+- **Base de desarrollo migrada** con `projectapp.demo_mode = 'true'`:
+  - `sofia.mesera`, `carlos.cajero`, `laura.encargada` y `mateo.mesero`, con contraseña `waiter-demo-2026`;
+  - el dueño sigue con `admin`/`admin`.
+- **Hallazgos durante la verificación:**
+  - en Odoo 19 una ruta `auth="none"` es de solo lectura por omisión, y «Enviar código» fallaba en silencio (corregido);
+  - sin servidor de correo, el alta queda creada con la invitación pendiente;
+  - el encargado veía también los avisos de otras personas.
+- **Pendiente:** las pruebas e2e de Playwright (`pos/e2e`) siguen con el PIN y la cuenta del terminal. Ya estaban
+  desactualizadas (usan una cuenta `sofia` que no existe) y aquí no hay navegadores de Playwright instalados, así que
+  se rehacen aparte.
