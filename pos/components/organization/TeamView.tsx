@@ -59,7 +59,7 @@ export function TeamView() {
       {notice && <p role="status" className="text-success-ink">{notice}</p>}
       <ul aria-label="Personas" className="flex flex-col gap-2">
         {people === null ? <li className="text-soft">Cargando…</li> : people.map((p) => (
-          <li key={p.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface p-4">
+          <li key={p.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-border p-4">
             <div className="min-w-0 flex-1">
               <p className="font-semibold truncate">{p.name}{p.username && <span className="ml-2 font-mono text-[13px] text-soft">{p.username}</span>}</p>
               <p className="text-[13px] text-soft truncate">

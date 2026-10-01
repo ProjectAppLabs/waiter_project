@@ -30,7 +30,7 @@ export function RestaurantsView() {
       </header>
       <ul aria-label="Restaurantes" className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {restaurants.map((r) => (
-          <li key={r.id} className="rounded-xl border border-border bg-surface p-5 flex flex-col gap-4">
+          <li key={r.id} className="rounded-xl border border-border p-5 flex flex-col gap-4">
             <div className="flex items-start gap-3">
               <span className="w-11 h-11 shrink-0 rounded-md bg-primary-soft text-primary grid place-items-center"><Icon name="store" size={22} /></span>
               <div className="min-w-0 flex-1"><h2 className="text-[17px] font-semibold truncate">{r.name}</h2>
