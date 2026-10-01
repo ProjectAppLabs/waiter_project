@@ -49,7 +49,7 @@ function CouponsTab({coupons,busy,save}:{coupons:Coupon[];busy:boolean;save:(c:C
   <form onSubmit={e=>{e.preventDefault();void save(draft).then(ok=>{if(ok)setDraft(empty)})}} className="flex flex-col gap-4"><h4>{draft.id?'Editar cupón':'Crear cupón'}</h4>
    <div className="grid grid-cols-2 gap-4">
     <TextInput required label="Nombre" value={draft.name} onChange={e=>setDraft({...draft,name:e.target.value})}/>
-    <TextInput required label="Código" maxLength={32} minLength={3} pattern="[A-Za-z0-9_-]{3,32}" value={draft.code} onChange={e=>setDraft({...draft,code:e.target.value.toUpperCase()})}/>
+    <TextInput required label="Código" maxLength={32} minLength={3} pattern="[A-Za-z0-9_\-]{3,32}" value={draft.code} onChange={e=>setDraft({...draft,code:e.target.value.toUpperCase()})}/>
     <TextInput label="Descuento (%)" required type="number" min="0.01" max="100" step="0.01" value={draft.percent} onChange={e=>setDraft({...draft,percent:Number(e.target.value)})}/>
     <TextInput label="Compra mínima (con impuestos)" type="number" min="0" step="0.01" required value={draft.minimum} onChange={e=>setDraft({...draft,minimum:Number(e.target.value)})}/>
     <TextInput label="Desde (opcional)" type="date" value={draft.start} onChange={e=>setDraft({...draft,start:e.target.value})}/>

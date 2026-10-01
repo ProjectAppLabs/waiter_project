@@ -19,7 +19,9 @@ import { useStored } from '@/lib/hooks/useStored'
 import { cn } from '@/lib/utils'
 
 const write = (key: string, value: string) => { try { if (value) localStorage.setItem(key, value); else localStorage.removeItem(key) } catch { /* sin almacenamiento */ } }
-type View = 'main' | 'code'
+type View = 'main' | 'forgot' | 'code'
+// El enlace de la invitación abre el inicio en «escribe el código» con el usuario puesto: /login?codigo=<usuario>.
+const invitedLogin = (): string | null => { try { return new URLSearchParams(window.location.search).get('codigo') } catch { return null } }
 const GENERIC_DENIED = /^(access denied|acceso denegado)\.?$/i
 
 // Odoo responde `AccessDenied` tanto por credencial mala como fuera del turno (plan P). El genérico se dice como
@@ -42,9 +44,10 @@ export default function LoginPage() {
   const tl = useTranslations('pos.login')
   const router = useRouter()
   const { user, employee, session, restaurant, restaurants, hydrated, hydrate, login, chooseRestaurant } = useAuthStore()
-  const [view, setView] = useState<View>('main')
+  const [invited] = useState<string | null>(() => (typeof window === 'undefined' ? null : invitedLogin()))
+  const [view, setView] = useState<View>(invited ? 'code' : 'main')
   const storedEmail = useStored('waiter.email')
-  const [emailEdit, setEmailEdit] = useState<string | null>(null)
+  const [emailEdit, setEmailEdit] = useState<string | null>(invited)
   const email = emailEdit ?? storedEmail
   const [password, setPassword] = useState('')
   const [show, setShow] = useState(false)
@@ -54,7 +57,7 @@ export default function LoginPage() {
   const [code, setCode] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirm, setConfirm] = useState('')
-  const [codeState, setCodeState] = useState<'idle' | 'sent' | 'invalid' | 'mismatch'>('idle')
+  const [codeState, setCodeState] = useState<'idle' | 'sent' | 'resent' | 'invalid' | 'mismatch'>('idle')
 
   useEffect(() => { void hydrate() }, [hydrate])
   // Si la sesión se cerró sola (inactividad o fin del turno) se explica. Solo se pinta ya hidratado, en el navegador.
@@ -74,7 +77,12 @@ export default function LoginPage() {
     catch (e) { setFailed(loginError(e, tl)) }
     finally { setBusy(false) }
   }
-  async function onSendCode() { setBusy(true); try { await requestCode(email); setCodeState('sent') } finally { setBusy(false) } }
+  // El servidor responde igual exista o no la cuenta: no revela quién tiene usuario.
+  async function onRequest(e: React.FormEvent) {
+    e.preventDefault()
+    setBusy(true); try { await requestCode(email); setCode(''); setView('code'); setCodeState('sent') } finally { setBusy(false) }
+  }
+  async function onResend() { setBusy(true); try { await requestCode(email); setCodeState('resent') } finally { setBusy(false) } }
   async function onActivate(e: React.FormEvent) {
     e.preventDefault()
     if (newPassword !== confirm) { setCodeState('mismatch'); return }
@@ -89,7 +97,7 @@ export default function LoginPage() {
       if (e instanceof ShiftDeniedError || e instanceof OdooError) { setView('main'); setFailed(loginError(e, tl)) } else setCodeState('invalid')
     } finally { setBusy(false) }
   }
-  const openCode = () => { setView('code'); setCodeState('idle'); setFailed(null) }
+  const openForgot = () => { setView('forgot'); setCodeState('idle'); setFailed(null) }
 
   if (!hydrated) return <LoginFrame><p className="pt-20 text-dim">{t('employee.loading')}</p></LoginFrame>
 
@@ -103,15 +111,24 @@ export default function LoginPage() {
 
   return (
     <LoginFrame>
-      {view === 'code' ? (
+      {view === 'forgot' ? (
+        <form onSubmit={onRequest} className="w-[440px] pt-6 flex flex-col gap-4">
+          <span className="w-10 h-10 rounded-md border border-border grid place-items-center text-ink shadow-sm"><Icon name="lock" size={22} /></span>
+          <div><h1 className="mt-2 text-[24px] font-semibold text-ink">{t('terminal.forgot')}</h1><p className="mt-1 text-[15px] text-dim">{tl('code.intro')}</p></div>
+          <label className="flex flex-col gap-2 text-[15px] font-medium">{tl('email')}
+            <input aria-label={tl('email')} value={email} onChange={(e) => setEmailEdit(e.target.value)} autoComplete="username" autoCapitalize="none" spellCheck={false} className={LOGIN_INPUT} /></label>
+          <Button type="submit" variant="primary" className="w-full h-12 text-[17px] font-semibold" disabled={busy || email.trim().length < 3}>{tl('code.send')}</Button>
+          <button type="button" onClick={() => setView('main')} className="self-center text-[16px] font-semibold text-ink">{t('terminal.back')}</button>
+        </form>
+      ) : view === 'code' ? (
         <form onSubmit={onActivate} className="w-[440px] pt-6 flex flex-col gap-4">
           <span className="w-10 h-10 rounded-md border border-border grid place-items-center text-ink shadow-sm"><Icon name="fingerprint" size={22} /></span>
-          <div><h1 className="mt-2 text-[24px] font-semibold text-ink">{t('terminal.codeTitle')}</h1><p className="mt-1 text-[15px] text-dim">{tl('code.intro')}</p></div>
-          <label className="flex flex-col gap-2 text-[15px] font-medium">{tl('email')}
-            <span className="flex gap-2"><input aria-label={tl('email')} value={email} onChange={(e) => setEmailEdit(e.target.value)} autoComplete="username" autoCapitalize="none" className={cn(LOGIN_INPUT, 'flex-1')} /><Button type="button" onClick={onSendCode} disabled={busy || email.trim().length < 3}>{tl('code.send')}</Button></span></label>
+          <div><h1 className="mt-2 text-[24px] font-semibold text-ink">{tl('code.title')}</h1>
+            <p className="mt-1 text-[15px] text-dim">{invited ? tl('code.invited', { login: invited }) : tl('code.check', { login: email.trim() })}</p></div>
           {codeState === 'sent' && <p role="status" className="text-[14px] text-success-ink">{tl('code.sent')}</p>}
+          {codeState === 'resent' && <p role="status" className="text-[14px] text-success-ink">{tl('code.resent')}</p>}
           <label className="flex flex-col gap-2 text-[15px] font-medium">{tl('code.code')}
-            <input aria-label={tl('code.code')} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" className={cn(LOGIN_INPUT, 'font-mono tracking-[0.3em] text-xl')} /></label>
+            <input aria-label={tl('code.code')} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" className={cn(LOGIN_INPUT, 'font-mono tracking-[0.3em] text-xl')} /></label>
           <label className="flex flex-col gap-2 text-[15px] font-medium">{tl('code.newPassword')}
             <input aria-label={tl('code.newPassword')} type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password" className={LOGIN_INPUT} /></label>
           <label className="flex flex-col gap-2 text-[15px] font-medium">{tl('code.confirm')}
@@ -119,7 +136,10 @@ export default function LoginPage() {
           {codeState === 'invalid' && <p role="alert" className="text-danger-ink text-[14px]">{tl('code.invalid')}</p>}
           {codeState === 'mismatch' && <p role="alert" className="text-danger-ink text-[14px]">{tl('code.mismatch')}</p>}
           <Button type="submit" variant="primary" className="w-full h-12 text-[17px] font-semibold" disabled={busy || code.length !== 6 || newPassword.length < 8}>{tl('code.activate')}</Button>
-          <button type="button" onClick={() => setView('main')} className="self-center text-[16px] font-semibold text-ink">{t('terminal.back')}</button>
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-[16px] font-semibold">
+            <button type="button" onClick={() => void onResend()} disabled={busy || email.trim().length < 3} className="text-primary disabled:opacity-40">{tl('code.resend')}</button>
+            <button type="button" onClick={() => setView('main')} className="text-ink">{t('terminal.back')}</button>
+          </div>
         </form>
       ) : (
         <form onSubmit={onSubmit} className="w-[440px] flex flex-col items-center">
@@ -136,10 +156,7 @@ export default function LoginPage() {
           {closed && !failed && <p role="status" className="mt-3 self-start text-soft text-[14px]">{t(closed === 'idle' ? 'guard.closedIdle' : 'guard.closedShift')}</p>}
           {failed && <p role="alert" className="mt-3 self-start text-danger-ink text-[14px]">{failed}</p>}
           <Button type="submit" variant="primary" className="mt-6 w-full h-12 text-[17px] font-semibold" disabled={busy || !email || !password}>{t('terminal.submit')}</Button>
-          <div className="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 text-[16px] font-semibold text-primary">
-            <button type="button" onClick={openCode}>{t('terminal.forgot')}</button>
-            <button type="button" onClick={openCode}>{t('terminal.haveCode')}</button>
-          </div>
+          <button type="button" onClick={openForgot} className="mt-6 text-[16px] font-semibold text-primary">{t('terminal.forgot')}</button>
         </form>
       )}
     </LoginFrame>

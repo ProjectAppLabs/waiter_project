@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 
 import { AuroraBackground } from '@/components/kit/Aurora'
+import { BrandMark } from '@/components/kit/BrandMark'
 import { Icon, type KitIcon } from '@/components/kit/Icon'
 import { OrgContext } from '@/components/organization/OrgContext'
 import { Button } from '@/components/ui/Button'
@@ -15,7 +16,7 @@ import { useAuthStore } from '@/lib/stores/authStore'
 import { cn } from '@/lib/utils'
 
 // Plan O: consola del dueño, fuera del POS. Todo lo de la organización (restaurantes, equipo, diseño del menú,
-// promociones, integraciones y empresa) y la puerta a cada POS. Solo entra el dueño, con su PIN ya marcado.
+// promociones, integraciones y empresa) y la puerta a cada POS. Solo entra el dueño, con su propia cuenta.
 const SECTIONS: [string, string, KitIcon][] = [
   ['/organizacion', 'Restaurantes', 'store'], ['/organizacion/catalogo', 'Catálogo', 'bag'], ['/organizacion/equipo', 'Equipo', 'users'], ['/organizacion/diseno', 'Diseño del menú', 'layout'],
   ['/organizacion/promociones', 'Promociones', 'percentage'], ['/organizacion/integraciones', 'Integraciones IA', 'sparkles'], ['/organizacion/empresa', 'Empresa e impuestos', 'lock'],
@@ -46,7 +47,9 @@ export default function OrganizationLayout({ children }: { children: React.React
       <main className="pos-ambient min-h-screen flex text-ink">
         <AuroraBackground />
         <nav aria-label="Consola de la organización" className="relative w-[260px] shrink-0 border-r border-border bg-surface/80 p-4 flex flex-col gap-1">
-          <div className="px-3 pb-4">
+          {/* La marca del producto siempre presente, como en la barra del POS y en el inicio. */}
+          <BrandMark href="/organizacion" className="px-3 pt-1 pb-5" />
+          <div className="px-3 pb-4 border-t border-border pt-4">
             <span className="text-[12px] font-bold uppercase tracking-widest text-primary">Organización</span>
             <p className="mt-1 text-[18px] font-semibold truncate">{companyName || 'Tu organización'}</p>
           </div>

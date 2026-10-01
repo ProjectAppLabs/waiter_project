@@ -6,9 +6,7 @@
     "subtitle": "Entra con tu usuario o tu correo y tu contraseña.",
     "submit": "Entrar",
     "forgot": "¿Olvidaste tu contraseña?",
-    "codeTitle": "Recupera o activa tu cuenta",
-    "back": "Volver a iniciar sesión",
-    "haveCode": "Tengo un código"
+    "back": "Volver a iniciar sesión"
   },
   "restaurant": {
     "title": "¿En qué restaurante trabajas ahora?",

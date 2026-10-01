@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { NextIntlClientProvider } from 'next-intl'
 
 import LoginPage from '@/app/login/page'
+import { activate, requestCode } from '@/lib/services/activation'
 import { messages } from '@/lib/i18n/messages'
 import { OdooError } from '@/lib/services/errors'
 import { ShiftDeniedError, useAuthStore, type ActiveEmployee } from '@/lib/stores/authStore'
@@ -34,17 +35,50 @@ async function signIn(who = 'sofia.mesera', password = 'secreta-123') {
   await userEvent.click(screen.getByRole('button', { name: 'Entrar' }))
 }
 
-// Falla si el inicio vuelve a pedir la cuenta del terminal o un PIN, o pierde los caminos de recuperar y de activar (plan P).
-it('un solo formulario: usuario o correo y contraseña, con recuperar y código', async () => {
+// Falla si el inicio vuelve a pedir la cuenta del terminal o un PIN, o si vuelve el atajo «Tengo un código»: la única
+// salida es «¿Olvidaste tu contraseña?» (plan P).
+it('un solo formulario: usuario o correo y contraseña, y solo «¿Olvidaste tu contraseña?»', () => {
   wrap()
   expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Inicia sesión')
   expect(screen.getByRole('button', { name: 'Entrar' })).toBeDisabled()
   expect(screen.queryByText(/PIN/)).toBeNull()
-  await userEvent.click(screen.getByRole('button', { name: 'Tengo un código' }))
-  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Recupera o activa tu cuenta')
-  // Se pide el código con el usuario, no solo con un correo.
+  expect(screen.queryByRole('button', { name: 'Tengo un código' })).toBeNull()
+  expect(screen.getByRole('button', { name: '¿Olvidaste tu contraseña?' })).toBeInTheDocument()
+})
+
+// Falla si recuperar la contraseña no pide primero el usuario o el correo y envía el código, o si después no deja
+// escribirlo con la nueva contraseña, reenviarlo o entrar con ella.
+it('olvidé mi contraseña: pide el código por correo y luego cambia la contraseña', async () => {
+  const login = jest.fn(async () => undefined)
+  useAuthStore.setState({ login })
+  ;(activate as jest.Mock).mockResolvedValue(true)
+  wrap()
+  await userEvent.click(screen.getByRole('button', { name: '¿Olvidaste tu contraseña?' }))
+  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('¿Olvidaste tu contraseña?')
+  expect(screen.queryByLabelText('Código de 6 dígitos')).toBeNull()
   await userEvent.type(screen.getByLabelText('Usuario o correo'), 'sofia.mesera')
-  expect(screen.getByRole('button', { name: 'Enviar código' })).toBeEnabled()
+  await userEvent.click(screen.getByRole('button', { name: 'Enviar código' }))
+  expect(requestCode).toHaveBeenCalledWith('sofia.mesera')
+  expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent('Escribe el código')
+  expect(screen.getByText(/vence en 30 minutos/)).toBeInTheDocument()
+  await userEvent.click(screen.getByRole('button', { name: 'Reenviar código' }))
+  expect(await screen.findByText(/el anterior ya no sirve/)).toBeInTheDocument()
+  await userEvent.type(screen.getByLabelText('Código de 6 dígitos'), '123456')
+  await userEvent.type(screen.getByLabelText('Nueva contraseña (mínimo 8)'), 'nueva-1234')
+  await userEvent.type(screen.getByLabelText('Repite la contraseña'), 'nueva-1234')
+  await userEvent.click(screen.getByRole('button', { name: 'Guardar y entrar' }))
+  await waitFor(() => expect(activate).toHaveBeenCalledWith('sofia.mesera', '123456', 'nueva-1234'))
+  expect(login).toHaveBeenCalledWith('sofia.mesera', 'nueva-1234')
+})
+
+// Falla si el enlace del correo de invitación no abre directo «escribe el código» con el usuario de la persona.
+it('el enlace de la invitación abre el paso del código con el usuario puesto', () => {
+  window.history.pushState({}, '', '/login?codigo=mateo.ruiz')
+  try {
+    wrap()
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Escribe el código')
+    expect(screen.getByText(/Bienvenido, mateo\.ruiz/)).toBeInTheDocument()
+  } finally { window.history.pushState({}, '', '/login') }
 })
 
 // Falla si cada rol no llega a su sitio: el mesero a su inicio, el encargado al tablero, el dueño a su consola.

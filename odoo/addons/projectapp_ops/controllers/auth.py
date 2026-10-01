@@ -19,7 +19,8 @@ class WaiterAuth(http.Controller):
         user = _find_user(login)
         if user:
             try:
-                user.send_waiter_invite()
+                # Una cuenta que nunca puso su contraseña recibe otra vez la invitación; las demás, el código corto.
+                user.send_waiter_invite(purpose="invite" if not user.waiter_activated and not user.login_date else "reset")
             except Exception:  # noqa: BLE001 — el correo puede fallar; al cliente no se le cuenta
                 pass
         return {"ok": True}

@@ -99,11 +99,13 @@ class ResUsers(models.Model):
 import hashlib
 import secrets
 from datetime import timedelta
+from urllib.parse import urlencode
 
 from odoo import _
 from odoo.exceptions import AccessError, UserError
 
-INVITE_HOURS = 48
+INVITE_HOURS = 48         # invitación de alta: la persona puede tardar en ver el correo
+RESET_MINUTES = 30        # «¿Olvidaste tu contraseña?»: quien lo pide está frente a la pantalla
 MAX_ATTEMPTS = 5          # intentos fallidos por código antes de invalidarlo (6 dígitos no se fuerzan en 5)
 RESEND_SECONDS = 60       # mínimo entre envíos: frena el abuso del endpoint público
 
@@ -125,37 +127,54 @@ class ResUsersInvite(models.Model):
     def _waiter_hash(login, code):
         return hashlib.sha256(f"{login.lower().strip()}:{code}".encode()).hexdigest()
 
-    def send_waiter_invite(self, dry_run=False):
-        """Genera y envía el código. dry_run (solo administrador de POS) devuelve el código sin enviar: para pruebas."""
+    def send_waiter_invite(self, dry_run=False, purpose="invite"):
+        """Genera y envía el código de un solo uso. `purpose`: «invite» (alta, vence en 48 h, con su usuario y el enlace al
+        POS) o «reset» (olvidó su contraseña, vence en 30 min). dry_run (solo administrador de POS) devuelve el código
+        sin enviarlo: para pruebas."""
         self.ensure_one()
         if dry_run and not self.env.user.has_group("point_of_sale.group_pos_manager"):
             raise AccessError(_("Solo un administrador puede pedir un código sin enviarlo."))
         now = fields.Datetime.now()
         if not dry_run and self.waiter_invite_sent_at and (now - self.waiter_invite_sent_at).total_seconds() < RESEND_SECONDS:
             return False  # demasiado seguido: se ignora en silencio (el cliente ve la misma respuesta)
+        reset = purpose == "reset"
+        lifetime = timedelta(minutes=RESET_MINUTES) if reset else timedelta(hours=INVITE_HOURS)
         code = f"{secrets.randbelow(1_000_000):06d}"
         self.sudo().write({"waiter_invite_code": self._waiter_hash(self.login, code), "waiter_invite_attempts": 0,
-                           "waiter_invite_expires": now + timedelta(hours=INVITE_HOURS), "waiter_invite_sent_at": now})
+                           "waiter_invite_expires": now + lifetime, "waiter_invite_sent_at": now})
         if dry_run:
             return code
         to = self.email or (self.login if "@" in self.login else False)
         if not to:
             raise UserError(_("El usuario %s no tiene correo.", self.name))
-        sender = self.env["ir.config_parameter"].sudo().get_param("mail.default.from") or "team@projectapp.co"
-        body = (
-            f"<p>Hola {self.name},</p>"
-            f"<p>Tu código para entrar a <strong>Waiter</strong> es:</p>"
-            f"<p style='font-size:28px;font-family:monospace;letter-spacing:0.2em'><strong>{code}</strong></p>"
-            f"<p>Escríbelo en la pantalla de entrada junto con tu correo y elige tu contraseña. "
-            f"Vence en {INVITE_HOURS} horas.</p><p>— Equipo ProjectApp</p>"
-        )
+        params = self.env["ir.config_parameter"].sudo()
+        sender = params.get_param("mail.default.from") or "team@projectapp.co"
+        # El enlace abre el inicio del POS directo en «escribe el código», con el usuario ya puesto.
+        pos_url = (params.get_param("projectapp.pos_url") or "").rstrip("/")
+        link = f"{pos_url}/login?{urlencode({'codigo': self.login})}" if pos_url else ""
+        code_html = f"<p style='font-size:28px;font-family:monospace;letter-spacing:0.2em'><strong>{code}</strong></p>"
+        if reset:
+            subject = "Tu código para cambiar la contraseña de Waiter"
+            body = (f"<p>Hola {self.name},</p><p>Tu código para cambiar la contraseña es:</p>{code_html}"
+                    f"<p>Escríbelo en la pantalla de entrada junto con tu nueva contraseña. Sirve una sola vez y vence en "
+                    f"{RESET_MINUTES} minutos.</p><p>Si no lo pediste, ignora este correo: tu contraseña no cambia.</p>"
+                    f"<p>— Equipo ProjectApp</p>")
+        else:
+            subject = "Te dieron acceso a Waiter"
+            button = (f"<p><a href='{link}' style='display:inline-block;padding:12px 20px;background:#2563eb;color:#fff;"
+                      f"border-radius:8px;text-decoration:none;font-weight:600'>Poner mi contraseña</a></p>") if link else ""
+            body = (f"<p>Hola {self.name},</p><p>Ya tienes cuenta en <strong>Waiter</strong>. Tu usuario es "
+                    f"<strong>{self.login}</strong>; también puedes entrar con este correo.</p>"
+                    f"<p>Tu código para poner tu contraseña es:</p>{code_html}{button}"
+                    f"<p>Sirve una sola vez y vence en {INVITE_HOURS} horas. Si vence, en la pantalla de entrada pulsa "
+                    f"«¿Olvidaste tu contraseña?».</p><p>— Equipo ProjectApp</p>")
         self.env["mail.mail"].sudo().create({
-            "subject": "Tu código de acceso a Waiter", "email_from": sender, "email_to": to, "body_html": body, "auto_delete": True,
+            "subject": subject, "email_from": sender, "email_to": to, "body_html": body, "auto_delete": True,
         }).send(raise_exception=True)
         return True
 
     def waiter_check_code(self, code):
-        """Un solo uso, vence a las 48 h y se invalida tras MAX_ATTEMPTS fallos: no se puede forzar."""
+        """Un solo uso, vence (48 h la invitación, 30 min el de «olvidé») y se invalida tras MAX_ATTEMPTS fallos."""
         self.ensure_one()
         if not self.waiter_invite_code or not self.waiter_invite_expires or fields.Datetime.now() > self.waiter_invite_expires:
             return False

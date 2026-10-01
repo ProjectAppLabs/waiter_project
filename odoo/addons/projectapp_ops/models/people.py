@@ -146,7 +146,9 @@ class HrEmployee(models.Model):
         employee, _allowed = self._waiter_people_authority(employee_id)
         if not employee.active or not employee.user_id.active:
             raise ValidationError('No se puede invitar a una persona desactivada.')
-        return employee.user_id.send_waiter_invite()
+        user = employee.user_id
+        # «Reenviar invitación» a quien no la ha usado; «Restablecer contraseña» a quien ya entra (código de 30 min).
+        return user.send_waiter_invite(purpose='invite' if not user.waiter_activated and not user.login_date else 'reset')
 
     @api.model
     def waiter_deactivate_person(self, employee_id):

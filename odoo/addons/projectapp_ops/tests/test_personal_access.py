@@ -282,6 +282,34 @@ class TestPersonalAccess(PersonalFixtures, TransactionCase):
             self.staff.waiter_update_person(self.waiter_employee.id, {'role': 'cashier'})
         self.assertEqual(self.waiter.waiter_role, 'admin')
 
+    def test_invite_and_reset_codes_expire_and_say_how_to_use_them(self):
+        # Falla si el código de «olvidé mi contraseña» dura lo mismo que la invitación, si la invitación no lleva el
+        # usuario y el enlace que abre el POS en «escribe el código», o si el código sirve dos veces.
+        self.env['ir.config_parameter'].set_param('projectapp.pos_url', 'https://pos.example.test/')
+        mails = []
+        create = type(self.env['mail.mail']).create
+
+        def capture(model, values):
+            mails.append(values)
+            return create(model, values)
+        with patch.object(type(self.env['mail.mail']), 'send', return_value=True), \
+                patch.object(type(self.env['mail.mail']), 'create', capture), \
+                patch.object(fields.Datetime, 'now', return_value=INSIDE):
+            self.waiter.write({'waiter_activated': False, 'waiter_invite_sent_at': False})
+            self.waiter.send_waiter_invite()
+            self.assertEqual(self.waiter.waiter_invite_expires, INSIDE + timedelta(hours=48))
+            self.assertIn(self.waiter.login, mails[-1]['body_html'])
+            self.assertIn('https://pos.example.test/login?codigo=' + self.waiter.login, mails[-1]['body_html'])
+            self.waiter.waiter_invite_sent_at = False
+            self.waiter.send_waiter_invite(purpose='reset')
+            self.assertEqual(self.waiter.waiter_invite_expires, INSIDE + timedelta(minutes=30))
+            self.assertIn('30 minutos', mails[-1]['body_html'])
+        self.waiter.waiter_invite_sent_at = False
+        code = self.waiter.with_user(self.owner).send_waiter_invite(dry_run=True, purpose='reset')
+        self.assertTrue(self.waiter.waiter_check_code(code))
+        self.waiter.write({'waiter_invite_code': False})  # lo que hace /waiter/auth/activate al usarlo
+        self.assertFalse(self.waiter.waiter_check_code(code))
+
     def test_resend_rotates_code_and_preserves_activated_account(self):
         # Falla si restablecer no renueva el código, salta el límite de reenvío o archiva una cuenta activada.
         self.waiter.waiter_activated = True
