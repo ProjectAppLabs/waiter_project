@@ -6,19 +6,30 @@ import { fromOdooDatetime, readStoredEmployee, storeEmployee, type Shift } from 
 import { useBusStore } from '@/lib/stores/busStore'
 import type { AccountRole } from '@/lib/domain/roles'
 import { openRegister as openRegisterRequest } from '@/lib/services/cashRegister'
-import { endShift as endShiftRequest, findOpenAttendance, readEmployee, type CheckedEmployee } from '@/lib/services/employees'
+import { endShift as endShiftRequest, findOpenAttendance, readEmployee, startMyShift, type MyShift } from '@/lib/services/employees'
 import { currentUser, getOpenSession, login as loginRequest, logout as logoutRequest } from '@/lib/services/session'
 import { pickRestaurant, readDeviceRestaurant, storeDeviceRestaurant, type DeviceRestaurant } from '@/lib/domain/restaurant'
 import { listRestaurants, type Restaurant } from '@/lib/services/restaurants'
 import type { AuthUser, PosSession } from '@/lib/services/session'
 
-// Empleado activo en este dispositivo (pos_hr): quien firma los pedidos. El PIN lo validó el servidor
-// (`waiter_check_pin`), que además abrió la asistencia: `checkIn` (ISO) alimenta el cronómetro del turno.
+// Empleado activo en este dispositivo (pos_hr): quien firma los pedidos. Plan P: es el de la cuenta que entró con su
+// usuario o correo y su contraseña; `waiter_start_my_shift` comprobó su horario y abrió la asistencia: `checkIn` (ISO)
+// alimenta el cronómetro del turno.
 export interface ActiveEmployee {
   id: number; name: string; code: string | null; role: AccountRole | null; shift: Shift | null
   userId: number | null; checkIn: string; attendanceId: number | null
-  // Token de sesión del empleado: prueba su identidad ante Odoo (cambiar PIN, cerrar turno). No se muestra.
+  // Token de sesión del empleado: prueba su identidad ante Odoo (firmar acciones, cerrar turno). No se muestra.
   token: string
+  // Cuándo se cierra sola la sesión (ISO): el fin de la ventana del turno para meseros y cajeros.
+  sessionEnds: string | null
+}
+
+// La cuenta existe pero no puede abrir turno ahora: fuera de su horario o sin empleado vinculado.
+export class ShiftDeniedError extends Error {
+  constructor(readonly reason: 'no_employee' | 'outside_hours', readonly window: string | null) {
+    super(reason === 'outside_hours' ? `Fuera de tu turno${window ? ` (${window})` : ''}. Solo puedes entrar durante tu horario.` : 'Tu cuenta no tiene un empleado vinculado. Pídele al encargado que la revise.')
+    this.name = 'ShiftDeniedError'
+  }
 }
 
 interface AuthState {
@@ -35,7 +46,8 @@ interface AuthState {
   refreshSession: () => Promise<void>
   chooseRestaurant: (restaurant: DeviceRestaurant | null) => Promise<void>
   openRegister: (configId: number, openingCash: number, notes: string) => Promise<void>
-  startShift: (employee: CheckedEmployee, attendanceId: number, token: string) => Promise<void>
+  // Vuelve a pedir el token del turno (venció a mitad de una tarea): la sesión de Odoo ya prueba quién es.
+  renewShift: () => Promise<void>
   endShift: () => Promise<void>
 }
 
@@ -48,7 +60,7 @@ async function restoreEmployee(restaurantId: number | null): Promise<ActiveEmplo
   try {
     const employee = await readEmployee(stored.id, restaurantId)
     const open = await findOpenAttendance(stored.id).catch(() => null)
-    return { ...employee, userId: null, token: stored.token, checkIn: open ? toIso(open.checkIn) : stored.checkIn, attendanceId: open?.id ?? null }
+    return { ...employee, userId: null, token: stored.token, sessionEnds: stored.sessionEnds ?? null, checkIn: open ? toIso(open.checkIn) : stored.checkIn, attendanceId: open?.id ?? null }
   } catch {
     storeEmployee(null)
     return null
@@ -65,6 +77,19 @@ async function resolveRestaurant(): Promise<{ restaurants: Restaurant[] | null; 
   return { restaurants, restaurant }
 }
 
+// Abre el turno de la cuenta conectada; si no puede (fuera de horario), cierra la sesión de Odoo y explica por qué.
+async function openMyShift(restaurantId: number | null): Promise<ActiveEmployee> {
+  const shift: MyShift = await startMyShift(restaurantId)
+  if (!shift.ok) {
+    await logoutRequest().catch(() => undefined)
+    throw new ShiftDeniedError(shift.reason, shift.window ?? null)
+  }
+  const open = await findOpenAttendance(shift.employee.id).catch(() => null)
+  const checkIn = open ? toIso(open.checkIn) : new Date().toISOString()
+  storeEmployee({ id: shift.employee.id, checkIn, token: shift.token, sessionEnds: shift.sessionEnds })
+  return { ...shift.employee, checkIn, attendanceId: shift.attendanceId, token: shift.token, sessionEnds: shift.sessionEnds }
+}
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   restaurant: null,
@@ -72,14 +97,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   session: null,
   employee: null,
   hydrated: false,
+  // Plan P: cada persona entra con su cuenta y en el mismo paso abre su turno; no hay cuenta del terminal ni PIN.
   login: async (l, p) => {
-    // El terminal entra sin empleado: se suelta también el guardado, que si no revive en la próxima recarga.
     storeEmployee(null)
     set({ employee: null })
     const user = await loginRequest(l, p)
     const { restaurants, restaurant } = await resolveRestaurant()
+    const employee = await openMyShift(restaurant?.id ?? null)
     const session = await getOpenSession(restaurant?.id ?? null)
-    set({ user, restaurants, restaurant, session, hydrated: true })
+    set({ user, restaurants, restaurant, session, employee, hydrated: true })
   },
   // La cookie de Odoo es HttpOnly: la única forma de saber si hay sesión es preguntar.
   hydrate: async () => {
@@ -87,36 +113,32 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const user = await currentUser()
       const { restaurants, restaurant } = user ? await resolveRestaurant() : { restaurants: null, restaurant: null }
       const session = user ? await getOpenSession(restaurant?.id ?? null) : null
-      const employee = user ? await restoreEmployee(restaurant?.id ?? null) : null
+      // Sin empleado guardado (otra pestaña cerró el turno, o se borró el almacenamiento) se vuelve a abrir con la cuenta.
+      const employee = user ? (await restoreEmployee(restaurant?.id ?? null)) ?? await openMyShift(restaurant?.id ?? null) : null
       set({ session, user, restaurants, restaurant, employee, hydrated: true })
     } catch {
       set({ user: null, session: null, employee: null, restaurants: null, restaurant: null, hydrated: true })
     }
   },
   refreshSession: async () => set({ session: await getOpenSession(get().restaurant?.id ?? null) }),
-  // Cambiar de restaurante suelta al empleado: su PIN y su turno son de un restaurante. El dueño no, porque opera todos.
+  // El encargado de varios restaurantes y el dueño cambian de restaurante sin soltar su turno: es la misma persona.
   chooseRestaurant: async (restaurant) => {
     storeDeviceRestaurant(restaurant)
-    if (restaurant?.id !== get().restaurant?.id && get().employee?.role !== 'owner') { storeEmployee(null); set({ employee: null }) }
     set({ restaurant, session: restaurant ? await getOpenSession(restaurant.id) : null })
   },
   openRegister: async (configId, cash, notes) => set({ session: await openRegisterRequest(configId, cash, notes) }),
-  // El PIN ya lo validó `waiter_check_pin`, que devolvió al empleado, la asistencia recién abierta y el token.
-  startShift: async (employee, attendanceId, token) => {
-    const open = await findOpenAttendance(employee.id).catch(() => null)
-    const checkIn = open ? toIso(open.checkIn) : new Date().toISOString()
-    storeEmployee({ id: employee.id, checkIn, token })
-    set({ employee: { ...employee, checkIn, attendanceId, token } })
-  },
-  // "Cerrar sesión" del kit: cierra la asistencia (`waiter_end_shift`) y suelta al empleado; la sesión de Odoo del terminal sigue.
+  renewShift: async () => set({ employee: await openMyShift(get().restaurant?.id ?? null) }),
+  // Cierra la asistencia (`waiter_end_shift`) y suelta al empleado. «Cerrar sesión» además cierra la sesión de Odoo (logout).
   endShift: async () => {
     const current = get().employee
     if (current) { try { await endShiftRequest(current.id, current.token) } catch { /* el token pudo caducar: el turno termina igual en el dispositivo */ } }
     storeEmployee(null)
     set({ employee: null })
   },
+  // «Cerrar sesión»: termina el turno y la sesión de Odoo, para que la siguiente persona entre con su cuenta.
   logout: async () => {
-    await logoutRequest()
+    await get().endShift()
+    await logoutRequest().catch(() => undefined)
     storeEmployee(null)
     // El bus deja de tener dueño: se cierra con la sesión, no en cada navegación.
     useBusStore.getState().stop()

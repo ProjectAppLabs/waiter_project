@@ -24,7 +24,7 @@ const SECTIONS: [string, string, KitIcon][] = [
 export default function OrganizationLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { user, employee, hydrated, hydrate, endShift } = useAuthStore()
+  const { user, employee, hydrated, hydrate, logout } = useAuthStore()
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [companyName, setCompanyName] = useState('')
   const owner = !!user && !!employee && isOwner(user.role, employee.role)
@@ -58,7 +58,7 @@ export default function OrganizationLayout({ children }: { children: React.React
           ))}
           <div className="mt-auto flex flex-col gap-2 px-3 pt-4 text-[14px] text-soft">
             <span className="truncate">{employee?.name}</span>
-            <Button size="compact" onClick={() => { void endShift().then(() => router.replace('/login')) }}>Cerrar sesión</Button>
+            <Button size="compact" onClick={() => { void logout().then(() => router.replace('/login')) }}>Cerrar sesión</Button>
           </div>
         </nav>
         <div className="relative flex-1 min-w-0 overflow-y-auto p-8">{children}</div>

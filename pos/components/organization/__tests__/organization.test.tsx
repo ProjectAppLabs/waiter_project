@@ -7,15 +7,16 @@ import { messages } from '@/lib/i18n/messages'
 import { slugify, validSlug } from '@/lib/domain/slug'
 import { restaurantRule, validAssignment } from '@/lib/domain/restaurant'
 import { createRestaurant, type Restaurant } from '@/lib/services/restaurants'
-import { listTeamEmployees, listTeamUsers, setEmployeeRestaurants } from '@/lib/services/team'
+import { suggestUsername, validUsername } from '@/lib/domain/slug'
+import { deactivatePerson, invitePerson, listPeople, resendInvite, updatePerson, type Person } from '@/lib/services/team'
 import { useAuthStore } from '@/lib/stores/authStore'
 
 const push = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push, replace: jest.fn() }) }))
 jest.mock('@/lib/services/restaurants', () => ({ createRestaurant: jest.fn().mockResolvedValue({ id: 3, slug: 'envigado' }) }))
-jest.mock('@/lib/services/team', () => ({ listTeamEmployees: jest.fn(), listTeamUsers: jest.fn(), setEmployeeRestaurants: jest.fn().mockResolvedValue(undefined), setUserRestaurants: jest.fn() }))
+jest.mock('@/lib/services/team', () => ({ listPeople: jest.fn(), invitePerson: jest.fn().mockResolvedValue({ employee_id: 9, user_id: 12 }), updatePerson: jest.fn().mockResolvedValue(true), resendInvite: jest.fn().mockResolvedValue(true), deactivatePerson: jest.fn().mockResolvedValue(true) }))
 const chooseRestaurant = jest.fn().mockResolvedValue(undefined)
-beforeEach(() => { jest.clearAllMocks(); useAuthStore.setState({ chooseRestaurant } as never) })
+beforeEach(() => { jest.clearAllMocks(); useAuthStore.setState({ chooseRestaurant, user: { uid: 1, name: 'Dueña', companyId: 1, role: 'owner' } } as never) })
 
 const R = (id: number, name: string, open = false): Restaurant => ({ id, name, slug: name.toLowerCase(), street: 'Calle 1', city: 'Medellín', phone: '', open, salesToday: 120000, ordersToday: 4 })
 const org = (ui: React.ReactNode, reload = jest.fn().mockResolvedValue(undefined)) => render(<NextIntlClientProvider locale="es" messages={messages}>
@@ -56,18 +57,64 @@ it('entra al POS de un restaurante y crea otro copiando ajustes', async () => {
   expect(reload).toHaveBeenCalled()
 })
 
-// Falla si a un mesero se le pueden marcar varios restaurantes o si guardar no manda el restaurante elegido.
-it('asigna a un mesero a un solo restaurante', async () => {
-  jest.mocked(listTeamEmployees).mockResolvedValue([{ id: 7, name: 'Sofía', detail: 'Con PIN', role: 'waiter', configIds: [1] }, { id: 8, name: 'Dueña', detail: 'Con PIN', role: 'owner', configIds: [] }])
-  jest.mocked(listTeamUsers).mockResolvedValue([])
+const P = (over: Partial<Person>): Person => ({ id: 7, name: 'Sofía Mesera', role: 'waiter', configIds: [1], shift: { from: 14, to: 22 }, userId: 20, username: 'sofia.mesera', email: 'sofia@x.co', status: 'active', ...over })
+
+// Falla si el usuario sugerido lleva tildes, espacios o mayúsculas, o si se acepta uno que Odoo rechazaría.
+it('sugiere el usuario desde el nombre', () => {
+  expect(suggestUsername('Sofía Mesera')).toBe('sofia.mesera')
+  expect(suggestUsername('  José  Ñúñez-Gil ')).toBe('jose.nunez.gil')
+  expect(validUsername('sofia.mesera')).toBe(true)
+  expect(validUsername('Sofía')).toBe(false)
+  expect(validUsername('ab')).toBe(false)
+})
+
+// Falla si el alta no sugiere el usuario, deja a un mesero en dos restaurantes o no manda su turno a Odoo (plan P).
+it('da de alta a una persona con usuario sugerido, un restaurante y su turno', async () => {
+  jest.mocked(listPeople).mockResolvedValue([])
   org(<TeamView />)
-  const pin = await screen.findByRole('region', { name: 'Con PIN en el POS' })
-  expect(within(pin).getByText('Dueña').parentElement).toHaveTextContent('Todos los restaurantes')
-  fireEvent.click(within(pin).getAllByRole('button', { name: /Restaurantes/ })[0])
-  const dialog = screen.getByRole('dialog', { name: 'Restaurantes de Sofía' })
-  expect(within(dialog).getAllByRole('radio')).toHaveLength(2)
+  fireEvent.click(await screen.findByRole('button', { name: /Nueva persona/ }))
+  const dialog = screen.getByRole('dialog', { name: 'Nueva persona' })
+  fireEvent.change(within(dialog).getByLabelText('Nombre'), { target: { value: 'Mateo Ruiz' } })
+  expect(within(dialog).getByLabelText('Usuario')).toHaveValue('mateo.ruiz')
+  fireEvent.change(within(dialog).getByLabelText('Correo'), { target: { value: 'Mateo@X.co' } })
+  fireEvent.click(within(dialog).getByRole('radio', { name: 'Poblado' }))
   fireEvent.click(within(dialog).getByRole('radio', { name: 'Laureles' }))
   expect(within(dialog).getByRole('radio', { name: 'Poblado' })).not.toBeChecked()
+  // Turno a medias no se deja guardar.
+  fireEvent.change(within(dialog).getByLabelText('Entra'), { target: { value: '14:00' } })
+  expect(within(dialog).getByRole('button', { name: 'Invitar' })).toBeDisabled()
+  fireEvent.change(within(dialog).getByLabelText('Sale'), { target: { value: '22:30' } })
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Invitar' }))
+  await waitFor(() => expect(invitePerson).toHaveBeenCalledWith({ name: 'Mateo Ruiz', username: 'mateo.ruiz', email: 'mateo@x.co', role: 'waiter', configIds: [2], shiftStart: 14, shiftEnd: 22.5 }))
+  expect(await screen.findByRole('status')).toHaveTextContent('le llegó a mateo@x.co un código')
+})
+
+// Falla si la lista no distingue la invitación pendiente, si editar deja cambiar el usuario o si reenviar y desactivar no
+// llaman a Odoo (desactivar pide confirmación).
+it('edita, reenvía la invitación y desactiva', async () => {
+  jest.mocked(listPeople).mockResolvedValue([P({}), P({ id: 8, name: 'Laura', role: 'admin', configIds: [1, 2], shift: null, username: 'laura', email: 'laura@x.co', status: 'pending', userId: 21 }), P({ id: 1, name: 'Dueña', role: 'owner', configIds: [], userId: 1, username: 'admin' })])
+  org(<TeamView />)
+  const list = await screen.findByRole('list', { name: 'Personas' })
+  const [sofia, laura, owner] = Array.from(list.children) as HTMLElement[]
+  expect(sofia).toHaveTextContent('Activa')
+  expect(sofia).toHaveTextContent('2:00 p. m. – 10:00 p. m.')
+  expect(laura).toHaveTextContent('Invitación pendiente')
+  expect(laura).toHaveTextContent('Poblado · Laureles')
+  expect(owner).toHaveTextContent('Todos los restaurantes')
+  expect(within(owner).queryByRole('button', { name: 'Desactivar' })).toBeNull()
+
+  fireEvent.click(within(laura).getByRole('button', { name: 'Reenviar invitación' }))
+  await waitFor(() => expect(resendInvite).toHaveBeenCalledWith(8))
+
+  fireEvent.click(within(sofia).getByRole('button', { name: 'Editar' }))
+  const dialog = screen.getByRole('dialog', { name: 'Editar a Sofía Mesera' })
+  expect(within(dialog).getByLabelText('Usuario')).toBeDisabled()
+  fireEvent.change(within(dialog).getByLabelText('Sale'), { target: { value: '23:00' } })
   fireEvent.click(within(dialog).getByRole('button', { name: 'Guardar' }))
-  await waitFor(() => expect(setEmployeeRestaurants).toHaveBeenCalledWith(7, [2]))
+  await waitFor(() => expect(updatePerson).toHaveBeenCalledWith(7, { name: 'Sofía Mesera', email: 'sofia@x.co', role: 'waiter', configIds: [1], shiftStart: 14, shiftEnd: 23 }))
+
+  fireEvent.click(within(sofia).getByRole('button', { name: 'Desactivar' }))
+  expect(deactivatePerson).not.toHaveBeenCalled()
+  fireEvent.click(within(screen.getByRole('dialog', { name: '¿Desactivar a Sofía Mesera?' })).getByRole('button', { name: 'Desactivar' }))
+  await waitFor(() => expect(deactivatePerson).toHaveBeenCalledWith(7))
 })

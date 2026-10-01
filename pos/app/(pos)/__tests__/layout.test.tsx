@@ -13,6 +13,8 @@ jest.mock('@/lib/stores/authStore', () => ({ useAuthStore: jest.fn() }))
 jest.mock('@/lib/stores/catalogStore', () => ({ useCatalogStore: jest.fn() }))
 // La barra de navegación la pinta ahora el layout; estas pruebas miran quién entra a qué ruta, no la barra.
 jest.mock('@/components/kit/KitShell', () => ({ KitShell: ({ children }: { children: React.ReactNode }) => <div data-testid="shell">{children}</div> }))
+// La guardia de sesión tiene su propia prueba (lib/domain/__tests__/sessionGuard.test.ts).
+jest.mock('@/components/account/SessionGuard', () => ({ SessionGuard: () => null }))
 const load = jest.fn()
 const auth = { user: { role: 'admin' }, employee: { role: 'admin' }, session: null, hydrated: true, hydrate: jest.fn() }
 beforeEach(() => {
