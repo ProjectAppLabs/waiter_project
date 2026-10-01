@@ -19,7 +19,7 @@ beforeEach(() => {
   usePantryStore.setState({ load: jest.fn(async () => undefined), refresh: jest.fn(async () => undefined), ingredients: [], units: [], posCategories: [], suppliers: [] } as never)
   jest.mocked(catalogOverview).mockResolvedValue({ currency: 'COP',
     dishes: [dish(1, 'Papas'), dish(2, 'Arepa', { hasRecipe: false, ingredientsCount: 0, recipeCost: null }), dish(3, 'Bowl', { recipeCost: null, missingCosts: ['Salmón'], availableInPos: false })],
-    ingredients: [{ templateId: 11, name: 'Papa criolla', uom: 'kg', cost: 4500, usedIn: 1 }, { templateId: 12, name: 'Salmón', uom: 'kg', cost: 0, usedIn: 1 }] })
+    ingredients: [{ templateId: 11, name: 'Papa criolla', uom: 'kg', cost: 4500, usedIn: 1 }, { templateId: 12, name: 'Salmón', uom: 'kg', cost: 0, usedIn: 1 }, { templateId: 13, name: 'Huevos', uom: 'Units', cost: 700, usedIn: 0 }] })
 })
 
 // Falla si un plato sin receta se confunde con uno al que le falta el costo de un ingrediente (son arreglos distintos).
@@ -64,6 +64,8 @@ it('guarda el costo de un ingrediente', async () => {
   render(<CatalogConsole initialTab="ingredients" />)
   const input = await screen.findByLabelText('Costo de Papa criolla por kg')
   expect(screen.getByRole('row', { name: /Salmón/ })).toHaveTextContent('Sin costo')
+  // Falla si la unidad sale en inglés («por Units»).
+  expect(screen.getByLabelText('Costo de Huevos por unidad')).toBeInTheDocument()
   fireEvent.change(input, { target: { value: '-1' } })
   fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
   // El campo (min=0) no deja enviar un negativo; si llegara, la vista también lo rechaza.

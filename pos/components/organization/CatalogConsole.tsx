@@ -28,6 +28,8 @@ const STATE: Record<RecipeState, { label: string; tone: 'success' | 'neutral' | 
   costed: { label: 'Con costo', tone: 'success' }, noRecipe: { label: 'Sin receta', tone: 'neutral' }, missingCost: { label: 'Ingrediente sin costo', tone: 'progress' },
 }
 const money = (v: number) => `$ ${formatCop(Math.round(v))}`
+// «por kg», «por unidad»: Odoo nombra la unidad «Units» (en inglés).
+const perUnit = (uom: string) => (uom === 'Units' ? 'unidad' : uom)
 const INPUT = 'h-11 px-3 rounded-md border border-border bg-surface text-[15px] text-ink'
 
 // Plan R: el catálogo completo de la organización en la consola. Lo que el plan Q reservó al dueño (crear platos, su ficha
@@ -137,7 +139,7 @@ function IngredientsTab({ ingredients, pantryIngredients, onChanged }: { ingredi
     const value = Number(drafts[i.templateId])
     if (!Number.isFinite(value) || value < 0) { setError('Escribe un costo mayor o igual a cero.'); return }
     setError(''); setNotice('')
-    try { await setIngredientCost(i.templateId, value); setNotice(`Costo de ${i.name} guardado: ${money(value)} por ${i.uom}.`); setDrafts((d) => { const next = { ...d }; delete next[i.templateId]; return next }); await onChanged() }
+    try { await setIngredientCost(i.templateId, value); setNotice(`Costo de ${i.name} guardado: ${money(value)} por ${perUnit(i.uom)}.`); setDrafts((d) => { const next = { ...d }; delete next[i.templateId]; return next }); await onChanged() }
     catch (e) { setError(e instanceof Error ? e.message : 'No se pudo guardar el costo.') }
   }
   return (
@@ -161,9 +163,9 @@ function IngredientsTab({ ingredients, pantryIngredients, onChanged }: { ingredi
                 <td className="px-4 py-3 font-semibold">{i.name}{i.cost <= 0 && <span className="ml-2"><StatusPill tone="progress">Sin costo</StatusPill></span>}</td>
                 <td className="px-4 py-3">
                   <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); void save(i) }}>
-                    <input aria-label={`Costo de ${i.name} por ${i.uom}`} type="number" min={0} step="any" className={cn(INPUT, 'w-36 tabular')}
+                    <input aria-label={`Costo de ${i.name} por ${perUnit(i.uom)}`} type="number" min={0} step="any" className={cn(INPUT, 'w-36 tabular')}
                       value={draft ?? String(i.cost)} onChange={(e) => setDrafts((d) => ({ ...d, [i.templateId]: e.target.value }))} />
-                    <span className="text-[14px] text-soft">por {i.uom}</span>
+                    <span className="text-[14px] text-soft">por {perUnit(i.uom)}</span>
                     {draft !== undefined && draft !== String(i.cost) && <Button size="compact" type="submit">Guardar</Button>}
                   </form></td>
                 <td className="px-4 py-3 text-right tabular">{i.usedIn}</td>

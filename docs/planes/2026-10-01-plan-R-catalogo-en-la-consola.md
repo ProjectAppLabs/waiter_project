@@ -71,3 +71,18 @@ es `AccessError` con mensaje en español.
 | Odoo: los dos métodos, con pruebas «Falla si…» | Codex |
 | Consola → Catálogo con sus cuatro pestañas y el enlace desde Rentabilidad | Claude |
 | Verificación en Docker y Chromium: cargar recetas y ver su margen en Rentabilidad | Claude |
+
+## Estado (2026-10-01)
+
+- **Hecho** en `feat/01102026-plan-r-catalogo-consola`. Odoo: 274/274 pruebas (la parte de Odoo la escribió Codex; Claude
+  la integró). POS: `tsc` y 580 pruebas de `jest`.
+- **Recorrido en Chromium, solo desde la consola y con el editor de verdad:**
+  - **Receta del Bowl de salmón:** 0,18 kg de salmón y 0,12 kg de arroz, con un costo de $ 12.156. Cuadra a mano:
+    0,18 × 65.000 + 0,12 × 3.800.
+  - **Costo del salmón:** se subió a $ 70.000/kg y la receta pasó a $ 13.056.
+  - **Rentabilidad:** muestra un margen de $ 26.666 (42.900 / 1,08 − 13.056), un food cost del 33 % y la clase
+    «Rompecabezas».
+  - **Enlace desde Rentabilidad:** «Completar recetas en Catálogo» abre Platos con el filtro «Sin receta».
+- **Datos de demostración:** la receta del Bowl de salmón y el costo del salmón a $ 70.000/kg quedan en la base de
+  desarrollo.
+- **Pendiente:** cargar las recetas de los otros 20 platos, que es trabajo del dueño y no del sistema.
