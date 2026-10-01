@@ -12,7 +12,8 @@ export const TAB_ROUTES: Record<KitTab, string> = {
 
 // Segunda fila de Administración (chips "Tab Menu" del kit): lo del restaurante. Plan Q: Clientes, Facturación y Retorno
 // de inversión son del negocio y viven en la consola del dueño; sus rutas viejas redirigen (MovedToConsole).
-export const ADMIN_SUBTABS = [['sales', '/ventas'], ['settings', '/configuracion']] as const
+// El encargado ve además los cuadres de caja y la rentabilidad de su sede (solo su restaurante; los de todos, el dueño).
+export const ADMIN_SUBTABS = [['sales', '/ventas'], ['cash', '/cuadres'], ['profit', '/rentabilidad'], ['settings', '/configuracion']] as const
 export type AdminSubtab = (typeof ADMIN_SUBTABS)[number][0]
 
 export const tabsFor = (role: Role, policy: RolePolicy = DEFAULT_ROLE_POLICY): KitTab[] => KIT_TABS.filter((tab) =>
@@ -22,7 +23,7 @@ export const adminSubtabsFor = (role: Role, policy: RolePolicy = DEFAULT_ROLE_PO
 const PATH_TAB: [RegExp, KitTab][] = [
   [/^\/dashboard/, 'dashboard'], [/^\/(pedidos|operacion)/, 'orders'], [/^\/(salon|mesas)/, 'tables'], [/^\/reservas/, 'reservations'],
   [/^\/historial/, 'history'], [/^\/inventario/, 'inventory'], [/^\/kds/, 'kitchen'],
-  [/^\/(ventas|catalogo|clientes|facturacion|automatizacion|configuracion|kit)/, 'admin'],
+  [/^\/(ventas|cuadres|rentabilidad|catalogo|clientes|facturacion|automatizacion|configuracion|kit)/, 'admin'],
 ]
 export const tabForPath = (pathname: string): KitTab | null => PATH_TAB.find(([re]) => re.test(pathname))?.[1] ?? null
 export const adminSubtabForPath = (pathname: string): AdminSubtab | null => ADMIN_SUBTABS.find(([, href]) => pathname.startsWith(href))?.[0] ?? null
@@ -54,5 +55,5 @@ export function withShell(pathname: string): boolean {
 }
 
 export function administrationPath(pathname: string): boolean {
-  return /^\/(dashboard|salon|inventario|reservas|historial|ventas|catalogo|clientes|facturacion|automatizacion|configuracion|kit)(\/|$)/.test(pathname)
+  return /^\/(dashboard|salon|inventario|reservas|historial|ventas|cuadres|rentabilidad|catalogo|clientes|facturacion|automatizacion|configuracion|kit)(\/|$)/.test(pathname)
 }

@@ -65,9 +65,9 @@ it('knows which screens carry the navigation bar', () => {
 })
 
 // Falla si Administración del POS vuelve a ofrecer lo que es del dueño (clientes, facturación, retorno de inversión), o
-// si un cajero con permiso de ventas no ve Ventas (plan Q).
+// si un cajero con permiso de ventas no ve Ventas, o si ve los cuadres y la rentabilidad del encargado (plan Q).
 it('Administración del POS solo trae lo del restaurante', () => {
-  expect(adminSubtabsFor('admin').map(([key]) => key)).toEqual(['sales', 'settings'])
+  expect(adminSubtabsFor('admin').map(([key]) => key)).toEqual(['sales', 'cash', 'profit', 'settings'])
   const policy = { ...DEFAULT_ROLE_POLICY, cashier: { views: ['orders', 'sales', 'billing', 'customers'] as RoleView[], actions: [] } }
   expect(adminSubtabsFor('cashier', policy).map(([key]) => key)).toEqual(['sales'])
   expect(pathAllowed('cashier', '/facturacion', policy)).toBe(false)

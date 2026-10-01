@@ -1,4 +1,5 @@
 'use client'
-import { RestaurantsView } from '@/components/organization/RestaurantsView'
+import { SummaryView } from '@/components/business/SummaryView'
 
-export default function OrganizationHome() { return <RestaurantsView /> }
+// Plan Q2: la primera pantalla del dueño es cómo van sus restaurantes, lado a lado.
+export default function OrganizationHome() { return <SummaryView /> }
