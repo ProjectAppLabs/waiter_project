@@ -3,6 +3,7 @@ import json
 from collections import defaultdict
 from odoo import api, fields, models, Command
 from odoo.exceptions import UserError, AccessError
+from odoo.addons.projectapp_ops.models.owner_permissions import require_owner
 
 
 def attributes(raw):
@@ -28,6 +29,7 @@ class ProductTemplate(models.Model):
 
     @api.model
     def waiter_save_catalog_product(self, product_id, values, employee_id, token):
+        require_owner(self.env)
         self._pantry_manager(employee_id, token)
         allowed = {'image_1920','name','list_price','pos_categ_ids','taxes_id','available_in_pos','is_storable','is_favorite','description_sale','diner_attributes','type','sale_ok'}
         if not isinstance(values,dict) or set(values)-allowed or values.get('type')!='consu':
@@ -112,6 +114,7 @@ class ProductTemplate(models.Model):
         return result
 
     def waiter_update_recipe(self, *args, **kwargs):
+        require_owner(self.env)
         if self.waiter_combo_bom_id:
             raise UserError('Edita la composición del combo desde Catálogo. Las recetas se editan en sus platos individuales.')
         return super().waiter_update_recipe(*args, **kwargs)

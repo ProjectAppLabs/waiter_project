@@ -164,7 +164,10 @@ class WaiterAdmin(http.Controller):
 
     @http.route("/waiter/admin/payment_gateways", type="jsonrpc", auth="user", methods=["POST"])
     def payment_gateways(self, action="get", configuration=None, environment="test", config_id=None, **kw):
-        if not request.env.user.has_group("point_of_sale.group_pos_manager"):
+        from ..models.owner_permissions import is_owner, require_owner
+        if action != 'get':
+            require_owner(request.env)
+        if not is_owner(request.env) and not request.env.user.has_group("point_of_sale.group_pos_manager"):
             raise AccessError("Solo un administrador del POS puede configurar las pasarelas de pago.")
         if kw or action not in ("get", "set", "test"):
             raise UserError("Acción de pasarela inválida.")
@@ -172,7 +175,17 @@ class WaiterAdmin(http.Controller):
         url = "%s/internal/v1/%s/%s/pasarelas/" % (p["experience_url"].rstrip("/"), p["restaurant"], p["venue"])
         # El restaurante se resuelve desde el config autorizado.
         if action == "get":
-            return _call("GET", url, p["internal_key"])
+            data = _call("GET", url, p["internal_key"])
+            # Lista explícita: ni un cambio del servicio puede filtrar credenciales privadas al POS.
+            allowed = ('environment', 'enabled', 'public_key', 'payment_method_id', 'webhook_path', 'webhook_url')
+            result = {key: data[key] for key in ('provider', 'live_available', 'methods') if key in data}
+            if 'configurations' in data:
+                result['configurations'] = [{
+                    **{key: row[key] for key in allowed if key in row},
+                    'configured': {key: bool(row.get('configured', {}).get(key))
+                                   for key in ('private_key', 'events', 'integrity')},
+                } for row in data['configurations']]
+            return result
         if action == "test":
             return _call("POST", url, p["internal_key"], json={"environment": environment})
         return _call("PUT", url, p["internal_key"], json=configuration)

@@ -6,6 +6,7 @@ import math
 from odoo import api, fields, models, Command
 from odoo.exceptions import AccessError, ValidationError
 from odoo.fields import Domain
+from .owner_permissions import require_owner
 
 
 _OWNER_AUTO = object()
@@ -271,14 +272,11 @@ class PosConfig(models.Model):
 
     def waiter_set_catalog_price(self, product_tmpl_id, price):
         """Plan O: precio de un plato del catálogo maestro en este restaurante. `price` fijo (con impuestos según el
-        régimen del catálogo) o `None`/`False` para volver al precio de la organización. Dueño, o encargado de este
-        restaurante. Devuelve el precio resultante."""
+        régimen del catálogo) o `None`/`False` para volver al precio de la organización.
+        Desde Q1 solo lo cambia el dueño. Devuelve el precio resultante."""
         self.ensure_one()
+        require_owner(self.env)
         self.check_access('read')
-        user = self.env.user
-        if not (user.has_group('projectapp_ops.group_waiter_owner') or user.has_group('base.group_system')
-                or (user.waiter_role == 'admin' and self in user.waiter_config_ids)):
-            raise AccessError('Solo el dueño o el encargado de este restaurante cambia sus precios.')
         if type(product_tmpl_id) is not int:
             raise ValidationError('Indica el plato.')
         template = self.env['product.template'].browse(product_tmpl_id).exists()

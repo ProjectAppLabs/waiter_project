@@ -8,6 +8,7 @@ import math
 
 from odoo import Command, api, fields, models, _
 from odoo.exceptions import UserError
+from odoo.addons.projectapp_ops.models.owner_permissions import require_owner
 
 PANTRY_CATEGORIES = [
     ("produce", "Frutas y verduras"),
@@ -162,6 +163,7 @@ class ProductTemplate(models.Model):
         ``vals``: campos de product.template (name, list_price, description_sale, pos_categ_ids, taxes_id…).
         ``recipe``: ``[{"product_tmpl_id": <ingrediente> | "product_id": <product.product>, "qty": 0.2, "uom_id": opcional}]``.
         """
+        require_owner(self.env)
         vals = dict(vals or {})
         vals.update({"type": vals.get("type", "consu"), "is_storable": False, "is_ingredient": False})
         vals.setdefault("sale_ok", True)
@@ -173,8 +175,12 @@ class ProductTemplate(models.Model):
 
     def waiter_set_recipe(self, recipe):
         """Reemplaza la receta del plato por ``recipe`` (misma forma que en waiter_create_dish)."""
+        require_owner(self.env)
         self.ensure_one()
-        Bom = self.env["mrp.bom"]
+        # La receta es una lista de materiales de Odoo. Ni el dueño ni el encargado tienen el grupo de fabricación: quien
+        # llega aquí ya pasó la autorización (dueño, plan Q, y check_access de escritura sobre el plato), así que la lista
+        # se escribe con sudo. Antes fallaba con «No tienes permiso para modificar Bill of Material».
+        Bom = self.env["mrp.bom"].sudo()
         Bom.search([("product_tmpl_id", "=", self.id), ("type", "=", "phantom")]).write({"active": False})
         lines = []
         for item in recipe:

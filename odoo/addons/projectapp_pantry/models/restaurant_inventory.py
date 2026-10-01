@@ -4,6 +4,7 @@ from collections import defaultdict
 
 from odoo import api, fields, models, _
 from odoo.exceptions import AccessError, UserError
+from odoo.addons.projectapp_ops.models.owner_permissions import is_owner, require_owner
 
 
 def number(value, label, positive=False):
@@ -32,7 +33,7 @@ class ProductTemplate(models.Model):
 
     def _pantry_manager(self, employee_id, token):
         employee = self.env['hr.employee'].sudo().browse(employee_id).exists()
-        if (self.env.user.waiter_role not in ('admin', 'owner') or not employee or not employee.active or
+        if ((not is_owner(self.env) and self.env.user.waiter_role not in ('admin', 'owner')) or not employee or not employee.active or
                 employee.company_id != self.env.company or employee.waiter_role not in ('admin', 'owner') or not employee._waiter_session_ok(token)):
             raise AccessError(_('Valida el PIN del administrador para modificar recetas o existencias.'))
         self.check_access('write')
@@ -105,6 +106,7 @@ class ProductTemplate(models.Model):
         self.check_access('read')
         bom = self._pantry_boms().get(self.id)
         requirements = self._pantry_requirements().get(self.id, {})
+        costs = self._pantry_recipe_costs(requirements)
         pending = self._pantry_pending()
         balances = self._pantry_balances(requirements)
         ingredients = []
@@ -114,14 +116,20 @@ class ProductTemplate(models.Model):
             ingredients.append({'id': product.product_tmpl_id.id, 'name': product.name, 'qty': qty,
                 'uom_id': product.uom_id.id, 'uom': product.uom_id.name, 'stock': balances[product.id],
                 'pending': pending[product.id], 'free': free, 'servings': max(0, math.floor(free/qty+1e-9)) if qty > 0 else 0,
-                'cost': qty*product.standard_price})
+                'cost': costs[product.id]})
         servings = min((r['servings'] for r in ingredients), default=0)
         return {'id': self.id, 'name': self.name, 'bom_id': bom.id if bom else None, 'yield': bom.product_qty if bom else 1,
             'lines': [{'ingredientId': l.product_id.product_tmpl_id.id, 'qty': l.product_qty, 'uomId': l.product_uom_id.id} for l in bom.bom_line_ids] if bom else [],
             'ingredients': ingredients, 'servings': servings, 'cost': sum(r['cost'] for r in ingredients),
             'limiting': [r['name'] for r in ingredients if r['servings'] == servings]}
 
+    def _pantry_recipe_costs(self, requirements):
+        """Costo por ingrediente; compartido por el detalle de receta y la rentabilidad de Q4."""
+        return {product.id: requirements[product.id] * product.standard_price
+                for product in self.env['product.product'].browse(list(requirements))}
+
     def waiter_update_recipe(self, recipe, yield_qty, expected_bom_id, employee_id, token):
+        require_owner(self.env)
         self.ensure_one()
         self._pantry_manager(employee_id, token)
         yield_qty = number(yield_qty, 'las porciones de la receta', positive=True)
@@ -140,6 +148,7 @@ class ProductTemplate(models.Model):
         return self.waiter_recipe_detail()
 
     def waiter_set_recipe(self, recipe):
+        require_owner(self.env)
         self.ensure_one()
         self.check_access('write')
         if self.is_ingredient or not isinstance(recipe, list) or len(recipe) > 100:
@@ -245,7 +254,9 @@ class ProductTemplate(models.Model):
         number(cost, 'el costo'); number(minimum, 'el mínimo'); number(maximum, 'el máximo')
         if maximum < minimum:
             raise UserError(_('El máximo no puede ser menor que el mínimo.'))
-        self.standard_price = cost
+        if self.standard_price != cost:
+            require_owner(self.env)
+            self.standard_price = cost
         self.waiter_set_thresholds(minimum, maximum)
         return self.waiter_inventory_detail()
 

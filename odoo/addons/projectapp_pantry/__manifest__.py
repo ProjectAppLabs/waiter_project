@@ -1,7 +1,7 @@
 {
     "name": "ProjectApp — Despensa (ingredientes, recetas y solicitudes al proveedor)",
     "summary": "Ingredientes con categoría y niveles Low / Medium / High / Empty, receta por plato (mrp.bom kit), raciones servibles y solicitud de compra al proveedor. Sin vistas: lo consume el POS propio.",
-    "version": "19.0.2.5.0",
+    "version": "19.0.2.6.0",
     "license": "LGPL-3",
     "author": "ProjectApp",
     "category": "Point of Sale",

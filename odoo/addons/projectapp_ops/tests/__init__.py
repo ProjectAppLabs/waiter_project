@@ -19,3 +19,5 @@ from . import test_product_photos
 
 from . import test_restaurants
 from . import test_personal_access
+from . import test_business_permissions
+from . import test_business_reports

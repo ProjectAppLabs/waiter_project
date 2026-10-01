@@ -13,6 +13,7 @@ from odoo.exceptions import AccessError, UserError
 
 from ..utils.images import to_webp
 from .product_photo import MAX_GALLERY_PHOTOS
+from .owner_permissions import require_owner
 
 _AVAILABILITY_WRITE = object()
 
@@ -69,10 +70,11 @@ class ProductTemplate(models.Model):
 
     @api.model
     def waiter_set_catalog_photos(self, template_id, photos, employee_id, employee_token):
+        require_owner(self.env)
         # Mismo patrón que waiter_save_catalog_product → _pantry_manager (projectapp_pantry).
         # Se replica aquí para no crear una dependencia circular entre los addons.
         employee = self.env["hr.employee"].sudo().browse(employee_id).exists() if type(employee_id) is int else None
-        if (self.env.user.waiter_role not in ("admin", "owner") or not employee or not employee.active or
+        if (not employee or not employee.active or
                 employee.company_id != self.env.company or employee.waiter_role not in ("admin", "owner") or
                 not employee._waiter_session_ok(employee_token)):
             raise AccessError("Valida el PIN del administrador para modificar las fotos del catálogo.")

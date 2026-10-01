@@ -14,6 +14,16 @@ class PosConfig(models.Model):
 
     waiter_access_margin_minutes = fields.Integer(string='Margen de acceso al turno (minutos)', default=30)
 
+    def _waiter_management_recipients(self):
+        """Destinatarios compartidos de acceso y caja: dueños y encargados de esta sede."""
+        self.ensure_one()
+        users = self.env['res.users'].sudo().search([
+            ('active', '=', True), ('share', '=', False), ('company_ids', 'in', self.company_id.ids),
+        ])
+        return users.filtered(lambda u: u.has_group('projectapp_ops.group_waiter_owner')
+                              or u.has_group('base.group_system')
+                              or u.waiter_role == 'admin' and self in u.waiter_config_ids)
+
     @api.constrains('waiter_access_margin_minutes')
     def _check_waiter_access_margin(self):
         if any(config.waiter_access_margin_minutes < 0 for config in self):
@@ -113,11 +123,7 @@ class HrEmployee(models.Model):
         config = self.waiter_config_ids[:1]
         if not config:
             return
-        recipients = self.env['res.users'].sudo().search([
-            ('active', '=', True), ('share', '=', False), ('company_ids', 'in', self.company_id.ids),
-            '|', ('waiter_role', '=', 'owner'),
-            '&', ('waiter_role', '=', 'admin'), ('waiter_config_ids', 'in', config.ids),
-        ])
+        recipients = config._waiter_management_recipients()
         values = [{
             'kind': 'access', 'config_id': config.id, 'user_id': user.id,
             'title': 'Intento de acceso fuera de turno',

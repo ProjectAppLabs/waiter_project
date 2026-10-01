@@ -83,7 +83,8 @@ class TestProductPhotos(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.admin = new_test_user(cls.env, login="galeria_admin", waiter_role="admin")
+        # Q1 reserva la edición de la galería al dueño; el encargado se prueba en test_business_permissions.
+        cls.admin = new_test_user(cls.env, login="galeria_admin", waiter_role="owner")
         cls.waiter = new_test_user(cls.env, login="galeria_mesero", waiter_role="waiter")
         cls.Product = cls.env["product.template"].with_user(cls.admin)
         cls.Photo = cls.env["projectapp.product.photo"].with_user(cls.admin)
