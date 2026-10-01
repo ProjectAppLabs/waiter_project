@@ -146,3 +146,9 @@ class TestCashClosings(BusinessCase):
             session.with_user(self.manager).write({'waiter_closed_by_id': self.owner.id})
         with self.assertRaises(AccessError):
             session.with_user(self.manager).with_context(_waiter_closing_write=True).write({'waiter_closed_by_id': self.owner.id})
+
+    def test_cash_settings_by_rpc_without_record(self):
+        # Falla si la tolerancia no se puede leer ni guardar como la llama el POS: sin registro (`[]`) por RPC.
+        from odoo.service.model import call_kw
+        self.assertEqual(call_kw(self.env['res.company'].with_user(self.owner), 'waiter_cash_settings', [], {'tolerance': 1500})['tolerance'], 1500)
+        self.assertEqual(call_kw(self.env['res.company'].with_user(self.manager), 'waiter_cash_settings', [], {})['tolerance'], 1500)

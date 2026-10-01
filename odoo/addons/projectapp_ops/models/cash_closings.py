@@ -26,6 +26,9 @@ class ResCompany(models.Model):
             require_owner(self.env)
         return super().write(vals)
 
+    # @api.model: el POS la llama sin registro (`[]`), como las demás del plan Q; sin él, Odoo toma el primer argumento
+    # por ids y respondía «list index out of range».
+    @api.model
     def waiter_cash_settings(self, tolerance=None):
         company = self or self.env.company
         company.ensure_one()
