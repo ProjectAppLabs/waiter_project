@@ -198,7 +198,8 @@ class TestPersonalAccess(PersonalFixtures, TransactionCase):
         # Falla si el alta pierde rol, local o turno, hereda permisos administrativos o no envía el código.
         with patch.object(type(self.env['mail.mail']), 'send', return_value=True):
             result = self.staff.waiter_invite_person(self._values(username='Mateo.Persona', email='Mateo_P@example.test'))
-        self.assertEqual(set(result), {'employee_id', 'user_id'})
+        self.assertEqual(set(result), {'employee_id', 'user_id', 'invite_sent'})
+        self.assertTrue(result['invite_sent'])
         employee = self.env['hr.employee'].browse(result['employee_id'])
         user = employee.user_id
         self.assertEqual(user.id, result['user_id'])
@@ -211,6 +212,16 @@ class TestPersonalAccess(PersonalFixtures, TransactionCase):
         self.assertFalse(user.waiter_activated)
         self.assertFalse(user.has_group('base.group_system'))
         self.assertFalse(user.has_group('projectapp_ops.group_waiter_owner'))
+
+    def test_invite_keeps_the_person_when_the_mail_server_fails(self):
+        # Falla si un servidor de correo caído deshace el alta en vez de dejar la invitación pendiente para reenviarla.
+        with patch.object(type(self.env['mail.mail']), 'send', side_effect=OSError('SMTP caído')):
+            result = self.staff.waiter_invite_person(self._values(username='sin.correo', email='sin.correo@example.test'))
+        self.assertFalse(result['invite_sent'])
+        user = self.env['res.users'].browse(result['user_id'])
+        self.assertEqual(user.login, 'sin.correo')
+        self.assertFalse(user.waiter_activated)
+        self.assertEqual(self.env['hr.employee'].browse(result['employee_id']).user_id, user)
 
     def test_invite_validates_identity_and_number_of_restaurants(self):
         # Falla si se aceptan identidades duplicadas, formatos inválidos o meseros/cajeros sin un único restaurante.
@@ -303,14 +314,6 @@ class TestPersonalAccess(PersonalFixtures, TransactionCase):
             self.staff.waiter_resend_invite(self.waiter_employee.id)
         with self.assertRaises(AccessError):
             self.env['hr.employee'].with_user(self.manager).waiter_deactivate_person(self.other_manager_employee.id)
-
-    def test_failed_invitation_rolls_back_both_records(self):
-        # Falla si un error de correo deja creada a medias una persona aunque el llamador capture el error.
-        with patch.object(type(self.env['res.users']), 'send_waiter_invite', side_effect=ValidationError('Correo fallido')):
-            with self.assertRaises(ValidationError):
-                self.staff.waiter_invite_person(self._values())
-        self.assertFalse(self.env['res.users'].search([('login', '=', 'mateo.persona')]))
-        self.assertFalse(self.env['hr.employee'].search([('name', '=', 'Mateo Persona')]))
 
 
 @tagged('post_install', '-at_install')

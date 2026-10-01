@@ -8,7 +8,7 @@ import { callKw } from '@/lib/services/odoo'
 export interface Person {
   id: number; name: string; role: AccountRole | null; configIds: number[]; shift: Shift | null
   userId: number | null; username: string | null; email: string | null
-  // «pending»: aún no ha puesto su contraseña con el código de la invitación.
+  // «pending»: aún no ha puesto su contraseña con el código de la invitación ni ha entrado nunca.
   status: 'active' | 'pending' | 'no_account'
 }
 export interface PersonValues {
@@ -16,7 +16,7 @@ export interface PersonValues {
 }
 
 type RawEmployee = { id: number; name: string; waiter_role: AccountRole | false; waiter_config_ids: number[]; shift_start: number | false; shift_end: number | false; user_id: [number, string] | false; work_email: string | false }
-type RawUser = { id: number; login: string; email: string | false; waiter_activated?: boolean }
+type RawUser = { id: number; login: string; email: string | false; waiter_activated?: boolean; login_date?: string | false }
 
 export async function listPeople(): Promise<Person[]> {
   const rows = await callKw<RawEmployee[]>('hr.employee', 'search_read',
@@ -24,7 +24,7 @@ export async function listPeople(): Promise<Person[]> {
   const userIds = rows.flatMap((r) => (r.user_id ? [r.user_id[0]] : []))
   // El estado de la invitación es de la cuenta; si no se puede leer, la persona se muestra sin él.
   const users = userIds.length
-    ? await callKw<RawUser[]>('res.users', 'read', [userIds, ['login', 'email', 'waiter_activated']]).catch(() => [] as RawUser[])
+    ? await callKw<RawUser[]>('res.users', 'read', [userIds, ['login', 'email', 'waiter_activated', 'login_date']]).catch(() => [] as RawUser[])
     : []
   const byId = new Map(users.map((u) => [u.id, u]))
   return rows.map((r) => {
@@ -32,7 +32,8 @@ export async function listPeople(): Promise<Person[]> {
     return {
       id: r.id, name: r.name, role: r.waiter_role || null, configIds: r.waiter_config_ids ?? [], shift: toShift(r.shift_start, r.shift_end),
       userId: r.user_id ? r.user_id[0] : null, username: user?.login ?? null, email: (user?.email || r.work_email) || null,
-      status: !r.user_id ? 'no_account' : user && user.waiter_activated === false ? 'pending' : 'active',
+      // Pendiente: ni activó la cuenta con el código ni ha entrado nunca (la cuenta `admin` entra sin haberla activado).
+      status: !r.user_id ? 'no_account' : user && user.waiter_activated === false && !user.login_date ? 'pending' : 'active',
     }
   })
 }
@@ -44,7 +45,7 @@ const toOdoo = (v: Partial<PersonValues>) => ({
 })
 
 export const invitePerson = (values: PersonValues) =>
-  callKw<{ employee_id: number; user_id: number }>('hr.employee', 'waiter_invite_person', [toOdoo(values)])
+  callKw<{ employee_id: number; user_id: number; invite_sent?: boolean }>('hr.employee', 'waiter_invite_person', [toOdoo(values)])
 // El usuario no cambia al editar: es con lo que la persona entra y firma su historial.
 export const updatePerson = (employeeId: number, values: Omit<Partial<PersonValues>, 'username'>) =>
   callKw<true>('hr.employee', 'waiter_update_person', [employeeId, toOdoo(values)])

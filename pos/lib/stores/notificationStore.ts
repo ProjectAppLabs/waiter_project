@@ -3,6 +3,7 @@
 import { create } from 'zustand'
 
 import { productOf, unreadCount, type Notification } from '@/lib/domain/notifications'
+import { useAuthStore } from '@/lib/stores/authStore'
 import { listNotifications, markAllRead as markAllReadRequest, markRead, peekNotification } from '@/lib/services/notifications'
 
 interface NotificationState {
@@ -26,12 +27,13 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   kitchenPing: 0,
   headId: 0,
   poll: async () => {
-    const head = await peekNotification().catch(() => null)
+    const uid = useAuthStore.getState().user?.uid ?? null
+    const head = await peekNotification(uid).catch(() => null)
     if (head === null || head.id === get().headId) return
     await get().refresh()
   },
   refresh: async () => {
-    const items = await listNotifications().catch(() => get().items)
+    const items = await listNotifications(useAuthStore.getState().user?.uid ?? null).catch(() => get().items)
     const known = new Set(get().items.map((n) => n.id))
     const freshKitchen = items.some((n) => n.kind === 'kitchen' && !n.read && !known.has(n.id))
     set({ items, headId: items[0]?.id ?? get().headId, kitchenPing: get().kitchenPing + (freshKitchen ? 1 : 0) })

@@ -113,8 +113,14 @@ class HrEmployee(models.Model):
                 'shift_start': clean.get('shift_start', 0), 'shift_end': clean.get('shift_end', 0),
             })
             check_count(employee, strict=True)
-            user.send_waiter_invite()
-            return {'employee_id': employee.id, 'user_id': user.id}
+        # El alta no depende del correo: si no sale (servidor de correo caído), la persona queda creada con su
+        # invitación pendiente y se reenvía desde Equipo.
+        try:
+            with self.env.cr.savepoint():
+                sent = bool(user.send_waiter_invite())
+        except Exception:  # noqa: BLE001 — se informa al cliente con invite_sent
+            sent = False
+        return {'employee_id': employee.id, 'user_id': user.id, 'invite_sent': sent}
 
     @api.model
     def waiter_update_person(self, employee_id, values):

@@ -120,8 +120,10 @@ function PersonModal({ person, onClose, onSaved }: { person: Person | null; onCl
         await updatePerson(person.id, { name: values.name, email: values.email, role, configIds: values.configIds, shiftStart: values.shiftStart, shiftEnd: values.shiftEnd })
         onSaved(`Guardamos los cambios de ${values.name}.`)
       } else {
-        await invitePerson(values)
-        onSaved(`Invitamos a ${values.name}: le llegó a ${values.email} un código para poner su contraseña.`)
+        const { invite_sent: sent } = await invitePerson(values)
+        onSaved(sent === false
+          ? `Creamos a ${values.name}, pero el correo no salió. Revisa el servidor de correo y usa «Reenviar invitación».`
+          : `Invitamos a ${values.name}: le llegó a ${values.email} un código para poner su contraseña.`)
       }
     } catch (err) { setError(err instanceof Error ? err.message : 'No se pudo guardar.') } finally { setBusy(false) }
   }
