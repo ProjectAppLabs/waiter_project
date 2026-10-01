@@ -78,7 +78,9 @@ export default function OrganizationLayout({ children }: { children: React.React
             </div>
           </nav>
           {/* relative: lo absoluto de adentro (textos sr-only) se recorta aquí y no estira la página. */}
-          <div className="relative flex-1 min-w-0 m-4 rounded-lg border border-border overflow-y-auto p-7">{children}</div>
+          {/* Sin relleno abajo: la barra horizontal de las tablas (ScrollTable) se pega al borde de lo visible, no 28 px antes con
+              una franja transparente debajo. El mismo espacio va al final del contenido. */}
+          <div className="relative flex-1 min-w-0 m-4 rounded-lg border border-border overflow-y-auto px-7 pt-7">{children}<div aria-hidden className="h-7" /></div>
         </div>
       </main>
     </OrgContext.Provider>
