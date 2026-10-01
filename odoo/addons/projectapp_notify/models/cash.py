@@ -22,6 +22,10 @@ class PosSession(models.Model):
             amount = format(abs(difference), ',.0f').replace(',', '.')
             kind = 'un faltante' if difference < 0 else 'un sobrante'
             body = 'Caja de %s cerró con %s de $ %s (%s)' % (session.config_id.name, kind, amount, actor.name)
+            # La explicación de quien cerró llega con el aviso: el dueño no tiene que abrir los cuadres para leerla.
+            note = (session.closing_notes or '').strip()
+            if note:
+                body += ': «%s»' % (note if len(note) <= 160 else note[:157] + '…')
             notifications.create([{
                 'kind': 'cash', 'config_id': session.config_id.id, 'user_id': user.id,
                 'title': 'Diferencia en el cierre de caja', 'body': body,
