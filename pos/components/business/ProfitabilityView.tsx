@@ -70,8 +70,11 @@ export function ProfitabilityView({ restaurants, allowOrganization }: { restaura
               <span className="text-[13px] text-soft">{MENU_CLASS[c].hint}</span>
             </button>))}
         </div>
-        {noCost > 0 && <button type="button" onClick={() => setFilter(filter === 'noCost' ? 'all' : 'noCost')} className="self-start text-[14px] font-semibold text-primary">
-          {noCost} {noCost === 1 ? 'plato sin costo' : 'platos sin costo'}: les falta receta o el costo de algún ingrediente. {filter === 'noCost' ? 'Ver todos' : 'Verlos'}</button>}
+        {noCost > 0 && <p className="text-[14px] text-soft">
+          <button type="button" onClick={() => setFilter(filter === 'noCost' ? 'all' : 'noCost')} className="font-semibold text-primary">
+            {noCost} {noCost === 1 ? 'plato sin costo' : 'platos sin costo'}: les falta receta o el costo de algún ingrediente. {filter === 'noCost' ? 'Ver todos' : 'Verlos'}</button>
+          {/* Plan R: el dueño las completa en Consola → Catálogo; el encargado no carga recetas. */}
+          {allowOrganization && <> · <a href="/organizacion/catalogo?filtro=sin-receta" className="font-semibold text-primary">Completar recetas en Catálogo</a></>}</p>}
         <p className="text-[13px] text-dim">Popular: {result.thresholds.popularityUnits.toFixed(1)} unidades o más · Rentable: margen de {money(result.thresholds.margin)} o más.</p>
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full text-[15px]">

@@ -7,8 +7,8 @@ import { formatCop } from '@/lib/domain/money'
 import { loadMasterCatalog, setDishAvailability, setDishPrice, type MasterCatalog, type MasterDish } from '@/lib/services/masterCatalog'
 import { cn } from '@/lib/utils'
 
-// Plan O: el catálogo maestro. Los platos son de toda la organización (se crean y editan en Inventario); aquí se decide
-// lo de cada restaurante: su precio (vacío = el de la organización) y si lo ofrece hoy.
+// Plan O: lo de cada restaurante sobre el catálogo maestro: su precio (vacío = el de la organización) y si lo ofrece hoy.
+// Plan R: es la pestaña «Precios por restaurante» de Consola → Catálogo; los platos se crean y editan en las demás.
 export function CatalogView() {
   const { restaurants } = useOrg()
   const ids = useMemo(() => restaurants.map((r) => r.id), [restaurants])
@@ -25,8 +25,7 @@ export function CatalogView() {
   const patch = (fn: (d: MasterCatalog) => MasterCatalog) => setData((d) => (d ? fn(d) : d))
   return (
     <section className="flex flex-col gap-5">
-      <div><h1 className="text-[26px] font-bold">Catálogo</h1>
-        <p className="mt-1 text-soft">Los platos son de toda la organización y se editan en Inventario. Aquí decides el precio de cada restaurante (vacío es el de la organización) y si lo ofrece.</p></div>
+      <p className="text-soft">El precio de cada restaurante (vacío es el de la organización) y si lo ofrece hoy.</p>
       <label className="max-w-md flex flex-col gap-1.5 text-[15px] font-medium">Buscar plato
         <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} className="h-tap-min px-3.5 rounded-[10px] border border-border bg-surface" /></label>
       {error && <p role="alert" className="text-danger">{error}</p>}
