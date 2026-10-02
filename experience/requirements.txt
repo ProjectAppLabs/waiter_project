@@ -25,3 +25,6 @@ urllib3==2.7.0
 cffi==2.1.1
 cryptography==46.0.5
 pycparser==3.0
+
+# Conversión de fotos del catálogo.
+Pillow==12.1.1

@@ -11,7 +11,8 @@ SUSPENDED_MESSAGE = 'La cuenta de tu organización está suspendida. Escribe a P
 
 
 def resolve_organization(request, allow_suspended=False):
-    organization = Organization.objects.filter(slug=request.headers.get('X-Waiter-Org', '')).first()
+    # Las etiquetas <img> no mandan cabeceras: las fotos del catálogo traen la organización en la URL.
+    organization = Organization.objects.filter(slug=request.headers.get('X-Waiter-Org') or request.GET.get('org', '')).first()
     if not organization:
         raise Problem('unknown_organization', 'No encontramos esta organización.', 404)
     if organization.status == 'suspended' and not allow_suspended:

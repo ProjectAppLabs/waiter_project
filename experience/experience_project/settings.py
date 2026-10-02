@@ -32,6 +32,8 @@ INSTALLED_APPS = [
     'tenancy',
     'accounts',
     'notifications',
+    'catalog',
+    'inventory',
 ]
 
 MIDDLEWARE = [
@@ -153,3 +155,6 @@ MAILERS['waiter'] = {
 # La cabecera del inquilino debe pasar el preflight del navegador.
 from corsheaders.defaults import default_headers
 CORS_ALLOW_HEADERS = (*default_headers, 'x-waiter-org')
+
+# Fotos propias del catálogo T1.
+MEDIA_ROOT = BASE_DIR / 'media'

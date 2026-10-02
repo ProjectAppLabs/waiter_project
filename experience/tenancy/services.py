@@ -49,6 +49,8 @@ def create_organization(actor, data):
     data = payload(data, (*ORG_FIELDS, 'slug', 'owner'), ('name', 'slug', 'owner'))
     owner_data = payload(data.pop('owner'), ('name', 'email', 'username'), ('name', 'email'))
     organization = assign_values(Organization(), data)
+    from catalog.services import seed_organization
+    seed_organization(organization)
     # Con fecha de prueba nace en prueba; sin ella, activa (lo que promete el asistente de la consola).
     organization.status = 'trial' if organization.trial_ends else 'active'
     organization.save(update_fields=['status'])

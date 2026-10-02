@@ -174,7 +174,7 @@ solicitudes y agotados de sus restaurantes; `waiter`/`cashier` leen. Los ids son
 
 ### Modelos (`catalog`)
 
-- **`Category`**: `organization`, `name`, `sequence`, `station` (`kitchen` | `bar` | `none`), `active`.
+- **`Category`**: `organization`, `name`, `sequence`, `station` (texto libre de hasta 40 caracteres: el nombre de la estación del KDS; vacía, solo sale en «Todas»), `active`.
 - **`Tax`**: `organization`, `name`, `amount` (porcentaje), `included` (incluido en el precio; Colombia: INC 8 % e IVA 19 %
   incluidos), `active`. Se siembran `INC 8 %` e `IVA 19 %` al crear la organización (T0 ya existe: añadir en el
   servicio de alta).
@@ -234,7 +234,7 @@ solicitudes y agotados de sus restaurantes; `waiter`/`cashier` leen. Los ids son
 | `GET /categories` · `POST /categories` · `PATCH /categories/{id}` | sesión · `owner` | `{name, sequence?, station?}` |
 | `GET /taxes` · `PUT /taxes/regime` | sesión · `owner` | `PUT {regime: "inc"\|"iva"\|"none"}` reasigna el impuesto de todos los platos → `{"regime", "taxes"}`; `GET /taxes` → `{"taxes": [...], "regime": "inc"\|"iva"\|"none"\|"mixed"}` |
 | `GET /units` · `GET /suppliers` · `POST /suppliers` | sesión · `owner` | |
-| `GET /inventory?restaurant_id=` | sesión | `{"ingredients": [{id, name, pantry_category, unit, qty, min, max, level, status, supplier, has_image, cost}]}`; `GET /inventory?restaurant_id=&dishes=1` añade `"dishes": [{id, name, category_ids, has_image, price, available_in_pos, has_recipe, servings, level, sold_out}]` |
+| `GET /inventory?restaurant_id=` | sesión | `{"ingredients": [{id, name, pantry_category, unit: {id, name}, qty, min, max, level, status, supplier, has_image, cost}]}`; `GET /inventory?restaurant_id=&dishes=1` añade `"dishes": [{id, name, category_ids, has_image, price, available_in_pos, has_recipe, servings, level, sold_out}]` |
 | `GET /inventory/{ingredient_id}?restaurant_id=` | sesión | `{"stock", "pending", "cost", "min", "max", "unit", "history": [últimos 100 {id, date, qty, reason, kind, account_name}]}` |
 | `POST /inventory/{ingredient_id}/moves` | `owner`, `admin` | `{restaurant_id, kind: "receipt"\|"waste"\|"count", qty, reason (1–300), request_key (16–80), expected_stock? (obligatorio en `count`)}` → `{"stock", "move": {...}}`; `409 stock_changed` si `expected_stock` no coincide; `400 insufficient_stock` en `waste` |
 | `PUT /inventory/{ingredient_id}/settings` | `owner` (`cost`), `admin` (`min`, `max`) | `{restaurant_id, min?, max?, cost?}` → como el GET |
@@ -273,5 +273,26 @@ solicitudes y agotados de sus restaurantes; `waiter`/`cashier` leen. Los ids son
   - **Desarrollo:** el sistema propio usa el SQLite de `experience` hasta T2 (PostgreSQL llega con los pedidos). Los
     correos se escriben en `experience/mail/`. Admin de ProjectApp de prueba: `ana.projectapp` / `Plataforma-2026`.
     El cliente de prueba `frisby-74312` queda en la base, con su dueña `maria.lopez` (`Frisby-2026!`).
-  - **Pendiente para T2:** aceptar como origen de escritura los subdominios (`*.localhost:3000` y el dominio base),
-    hoy solo `POS_URL` y los orígenes de CORS.
+  - Los subdominios del POS (`*.localhost:3000` y los del dominio base) valen como origen de escritura desde T1.
+- **T1 hecha** (2026-10-02), misma rama.
+  - Backend (Codex, `gpt-6-astra`): apps `catalog` e `inventory` con el contrato T1 completo: productos (plato e
+    ingrediente), categorías, impuestos y régimen, unidades, proveedores, fotos WebP con miniaturas, recetas con
+    porciones por restaurante, precios y agotados por sede, existencias con movimientos idempotentes, umbrales y
+    solicitudes de compra. Siembra de unidades e impuestos para las organizaciones nuevas y las anteriores.
+    Django: 197 pruebas de `catalog`, `inventory`, `tenancy` y `accounts` (90 nuevas).
+  - POS (Claude): `core/catalog.ts`, `core/inventory.ts` y `core/catalogBridge.ts` traducen el sistema propio a las
+    formas de Inventario, Consola → Catálogo y la carta del POS; `pantry`, `catalogAdmin`, `masterCatalog`,
+    `restaurantInventory`, `catalogOverview` y `posData` bifurcan con `onCore()`. El asistente de ingrediente crea
+    proveedores (la organización nace sin ninguno). `tsc` y 603 pruebas.
+  - **Recorrido en Chromium** (`frisby-74312.localhost:3000`, dueña): Consola → Catálogo crea un ingrediente con
+    proveedor nuevo y existencias iniciales, fija su costo, crea una categoría con estación, un plato con receta
+    (costo por plato y porciones por sede) y lo ve en Precios por restaurante; el POS en Inventario lista el plato con
+    sus porciones, el ingrediente con su nivel y permite «Agotar aquí». Burger House sigue en Odoo sin cambios.
+  - **Decisiones tomadas al integrar:** la estación de una categoría es texto libre (el nombre de la estación del
+    KDS), no una lista cerrada; la organización de una foto viaja en la URL (`?org=`) porque `<img>` no manda
+    cabeceras; el inventario devuelve la unidad como `{id, name}`; las solicitudes responden `{request, created}`;
+    reutilizar un `request_key` para otro movimiento da `409 request_key_conflict`; cambiar la unidad de un
+    ingrediente por otra compatible convierte existencias, umbrales y costo.
+  - **Pendiente:** la carta del POS en el sistema propio trae pisos, mesas, métodos de pago y ajustes por omisión
+    hasta T2 (el botón «Abrir caja» aún no hace nada allí); «Entrar al POS» desde la consola sigue oculto; las
+    fotos de proveedor no existen en el sistema propio.
