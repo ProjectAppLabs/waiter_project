@@ -6,17 +6,17 @@ const fetchMock = jest.fn()
 beforeEach(() => { fetchMock.mockReset(); global.fetch = fetchMock as unknown as typeof fetch; process.env.NEXT_PUBLIC_DEFAULT_ORG = 'burger-house' })
 
 // Falla si las peticiones del POS no llevan la organización, no viajan por el mismo origen con cookies, o si la ruta
-// pierde la barra final que Django exige.
-it('habla con el sistema propio por el mismo origen, con la organización y la barra final', async () => {
+// cambia (las del sistema propio van sin barra final).
+it('habla con el sistema propio por el mismo origen y con la organización', async () => {
   fetchMock.mockResolvedValue(reply(200, { ok: true }))
   await coreFetch('auth/login', { method: 'POST', body: { login: 'sofia' } })
   const [url, init] = fetchMock.mock.calls[0]
-  expect(url).toBe('/experience/api/pos/v1/auth/login/')
+  expect(url).toBe('/experience/api/pos/v1/auth/login')
   expect(init.credentials).toBe('include')
   expect(init.headers['X-Waiter-Org']).toBe('burger-house')
   expect(init.body).toBe('{"login":"sofia"}')
   await coreFetch('team', { scope: 'platform' })
-  expect(fetchMock.mock.calls[1][0]).toBe('/experience/api/platform/v1/team/')
+  expect(fetchMock.mock.calls[1][0]).toBe('/experience/api/platform/v1/team')
   expect(fetchMock.mock.calls[1][1].headers['X-Waiter-Org']).toBeUndefined()
 })
 

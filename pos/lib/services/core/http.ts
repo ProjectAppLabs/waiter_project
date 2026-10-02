@@ -19,8 +19,9 @@ export async function coreFetch<T>(path: string, { method = 'GET', body, scope =
   const headers: Record<string, string> = { Accept: 'application/json' }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   if (scope === 'pos') { const org = currentOrg(); if (org) headers['X-Waiter-Org'] = org }
-  // Django exige la barra final (APPEND_SLASH) y no redirige los POST: se envía siempre.
-  const url = `${BASE}/${scope}/v1/${path.replace(/^\/+/, '').replace(/\/?$/, '/')}`
+  // Las rutas del sistema propio van sin barra final (así las define `tenancy/urls.py`); Django no redirige los POST,
+  // así que la ruta se envía tal cual.
+  const url = `${BASE}/${scope}/v1/${path.replace(/^\/+/, '').replace(/\/+$/, '')}`
   let response: Response
   try {
     response = await fetch(url, { method, headers, credentials: 'include', body: body === undefined ? undefined : JSON.stringify(body) })
