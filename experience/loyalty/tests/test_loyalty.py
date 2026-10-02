@@ -64,7 +64,7 @@ def test_seed_signup_and_migration(setup):
 
 @pytest.mark.parametrize("query", ["Pérez", "12345", "300123"])
 def test_customer_search_and_paid_orders(setup, query):
-    # Falla si la búsqueda omite documento/teléfono o cuenta pedidos sin pagar.
+    # Falla si la búsqueda omite documento/teléfono, cuenta pedidos sin pagar o confunde cobro con facturación.
     s = setup
     card = member(s)
     open_shift(s)
@@ -73,7 +73,7 @@ def test_customer_search_and_paid_orders(setup, query):
     payment(s, o)
     pay(s, o)
     row = call(s["client"], "get", f"customers?q={query}")["customers"][0]
-    assert row["name"] == "Ana Pérez" and row["orders"] == 1 and row["invoiced"] == 10800
+    assert row["name"] == "Ana Pérez" and row["orders"] == 1 and row["invoiced"] == 0
     assert call(s["client"], "get", f"customers/{card.customer_id}/orders")["orders"][0]["id"] == o["id"]
     assert call(s["client"], "get", f"customers/{card.customer_id}/card")["card"]["program"] == "Puntos Waiter"
     assert call(s["client"], "get", f"loyalty/cards/{card.code}")["member"]["name"] == row["name"]

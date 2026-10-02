@@ -1,12 +1,13 @@
 """Rutas de clientes y promociones con identidad y organización explícitas."""
 
 from django.core.files.storage import default_storage
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, OuterRef, Q, Subquery, Sum
 from django.http import FileResponse
 from rest_framework.response import Response
 
 from accounts.authentication import resolve_organization
 from accounts.services import restaurants_for
+from billing.models import SalesDocument
 from catalog.api import PosView
 from catalog.services import manager, owner, reference, restaurant_for, valid, writing
 from sales.policy import permit
@@ -22,9 +23,17 @@ CUSTOMER_FIELDS = ("id", "name", "phone", "email", "vat", "id_type", "street", "
 
 
 def customers(org):
+    # El comprador fiscal puede ser distinto del contacto del pedido. La subconsulta evita multiplicar importes
+    # al combinar varios pedidos y documentos del mismo cliente.
+    billed = (
+        SalesDocument.objects.filter(organization=org, buyer_id=OuterRef("pk"), state="issued")
+        .values("buyer_id")
+        .annotate(amount=Sum("total"))
+        .values("amount")
+    )
     return Customer.objects.filter(organization=org).annotate(
         paid_orders=Count("orders", filter=Q(orders__state="paid")),
-        invoiced=Sum("orders__total", filter=Q(orders__state="paid")),
+        invoiced=Subquery(billed),
     )
 
 

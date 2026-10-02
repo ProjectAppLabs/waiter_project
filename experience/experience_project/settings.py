@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     'kitchen',
     'realtime',
     'loyalty',
+    'reports',
+    'billing',
     'reservations',
 ]
 
@@ -60,6 +62,9 @@ REST_FRAMEWORK = {
     'UNAUTHENTICATED_USER': None,
     'EXCEPTION_HANDLER': 'experience_app.utils.errors.handle',
 }
+
+# Un logo de 2 MB ocupa hasta 2,67 MB en el cuerpo JSON base64.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 3_000_000
 
 ROOT_URLCONF = 'experience_project.urls'
 WSGI_APPLICATION = 'experience_project.wsgi.application'
