@@ -7,6 +7,7 @@ from time import sleep
 from uuid import uuid4
 
 import pytest
+from freezegun import freeze_time
 from django.db import OperationalError, close_old_connections, connection
 from django.test.utils import CaptureQueriesContext
 
@@ -23,6 +24,10 @@ from tenancy.models import Organization
 
 
 @pytest.mark.django_db
+# Hora fija de servicio (10:05 en Bogotá): con la reserva de las 10:00 ya apartando su mesa, el salón hace la misma
+# consulta antes y después de crear más reservas. A otras horas la primera lectura no traía reservas y se saltaba una
+# consulta, y la prueba fallaba según la hora del reloj.
+@freeze_time('2026-10-02 15:05:00')
 def test_reservation_and_customer_reads_are_batched(setup):
     # Falla si cada nueva reserva/cliente añade consultas al calendario, al salón o al listado.
     s = setup
