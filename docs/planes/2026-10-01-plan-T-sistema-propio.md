@@ -854,6 +854,22 @@ Rutas de la plataforma bajo `/api/platform/v1` con la cookie `waiter_platform_si
     preferencias de avisos propias. Las pantallas Reservas y Mesas cargan sin errores.
   - **Decisiones al integrar:** los banners se guardan enviando la lista completa como cuerpo; `PUT /benefits` no lleva
     `restaurant_id`; las preferencias viajan como `{prefs}`; el anticipo público devuelve `amount_in_cents`.
+- **T4 hecha** (2026-10-02), misma rama.
+  - Backend (Codex): apps `reports` (resumen por sede y rentabilidad con la forma de Odoo) y `billing` (resoluciones de
+    numeración, documento de venta con copias de emisor, comprador y resolución, impuestos por tasa y propina fuera de
+    la base, proveedor de factura electrónica detrás de una interfaz, con uno simulado que firma un CUFE determinista,
+    reintento y contingencia, representación gráfica en HTML imprimible); datos del emisor y marca de la organización.
+    Django: 1730 pruebas (154 nuevas).
+  - POS (Claude): `core/business.ts`; resumen, rentabilidad, ROI, empresa, marca, impuestos y régimen, facturación y la
+    política «cobrar antes de cocina» bifurcan con `onCore()`; todas las secciones de la consola del dueño abren en el
+    sistema propio y la portada vuelve a ser el Resumen. El recibo nombra el impuesto real (INC u IVA).
+  - **Verificado en Chromium y por la API (Frisby):** datos del emisor (NIT 900123456-7, régimen INC) y marca guardados;
+    un pedido pagado con propina de $ 5.000; Resumen, Rentabilidad y Retorno cargan; la revisión del documento sale
+    lista; emitir da `SETP-990000000` `issued` con CUFE y repetir devuelve el mismo; el detalle cuadra débito y crédito
+    con la propina aparte; la representación gráfica responde.
+  - **Decisiones al integrar:** el ROI pide hasta 1000 pedidos por consulta (el máximo del servidor).
+  - **Pendiente:** el proveedor real de factura electrónica va en el sprint de integraciones; la nota crédito queda
+    definida sin pantalla hasta que exista la devolución.
 - **Revisado (T3):** el modal de pago carga en cinco entradas seguidas por la URL. La causa probable del «Cargando pedido…» visto en T2 es el límite de seis conexiones por dominio de HTTP/1.1 con varias conexiones de eventos en vivo abiertas en desarrollo; en producción el proxy sirve HTTP/2 y no aplica. Antes: al entrar por la URL
     (recargar lo resuelve; por investigar, posiblemente el doble montaje de React en modo estricto); «Forzar cierre» no
     existe en el sistema propio; las reservas que apartan mesas, los puntos del cobro y Resumen/Rentabilidad llegan con

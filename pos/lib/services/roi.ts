@@ -15,7 +15,8 @@ export async function listPaidOrders(from: string, to: string): Promise<PaidOrde
     // rango de días que las cubre y se recorta aquí con la hora exacta.
     const r = currentRestaurantId(); if (r === null) return []
     const day = (v: string) => v.slice(0, 10)
-    const rows = await sales.salesOrders(r, { from: day(from), to: day(to), limit: 5000 })
+    // El servidor entrega hasta 1000 pedidos por consulta: suficiente para el ROI de un restaurante en un mes.
+    const rows = await sales.salesOrders(r, { from: day(from), to: day(to), limit: 1000 })
     const lo = serverTime(from), hi = serverTime(to)
     return rows.filter((o) => o.paid_at && serverTime(o.paid_at) >= lo && serverTime(o.paid_at) < hi).map((o) => ({ id: o.id, total: o.total, origin: o.origin, paidAt: o.paid_at as string }))
   }
