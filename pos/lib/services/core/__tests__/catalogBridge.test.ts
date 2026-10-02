@@ -29,7 +29,7 @@ test('sin receta no hay líneas ni lote', () => {
 // restaurante no queda como configuración activa con los permisos por omisión.
 test('la carta del sistema propio toma la forma del catálogo del POS', () => {
   const menu: CoreMenu = {
-    categories: [{ id: 1, name: 'Hamburguesas', sequence: 1, station: 'kitchen' }, { id: 2, name: 'Bebidas', sequence: 2, station: 'none' }],
+    categories: [{ id: 1, name: 'Hamburguesas', sequence: 1, station: 'Parrilla' }, { id: 2, name: 'Bebidas', sequence: 2, station: '' }],
     taxes: [{ id: 1, name: 'INC 8%', amount: 8, included: true }],
     products: [
       { id: 10, name: 'Clásica', kind: 'dish', category_ids: [1], tax_ids: [1], price: 20000, restaurant_price: 22000, final_price: 22000, favorite: true, available_in_pos: true, sold_out: false, has_image: true, image_version: '1', image_origin: 'real', description: '', diner_attributes: {}, preparation_minutes: null },

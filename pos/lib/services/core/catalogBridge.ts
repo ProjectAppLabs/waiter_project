@@ -28,7 +28,7 @@ export const toKitUnits = (units: CoreUnit[]): KitUnit[] => units.flatMap((u) =>
   return kit ? [{ key: kit.key, id: u.id, uomName: name }] : []
 })
 export const toSupplier = (s: CoreSupplier): Supplier => ({ id: s.id, name: s.name, hasImage: false })
-export const toAdminCategory = (c: CoreCategory): AdminCategory => ({ id: c.id, name: c.name, sequence: c.sequence, station: c.station === 'none' ? null : c.station })
+export const toAdminCategory = (c: CoreCategory): AdminCategory => ({ id: c.id, name: c.name, sequence: c.sequence, station: c.station || null })
 export const toTax = (t: CoreTax): Tax => ({ id: t.id, name: t.name, amount: t.amount })
 
 export const toDish = (d: CoreStockDish): Dish => ({
@@ -86,7 +86,7 @@ export const toCatalog = (menu: CoreMenu, restaurantId: number, restaurantName: 
     alertLateMinutes: 15, alertBillMinutes: 10, roiHourCost: 0, roiMinutesPerOrder: 0, roiBaselineHoursPer100: 0, roiMonthlyCost: 0, roiStartDate: null, tipProductId: null },
   products: menu.products.filter((p) => p.available_in_pos).map((p) => ({ id: p.id, templateId: p.id, name: p.name, price: p.final_price ?? p.restaurant_price ?? p.price, categoryIds: p.category_ids,
     taxIds: p.tax_ids, favorite: p.favorite, storable: false, soldOut: p.sold_out ?? false, hasImage: p.has_image })),
-  categories: menu.categories.map((c) => ({ id: c.id, name: c.name, sequence: c.sequence, station: c.station === 'none' ? null : c.station })),
+  categories: menu.categories.map((c) => ({ id: c.id, name: c.name, sequence: c.sequence, station: c.station || null })),
   floors: [], tables: [], paymentMethods: [],
 })
 

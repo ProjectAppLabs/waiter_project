@@ -61,7 +61,7 @@ export async function listCategories(): Promise<AdminCategory[]> {
 }
 
 export async function saveCategory(id: number | null, c: { name: string; station: string | null }): Promise<number> {
-  if (onCore()) return (id === null ? await coreCatalog.createCategory({ name: c.name, station: c.station ?? 'none' }) : await coreCatalog.updateCategory(id, { name: c.name, station: c.station ?? 'none' })).id
+  if (onCore()) return (id === null ? await coreCatalog.createCategory({ name: c.name, station: c.station ?? '' }) : await coreCatalog.updateCategory(id, { name: c.name, station: c.station ?? '' })).id
   const values = { name: c.name, kitchen_station: c.station || false }
   if (id === null) return callKw<number>('pos.category', 'create', [values])
   await callKw('pos.category', 'write', [[id], values])

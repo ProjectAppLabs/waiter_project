@@ -4,7 +4,8 @@ import { coreFetch } from '@/lib/services/core/http'
 // Plan T1: el catálogo del sistema propio (contrato «Contrato T1» en docs/planes/2026-10-01-plan-T-sistema-propio.md).
 export type ProductKind = 'dish' | 'ingredient'
 export type PantryCategory = 'produce' | 'meat' | 'seafood' | 'dairy' | 'dry'
-export interface CoreCategory { id: number; name: string; sequence: number; station: 'kitchen' | 'bar' | 'none' }
+// `station` es el nombre libre de la estación del KDS (Parrilla, Barra…); vacía, solo sale en «Todas».
+export interface CoreCategory { id: number; name: string; sequence: number; station: string }
 export interface CoreTax { id: number; name: string; amount: number; included: boolean }
 export interface CoreUnit { id: number; name: string; root: 'weight' | 'volume' | 'count'; factor: number }
 export interface CoreSupplier { id: number; name: string; phone: string; email: string }
