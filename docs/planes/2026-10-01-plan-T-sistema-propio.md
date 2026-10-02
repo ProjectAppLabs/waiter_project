@@ -681,11 +681,14 @@ Odoo es `experience_app/adapters/odoo/pos.py` (más `client.py`), y unos 15 serv
   huella y vencimiento, idempotencia por `uuid`, `channel='whatsapp'`, `origin='ai'`, cocina en la misma transacción).
 - **MCP del diseño:** `leer_diseno_menu`, banners, `listar_catalogo` y `confirmar_cambio` usan la marca de
   `Organization` y los banners de `loyalty` (contrato T3) para las organizaciones del sistema propio.
-- **Administración del menú desde el POS** (hoy pasa por controladores de Odoo hacia rutas internas): nuevas rutas de la
-  API del POS, con la sesión del dueño, que llaman a los mismos servicios que las rutas internas: `GET/PUT
-  /api/pos/v1/menu/settings` (plantilla y ajustes del menú) y `…/menu/drafts`, `GET/POST/DELETE
-  /api/pos/v1/menu/decorations`, `GET/POST /api/pos/v1/mcp-keys` y `POST /api/pos/v1/mcp-keys/{id}/revoke`, `GET/PUT
-  /api/pos/v1/payment-gateways`. Mismos cuerpos y respuestas que hoy reenvían `odoo/addons/projectapp_ops/controllers/admin.py`.
+- **Administración del menú desde el POS** (hoy pasa por los controladores de Odoo `/waiter/admin/{menu_settings,
+  menu_decorations,mcp_keys,payment_gateways}` de `odoo/addons/projectapp_ops/controllers/admin.py` hacia rutas
+  internas): cuatro rutas de la API del POS, **con la misma firma que esos controladores** para que el POS solo cambie
+  la URL: `POST /api/pos/v1/admin/menu_settings`, `/admin/menu_decorations`, `/admin/mcp_keys` y
+  `/admin/payment_gateways`, cuerpo `{action, …mismos parámetros}` y la misma respuesta (incluidos `restaurante`,
+  `sede`, `experienceUrl`, `dinerUrl`, `mcpUrl`). Quién: dueño y encargado de la sede (pasarelas: solo el dueño
+  escribe), con la organización y la sede de la sesión (`restaurant_id` opcional en el cuerpo, validado con
+  `restaurant_for`), nunca del navegador sin validar. Internamente llaman a los mismos servicios que las rutas internas.
 - **Cachés:** el motor interno invalida la carta y la marca al escribir en `catalog`/`tenancy` (señales) además del
   tiempo de vida actual.
 
