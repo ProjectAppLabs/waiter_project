@@ -1,3 +1,5 @@
+import { onCore } from '@/lib/domain/backend'
+import * as core from '@/lib/services/core/pos'
 import { callKw, inRestaurant } from '@/lib/services/odoo'
 import type { AccountRole, Role } from '@/lib/domain/roles'
 import type { Settings } from '@/lib/types'
@@ -13,6 +15,8 @@ interface RawFloor { id: number; name: string; table_ids: number[] }
 interface RawTable { id: number; table_number: number; seats: number; active: boolean; floor_id: [number, string] }
 
 export async function getCompany(): Promise<CompanyInfo> {
+  // Plan T: en el sistema propio la empresa es la organización; sus datos legales se editan desde la plataforma (T4 trae impuestos).
+  if (onCore()) { const o = await core.getOrg(); return { id: 0, name: o.name, vat: '', phone: '', email: '', street: '', city: '', waiter_latitude: '', waiter_longitude: '' } }
   const [c] = await callKw<RawCompany[]>('res.company', 'search_read', [[], ['name', 'vat', 'phone', 'email', 'street', 'city', 'waiter_latitude', 'waiter_longitude']], { limit: 1 })
   return { id: c.id, name: c.name, vat: c.vat || '', phone: c.phone || '', email: c.email || '', street: c.street || '', city: c.city || '', waiter_latitude: c.waiter_latitude || '', waiter_longitude: c.waiter_longitude || '' }
 }

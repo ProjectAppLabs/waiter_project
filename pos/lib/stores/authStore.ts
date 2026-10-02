@@ -8,6 +8,10 @@ import type { AccountRole } from '@/lib/domain/roles'
 import { openRegister as openRegisterRequest } from '@/lib/services/cashRegister'
 import { endShift as endShiftRequest, findOpenAttendance, readEmployee, startMyShift, type MyShift } from '@/lib/services/employees'
 import { currentUser, getOpenSession, login as loginRequest, logout as logoutRequest } from '@/lib/services/session'
+import { onCore } from '@/lib/domain/backend'
+import { toActiveEmployee, toAuthUser, toRestaurant } from '@/lib/services/core/bridge'
+import { CoreError } from '@/lib/services/core/http'
+import * as core from '@/lib/services/core/pos'
 import { pickRestaurant, readDeviceRestaurant, storeDeviceRestaurant, type DeviceRestaurant } from '@/lib/domain/restaurant'
 import { listRestaurants, type Restaurant } from '@/lib/services/restaurants'
 import type { AuthUser, PosSession } from '@/lib/services/session'
@@ -90,6 +94,22 @@ async function openMyShift(restaurantId: number | null): Promise<ActiveEmployee>
   return { ...shift.employee, checkIn, attendanceId: shift.attendanceId, token: shift.token, sessionEnds: shift.sessionEnds }
 }
 
+// Plan T: en el sistema propio entrar ya abre el turno y trae los restaurantes de la cuenta en una sola respuesta.
+function fromCore(r: core.LoginResult): Pick<AuthState, 'user' | 'restaurants' | 'restaurant' | 'employee' | 'session'> {
+  const restaurants = r.restaurants.map(toRestaurant)
+  const chosen = pickRestaurant(restaurants, readDeviceRestaurant())
+  const restaurant = chosen ? { id: chosen.id, name: chosen.name } : null
+  if (restaurant) storeDeviceRestaurant(restaurant)
+  return { user: toAuthUser(r.account), restaurants, restaurant, employee: toActiveEmployee(r), session: null }
+}
+async function coreLogin(l: string, p: string): Promise<core.LoginResult> {
+  try { return await core.login(l, p) }
+  catch (e) {
+    if (e instanceof CoreError && e.code === 'outside_hours') throw new ShiftDeniedError('outside_hours', typeof e.detail.window === 'string' ? e.detail.window : null)
+    throw e
+  }
+}
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   restaurant: null,
@@ -101,6 +121,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (l, p) => {
     storeEmployee(null)
     set({ employee: null })
+    if (onCore()) { set({ ...fromCore(await coreLogin(l, p)), hydrated: true }); return }
     const user = await loginRequest(l, p)
     const { restaurants, restaurant } = await resolveRestaurant()
     const employee = await openMyShift(restaurant?.id ?? null)
@@ -109,6 +130,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   // La cookie de Odoo es HttpOnly: la única forma de saber si hay sesión es preguntar.
   hydrate: async () => {
+    if (onCore()) {
+      try { set({ ...fromCore(await core.me()), hydrated: true }) }
+      catch { set({ user: null, session: null, employee: null, restaurants: null, restaurant: null, hydrated: true }) }
+      return
+    }
     try {
       const user = await currentUser()
       const { restaurants, restaurant } = user ? await resolveRestaurant() : { restaurants: null, restaurant: null }
@@ -127,11 +153,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ restaurant, session: restaurant ? await getOpenSession(restaurant.id) : null })
   },
   openRegister: async (configId, cash, notes) => set({ session: await openRegisterRequest(configId, cash, notes) }),
-  renewShift: async () => set({ employee: await openMyShift(get().restaurant?.id ?? null) }),
+  renewShift: async () => set({ employee: onCore() ? toActiveEmployee(await core.me()) : await openMyShift(get().restaurant?.id ?? null) }),
   // Cierra la asistencia (`waiter_end_shift`) y suelta al empleado. «Cerrar sesión» además cierra la sesión de Odoo (logout).
   endShift: async () => {
     const current = get().employee
-    if (current) { try { await endShiftRequest(current.id, current.token) } catch { /* el token pudo caducar: el turno termina igual en el dispositivo */ } }
+    // En el sistema propio la asistencia la cierra el propio logout.
+    if (current && !onCore()) { try { await endShiftRequest(current.id, current.token) } catch { /* el token pudo caducar: el turno termina igual en el dispositivo */ } }
     storeEmployee(null)
     set({ employee: null })
   },

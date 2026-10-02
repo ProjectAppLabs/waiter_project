@@ -1,5 +1,8 @@
 import { toShift, type Shift } from '@/lib/domain/employees'
 import type { AccountRole } from '@/lib/domain/roles'
+import { onCore } from '@/lib/domain/backend'
+import { toCorePerson, toPerson } from '@/lib/services/core/bridge'
+import * as core from '@/lib/services/core/pos'
 import { callKw } from '@/lib/services/odoo'
 
 // Plan P: cada persona de la organización es una cuenta (`res.users`, su usuario y su correo) con su empleado vinculado
@@ -19,6 +22,7 @@ type RawEmployee = { id: number; name: string; waiter_role: AccountRole | false;
 type RawUser = { id: number; login: string; email: string | false; waiter_activated?: boolean; login_date?: string | false }
 
 export async function listPeople(): Promise<Person[]> {
+  if (onCore()) return (await core.listPeople()).map(toPerson)
   const rows = await callKw<RawEmployee[]>('hr.employee', 'search_read',
     [[['active', '=', true]], ['name', 'waiter_role', 'waiter_config_ids', 'shift_start', 'shift_end', 'user_id', 'work_email']], { order: 'name asc' })
   const userIds = rows.flatMap((r) => (r.user_id ? [r.user_id[0]] : []))
@@ -44,10 +48,14 @@ const toOdoo = (v: Partial<PersonValues>) => ({
   ...(v.shiftStart !== undefined && { shift_start: v.shiftStart ?? 0 }), ...(v.shiftEnd !== undefined && { shift_end: v.shiftEnd ?? 0 }),
 })
 
-export const invitePerson = (values: PersonValues) =>
+export const invitePerson = (values: PersonValues) => onCore()
+  ? core.invitePerson({ name: values.name, username: values.username, email: values.email, role: values.role, restaurant_ids: values.configIds.map(String), shift_start: values.shiftStart, shift_end: values.shiftEnd }).then((r) => ({ employee_id: Number(r.person.id), user_id: Number(r.person.id), invite_sent: r.invite_sent }))
+  :
   callKw<{ employee_id: number; user_id: number; invite_sent?: boolean }>('hr.employee', 'waiter_invite_person', [toOdoo(values)])
 // El usuario no cambia al editar: es con lo que la persona entra y firma su historial.
-export const updatePerson = (employeeId: number, values: Omit<Partial<PersonValues>, 'username'>) =>
+export const updatePerson = (employeeId: number, values: Omit<Partial<PersonValues>, 'username'>) => onCore()
+  ? core.updatePerson(String(employeeId), toCorePerson(values)).then(() => true as const)
+  :
   callKw<true>('hr.employee', 'waiter_update_person', [employeeId, toOdoo(values)])
-export const resendInvite = (employeeId: number) => callKw<unknown>('hr.employee', 'waiter_resend_invite', [employeeId])
-export const deactivatePerson = (employeeId: number) => callKw<unknown>('hr.employee', 'waiter_deactivate_person', [employeeId])
+export const resendInvite = (employeeId: number) => (onCore() ? core.resendInvite(String(employeeId)) : callKw<unknown>('hr.employee', 'waiter_resend_invite', [employeeId]))
+export const deactivatePerson = (employeeId: number) => (onCore() ? core.deactivatePerson(String(employeeId)) : callKw<unknown>('hr.employee', 'waiter_deactivate_person', [employeeId]))
