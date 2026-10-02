@@ -40,3 +40,30 @@ export const listPlatformTeam = () => platform<{ users: PlatformUser[] }>('team'
 export const invitePlatformUser = (input: { name: string; email: string; username?: string; role: PlatformRole }) => platform<{ user: PlatformUser }>('team', { method: 'POST', body: input }).then((r) => r.user)
 export const deactivatePlatformUser = (id: string) => platform<{ ok: true }>(`team/${id}/deactivate`, { method: 'POST' })
 export const resendPlatformInvite = (id: string) => platform<{ ok: true }>(`team/${id}/resend_invite`, { method: 'POST' })
+
+// Contrato M: métricas por cliente y cobro de la suscripción.
+export interface OrgMetrics {
+  slug: string; name: string; status: OrganizationStatus; plan: string; monthly_price: number; restaurants: number; restaurants_limit: number
+  accounts_active: number; sales: number; orders: number; ticket: number; last_order_at: string | null; last_login_at: string | null; overdue_amount: number
+}
+export interface MetricsTotals { organizations: number; active: number; trial: number; suspended: number; mrr: number; sales: number; orders: number; restaurants: number }
+export interface PlatformMetrics { totals: MetricsTotals; organizations: OrgMetrics[] }
+export type ChargeState = 'pending' | 'paid' | 'overdue' | 'void'
+export type ChargeMethod = 'transferencia' | 'nequi' | 'efectivo' | 'otro'
+export interface Charge {
+  id: number; organization: { slug: string; name: string } | string; period: string; amount: number; due_date: string; state: ChargeState
+  paid_at: string | null; method: ChargeMethod | '' | null; reference: string; notes: string; recorded_by?: { name: string } | null; created_at: string
+}
+export interface ChargesSummary { pending: number; overdue: number; paid_this_month: number }
+export interface BillingRules { billing_day: number; grace_days: number; suspend_after_days: number; reminder_days: number }
+
+const qs = (p: Record<string, string | undefined>) => Object.entries(p).filter(([, v]) => v).map(([k, v]) => `${k}=${encodeURIComponent(v as string)}`).join('&')
+export const platformMetrics = (from: string, to: string) => platform<PlatformMetrics>(`metrics?${qs({ from, to })}`)
+export const listCharges = (filters: { state?: string; period?: string } = {}) => platform<{ charges: Charge[]; summary: ChargesSummary }>(`charges?${qs(filters)}`)
+export const organizationCharges = (slug: string) => platform<{ charges: Charge[]; summary: ChargesSummary }>(`organizations/${slug}/charges`)
+export const createCharge = (slug: string, period: string, amount?: number) => platform<{ charge: Charge }>(`organizations/${slug}/charges`, { method: 'POST', body: { period, ...(amount !== undefined && { amount }) } })
+export const payCharge = (id: number, body: { method: ChargeMethod; reference: string; notes: string; paid_at?: string }) => platform<{ charge: Charge }>(`charges/${id}/pay`, { method: 'POST', body })
+export const voidCharge = (id: number, notes: string) => platform<{ charge: Charge }>(`charges/${id}/void`, { method: 'POST', body: { notes } })
+export const billingRules = () => platform<BillingRules>('settings/billing')
+export const saveBillingRules = (patch: Partial<BillingRules>) => platform<BillingRules>('settings/billing', { method: 'PATCH', body: patch })
+export const chargeOrg = (c: Charge) => (typeof c.organization === 'string' ? { slug: c.organization, name: c.organization } : c.organization)

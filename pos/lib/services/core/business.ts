@@ -25,3 +25,7 @@ export const document = (id: number) => coreFetch<{ document: CoreDocumentRow }>
 export const documentDetail = <T>(id: number) => coreFetch<T>(`documents/${id}/detail`)
 export const billingSettings = <T>() => coreFetch<T>('billing/settings')
 export const saveBillingSettings = <T>(patch: Record<string, unknown>) => coreFetch<T>('billing/settings', { method: 'PATCH', body: patch })
+
+// Contrato M: el estado de la suscripción de Waiter que ve el dueño (cuentas de cobro de ProjectApp).
+export interface Subscription { plan: string; monthly_price: number; next_due: string | null; overdue: number; suspend_on?: string | null; charges: { id: number; period: string; amount: number; due_date: string; state: string }[] }
+export const subscription = () => coreFetch<Subscription>('subscription')
