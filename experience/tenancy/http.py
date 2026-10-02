@@ -50,6 +50,18 @@ def save_valid(obj):
     return obj
 
 
+def trusted_origin(origin, request):
+    """El POS, la plataforma, los orígenes de CORS y el propio servidor. Como cada organización entra por su subdominio
+    (`frisby.localhost:3000`, `frisby.waiter.projectapp.co`), también vale cualquier subdominio del POS."""
+    origin = origin.rstrip('/')
+    trusted = {settings.POS_URL, settings.PLATFORM_URL, *settings.CORS_ALLOWED_ORIGINS, f'{request.scheme}://{request.get_host()}'}
+    if origin in trusted:
+        return True
+    scheme, _, host = origin.partition('://')
+    pos_scheme, _, pos_host = settings.POS_URL.partition('://')
+    return scheme == pos_scheme and host.endswith('.' + pos_host)
+
+
 class ContractView(APIView):
     authentication_classes = ()
     permission_classes = ()
@@ -59,9 +71,7 @@ class ContractView(APIView):
         # Las cookies no autorizan escrituras desde un origen ajeno, incluidos otros subdominios.
         origin = request.headers.get('Origin')
         if request.method not in ('GET', 'HEAD', 'OPTIONS') and origin:
-            trusted = {settings.POS_URL, settings.PLATFORM_URL, *settings.CORS_ALLOWED_ORIGINS,
-                       f'{request.scheme}://{request.get_host()}'}
-            require(origin.rstrip('/') in trusted, 'El origen de la petición no está permitido.', 'invalid_origin')
+            require(trusted_origin(origin, request), 'El origen de la petición no está permitido.', 'invalid_origin')
 
     def handle_exception(self, exc):
         if isinstance(exc, Problem):

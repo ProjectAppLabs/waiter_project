@@ -220,3 +220,13 @@ def test_status_follows_trial_date():
     Organization.objects.filter(slug='en-prueba').update(trial_ends=timezone.localdate() - timedelta(days=1))
     client.post(BASE+'/organizations/en-prueba/suspend', {'reason': 'prueba'}, format='json')
     assert client.post(BASE+'/organizations/en-prueba/reactivate', format='json').data['organization']['status'] == 'active'
+
+
+@pytest.mark.parametrize('origin, allowed', [('http://localhost:3000', True), ('http://frisby.localhost:3000', True),
+                                             ('https://frisby.localhost:3000', False), ('http://malo.com', False), ('http://localhost:3001', False)])
+def test_write_origin_accepts_pos_subdomains(origin, allowed):
+    # Falla si una organización que entra por su subdominio no puede escribir, o si cualquier otro origen sí puede.
+    user = platform_user()
+    client = APIClient()
+    response = client.post(BASE+'/auth/login', {'login': user.username, 'password': PASSWORD}, format='json', HTTP_ORIGIN=origin)
+    assert (response.status_code == 200) is allowed, response.data
