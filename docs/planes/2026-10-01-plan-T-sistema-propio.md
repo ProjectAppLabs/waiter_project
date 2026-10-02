@@ -164,6 +164,97 @@ restaurante), `kind` (`kitchen` | `inventory` | `system` | `access` | `cash`), `
   envía la invitación).
 - Correo: `EMAIL_BACKEND` por entorno; en desarrollo `filebased` en `experience/mail/` para poder leer los códigos.
 
+## Contrato T1 · Catálogo e inventario
+
+Lo que hoy usan Inventario del POS, Consola → Catálogo, Rentabilidad y el menú del comensal (inventario del
+2026-10-02, con `pos/lib/services/{pantry,catalogAdmin,masterCatalog,restaurantInventory,catalogOverview,productOptions}.ts`
+y `experience/experience_app/adapters/odoo/pos.py`). Mismas reglas comunes que T0; rutas bajo `/api/pos/v1`, con
+`X-Waiter-Org` y la cookie `waiter_sid`. **Quién escribe:** `owner` todo; `admin` solo existencias, movimientos,
+solicitudes y agotados de sus restaurantes; `waiter`/`cashier` leen. Los ids son enteros.
+
+### Modelos (`catalog`)
+
+- **`Category`**: `organization`, `name`, `sequence`, `station` (`kitchen` | `bar` | `none`), `active`.
+- **`Tax`**: `organization`, `name`, `amount` (porcentaje), `included` (incluido en el precio; Colombia: INC 8 % e IVA 19 %
+  incluidos), `active`. Se siembran `INC 8 %` e `IVA 19 %` al crear la organización (T0 ya existe: añadir en el
+  servicio de alta).
+- **`Unit`**: `organization`, `name` (`kg`, `g`, `L`, `ml`, `Unidades`, `Manojo`, `Diente`, `Rebanada`), `root` (`weight` |
+  `volume` | `count`), `factor` (a la unidad base del root: g→0.001 kg, ml→0.001 L). Se siembran las ocho al crear la
+  organización.
+- **`Product`** (plato, bebida, ingrediente o extra; `kind`: `dish` | `ingredient`):
+  - comunes: `organization`, `name`, `kind`, `active`, `created_at`, `legacy_odoo_template_id`;
+  - plato: `categories` (M2M), `price` (de carta, con impuestos incluidos), `taxes` (M2M), `available_in_pos`,
+    `favorite`, `description`, `diner_attributes` (JSON con las claves de `pos/lib/domain/dinerAttributes.ts`:
+    `combo[{producto, cantidad, nombre?}]`, `ingredientes[]`, `extras[]`, `acompanamientos[]`, `nutricion{...}`,
+    `piezas`, `picante`, `etiquetas[]`, `alergenos[]`, `abv`, `ibu`, `tamanos[{nombre, precio}]`, `soloHoy`,
+    `tiempoPreparacion`, `precioAntes`), `image` (WebP, ver fotos), `image_origin` (`real` | `ai` | `placeholder` | null),
+    `preparation_minutes`;
+  - ingrediente: `unit`, `pantry_category` (`produce` | `meat` | `seafood` | `dairy` | `dry`), `cost` (por unidad, de la
+    organización), `supplier` (`Supplier` o null), `track_stock` (true).
+- **`Supplier`**: `organization`, `name`, `phone`, `email`, `active`.
+- **`ProductPhoto`** (galería, máximo 4): `product`, `sequence`, `image`, `width`, `height`, `file_size`.
+- **`RestaurantPrice`**: `restaurant`, `product`, `price` (único por par; sin fila = precio de la organización).
+- **`RestaurantUnavailable`**: `restaurant`, `product` (agotado en ese restaurante).
+- **`Recipe`**: `product` (uno a uno), `yield_qty` (porciones que produce), `updated_at`; **`RecipeLine`**: `recipe`,
+  `ingredient`, `qty`, `unit` (mismo `root` que la unidad del ingrediente).
+- **Combo:** `diner_attributes.combo` (2–12 componentes, cantidad 1–20, sin combos anidados, un plato con receta no es
+  combo). Sus ingredientes se resuelven recursivamente para la disponibilidad.
+
+### Modelos (`inventory`)
+
+- **`Stock`**: `restaurant`, `ingredient`, `qty` (en la unidad del ingrediente), `min` (5), `max` (20; si `max <= min`,
+  `max = min + 15`).
+- **`StockMove`**: `restaurant`, `ingredient`, `kind` (`receipt` | `waste` | `count` | `sale` | `adjust`), `qty` (con
+  signo), `reason`, `request_key` (único por organización, 16–80 caracteres: idempotencia), `account`, `created_at`.
+- **`PurchaseRequest`**: `restaurant`, `supplier`, `state` (`draft` | `sent` | `received` | `cancelled`), `created_at`,
+  `account`; **`PurchaseRequestLine`**: `request`, `ingredient`, `qty`, `unit`, `price_unit`.
+- **Nivel** (`level_for`): `qty <= 0` → `empty`; `< min` → `low`; `< max` → `medium`; si no `high`. **Estado:**
+  `empty`/`low` → `request`, `medium` → `normal`, `high` → `good`.
+- **Porciones de un plato** en un restaurante: mínimo sobre las líneas de la receta de `floor(stock / (qty_por_porción))`,
+  con `qty_por_porción = line.qty / yield_qty` convertida a la unidad del ingrediente. Sin receta: null. Los pedidos
+  pendientes se descuentan desde T2 (campo reservado `pending`, 0 por ahora).
+- **Agotado** de un plato en un restaurante = `RestaurantUnavailable` o (con receta) porciones ≤ 0 o (combo) algún
+  componente agotado.
+
+### API
+
+| Método y ruta | Quién | Cuerpo → Respuesta |
+|---|---|---|
+| `GET /catalog?restaurant_id=` | sesión | La carta del restaurante para el POS y el menú: `{"categories": [{id, name, sequence, station}], "taxes": [{id, name, amount, included}], "products": [{id, name, kind: "dish", category_ids, tax_ids, price (de carta de la organización), restaurant_price (o null), final_price (la que rige, con impuestos), favorite, available_in_pos, sold_out, has_image, image_version, image_origin, description, diner_attributes, servings (o null), preparation_minutes}]}` |
+| `GET /products?kind=dish\|ingredient&q=` | sesión | `{"products": [...]}` completos (plato: lo de arriba sin `sold_out`; ingrediente: `{id, name, kind, unit: {id, name}, pantry_category, cost, supplier: {id, name}\|null, has_image}`) |
+| `POST /products` | `owner` | plato: `{name, kind: "dish", category_ids, price, tax_ids, description?, diner_attributes?, favorite?, available_in_pos?, recipe?: {yield_qty, lines: [{ingredient_id, qty, unit_id}]}, image? (base64)}`; ingrediente: `{name, kind: "ingredient", unit_id, pantry_category, cost?, supplier_id?, initial_stock?: [{restaurant_id, qty}], min?, max?, image?}` → `201 {"product": {...}}` |
+| `PATCH /products/{id}` | `owner` | cualquier campo del plato o del ingrediente (incluido `cost`), `image` (base64 o null) → `{"product": {...}}` |
+| `POST /products/{id}/archive` | `owner` | → `{"ok": true}`; `409 in_recipe` si un ingrediente está en una receta activa |
+| `GET /products/{id}/photos` · `PUT /products/{id}/photos` | sesión · `owner` | `PUT [{id}\|{image}]` (máx. 4, png/jpeg/webp, 12 MB; se convierten a WebP) → `{"photos": [{id, sequence, width, height}]}` |
+| `GET /products/{id}/recipe` | sesión | `{"recipe": {yield_qty, lines: [{ingredient_id, name, qty, unit: {id, name}}], cost (null si algún costo es 0), missing_costs: [nombres]}, "by_restaurant": [{restaurant_id, servings, limiting: [nombres], ingredients: [{ingredient_id, name, per_serving, stock, pending, free, servings}]}]}` |
+| `PUT /products/{id}/recipe` | `owner` | `{yield_qty, lines: [...]}` (vacío = sin receta; máx. 100 líneas, sin repetidos, unidad del mismo `root`) → como el GET |
+| `GET /catalog/overview` | `owner`, `admin` | lo de `waiter_catalog_overview`: `{"dishes": [{id, name, categories, category_ids, price, available_in_pos, has_image, has_recipe, ingredients_count, recipe_cost, missing_costs}], "ingredients": [{id, name, unit, cost, used_in}]}` |
+| `GET /catalog/restaurants` | `owner` | precios y agotados por restaurante: `{"dishes": [{id, name, category, price}], "prices": {restaurant_id: {product_id: price}}, "unavailable": {restaurant_id: [product_id]}}` |
+| `PUT /catalog/restaurants/{restaurant_id}/products/{id}` | `owner` · `admin` del restaurante (solo `unavailable`) | `{price?: number\|null, unavailable?: bool}` → `{"ok": true}` |
+| `GET /categories` · `POST /categories` · `PATCH /categories/{id}` | sesión · `owner` | `{name, sequence?, station?}` |
+| `GET /taxes` · `PUT /taxes/regime` | sesión · `owner` | `PUT {regime: "inc"\|"iva"\|"none"}` reasigna el impuesto de todos los platos → `{"regime", "taxes"}`; `GET /taxes` → `{"taxes": [...], "regime": "inc"\|"iva"\|"none"\|"mixed"}` |
+| `GET /units` · `GET /suppliers` · `POST /suppliers` | sesión · `owner` | |
+| `GET /inventory?restaurant_id=` | sesión | `{"ingredients": [{id, name, pantry_category, unit, qty, min, max, level, status, supplier, has_image, cost}]}`; `GET /inventory?restaurant_id=&dishes=1` añade `"dishes": [{id, name, category_ids, has_image, price, available_in_pos, has_recipe, servings, level, sold_out}]` |
+| `GET /inventory/{ingredient_id}?restaurant_id=` | sesión | `{"stock", "pending", "cost", "min", "max", "unit", "history": [últimos 100 {id, date, qty, reason, kind, account_name}]}` |
+| `POST /inventory/{ingredient_id}/moves` | `owner`, `admin` | `{restaurant_id, kind: "receipt"\|"waste"\|"count", qty, reason (1–300), request_key (16–80), expected_stock? (obligatorio en `count`)}` → `{"stock", "move": {...}}`; `409 stock_changed` si `expected_stock` no coincide; `400 insufficient_stock` en `waste` |
+| `PUT /inventory/{ingredient_id}/settings` | `owner` (`cost`), `admin` (`min`, `max`) | `{restaurant_id, min?, max?, cost?}` → como el GET |
+| `GET /inventory/requests?restaurant_id=` | sesión | `{"requests": [{id, state, state_label, supplier_name, date, lines: [{id, ingredient_id, name, qty, unit_name, price_unit}]}]}` |
+| `POST /inventory/requests` | `owner`, `admin` | `{restaurant_id, ingredient_id, qty?}` → crea o amplía la solicitud en borrador de ese proveedor (`qty` por omisión `max(max − stock, 1)`); `409 no_supplier` |
+| `POST /inventory/requests/{id}/mark` | `owner`, `admin` | `{state: "sent"\|"received"\|"cancelled"}`; `received` crea un `receipt` por línea |
+| `GET /photos/{product_id}?size=card\|dish&v=` · `GET /photos/gallery/{photo_id}` | público (con `X-Waiter-Org`) | la imagen WebP (`card` 512, `dish` 1024), `Cache-Control: public, max-age=86400, immutable` |
+
+### Reglas
+
+- **Imágenes:** todo se convierte a WebP (calidad 80, lado máximo 1600, sin EXIF, 12 MB) con Pillow; se guardan en
+  `MEDIA_ROOT/<org>/products/` con miniaturas 128/256/512/1024. `image_version` = marca de tiempo de la última foto.
+- **Precio que rige** en un restaurante: `RestaurantPrice` si existe; si no, el de la organización. `final_price` =
+  precio con impuestos incluidos (los `Tax.included`), y `price_before_taxes` para informes = `price / (1 + suma)`.
+- **Archivar** un plato lo quita de la carta; un ingrediente en receta activa no se archiva (`409 in_recipe`).
+- **Movimientos:** `receipt` suma; `waste` resta (sin dejar negativo); `count` fija (`qty − actual` con signo) y exige
+  `expected_stock` igual al actual. `request_key` repetido devuelve el mismo movimiento sin repetirlo.
+- **Caché del menú:** `GET /catalog` responde con `ETag` por organización y restaurante; cambia con cualquier escritura.
+- **Siembra al crear la organización** (ampliar T0): unidades, impuestos INC/IVA, un supplier vacío no; categorías no.
+
 ## Estado
 
 - 2026-10-01: decisión tomada y plan escrito.
