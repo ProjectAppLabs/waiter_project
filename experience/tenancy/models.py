@@ -111,3 +111,24 @@ class PlatformAudit(models.Model):
     )])
     detail = models.JSONField(default=dict)
     at = models.DateTimeField(auto_now_add=True)
+
+
+class LegacySource(models.Model):
+    """Vincula una organización a una base de origen y evita mezclar identificadores."""
+    organization = models.OneToOneField(Organization, on_delete=models.CASCADE)
+    url = models.URLField()
+    database = models.CharField(max_length=200)
+    company_id = models.PositiveIntegerField()
+
+
+class LegacyMap(models.Model):
+    """Correspondencia persistente, incluidas marcas por fila del remapeo del comensal."""
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
+    model = models.CharField(max_length=160)
+    odoo_id = models.CharField(max_length=80)
+    local_model = models.CharField(max_length=100)
+    local_id = models.CharField(max_length=80)
+    fingerprint = models.CharField(max_length=64, blank=True, default='')
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['organization', 'model', 'odoo_id'], name='legacy_org_model_id_unique')]
