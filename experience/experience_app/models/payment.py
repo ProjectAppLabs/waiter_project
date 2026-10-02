@@ -2,6 +2,7 @@
 import uuid
 
 from django.db import models
+from tenancy.fields import ExactCharField, only_when
 
 
 class PaymentGateway(models.Model):
@@ -14,10 +15,16 @@ class PaymentGateway(models.Model):
     secrets_cipher = models.TextField(blank=True)
     payment_method_id = models.PositiveIntegerField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
+    # Una sola pasarela activa por sede (ver tenancy.fields.only_when).
+    active_venue = only_when(models.Q(enabled=True), 'venue_slug', models.SlugField())
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['restaurant_slug', 'venue_slug', 'provider', 'environment'], name='unique_venue_gateway_environment'),
-                       models.UniqueConstraint(fields=['restaurant_slug', 'venue_slug'], condition=models.Q(enabled=True), name='one_active_gateway_per_venue')]
+                       models.UniqueConstraint(fields=['restaurant_slug', 'active_venue'], name='one_active_gateway_per_venue')]
+
+
+# Estados de un pago que todavía puede cobrarse: mientras uno exista, no se abre otro para la misma cuenta.
+UNRESOLVED = ['CREATING', 'UNKNOWN', 'PENDING', 'APPROVED']
 
 
 class PaymentAttempt(models.Model):
@@ -28,7 +35,7 @@ class PaymentAttempt(models.Model):
     session = models.ForeignKey('TableSession', on_delete=models.PROTECT, related_name='payments', null=True, blank=True)
     diner = models.ForeignKey('Diner', on_delete=models.PROTECT, null=True, blank=True)
     order = models.ForeignKey('Order', on_delete=models.PROTECT, null=True, blank=True)
-    reservation_token = models.CharField(max_length=64, blank=True, default='', db_index=True)
+    reservation_token = ExactCharField(max_length=64, blank=True, default='', db_index=True)
     reservation_code = models.CharField(max_length=40, blank=True, default='')
     amount_in_cents = models.PositiveBigIntegerField()
     method = models.CharField(max_length=40)
@@ -46,10 +53,14 @@ class PaymentAttempt(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     checked_at = models.DateTimeField(null=True)
+    # Un solo pago sin resolver por visita y por reserva (ver tenancy.fields.only_when).
+    unresolved_session = only_when(models.Q(status__in=UNRESOLVED), 'session_id', models.UUIDField())
+    unresolved_reservation = only_when(models.Q(status__in=UNRESOLVED) & ~models.Q(reservation_token=''), 'reservation_token',
+                                       ExactCharField(max_length=64))
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=['session'], condition=models.Q(status__in=['CREATING', 'UNKNOWN', 'PENDING', 'APPROVED']), name='one_unresolved_payment_per_visit'),
-                       models.UniqueConstraint(fields=['reservation_token'], condition=models.Q(status__in=['CREATING', 'UNKNOWN', 'PENDING', 'APPROVED']) & ~models.Q(reservation_token=''), name='one_unresolved_payment_per_reservation'),
+        constraints = [models.UniqueConstraint(fields=['unresolved_session'], name='one_unresolved_payment_per_visit'),
+                       models.UniqueConstraint(fields=['unresolved_reservation'], name='one_unresolved_payment_per_reservation'),
                        models.CheckConstraint(condition=(models.Q(session__isnull=False, diner__isnull=False, order__isnull=False, reservation_token='')
                                                          | (models.Q(session__isnull=True, diner__isnull=True, order__isnull=True) & ~models.Q(reservation_token=''))),
                                               name='payment_is_for_a_visit_or_a_reservation')]

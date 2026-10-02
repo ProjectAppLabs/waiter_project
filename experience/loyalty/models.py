@@ -5,6 +5,7 @@ import secrets
 from django.db import models
 
 from catalog.models import Owned, choices, decimal
+from tenancy.fields import ExactCharField
 
 
 def card_code():
@@ -72,7 +73,7 @@ class LoyaltyMove(Owned):
     kind = models.CharField(max_length=8, choices=choices("earn", "redeem", "reserve", "release", "grant", "reversal"))
     points = models.DecimalField(max_digits=18, decimal_places=6)
     order = models.ForeignKey("sales.Order", on_delete=models.PROTECT, null=True, blank=True)
-    key = models.CharField(max_length=160)
+    key = ExactCharField(max_length=160)
     description = models.CharField(max_length=500, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -113,7 +114,7 @@ class BenefitAction(Owned):
 
 
 class BenefitGrant(Owned):
-    key = models.CharField(max_length=160)
+    key = ExactCharField(max_length=160)
     card = models.ForeignKey(LoyaltyCard, on_delete=models.PROTECT)
     points = models.PositiveIntegerField()
     created_at = models.DateTimeField(auto_now_add=True)

@@ -2,6 +2,7 @@ import uuid
 
 from django.db import models
 from django.db.models.functions import Lower
+from tenancy.fields import ExactCharField
 
 
 class DinerAccount(models.Model):
@@ -23,7 +24,7 @@ class DinerAccount(models.Model):
     verified = models.BooleanField(default=False)
     verified_at = models.DateTimeField(null=True, blank=True)
     discount_used_at = models.DateTimeField(null=True, blank=True)
-    registration_key = models.CharField(max_length=64, blank=True)
+    registration_key = ExactCharField(max_length=64, blank=True)
     discount_order = models.ForeignKey('experience_app.Order', on_delete=models.PROTECT, null=True, blank=True,
                                        related_name='discount_accounts')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -39,7 +40,7 @@ class DinerAccount(models.Model):
 
 class SignupDiscountClaim(models.Model):
     organization_slug = models.SlugField(max_length=60, db_index=True)
-    key = models.CharField(max_length=64, unique=True)
+    key = ExactCharField(max_length=64, unique=True)
     order = models.ForeignKey('experience_app.Order', on_delete=models.PROTECT)
 
 

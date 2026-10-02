@@ -3,7 +3,7 @@ Settings de experiencia del comensal (bloque 3).
 
 Recorte de la plantilla del fleet (base_django_react_next_feature): sin JWT,
 silk, huey, thumbnails ni MySQL — en esta etapa no hay usuarios ni tareas.
-La base se elige por DJANGO_DB_ENGINE (sqlite3 por defecto, como la plantilla).
+La base se elige por DJANGO_DB_ENGINE (sqlite3 por defecto, como la plantilla; MySQL en desarrollo y producción).
 """
 import os
 from pathlib import Path
@@ -75,8 +75,18 @@ _db_config = {'ENGINE': _db_engine, 'NAME': os.getenv('DJANGO_DB_NAME', str(BASE
 if 'sqlite3' not in _db_engine:
     _db_config.update({
         'USER': os.getenv('DB_USER', ''), 'PASSWORD': os.getenv('DB_PASSWORD', ''),
-        'HOST': os.getenv('DB_HOST', 'localhost'), 'PORT': os.getenv('DB_PORT', '5432'),
+        'HOST': os.getenv('DB_HOST', 'localhost'), 'PORT': os.getenv('DB_PORT', '3306' if 'mysql' in _db_engine else '5432'),
     })
+if 'mysql' in _db_engine:
+    # MySQL es el estándar de los servidores de ProjectApp. utf8mb4 guarda tildes y emojis; el modo estricto rechaza
+    # valores que no caben en vez de recortarlos; READ COMMITTED es el aislamiento que Django recomienda y el que tenía
+    # PostgreSQL. Las pruebas crean su base con la misma colación (TEST).
+    _db_config['OPTIONS'] = {'charset': 'utf8mb4', 'isolation_level': 'read committed',
+                             'init_command': "SET sql_mode='STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO'"}
+    _db_config['TEST'] = {'CHARSET': 'utf8mb4', 'COLLATION': 'utf8mb4_0900_ai_ci'}
+# Otra base de pruebas para correr dos suites a la vez sin que se borren entre sí.
+if os.getenv('DJANGO_TEST_DB_NAME'):
+    _db_config.setdefault('TEST', {})['NAME'] = os.getenv('DJANGO_TEST_DB_NAME')
 DATABASES = {'default': _db_config}
 
 # locmem en dev; en prod DJANGO_CACHE_URL=redis://... (django.core.cache.backends.redis.RedisCache)

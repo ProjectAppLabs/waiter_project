@@ -12,7 +12,7 @@ La descripción completa del producto está en
 ## Estado
 
 Desde el 2 de octubre de 2026 Waiter corre sobre un sistema propio, sin Odoo ni el registro central (plan T). El
-backend es `experience/` (Django 6 y DRF sobre PostgreSQL) y sirve:
+backend es `experience/` (Django 6 y DRF sobre MySQL 8.4, el estándar de los servidores de ProjectApp) y sirve:
 
 - el POS del operador en `pos/` (salón, pedidos, cocina, caja, inventario, reservas e informes);
 - la consola del dueño y la consola de ProjectApp (clientes, métricas, cobros y suspensión);
@@ -57,14 +57,15 @@ la anfitriona).
 ```bash
 scripts/dev.sh up       # arranca lo que falte, en orden, y espera a que cada servicio responda
 scripts/dev.sh status   # qué está arriba, con un chequeo real de cada uno
-scripts/dev.sh down     # detiene todo (el contenedor de PostgreSQL queda detenido, los datos intactos)
+scripts/dev.sh down     # detiene todo (el contenedor de MySQL queda detenido, los datos intactos)
 ```
 
 Es idempotente: lo que ya responde no se vuelve a lanzar. Registros y PID en `/tmp/waiter-dev/`. Los pasos manuales
 de abajo son lo que hace el script, por si hace falta uno solo.
 
 ```bash
-# PostgreSQL del sistema propio (contenedor waiter-db, :5433; ver experience/.env.example)
+# MySQL del sistema propio (contenedor waiter-mysql, :3307; lo crea scripts/dev.sh, ver experience/.env.example)
+# mysqlclient se compila: necesita build-essential, pkg-config y default-libmysqlclient-dev (o la rueda ya compilada)
 
 # Backend (Python 3.12+)
 cd experience && python3 -m venv venv && venv/bin/pip install -r requirements.txt \
@@ -84,7 +85,7 @@ scripts/demo-comensal.sh
 **Pruebas:**
 
 ```bash
-cd experience && venv/bin/pytest -q                                      # backend, sobre PostgreSQL (test_waiter_core)
+cd experience && venv/bin/pytest -q                                      # backend, sobre MySQL (test_waiter_core)
 cd pos && npx tsc --noEmit && npx jest                                   # POS
 cd pos && PLAYWRIGHT_CDP=http://127.0.0.1:9333 npx playwright test --project="Desktop Chrome"   # recorridos e2e
 ```

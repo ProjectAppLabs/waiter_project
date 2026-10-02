@@ -3,6 +3,7 @@
 from django.db import models
 
 from sales.models import money
+from tenancy.fields import ExactCharField
 
 
 class Resolution(models.Model):
@@ -69,7 +70,7 @@ class SalesDocument(models.Model):
     xml = models.FileField(upload_to="billing/xml/", blank=True)
     errors = models.JSONField(default=list)
     attempts = models.PositiveIntegerField(default=0)
-    request_key = models.CharField(max_length=80)
+    request_key = ExactCharField(max_length=80)
     created_by = models.ForeignKey("accounts.Account", on_delete=models.PROTECT)
 
     class Meta:
