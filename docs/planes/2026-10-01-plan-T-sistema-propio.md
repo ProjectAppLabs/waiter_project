@@ -433,6 +433,128 @@ Reparto por zonas habitual y del turno. Informes: con impuestos y sin propina, p
 sin componentes, insights por día local. Política de roles inválida. SSE: una escritura genera su evento y `after`
 filtra. Aislamiento entre organizaciones y permisos por rol en cada ruta.
 
+## Contrato T3 · Clientes, fidelización, reservas y avisos
+
+Lo que hoy usan Reservas, el salón (mesas apartadas), el cobro (socio y puntos), Consola → Clientes y Promociones, la
+campana y el comensal (cupones, premios, banners y anticipos), según el inventario del 2026-10-02 sobre
+`pos/lib/services/{customers,benefits,reservations,reservationHours,paymentKit,employees,notifications}.ts`,
+`pos/components/settings/MenuBannersForm.tsx` y los addons `projectapp_reservations`, `projectapp_ops/models/{menu_benefits,
+benefit_actions,menu_banners}.py` y `projectapp_notify`. Mismas reglas comunes que T0–T2 (rutas bajo `/api/pos/v1`, sin
+barra final, `X-Waiter-Org` y cookie `waiter_sid`; errores `{error, message}`; importes en COP; horas ISO UTC del servidor).
+
+**Principio de este contrato: las respuestas copian la forma de los métodos de Odoo que reemplazan.** Donde la tabla
+dice «como `waiter_x`», el JSON es el mismo que devuelve hoy ese método de Odoo (mismos nombres de campo en snake_case,
+mismos valores), leído en el código del addon. Así el POS reutiliza sus traductores. Los ids son los del sistema propio.
+
+### Modelos
+
+- **`customers.Customer`** (app `loyalty`): `organization`, `name`, `phone`, `email`, `id_type` (`CC` | `CE` | `NIT` |
+  `PAS` | `TI` | `PEP`), `vat`, `street`, `city`, `diner_key` (UUID de la cuenta del comensal, opcional, único por
+  organización), `active`, `created_at`. El consumidor final (`222222222222`) es un cliente sembrado por organización.
+- **`Order.customer`** (ampliar `sales`): FK opcional al cliente; `PATCH /orders/{id}` admite `customer_id`.
+- **`LoyaltyProgram`** (uno por organización): `name` («Puntos Waiter»), `spend_per_point`, `value_per_point`,
+  `minimum_points`, `active`. **`LoyaltyCard`**: `customer`, `code` (único por organización, 8 caracteres), `points`,
+  `expires` (opcional). **`LoyaltyMove`**: `card`, `kind` (`earn` | `redeem` | `reserve` | `release` | `grant` |
+  `reversal`), `points` con signo, `order`, `key` (idempotencia, único por organización), `description`, `created_at`.
+- **`Coupon`**: `organization`, `name`, `code` (`[A-Z0-9_-]{3,32}`, único), `percent` (0,01–100), `minimum` (con
+  impuestos), `start`, `end`, `active`, `restaurants` (M2M; vacío = todos).
+- **`BenefitAction`**: `organization`, `action` (`cuenta` | `opinion` | `novedades` | `pago_en_linea`, única por
+  organización), `active`, `reward` (`descuento` | `cupon` | `puntos`), `percent`, `coupon`, `points`, `restaurants`.
+  **`BenefitGrant`**: `organization`, `key` (único), `card`, `points`, `created_at`. `Organization.signup_discount_percent`
+  (5 por omisión) se sincroniza con la acción `cuenta` de premio `descuento`.
+- **`Banner`** (en la organización, hasta 8, ordenados): `layout`, `title`, `subtitle`, `button`, `target`, `target_id`,
+  `image` (WebP en `MEDIA_ROOT`), `theme`, `active`, `restaurants`.
+- **`reservations.Reservation`**: `organization`, `restaurant`, `code` (`RV` + 3 dígitos por organización), `customer`
+  (opcional), `customer_name`, `customer_email`, `customer_phone`, `people`, `baby_chair`, `notes`, `date`,
+  `time_start`/`time_end` (horas decimales en medias horas; fin por omisión = inicio + 1,5), `prep_minutes` (0, 15, 30,
+  60, 120; 30 por omisión), `tables` (M2M) y `main_table`, `state` (`confirmed` | `seated` | `no_show` | `cancelled`),
+  `preorder` (FK a `sales.Order`, opcional) y sus líneas pedidas (`ReservationLine`: producto, cantidad, nota, precio),
+  `deposit_amount` (0–50.000.000), `deposit_state` (`none` | `pending` | `paid`), `deposit_reference`, `deposit_paid_at`,
+  `pay_token` (único, 32 caracteres), `created_by`, `created_at`.
+- **`ReservationSchedule`** (1:1 con `Restaurant`): `weekly` (JSON por día 0–6 con hasta 4 franjas), `overrides`
+  (hasta 366 fechas con nota de hasta 80), `rules` (`minNotice` múltiplo de 30 hasta 7 días, `maxDays` hasta 730). Sin
+  horario configurado: 10–22 todos los días.
+- **`notifications`** (ampliar): `Account.notify_prefs` (JSON de 6 booleanos `kitchen|inventory|system` ×
+  `popup|sound`, todos encendidos por omisión) y el aviso de existencias bajas (un comando `notify_low_stock` para cron
+  que crea un aviso `inventory` por ingrediente bajo el mínimo en cada sede, sin duplicar, y lo cierra al recuperarse).
+
+### Reglas (portadas tal cual de Odoo; léelas allí)
+
+- **Reservas** (`projectapp_reservations/models/reservation.py`, `restaurant_table.py`, `pos_config.py`): validaciones de
+  hora, horario del día (solo al crear o mover), antelación mínima y ventana máxima (también para el personal), choque
+  en cualquier mesa compartida contando el margen de preparación, todas las mesas del mismo restaurante, mesa
+  «reservada» en el plano solo dentro de `[time_start − prep, time_end)` del día, `available` / `reserved` /
+  `unavailable` (por capacidad) con `exclude_id`, cambio de mesas solo en confirmadas (la primera es la principal y el
+  pre-pedido la sigue), sentar solo desde confirmada (el pre-pedido pasa a la mesa en el turno abierto, o se crea al
+  sentar si no existía), no se presentó y cancelada cancelan el pre-pedido en borrador. **Ahora `reserved_at` de
+  `GET /floors` y el plano dejan de ser null** y el plano no retira mesas con reservas confirmadas futuras
+  (`409 table_reserved`). Correo de confirmación con el backend de correo de Django si hay correo.
+- **Anticipo:** se fija o quita mientras no esté pagado y la reserva esté activa; se marca pagado a mano solo si está
+  pendiente; la vista pública por `pay_token` no muestra correo, teléfono ni notas; la conciliación es idempotente por
+  referencia, exige el monto exacto y bloquea la fila. Enlace `<DINER_PUBLIC_URL>/<org>/<sede>/reserva/<token>`. El
+  anticipo no entra en ventas ni en la caja (decisión 2026-09-19).
+- **Cupones, puntos y acciones** (`menu_benefits.py`, `benefit_actions.py`, decisión 2026-09-14): cotizar un cupón
+  (vigente, restaurante permitido, subtotal ≥ mínimo, monto redondeado); el cupón reemplaza el descuento de primera
+  compra; canje en el cobro solo con el pedido en borrador y sin pagos, tarjeta vigente, puntos = mín(disponibles,
+  total / valor) respetando el mínimo, los borradores reservan puntos, la línea de descuento va sin impuestos; abono al
+  pagar sobre el consumo neto (sin propina, restando el canje), idempotente; devoluciones (cancelar un pedido pagado no
+  existe aún) quedan para T4. `grant_points` idempotente por clave.
+- **Banners** (`menu_banners.py`): hasta 8; layout `product|promotion|category|image|notice`; tema
+  `violet|amber|dark`; título obligatorio hasta 80, subtítulo hasta 160, botón hasta 35; el destino debe ser un plato
+  activo o una categoría de la organización; imagen PNG/JPG/WebP hasta 500 KB y 4096 px, guardada como WebP; `image`
+  exige imagen.
+- **Clientes:** buscar por nombre, documento o teléfono (hasta 200); `orders` = pedidos pagados del cliente; `invoiced`
+  = suma de esos pedidos (T4 la cambia por facturado). Solo `owner` y `admin` escriben.
+- **Quién:** `owner` todo; `admin` reservas, horario y anticipos de sus sedes, y clientes; `cashier` canjea y asocia
+  clientes al cobrar (`charge_orders`); vista `reservations` de la política para leer y crear reservas; promociones y
+  banners solo `owner`.
+
+### API
+
+| Método y ruta | Quién | Cuerpo → Respuesta |
+|---|---|---|
+| `GET /customers?q=` · `POST /customers` · `PATCH /customers/{id}` | sesión · `owner`, `admin` | `{customers: [{id, name, phone, email, vat, id_type, street, city, orders, invoiced}]}` · `{customer}` |
+| `GET /customers/id-types` | sesión | `{id_types: [{id: "CC", name: "Cédula de ciudadanía"}, …]}` |
+| `GET /customers/{id}/card` · `GET /customers/{id}/orders` | sesión | `{card: {id, points, code, program, expires} \| null}` · `{orders: [{id, number, paid_at, total, state}]}` (20) |
+| `GET /loyalty/program` | sesión | `{program: {id, name, spend_per_point, value_per_point, minimum_points} \| null}` |
+| `GET /loyalty/cards/{code}` | sesión | `{member: {card_id, code, name, phone, points}}` o `404` |
+| `POST /orders/{id}/redeem` | `charge_orders` | `{card_id}` → `{amount, points, order}`; `409 not_editable`, `400 minimum_points` |
+| `PATCH /orders/{id}` | (ampliar) | admite `customer_id` |
+| `GET /benefits?restaurant_id=` · `PUT /benefits` | `owner` | como `pos.config.waiter_benefits_settings`: `{coupons, loyalty, actions}`; el PUT acepta `{coupon?, loyalty?, action?}` (crear o editar uno) y devuelve lo mismo |
+| `GET /banners?restaurant_id=` · `PUT /banners` | sesión · `owner` | como `waiter_banner_settings`: `{banners: [...]}`; el PUT recibe la lista completa (imágenes nuevas en base64) |
+| `GET /banners/{id}/image?org=` | público | WebP |
+| `GET /reservations/timeline?restaurant_id=&date=&floor_id=` | `reservations` | como `waiter_timeline` |
+| `GET /reservations/slots?restaurant_id=&date=` | `reservations` | como `waiter_slots` |
+| `GET /reservations/tables?restaurant_id=&date=&time_start=&people=&prep=&exclude_id=` | `reservations` | como `waiter_available_tables` (con `include_unavailable`) |
+| `POST /reservations` | `reservations` | `{restaurant_id, customer_name, customer_email, customer_phone, people, baby_chair, notes, date, time_start, table_ids, prep_minutes, deposit_amount, lines: [{product_id, qty, note}]}` → como `waiter_detail` (201) |
+| `GET /reservations/{id}` · `GET /reservations?table_id=` | `reservations` | como `waiter_detail` · `{reservations: [card]}` vivas de la mesa |
+| `PUT /reservations/{id}/tables` | `reservations` | `{table_ids}` → detalle |
+| `POST /reservations/{id}/{seat\|no-show\|cancel}` | `reservations` | → detalle |
+| `PUT /reservations/{id}/deposit` · `POST /reservations/{id}/deposit/paid` | `admin`, `owner` | `{amount}` · `{reference}` → detalle |
+| `GET /reservations/schedule?restaurant_id=` · `PUT /reservations/schedule?restaurant_id=` | `reservations` · `admin`, `owner` | `{weekly, overrides, rules}` |
+| `GET /public/reservations/{token}` | público (`?org=`) | como `waiter_deposit_public` |
+| `POST /internal/reservations/{token}/deposit-paid` | interno (`X-Internal-Key`) | `{reference, amount}` → idempotente |
+| `GET /me/notify-prefs` · `PUT /me/notify-prefs` | sesión | `{prefs: {kitchen_popup, …}}` (solo las propias) |
+| `POST /notifications/{id}/request-ingredient` | `admin` | → `{request}` de inventario (crea o amplía la solicitud del proveedor) |
+
+**Para el comensal** (las usa `experience_app` desde T5, sin HTTP: funciones de servicio importables con la misma
+forma que hoy devuelven `waiter_coupon_quote`, `waiter_diner_benefits`, `waiter_benefit_actions`, `waiter_grant_points`,
+`waiter_banner_settings`, `waiter_deposit_public` y `waiter_deposit_paid`): `loyalty.services.coupon_quote(org,
+restaurant, code, subtotal)`, `diner_benefits(org, diner_key, order_uuid)`, `benefit_actions(org, restaurant)`,
+`grant_points(org, diner_key, key, points, description)`, `banners(org, restaurant)`,
+`reservations.services.public_deposit(org, token)`, `deposit_paid(org, token, reference, amount)`.
+
+### Pruebas que deben existir (`# Falla si …`)
+
+Reservas: hora fuera de franja, fuera de horario, antelación y ventana, choque con margen en mesa compartida, mesas de
+otra sede, capacidad, mesa reservada en el plano solo en su ventana, cambio de mesas y principal, sentar con y sin
+pre-pedido, no show y cancelar cancelan el pre-pedido, anticipo (fijar, quitar, pagado a mano, conciliación exacta e
+idempotente, vista pública sin datos privados), horario (franjas, fechas especiales, reglas), plano no retira mesa
+reservada. Fidelidad: cupón vigente, por sede y mínimo; canje con reserva de puntos y mínimo; abono sobre neto sin
+propina e idempotente; grant idempotente; acción `cuenta` sincroniza el descuento de primera compra. Banners: límites e
+imagen. Clientes: búsqueda, consumidor final, pedido asociado. Avisos: preferencias propias, existencias bajas sin
+duplicar. Aislamiento entre organizaciones y permisos por rol en cada ruta.
+
 ## Estado
 
 - 2026-10-01: decisión tomada y plan escrito.
