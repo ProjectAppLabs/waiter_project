@@ -29,6 +29,9 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'experience_app',
+    'tenancy',
+    'accounts',
+    'notifications',
 ]
 
 MIDDLEWARE = [
@@ -132,3 +135,21 @@ AGENT_DAILY_LIMIT = int(os.getenv('AGENT_DAILY_LIMIT', '200'))
 PAYMENTS_FERNET_KEY = os.getenv('PAYMENTS_FERNET_KEY', '')
 PAYMENTS_LIVE_ENABLED = os.getenv('PAYMENTS_LIVE_ENABLED', 'false').lower() == 'true'
 PAYMENTS_PUBLIC_URL = os.getenv('PAYMENTS_PUBLIC_URL', '').rstrip('/')
+
+# Plan T0: correo independiente del comensal, configurable por entorno.
+POS_URL = os.getenv('POS_URL', 'http://localhost:3000').rstrip('/')
+PLATFORM_URL = os.getenv('PLATFORM_URL', 'http://localhost:3000').rstrip('/')
+EMAIL_FROM = os.getenv('EMAIL_FROM', 'team@projectapp.co')
+WAITER_EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.filebased.EmailBackend')
+WAITER_EMAIL_FILE_PATH = BASE_DIR / 'mail'
+MAILERS['waiter'] = {
+    'BACKEND': WAITER_EMAIL_BACKEND,
+    'OPTIONS': (
+        {'file_path': WAITER_EMAIL_FILE_PATH} if WAITER_EMAIL_BACKEND == 'django.core.mail.backends.filebased.EmailBackend'
+        else dict(MAILERS['default']['OPTIONS']) if WAITER_EMAIL_BACKEND == 'django.core.mail.backends.smtp.EmailBackend'
+        else {}
+    ),
+}
+# La cabecera del inquilino debe pasar el preflight del navegador.
+from corsheaders.defaults import default_headers
+CORS_ALLOW_HEADERS = (*default_headers, 'x-waiter-org')

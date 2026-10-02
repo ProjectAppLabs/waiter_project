@@ -15,6 +15,8 @@ def health_check(request):
 
 
 urlpatterns = [
+    path('api/platform/v1/', include('tenancy.urls')),
+    path('api/pos/v1/', include('accounts.urls')),
     path('api/health/', health_check, name='health-check'),
     path('', include('experience_app.urls')),
 ]
