@@ -9,7 +9,7 @@ Cuando el acento final no es el del diseño se recalculan `acentoTinta` (utils/b
 `acentoSuave` (10 % del acento sobre el fondo de la plantilla; sobre blanco coincide con utils/brand.soft_for).
 
 La plantilla resuelta se cachea TEMPLATE_CACHE_SECONDS (60 s por defecto) por organización y se invalida al guardar desde el POS
-y con el aviso interno de "algo cambió en Odoo" (views/internal.py). Sin ajustes de sede se resuelve `S1`; con el catálogo
+y con el aviso interno de "algo cambió en el sistema propio" (views/internal.py). Sin ajustes de sede se resuelve `S1`; con el catálogo
 vacío, el spec embebido (defaults.FALLBACK_SPEC). En S1, el tema v2 añade los fundamentos y resuelve colores y fuentes;
 los campos paleta/tipografia se conservan para el POS y el MCP anteriores.
 """
@@ -22,7 +22,7 @@ from django.db import transaction
 from django.urls import reverse
 from django.utils import timezone
 
-from experience_app.adapters.registry.client import Tenant
+from experience_app.adapters.core.context import RestaurantContext
 from experience_app.diseno import plantillas as component_templates
 from experience_app.diseno import services as design
 from experience_app.plantillas.defaults import (
@@ -176,7 +176,7 @@ def _spec_for(restaurant: str, venue: str) -> tuple[dict, dict, dict]:
     return (template.spec if template else FALLBACK_SPEC), {}, {}
 
 
-def _resolve_template_sin_sede(tenant: Tenant) -> dict:
+def _resolve_template_sin_sede(tenant: RestaurantContext) -> dict:
     """El dict `plantilla` del contexto de entrada, desde caché."""
     key = _key(tenant.restaurant_slug, tenant.venue_slug)
     cached = cache.get(key)
@@ -350,7 +350,7 @@ def save_verified(restaurant: str, venue: str, body: dict) -> VenueMenuSettings:
 
 # Las decoraciones se comparten dentro de la organización. El contexto conserva el restaurante de vista previa
 # para que el validador de plantillas (diseno/plantillas.py) las reconozca al resolver, leer y preparar el tema.
-def resolve_template(tenant: Tenant) -> dict:
+def resolve_template(tenant: RestaurantContext) -> dict:
     from experience_app.services import rewards
     actions = rewards.actions(tenant)
     with component_templates.for_venue(tenant.restaurant_slug, tenant.venue_slug):

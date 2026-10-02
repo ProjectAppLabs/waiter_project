@@ -25,7 +25,6 @@ export function BrandPreview({ theme, name, logo, tagline, greeting, waiterName,
       <div className="flex items-start justify-between gap-3 px-[18px] pt-[18px]">
         <div className="flex min-w-0 flex-col leading-[1.1]">
           {logo
-            // eslint-disable-next-line @next/next/no-img-element -- el logo viene en base64 desde Odoo; next/image no aplica a data URLs.
             ? <img src={logo} alt="" className="h-8 w-auto self-start object-contain" />
             : <span className="truncate text-[25px]" style={serif}>{name || t('restaurant')}</span>}
           <span className="mt-0.5 text-[10px] uppercase tracking-[0.22em] text-ink-3">{tagline || t('tagline')}</span>

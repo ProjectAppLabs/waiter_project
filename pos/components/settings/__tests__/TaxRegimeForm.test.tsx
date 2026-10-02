@@ -28,7 +28,7 @@ it('states both conditions and the threshold in pesos', async () => {
   expect(screen.getByText(/un solo establecimiento/)).toBeInTheDocument()
 })
 
-// Falla si el cambio no llega a Odoo: la carta seguiría cobrando lo de antes.
+// Falla si el cambio no llega al servidor: la carta seguiría cobrando lo de antes.
 it('sends the chosen regime and reports what it now affects', async () => {
   mock.mockResolvedValueOnce({ regime: 'inc', products: 22, taxes: [8] })
   mock.mockResolvedValueOnce({ regime: 'none', products: 22, taxes: [] })

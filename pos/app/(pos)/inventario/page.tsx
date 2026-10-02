@@ -8,32 +8,31 @@ import { Modal } from '@/components/kit/Modal'
 import { AddDishWizard } from '@/components/pantry/AddDishWizard'
 import { AddIngredientWizard } from '@/components/pantry/AddIngredientWizard'
 import { DishCard } from '@/components/pantry/DishCard'
-import { RecipeEditor } from '@/components/pantry/RecipeEditor'
-import { InventoryControl } from '@/components/pantry/InventoryControl'
 import { FilterPanel, type FilterSection } from '@/components/pantry/FilterPanel'
 import { IngredientRow } from '@/components/pantry/IngredientRow'
+import { InventoryControl } from '@/components/pantry/InventoryControl'
 import { MenuAdmin, type MenuAdminRequest } from '@/components/pantry/MenuAdmin'
 import { PantryHeader } from '@/components/pantry/PantryHeader'
+import { RecipeEditor } from '@/components/pantry/RecipeEditor'
 import { RequestList } from '@/components/pantry/RequestList'
 import { Button } from '@/components/ui/Button'
+import {
+PANTRY_CATEGORIES,STOCK_LEVELS,dishAvailable,filterDishes,filterIngredients,groupCounts,
+type Dish,type Ingredient,type LevelFilter,type PantryCategory,
+} from '@/lib/domain/pantry'
 import { can, isOwner } from '@/lib/domain/roles'
 import { useIdentity } from '@/lib/hooks/useIdentity'
-import {
-  PANTRY_CATEGORIES, STOCK_LEVELS, dishAvailable, filterDishes, filterIngredients, groupCounts,
-  type Dish, type Ingredient, type LevelFilter, type PantryCategory,
-} from '@/lib/domain/pantry'
-import { getRecipe } from '@/lib/services/restaurantInventory'
-import { archiveIngredient, requestIngredient } from '@/lib/services/pantry'
-import { useAuthStore } from '@/lib/stores/authStore'
-import { currentConfigId } from '@/lib/services/odoo'
+import { currentRestaurantId } from '@/lib/services/core/catalogBridge'
 import { closedDishes, setDishAvailability } from '@/lib/services/masterCatalog'
+import { archiveIngredient, requestIngredient } from '@/lib/services/pantry'
+import { getRecipe } from '@/lib/services/restaurantInventory'
+import { useAuthStore } from '@/lib/stores/authStore'
 import { useCatalogStore } from '@/lib/stores/catalogStore'
 import { usePantryStore } from '@/lib/stores/pantryStore'
 import { toast } from '@/lib/stores/toastStore'
 
 type IngredientModal = { kind: 'add' } | { kind: 'edit'; ingredient: Ingredient } | { kind: 'delete'; ingredient: Ingredient } | null
 
-// 12 – Inventory del kit: pestañas Menú · Ingredientes · Solicitudes sobre el addon projectapp_pantry de Odoo.
 export default function InventarioPage() {
   const t = useTranslations('pantry')
   const s = usePantryStore()
@@ -57,7 +56,7 @@ export default function InventarioPage() {
 
   const openDetail = useCallback(async (dish: Dish) => { setDetail(dish) }, [])
   // Plan O: los platos que este restaurante tiene agotados (el catálogo es de la organización). Solo el encargado los cambia.
-  const configId = currentConfigId()
+  const configId = currentRestaurantId()
   const [closedHere, setClosedHere] = useState<Set<number>>(new Set())
   const dishIds = s.dishes.map((d) => d.id).join(',')
   useEffect(() => {
@@ -114,7 +113,6 @@ export default function InventarioPage() {
     ] },
   ]
 
-  // "Request Ingredients": el addon crea la orden de compra al proveedor; sin proveedor devuelve su propio aviso.
   async function request(i: Ingredient) {
     try {
       await requestIngredient(i.id)

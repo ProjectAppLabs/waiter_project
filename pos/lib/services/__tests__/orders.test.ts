@@ -1,39 +1,31 @@
+import { coreFetch } from '@/lib/services/core/http'
+jest.mock('@/lib/services/core/http', () => ({ ...jest.requireActual('@/lib/services/core/http'), coreFetch: jest.fn() }))
+const m = jest.mocked(coreFetch)
+beforeEach(() => m.mockReset())
+// Responde la carta (para los combos) y el pedido.
+const respond = (order: unknown) => m.mockImplementation(async (path) => (String(path).startsWith('products') ? { products: [] } : order) as never)
 import { createDraft, addProduct } from '@/lib/domain/order'
-import { callKw } from '@/lib/services/odoo'
 import { payOrder, saveOrder } from '@/lib/services/orders'
-
-jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn(), inRestaurant: (d: unknown[]) => d, currentConfigId: () => null }))
-const mockCallKw = callKw as jest.Mock
-const angus = { id: 3, templateId: 2, name: 'Angus', price: 36900, categoryIds: [1], taxIds: [5], favorite: false, storable: false, soldOut: false, hasImage: false }
-const read = { id: 13, pos_reference: '260-1-000009', state: 'draft', amount_total: 87822, amount_tax: 14022, amount_paid: 0 }
-
-beforeEach(() => mockCallKw.mockReset())
-
-// Falla si saveOrder olvida recompute_prices: Odoo deja el pedido en total 0 (verificado en el mapeo).
-it('calls sync_from_ui, then recompute_prices, then reads the totals', async () => {
-  mockCallKw
-    .mockResolvedValueOnce({ 'pos.order': [{ id: 13 }] })
-    .mockResolvedValueOnce(undefined)
-    .mockResolvedValueOnce([read])
-  const saved = await saveOrder(addProduct(createDraft({ sessionId: 1, tableId: 6 }), angus))
-  expect(mockCallKw.mock.calls.map((c) => c[1])).toEqual(['sync_from_ui', 'recompute_prices', 'read'])
-  expect(saved).toEqual({ id: 13, reference: '260-1-000009', state: 'draft', total: 87822, tax: 14022, paid: 0 })
+import { coreOrder } from '@/lib/testFixtures/core'
+jest.mock('@/lib/services/core/catalogBridge', () => ({ currentRestaurantId: () => 1 }))
+const angus = { id: 3, templateId: 3, name: 'Angus', price: 36900, categoryIds: [1], taxIds: [5], favorite: false, storable: false, soldOut: false, hasImage: false }
+// Falla si el pedido usa totales del dispositivo o pierde la sede y la mesa.
+it('guarda y devuelve los totales calculados por el servidor', async () => {
+ respond({ order: coreOrder() })
+ const saved = await saveOrder(addProduct(createDraft({ sessionId: 1, tableId: 6 }), angus))
+ expect(saved).toMatchObject({ id: 13, total: 73800, tax: 5800, paid: 20000 })
+ expect(m).toHaveBeenCalledWith('orders', { method: 'POST', body: expect.objectContaining({ restaurant_id: 1, table_id: 6, fire: false, lines: [expect.objectContaining({ product_id: 3, qty: 1 })] }) })
 })
-
-// Falla si un reintento manda id:-1 y crea un pedido duplicado en vez de reusar el server id.
-it('reuses the server id on a second save of the same draft', async () => {
-  mockCallKw.mockResolvedValue([read])
-  mockCallKw.mockResolvedValueOnce({ 'pos.order': [{ id: 13 }] }).mockResolvedValueOnce(undefined)
-  const draft = { ...addProduct(createDraft({ sessionId: 1, tableId: 6 }), angus), serverId: 13 }
-  await saveOrder(draft)
-  expect(mockCallKw.mock.calls[0][2][0][0].id).toBe(13)
+// Falla si un reintento cambia el UUID y duplica el pedido.
+it('conserva la identidad al guardar de nuevo', async () => {
+ respond({ order: coreOrder() })
+ const draft = { ...addProduct(createDraft({ sessionId: 1, tableId: 6 }), angus), serverId: 13 }
+ await saveOrder(draft); await saveOrder(draft)
+ expect(m.mock.calls.filter(([path]) => path === 'orders').map(([, o]) => (o?.body as { uuid: string }).uuid)).toEqual([draft.uuid, draft.uuid])
 })
-
-// Falla si payOrder deja de mandar pos_order_id dentro del dict (Odoo crea el pago huérfano).
-it('registers the payment with the order id inside the payment dict', async () => {
-  mockCallKw.mockResolvedValueOnce(undefined).mockResolvedValueOnce([{ ...read, amount_paid: 87822 }])
-  const paid = await payOrder(13, 1, 87822)
-  expect(mockCallKw.mock.calls[0]).toEqual(['pos.order', 'add_payment', [[13], { pos_order_id: 13, payment_method_id: 1, amount: 87822 }]])
-  expect(paid.paid).toBe(87822)
+// Falla si el pago pierde el pedido, el efectivo recibido o su clave de idempotencia.
+it('registra el pago contra el pedido', async () => {
+ m.mockResolvedValue({ order: coreOrder({ paid: 73800 }) })
+ await expect(payOrder(13, 1, 73800, 80000)).resolves.toMatchObject({ paid: 73800 })
+ expect(m).toHaveBeenCalledWith('orders/13/payments', { method: 'POST', body: expect.objectContaining({ method_id: 1, amount: 73800, received: 80000, request_key: expect.stringMatching(/^pay-13-/) }) })
 })
-

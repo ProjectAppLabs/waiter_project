@@ -1,5 +1,7 @@
 'use client'
 
+import { imageUrl } from '@/lib/services/pantry'
+
 import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
@@ -107,8 +109,7 @@ export function ProductForm({ extraProducts = [], initial, hasImage = false, tem
                     // eslint-disable-next-line @next/next/no-img-element -- base64 recién elegido; next/image no aplica a data URLs.
                     ? <img src={`data:image/*;base64,${p.image}`} alt="" className="w-full h-full object-cover" />
                     : hasImage && templateId
-                      // eslint-disable-next-line @next/next/no-img-element -- foto servida por Odoo a través del proxy same-origin.
-                      ? <img src={`/odoo/web/image/product.template/${templateId}/image_512`} alt="" className="w-full h-full object-cover" />
+                      ? <img src={imageUrl(templateId)} alt="" className="w-full h-full object-cover" />
                       : <span className="flex flex-col items-center gap-2 text-[13px]"><Icon name="photo" size={36} />{t('noImage')}</span>}
                 </div>
                 <label className="flex flex-col gap-2 text-[15px] font-medium text-ink">{t('image')}
@@ -125,7 +126,7 @@ export function ProductForm({ extraProducts = [], initial, hasImage = false, tem
                 <ul className="flex flex-wrap gap-3">
                   {gallery.map((g, i) => (
                     <li key={g.key} className="flex flex-col gap-1 items-center">
-                      {/* eslint-disable-next-line @next/next/no-img-element -- miniatura de Odoo por el proxy same-origin o base64 recién elegido. */}
+                      {/* eslint-disable-next-line @next/next/no-img-element -- miniatura del catálogo por el proxy same-origin o base64 recién elegido. */}
                       <img src={g.image ? `data:image/*;base64,${g.image}` : catalogPhotoUrl(g.id!)} alt={t('galleryPhoto', { n: i + 1 })} className="w-[96px] h-[72px] rounded-md object-cover bg-muted" />
                       <div className="flex gap-1">
                         <button type="button" className="h-tap-min min-w-[44px] rounded-md border border-border text-sm" disabled={i === 0} aria-label={t('galleryLeft', { n: i + 1 })} onClick={() => move(i, -1)}>←</button>

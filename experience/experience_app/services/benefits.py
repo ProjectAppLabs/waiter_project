@@ -1,11 +1,11 @@
 """Authenticated diner identity and reusable POS coupons. No browser-supplied amounts."""
-from experience_app.adapters.backend import backend_for, client_for
+from tenancy.http import Problem
+from experience_app.adapters.core.pos import Client
 from decimal import Decimal
 from rest_framework.exceptions import ValidationError
-from experience_app.adapters.odoo.client import OdooError
+from django.db import DatabaseError
 
-from experience_app.adapters.odoo.client import OdooClient
-from experience_app.adapters.registry.client import resolve
+from experience_app.adapters.core.pos import resolve
 from experience_app.models import CartLine
 
 
@@ -17,13 +17,13 @@ def quote(session, diner, code):
     tenant = tenant_for(session)
     lines = session.lines.filter(diner=diner, status=CartLine.OPEN, order=None)
     amount = sum((line.subtotal for line in lines), Decimal(0))
-    return client_for(tenant, OdooClient).call_kw('pos.config', 'waiter_coupon_quote', [[tenant.config_id], code, float(amount)])
+    return Client(tenant).call_kw('pos.config', 'waiter_coupon_quote', [[tenant.config_id], code, float(amount)])
 
 
 def account_benefits(tenant, account, order_uuid=None):
     if account.organization_slug != tenant.restaurant_slug:
         raise ValidationError('La cuenta pertenece a otra organización.')
-    return client_for(tenant, OdooClient).call_kw('pos.config', 'waiter_diner_benefits', [[tenant.config_id],
+    return Client(tenant).call_kw('pos.config', 'waiter_diner_benefits', [[tenant.config_id],
         {'id': str(account.id), 'name': account.name, 'email': account.email, 'phone': account.phone}, str(order_uuid) if order_uuid else None])
 
 
@@ -41,9 +41,9 @@ def reserve(tenant, new_lines):
         if diner.coupon_code:
             subtotal = sum((line.subtotal for line in fresh), Decimal(0))
             try:
-                result = client_for(tenant, OdooClient).call_kw('pos.config', 'waiter_coupon_quote', [[tenant.config_id], diner.coupon_code, float(subtotal)])
-            except OdooError as exc:
-                raise ValidationError({'detail': str(exc)}) from exc
+                result = Client(tenant).call_kw('pos.config', 'waiter_coupon_quote', [[tenant.config_id], diner.coupon_code, float(subtotal)])
+            except (DatabaseError, Problem) as exc:
+                raise ValidationError({'detail': exc.body['message'] if isinstance(exc, Problem) else str(exc)}) from exc
             percent = Decimal(str(result['porcentaje']))
         card = None
         if diner.account_id and diner.account.verified:

@@ -23,7 +23,7 @@ it('fits inside 1024 × 512 keeping the aspect ratio and never upscales', () => 
   expect(fitWithin({ width: 300, height: 120 }, LOGO_MAX)).toEqual({ width: 300, height: 120 })
 })
 
-// Falla si el canvas no se crea al tamaño ajustado, si un PNG grande se exporta en otro formato o si el prefijo data: llega a Odoo.
+// Falla si el canvas no se crea al tamaño ajustado, si un PNG grande se exporta en otro formato o si el prefijo data: llega al servidor.
 it('draws an oversized PNG at the fitted size and returns bare PNG base64', async () => {
   const { deps, drawn, sizes, exported, release, bytes } = fakeDeps(2048, 2048)
   await expect(resizeImage(new Blob([], { type: 'image/png' }), LOGO_MAX, deps)).resolves.toBe('QUJD')
@@ -60,7 +60,7 @@ it('rejects a resized result heavier than 1 MB with a size error', async () => {
   await expect(resizeImage(new Blob([], { type: 'image/png' }), LOGO_MAX, deps)).rejects.toBeInstanceOf(LogoError)
 })
 
-// Falla si el base64 de los bytes originales sale mal (Odoo guardaría basura), si el trozo de 32 KiB rompe la
+// Falla si el base64 de los bytes originales sale mal (el servidor guardaría basura), si el trozo de 32 KiB rompe la
 // codificación o si el peso calculado del base64 no cuenta el relleno.
 it('encodes bytes to base64 in chunks and measures the decoded size', () => {
   expect(bytesToBase64(PNG_HEAD)).toBe('iVBORw==')

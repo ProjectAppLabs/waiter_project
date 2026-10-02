@@ -1,5 +1,5 @@
 // Tablero de Inicio: qué atender ahora, qué platos se piden más y menos, y cuánto se espera vender el mes que viene.
-// Todo son funciones puras sobre el historial que ya suma el servidor (`pos.config.waiter_sales_insights`).
+// Todo son funciones puras sobre el historial que ya suma el servidor .
 
 export interface DailySales { date: string; total: number; orders: number }
 export interface ProductSales { productId: number; templateId: number; name: string; qty: number; amount: number; prevQty: number }
@@ -170,7 +170,6 @@ export interface AttentionInput {
   reservations: { id: number; name: string; customer: string; timeStart: number; label: string; people: number; tables: string; depositPending: boolean }[] // de HOY, confirmadas
   ingredients: { id: number; name: string; level: 'empty' | 'low' | 'medium' | 'high' | null; stock: number; min: number; uom: string }[]
   soldOut: { id: number; name: string }[]
-  // Plan P: intentos de entrada fuera de turno sin leer, con el texto que armó Odoo («Mateo intentó entrar a las 23:40…»).
   access?: { id: number; body: string }[]
   accessHref?: string
   // Plan Q3: cierres de caja que superaron la tolerancia («Caja de Poblado cerró con $ 12.000 de diferencia…»).

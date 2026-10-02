@@ -1,12 +1,14 @@
 'use client'
 
+import { imageUrl } from '@/lib/services/pantry'
+
 import { useTranslations } from 'next-intl'
 
 import { Icon } from '@/components/kit/Icon'
 import { Button } from '@/components/ui/Button'
 import { formatCop } from '@/lib/domain/money'
 import { additionNames, lineSubtotal, type CartLine, type CartTotals } from '@/lib/domain/orderWizard'
-import { depositReady, hourLabel, MAX_DEPOSIT, tablesLabel, type ReservationDraft } from '@/lib/domain/reservations'
+import { MAX_DEPOSIT, depositReady, hourLabel, tablesLabel, type ReservationDraft } from '@/lib/domain/reservations'
 
 // Paso 4 del kit (Reservation Summary.png): los platos pre-pedidos a la izquierda y la ficha de la reserva
 // a la derecha. El ID lo asigna el servidor al crearla.
@@ -39,7 +41,7 @@ export function SummaryStep({ draft, tableNumbers, lines, totals, busy, onCreate
                 {lines.map((line) => (
                   <article key={line.uuid} className="p-3 rounded-md border border-border flex gap-3">
                     <span className="w-14 h-14 shrink-0 rounded-sm bg-muted overflow-hidden grid place-items-center text-dim">
-                      {line.hasImage ? <img src={`/odoo/web/image/product.template/${line.templateId}/image_128`} alt="" className="w-full h-full object-cover" /> : <Icon name="photo" size={20} />}
+                      {line.hasImage ? <img src={imageUrl(line.templateId, 256)} alt="" className="w-full h-full object-cover" /> : <Icon name="photo" size={20} />}
                     </span>
                     <span className="flex-1 min-w-0">
                       <span className="block text-[15px] font-semibold text-ink truncate">{line.name}</span>

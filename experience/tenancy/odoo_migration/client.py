@@ -1,11 +1,7 @@
-"""Cliente JSON-RPC de Odoo. ÚNICO lugar del bloque 3 que sabe que Odoo existe (regla de dependencia 1).
-
-Portado del cliente TypeScript de pos/ que ya está verificado contra Odoo 19.
-"""
+"""Cliente JSON-RPC reservado a la migración y conciliación de clientes de Odoo."""
 from dataclasses import dataclass
 
 import requests
-from django.conf import settings
 
 
 @dataclass(frozen=True)
@@ -26,19 +22,20 @@ class OdooError(Exception):
 
 
 class OdooUnavailable(OdooError):
-    """Odoo no responde: el carrito se conserva y se reintenta (no se pierde nunca)."""
+    """Odoo no responde durante la lectura de la migración."""
 
 
 class OdooClient:
-    def __init__(self, creds: OdooCredentials, session: requests.Session | None = None):
+    def __init__(self, creds: OdooCredentials, session: requests.Session | None = None, *, timeout: float = 20):
         self.creds = creds
+        self.timeout = timeout
         self.http = session or requests.Session()
         self.uid: int | None = None
 
     def _post(self, path: str, params: dict) -> dict:
         try:
             response = self.http.post(f'{self.creds.url}{path}', json={'jsonrpc': '2.0', 'method': 'call', 'params': params},
-                                      timeout=settings.ODOO_TIMEOUT_SECONDS)
+                                      timeout=self.timeout)
         except (requests.ConnectionError, requests.Timeout) as exc:
             raise OdooUnavailable(f'Odoo no responde: {exc}') from exc
         if response.status_code >= 500:

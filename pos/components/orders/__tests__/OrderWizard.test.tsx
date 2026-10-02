@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import { OrderWizard } from '@/components/orders/OrderWizard'
 import { DEFAULT_ROLE_POLICY } from '@/lib/domain/permissions'
-import { callKw } from '@/lib/services/odoo'
+import { coreFetch } from '@/lib/services/core/http'
 import { useOrderWizardStore } from '@/lib/stores/orderWizardStore'
 import ordersMessages from '@/lib/i18n/messages/modules/orders.json'
 
@@ -18,7 +18,7 @@ jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
 jest.mock('@/lib/stores/authStore', () => ({ useAuthStore: Object.assign((select: (state: typeof mockAuth) => unknown) => select(mockAuth), { getState: () => mockAuth }) }))
 jest.mock('@/lib/stores/catalogStore', () => ({ useCatalogStore: (select: (state: { catalog: typeof mockCatalog }) => unknown) => select({ catalog: mockCatalog }) }))
 jest.mock('@/lib/stores/orderStore', () => ({ useOrderStore: () => mockOrders }))
-jest.mock('@/lib/services/odoo', () => ({ callKw: jest.fn(), inRestaurant: (d: unknown[]) => d, currentConfigId: () => null }))
+jest.mock('@/lib/services/core/http', () => ({ coreFetch: jest.fn() }))
 jest.mock('@/lib/stores/toastStore', () => ({ toast: jest.fn() }))
 jest.mock('@/lib/hooks/useOrderLocations', () => ({ useOrderLocations: () => new Map([[8, { floor: 'Terraza', zone: 'Ventanal', zoneStatus: 'ready' }]]) }))
 jest.mock('@/components/orders/SummaryStep', () => ({ SummaryStep: ({ onConfirm }: { onConfirm: () => void }) => <button onClick={onConfirm}>Confirmar prueba</button> }))
@@ -33,9 +33,10 @@ beforeEach(() => {
   useOrderWizardStore.setState({ createOrder: mockCreate, fireKitchen: mockFire, loadExtras: jest.fn() })
   mockCreate.mockResolvedValue({ id: 40, trackingNumber: '40' })
   mockFire.mockResolvedValue(true)
-  ;(callKw as jest.Mock).mockResolvedValue({ require_payment_roles: [] })
+  ;(coreFetch as jest.Mock).mockResolvedValue({ restaurant: { kitchen_prepay_roles: [] } })
 })
 
+// Falla si confirmar y enviar a cocina no vuelve a la pantalla de origen.
 it.each(['/salon', '/pedidos'] as const)('returns to %s after confirming and sending to kitchen', async (returnTo) => {
   render(<NextIntlClientProvider locale="es" messages={messages}><OrderWizard presetTableId={8} returnTo={returnTo} /></NextIntlClientProvider>)
   act(() => useOrderWizardStore.setState({ stepIndex: 3 }))
@@ -45,6 +46,7 @@ it.each(['/salon', '/pedidos'] as const)('returns to %s after confirming and sen
   expect(mockFire).toHaveBeenCalledWith(40)
 })
 
+// Falla si el mesero no puede dejar un pedido para que lo cobre el cajero.
 it('leaves an unpaid takeaway for the cashier and returns the waiter to Mesas', async () => {
   render(<NextIntlClientProvider locale="es" messages={messages}><OrderWizard presetTableId={null} returnTo="/salon" /></NextIntlClientProvider>)
   act(() => {
@@ -57,7 +59,7 @@ it('leaves an unpaid takeaway for the cashier and returns the waiter to Mesas', 
   expect(screen.queryByRole('dialog', { name: 'Cobrar pedido' })).not.toBeInTheDocument()
 })
 
-
+// Falla si se permite crear un pedido sin elegir el servicio o en mesa sin mesa.
 it('requires an explicit takeaway or delivery choice and never offers dine-in without a table', () => {
   render(<NextIntlClientProvider locale="es" messages={messages}><OrderWizard presetTableId={null} withoutTable /></NextIntlClientProvider>)
   expect(screen.queryByRole('radio', { name: 'En mesa' })).not.toBeInTheDocument()
@@ -71,6 +73,7 @@ it('requires an explicit takeaway or delivery choice and never offers dine-in wi
   expect(screen.getByRole('button', { name: 'Continuar' })).toBeDisabled()
 })
 
+// Falla si el asistente pierde la mesa, el piso o la zona elegida.
 it('keeps the selected table, floor and zone visible throughout a dine-in order', () => {
   render(<NextIntlClientProvider locale="es" messages={messages}><OrderWizard presetTableId={8} /></NextIntlClientProvider>)
   expect(screen.getByLabelText('Ubicación del pedido')).toHaveTextContent('Mesa 8')

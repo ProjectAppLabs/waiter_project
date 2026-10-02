@@ -12,7 +12,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from experience_app.models import DinerAccount, DinerPasswordReset, Diner, CartLine
-from experience_app.adapters.registry.client import resolve
+from experience_app.adapters.core.pos import resolve
 
 
 @api_view(['POST'])

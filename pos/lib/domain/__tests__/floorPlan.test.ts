@@ -1,22 +1,26 @@
 import { extent, invalidTable, normalizePlan, planFits, snap, zoneAt, type FloorDocument } from '@/lib/domain/floorPlan'
 import { planImageSrc, contentBounds, fitZoom, salonZoom, tableProblems, type PlanTable } from '@/lib/domain/floorPlan'
 const plan: FloorDocument = {id:null,name:'Salón',revision:0,walls:[],zones:[{id:'z',name:'Terraza',color:'#3b82f6',x:0,y:0,width:600,height:400}],tables:[{id:1,key:'1',number:1,seats:6,zone:'z',x:40,y:40,width:120,height:240},{id:2,key:'2',number:2,seats:4,zone:'z',x:200,y:40,width:120,height:120}]}
+// Falla si una rotación oculta la colisión antes de apartar la mesa.
 it('allows a temporary rotation and identifies the collision until moved away',()=>{
  const rotated={...plan.tables[0],width:240,height:120}
  expect(invalidTable(rotated,plan)).toBe(true)
  expect(invalidTable({...rotated,y:240},plan)).toBe(false)
 })
+// Falla si se permite guardar paredes superpuestas, números repetidos o capacidad inválida.
 it('rejects walls, duplicate numbers and invalid capacity',()=>{
  expect(invalidTable(plan.tables[0],plan)).toBe(false)
  expect(invalidTable({...plan.tables[0],number:2},plan)).toBe(true)
  expect(invalidTable({...plan.tables[0],seats:0},plan)).toBe(true)
  expect(invalidTable(plan.tables[0],{...plan,walls:[{id:'wall',x:0,y:0,width:800,height:40}]})).toBe(true)
 })
+// Falla si asignar zona no usa el centro de la mesa o asigna mesas exteriores.
 it('assigns a table by its center and leaves outside tables unassigned',()=>{
  expect(zoneAt(plan.tables[0],plan.zones)).toBe('z')
  expect(zoneAt({...plan.tables[0],x:800},plan.zones)).toBe('')
 })
 
+// Falla si trasladar el plano rompe las posiciones relativas entre capas.
 it('allows negative coordinates and translates all layers together for persistence',()=>{
  const draft={...plan,backgroundSize:{x:0,y:0,width:1200,height:800},walls:[{id:'w',x:-400,y:-200,width:20,height:100}],tables:[{...plan.tables[0],x:-200,y:-100}]}
  expect(snap(-83)).toBe(-80)
@@ -79,12 +83,12 @@ it('explains every reason a table cannot be saved, in step with invalidTable', (
 // Falla si una imagen adicional queda fuera del encuadre o del traslado del origen al guardar (se descuadraría respecto
 // a las mesas), o si una imagen recién subida y una ya guardada dejan de resolver su origen correcto.
 it('treats extra images as part of the plan and resolves their source', () => {
- const doc:FloorDocument={id:1,name:'P',revision:0,tables:[{id:1,key:'1',number:1,seats:4,zone:'',x:0,y:0,width:120,height:120}],walls:[],zones:[],images:[{id:'a',attachmentId:9,x:-200,y:40,width:400,height:300}]}
+ const doc:FloorDocument={id:1,name:'P',revision:0,tables:[{id:1,key:'1',number:1,seats:4,zone:'',x:0,y:0,width:120,height:120}],walls:[],zones:[],images:[{id:'a',src:'/experience/api/pos/v1/floors/1/images/a?org=burger-house',x:-200,y:40,width:400,height:300}]}
  expect(extent(doc).x).toBe(-200)
  const moved=normalizePlan(doc)
  expect(moved.images![0]).toMatchObject({x:0,y:40}); expect(moved.tables[0].x).toBe(200)
  expect(planFits({...doc,images:[{id:'a',x:0,y:0,width:30000,height:100}]})).toBe(false)
- expect(planImageSrc(doc.images![0])).toBe('/odoo/web/image/9')
+ expect(planImageSrc(doc.images![0])).toBe('/experience/api/pos/v1/floors/1/images/a?org=burger-house')
  expect(planImageSrc({id:'n',data:'/9j/abc',x:0,y:0,width:1,height:1})).toBe('data:image/jpeg;base64,/9j/abc')
  expect(planImageSrc({id:'n',data:'iVBOR',x:0,y:0,width:1,height:1})).toBe('data:image/png;base64,iVBOR')
 })

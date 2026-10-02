@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { Icon } from '@/components/kit/Icon'
 import { Select } from '@/components/ui/Select'
-import { lineGroup, odooDate, type KitOrder } from '@/lib/domain/orderState'
+import { lineGroup, orderDate, type KitOrder } from '@/lib/domain/orderState'
 import type { OrderLocation } from '@/lib/domain/orderLocation'
 import type { TableCall } from '@/lib/services/tables'
 import type { Table } from '@/lib/types'
@@ -38,7 +38,7 @@ export function ServiceSidebar({ orders, calls, tables, visibleTableIds, locatio
   const counts = { ready: tasks.filter((task) => task.ready.length).length, pending: tasks.filter((task) => task.pending.length).length, calls: tasks.filter((task) => task.call).length }
   const visible = tasks.filter((task) => filter === 'all' || (filter === 'calls' ? task.call : task[filter].length))
   const waiting = (since: string) => {
-    const at = odooDate(since).getTime()
+    const at = orderDate(since).getTime()
     return Number.isFinite(at) ? t('minutes', { count: Math.max(0, Math.floor((now - at) / 60_000)) }) : t('timeUnknown')
   }
   return (

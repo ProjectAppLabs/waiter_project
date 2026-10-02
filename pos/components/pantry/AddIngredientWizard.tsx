@@ -6,10 +6,9 @@ import { useRef, useState } from 'react'
 import { Chip } from '@/components/kit/Chip'
 import { Icon } from '@/components/kit/Icon'
 import { INPUT, LABEL, PrimaryButton, WizardFrame } from '@/components/pantry/WizardFrame'
+import { Button } from '@/components/ui/Button'
 import { imageDataUrl, resizeImage, validateLogoFile } from '@/lib/domain/image'
 import { PANTRY_CATEGORIES, categoryEmoji, type Ingredient, type PantryCategory } from '@/lib/domain/pantry'
-import { Button } from '@/components/ui/Button'
-import { onCore } from '@/lib/domain/backend'
 import { createIngredient, createSupplier, imageUrl, updateIngredient, type KitUnit, type Supplier } from '@/lib/services/pantry'
 import { toast } from '@/lib/stores/toastStore'
 import { cn } from '@/lib/utils'
@@ -17,8 +16,6 @@ import { cn } from '@/lib/utils'
 const PHOTO_MAX = { width: 512, height: 512 }
 export const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('')
 
-// "Add New Ingredients" del kit en dos pasos: datos (nombre, categoría, stock inicial, unidad, foto) y proveedor en
-// rejilla con buscador. Al enviar llama a `waiter_create_ingredient` del addon. Con `initial` edita (menú ⋯ → Editar).
 export function AddIngredientWizard({ open, onClose, initial = null, units, suppliers, onSaved }: {
   open: boolean; onClose: () => void; initial?: Ingredient | null; units: KitUnit[]; suppliers: Supplier[]; onSaved: () => Promise<void>
 }) {
@@ -121,7 +118,7 @@ export function AddIngredientWizard({ open, onClose, initial = null, units, supp
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-        {onCore() && (
+        {(
           <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); void addSupplier() }}>
             <input value={newSupplier} onChange={(e) => setNewSupplier(e.target.value)} placeholder={t('newSupplierPlaceholder')} aria-label={t('newSupplier')} className={cn(INPUT, 'max-w-[390px]')} />
             <Button type="submit" disabled={!newSupplier.trim() || creating}>{t('addSupplier')}</Button>
@@ -133,7 +130,7 @@ export function AddIngredientWizard({ open, onClose, initial = null, units, supp
             <button key={s.id} type="button" role="radio" aria-checked={s.id === supplierId} onClick={() => setSupplierId(s.id)}
               className={cn('h-[140px] rounded-md border bg-surface flex flex-col items-center justify-center gap-3 px-3', s.id === supplierId ? 'border-primary' : 'border-border')}>
               <span className="w-16 h-16 rounded-full bg-primary-soft text-primary grid place-items-center text-[20px] font-semibold overflow-hidden">
-                {s.hasImage ? <img src={`/odoo/web/image/res.partner/${s.id}/image_128`} alt="" className="w-full h-full object-cover" /> : initials(s.name)}
+                {initials(s.name)}
               </span>
               <span className="text-[15px] font-semibold text-ink text-center leading-tight">{s.name}</span>
             </button>

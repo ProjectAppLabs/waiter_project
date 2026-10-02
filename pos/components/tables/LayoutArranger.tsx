@@ -30,8 +30,6 @@ function Mini({ template }: { template: TableTemplate }) {
   return <div className="relative w-[68px] h-[68px] shrink-0 grid place-items-center"><div className="relative" style={{ width: rect.width, height: rect.height }}><TableShape inert rect={rect} name="" state="available" label="" /></div></div>
 }
 
-// Paso "Organizar plano" del kit (Layout Arrange – 1..3.png y Edit Table/Layout Arrange.png): paleta arrastrable,
-// cuadrícula, mover, rotar 90° (intercambia ancho y alto: Odoo no guarda rotación) y zona "Arrastra aquí para borrar".
 export function LayoutArranger({ tables, onChange, onRemove }: Props) {
   const t = useTranslations('tables.wizard')
   const canvas = useRef<HTMLDivElement>(null)

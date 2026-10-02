@@ -12,8 +12,6 @@ const Field = ({ label, value }: { label: string; value: string | null }) => (
   <div className="flex flex-col gap-1"><dt className="text-[13px] font-semibold text-ink">{label}</dt><dd className="text-[14px] text-soft">{value || NONE}</dd></div>
 )
 
-// "Employee Info" del kit (10 – Account Setting/Profile.png): cabecera con foto, código y turno de hoy;
-// tarjeta Personal / Trabajo. Lee hr.employee; lo que Odoo no tiene (o niega al terminal) se muestra "—".
 export function EmployeeInfoPanel({ employeeId }: { employeeId: number | null }) {
   const t = useTranslations('account.settings.profile')
   const tr = useTranslations('pos.nav.roles')

@@ -3,7 +3,9 @@ from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from experience_app.adapters.registry.client import RegistryUnavailable, TenantNotFound, resolve
+from django.db import OperationalError
+from experience_app.adapters.core.context import RestaurantNotFound
+from experience_app.adapters.core.pos import resolve
 from experience_app.models import CartLine, Diner, TableSession
 from experience_app.services import catalog, discount, sessions
 
@@ -13,9 +15,7 @@ COOKIE_MAX_AGE = 12 * 3600
 
 def diner_for(request, session: TableSession) -> Diner:
     diner = get_object_or_404(Diner.objects.select_related('account'), key=request.COOKIES.get(COOKIE, ''), session=session)
-    from experience_app.adapters.backend import backend_for
-    if hasattr(backend_for(session.restaurant_slug), 'Client'):
-        resolve(session.restaurant_slug, session.venue_slug, session.table_token)
+    resolve(session.restaurant_slug, session.venue_slug, session.table_token)
     return diner
 
 
@@ -24,7 +24,7 @@ def discount_percent(session: TableSession) -> float:
     siempre se muestra."""
     try:
         return discount.percent_for(resolve(session.restaurant_slug, session.venue_slug, session.table_token))
-    except (RegistryUnavailable, TenantNotFound):
+    except (OperationalError, RestaurantNotFound):
         return discount.DEFAULT_PERCENT
 
 

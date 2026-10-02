@@ -1,5 +1,6 @@
 """Premios por acciones verificadas en el servidor, aislados por cuenta y organización."""
-from experience_app.adapters.backend import backend_for, client_for
+from tenancy.http import Problem
+from experience_app.adapters.core.pos import Client
 from decimal import Decimal
 
 from django.conf import settings
@@ -7,8 +8,9 @@ from django.core.cache import cache
 from django.db import transaction
 from django.utils import timezone
 
-from experience_app.adapters.odoo.client import OdooClient, OdooError
-from experience_app.adapters.registry.client import RegistryUnavailable, TenantNotFound
+from django.db import DatabaseError
+from django.db import OperationalError
+from experience_app.adapters.core.context import RestaurantNotFound
 from experience_app.models import CartLine, DinerAccount, DinerFeedback, DinerReward, Order, PaymentAttempt
 from experience_app.services import benefits
 
@@ -19,10 +21,10 @@ def actions(tenant):
     if cached is not None:
         return cached
     try:
-        result = client_for(tenant, OdooClient).call_kw('pos.config', 'waiter_benefit_actions', [[tenant.config_id]])
-    except (OdooError, TenantNotFound):
+        result = Client(tenant).call_kw('pos.config', 'waiter_benefit_actions', [[tenant.config_id]])
+    except (DatabaseError, Problem, RestaurantNotFound):
         result = []
-    # Una versión antigua del addon no debe impedir consultar el carrito.
+    # Un fallo al consultar las acciones no debe impedir consultar el carrito.
     result = result if isinstance(result, list) else []
     cache.set(key, result, min(settings.MENU_CACHE_SECONDS, 30))
     return result
@@ -66,10 +68,10 @@ def sync(tenant, account):
                           'prize_snapshot': dict(prize), 'state': 'pendiente' if prize['tipo'] == 'puntos' else 'disponible'})
     for row in DinerReward.objects.filter(**_scope(tenant, account), reward='puntos', state='pendiente'):
         try:
-            client_for(tenant, OdooClient).call_kw('pos.config', 'waiter_grant_points', [[tenant.config_id],
+            Client(tenant).call_kw('pos.config', 'waiter_grant_points', [[tenant.config_id],
                 {'id': str(account.id), 'name': account.name, 'email': account.email, 'phone': account.phone},
                 f'{row.action}:{account.id}:{row.reference}', row.points, f'Premio por {row.action}'])
-        except OdooError:
+        except (DatabaseError, Problem):
             continue
         DinerReward.objects.filter(pk=row.pk, state='pendiente').update(state='acreditado', used_at=timezone.now())
 
@@ -78,12 +80,12 @@ def sync_for_diner(diner):
     if diner.account_id:
         try:
             sync(benefits.tenant_for(diner.session), diner.account)
-        except (RegistryUnavailable, TenantNotFound):
-            pass  # Una caída del registro no impide ver la cuenta ni guardar una opinión.
+        except (OperationalError, RestaurantNotFound):
+            pass  # Un fallo de resolución no impide ver la cuenta ni guardar una opinión.
 
 
 def reserve(tenant, diner, new_lines, order):
-    """CAS antes del envío a Odoo; las líneas reservadas conservan su descuento ante un resultado incierto."""
+    """CAS antes del envío al sistema propio; las líneas reservadas conservan su descuento ante un resultado incierto."""
     if diner is None or diner.account_id is None or diner.coupon_code:
         return
     mine = [line for line in new_lines if line.diner_id == diner.id]
@@ -141,8 +143,8 @@ def discount_view(lines, diner):
             for candidate in rows.filter(state='disponible').order_by('-percent', 'created_at', 'pk'):
                 if candidate.prize_snapshot.get('configs') and config_id is None:
                     try:
-                        config_id = benefits.tenant_for(diner.session).odoo.pos_config_id
-                    except (RegistryUnavailable, TenantNotFound):
+                        config_id = benefits.tenant_for(diner.session).config_id
+                    except (OperationalError, RestaurantNotFound):
                         continue
                 if _eligible(candidate, config_id):
                     row = candidate

@@ -2,7 +2,7 @@
 
 import { create } from 'zustand'
 
-import { addLine, replaceLine, setLineQty, type CartLine, type OptionGroup, type TaxRate } from '@/lib/domain/orderWizard'
+import { addLine, replaceLine, setLineQty, type CartLine, type TaxRate } from '@/lib/domain/orderWizard'
 import { depositOf, emptyDraft, type ReservationDraft, type Slot } from '@/lib/domain/reservations'
 import { play } from '@/lib/audio/sounds'
 import { loadMenuExtras, loadTaxes, type MenuExtras } from '@/lib/services/productOptions'
@@ -50,7 +50,7 @@ interface ReservationsState {
 }
 
 // Reservas del kit (7 – Reservation): la grilla del día y el asistente de cuatro pasos. El servidor
-// (`projectapp_reservations`) decide franjas, mesas libres y solapes; aquí solo se orquesta la pantalla.
+// El servidor decide franjas, mesas libres y solapes; aquí solo se orquesta la pantalla.
 // Número de la petición de grilla más reciente. Solo esa puede instalar su respuesta: una más vieja que llega tarde (se
 // cambió de fecha o se salió de la página) se descarta. Sin esto, volver a una fecha ya cargada mientras la otra aún
 // llegaba dejaba la grilla de la otra fecha, y una respuesta tardía deshacía el `forget` de la salida.

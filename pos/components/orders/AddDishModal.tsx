@@ -1,5 +1,7 @@
 'use client'
 
+import { imageUrl } from '@/lib/services/pantry'
+
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
@@ -41,7 +43,7 @@ export function AddDishModal({ product, description, groups, initial, onClose, o
       <div className="flex items-start gap-4 px-6 py-4 border-b border-border">
         <span className="w-[76px] h-[76px] rounded-md bg-muted overflow-hidden grid place-items-center text-dim shrink-0">
           {product.hasImage
-            ? <img src={`/odoo/web/image/product.template/${product.templateId}/image_512`} alt={t('photo', { name: product.name })} className="w-full h-full object-cover" />
+            ? <img src={imageUrl(product.templateId)} alt={t('photo', { name: product.name })} className="w-full h-full object-cover" />
             : <Icon name="photo" size={24} />}
         </span>
         <div className="flex-1 min-w-0">
@@ -59,7 +61,7 @@ export function AddDishModal({ product, description, groups, initial, onClose, o
         {groups.map((group) => (
           <fieldset key={`${group.kind}-${group.id}`} className="flex flex-col gap-1">
             <legend className="w-full flex items-center justify-between mb-2">
-              <span className="text-[15px] font-semibold text-ink">{t('addOn')} · {group.name}</span>
+              <span className="text-[15px] font-semibold text-ink">{group.name}</span>
               <span className={cn('h-6 px-2 rounded-sm text-[13px] font-semibold grid place-items-center', group.required ? 'bg-primary-soft text-primary' : 'bg-muted text-soft')}>
                 {group.required ? t('required') : t('optional')}
               </span>

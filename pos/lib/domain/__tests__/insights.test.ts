@@ -147,7 +147,7 @@ it('ranks a dish that stopped selling ahead of dishes that never sold', () => {
   expect(bottom).toHaveLength(5)
 })
 
-// Falla si un intento de entrada fuera de turno no sale primero en «Para atender ahora» con el texto de Odoo (plan P).
+// Falla si un intento de entrada fuera de turno no sale primero en «Para atender ahora» con el texto del servidor (plan P).
 it('el intento de entrada fuera de turno va antes que todo', () => {
   const items = attentionItems({ nowHour: 23.5, ready: 2, reservations: [], ingredients: [], soldOut: [],
     access: [{ id: 41, body: 'Mateo intentó entrar a las 23:40, fuera de su turno (14:00–22:00).' }], accessHref: '/organizacion/equipo' })

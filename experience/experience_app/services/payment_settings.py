@@ -31,14 +31,14 @@ def save(restaurant, venue, data):
     allowed = {'environment', 'enabled', 'public_key', 'payment_method_id', *SECRET_FIELDS}
     if not isinstance(data, dict) or set(data) - allowed or data.get('environment') not in ('test', 'prod'):
         raise ValidationError({'detail': 'Configuración de pasarela inválida.'})
-    from experience_app.adapters.backend import backend_for, client_for
-    from experience_app.adapters.registry.client import resolve
-    if hasattr(backend_for(restaurant), 'Client'):
-        client = client_for(resolve(restaurant, venue))
-        method = backend_for(restaurant).online_method(client)
-        if data.get('payment_method_id') not in (None, method.pk):
-            raise ValidationError({'detail': 'Selecciona el método Pago en línea de esta organización.'})
-        data = {**data, 'payment_method_id': method.pk}
+    from experience_app.adapters.core import pos
+    from experience_app.adapters.core.pos import Client
+    from experience_app.adapters.core.pos import resolve
+    client = Client(resolve(restaurant, venue))
+    method = pos.online_method(client)
+    if data.get('payment_method_id') not in (None, method.pk):
+        raise ValidationError({'detail': 'Selecciona el método Pago en línea de esta organización.'})
+    data = {**data, 'payment_method_id': method.pk}
     environment = data['environment']
     config, _ = PaymentGateway.objects.select_for_update().get_or_create(restaurant_slug=restaurant, venue_slug=venue,
         provider='wompi', environment=environment)

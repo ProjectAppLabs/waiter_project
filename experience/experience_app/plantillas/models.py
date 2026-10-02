@@ -2,7 +2,7 @@
 
 `MenuTemplate` es una copia en base de `catalogo/<codigo>.json`: se siembra por upsert y nunca se edita a mano, así el
 catálogo vive versionado en el repo y añadir una plantilla es añadir un JSON. `VenueMenuSettings` es lo único que el
-restaurante escribe (desde el POS, por la pasarela del addon): qué plantilla y con qué colores y tipografía.
+restaurante escribe (desde el POS, por la API administrativa): qué plantilla y con qué colores y tipografía.
 """
 from django.db import models
 

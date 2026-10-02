@@ -1,13 +1,6 @@
-import { onCore } from '@/lib/domain/backend'
-import * as coreRes from '@/lib/services/core/reservations'
-import { currentRestaurantId } from '@/lib/services/core/catalogBridge'
 import type { DepositState, ReservationCard, ReservationState, Slot, TimelineTable } from '@/lib/domain/reservations'
-import { callKw } from '@/lib/services/odoo'
-
-// Reservas del kit sobre el addon `projectapp_reservations`: el servidor calcula franjas, solapes y estados.
-// Aquí solo se llaman sus métodos y se traduce la forma a camelCase.
-
-const MODEL = 'waiter.reservation'
+import { currentRestaurantId } from '@/lib/services/core/catalogBridge'
+import * as coreRes from '@/lib/services/core/reservations'
 
 interface RawCard {
   id: number; name: string; customer_name: string; people: number; baby_chair: boolean; state: ReservationState
@@ -17,16 +10,20 @@ interface RawCard {
 interface RawTable { id: number; table_number: number; name: string; seats: number; floor_id: number; floor_name: string; shape: string }
 interface RawTimeline { date: string; slots: Slot[]; floors: { id: number; name: string }[]; tables: (RawTable & { reservations: RawCard[] })[] }
 interface RawLine { id: number; product_id: number; product_tmpl_id: number; name: string; qty: number; price_unit: number; price_subtotal_incl: number; note: string }
-interface RawDetail extends RawCard { customer_email: string; customer_phone: string; notes: string; amount_total: number; lines: RawLine[]
-  deposit_amount: number; deposit_state: DepositState; deposit_reference: string; deposit_paid_at: string; pay_token: string; pay_url: string; restaurant_name: string }
+interface RawDetail extends RawCard {
+  customer_email: string; customer_phone: string; notes: string; amount_total: number; lines: RawLine[]
+  deposit_amount: number; deposit_state: DepositState; deposit_reference: string; deposit_paid_at: string; pay_token: string; pay_url: string; restaurant_name: string
+}
 
 export interface AvailableTable extends Omit<RawTable, 'table_number' | 'floor_id' | 'floor_name'> {
   tableNumber: number; floorId: number; floorName: string
   status: 'available' | 'reserved' | 'unavailable'; available: boolean; reservedAt: string | false
 }
 export interface ReservationLine { id: number; productId: number; productTmplId: number; name: string; qty: number; priceUnit: number; total: number; note: string }
-export interface ReservationDetail extends ReservationCard { customerEmail: string; customerPhone: string; notes: string; amountTotal: number; lines: ReservationLine[]
-  depositAmount: number; depositState: DepositState; depositReference: string; depositPaidAt: string; payToken: string; payUrl: string; restaurantName: string }
+export interface ReservationDetail extends ReservationCard {
+  customerEmail: string; customerPhone: string; notes: string; amountTotal: number; lines: ReservationLine[]
+  depositAmount: number; depositState: DepositState; depositReference: string; depositPaidAt: string; payToken: string; payUrl: string; restaurantName: string
+}
 export interface Timeline { date: string; slots: Slot[]; floors: { id: number; name: string }[]; tables: TimelineTable[] }
 export interface NewReservation {
   customerName: string; customerEmail: string; customerPhone: string; people: number; babyChair: boolean
@@ -48,28 +45,22 @@ const detail = (r: RawDetail): ReservationDetail => ({
 })
 
 export async function getTimeline(configId: number, date: string, floorId?: number | null): Promise<Timeline> {
-  if (onCore()) { const raw = await coreRes.timeline<RawTimeline>(configId, date, floorId); return { date: raw.date, slots: raw.slots, floors: raw.floors, tables: raw.tables.map((t) => ({ id: t.id, tableNumber: t.table_number, name: t.name, seats: t.seats, floorId: t.floor_id, reservations: t.reservations.map(card) })) } }
-  const raw = await callKw<RawTimeline>(MODEL, 'waiter_timeline', [configId, date, floorId ?? false])
-  return {
-    date: raw.date, slots: raw.slots, floors: raw.floors,
-    tables: raw.tables.map((t) => ({ id: t.id, tableNumber: t.table_number, name: t.name, seats: t.seats, floorId: t.floor_id, reservations: t.reservations.map(card) })),
-  }
+  const raw = await coreRes.timeline<RawTimeline>(configId, date, floorId)
+  return { date: raw.date, slots: raw.slots, floors: raw.floors, tables: raw.tables.map((t) => ({ id: t.id, tableNumber: t.table_number, name: t.name, seats: t.seats, floorId: t.floor_id, reservations: t.reservations.map(card) })) }
 }
 
-export const getSlots = (configId: number, date: string): Promise<Slot[]> => (onCore() ? coreRes.slots<Slot[]>(configId, date) : callKw<Slot[]>(MODEL, 'waiter_slots', [configId, date]))
+export const getSlots = (configId: number, date: string): Promise<Slot[]> => (coreRes.slots<Slot[]>(configId, date))
 
 // `excludeId`: la reserva que se está editando; sus propias mesas no le cuentan como ocupadas.
 export async function getAvailableTables(configId: number, date: string, timeStart: number, people: number, prepMinutes: string = '30', excludeId: number | null = null): Promise<AvailableTable[]> {
   type Row = RawTable & { status: AvailableTable['status']; available: boolean; reserved_at: string | false }
-  const raw = onCore() ? await coreRes.tables<Row[]>(configId, date, timeStart, people, prepMinutes, excludeId) : await callKw<Row[]>(
-    MODEL, 'waiter_available_tables', [configId, date, timeStart, people, false, true, prepMinutes, excludeId ?? false])
+  const raw = await coreRes.tables<Row[]>(configId, date, timeStart, people, prepMinutes, excludeId)
   return raw.map((t) => ({ id: t.id, tableNumber: t.table_number, name: t.name, seats: t.seats, floorId: t.floor_id, floorName: t.floor_name, shape: t.shape, status: t.status, available: t.available, reservedAt: t.reserved_at }))
 }
 
 // Cambia las mesas de una reserva confirmada; la primera queda como principal y el pre-pedido la sigue.
 export async function setReservationTables(id: number, tableIds: number[]): Promise<ReservationDetail> {
-  if (onCore()) return detail(await coreRes.setTables<RawDetail>(id, tableIds))
-  return detail(await callKw<RawDetail>(MODEL, 'waiter_set_tables', [[id], tableIds]))
+  return detail(await coreRes.setTables<RawDetail>(id, tableIds))
 }
 
 export async function createReservation(input: NewReservation, lines: PreorderLine[]): Promise<ReservationDetail> {
@@ -80,45 +71,36 @@ export async function createReservation(input: NewReservation, lines: PreorderLi
     prep_minutes: input.prepMinutes, deposit_amount: input.depositAmount,
   }
   const preorder = lines.map((l) => ({ product_id: l.productId, qty: l.qty, note: l.note ?? '' }))
-  if (onCore()) {
-    const { config_id, ...rest } = vals
-    return detail(await coreRes.create<RawDetail>({ ...rest, restaurant_id: config_id, customer_email: input.customerEmail, customer_phone: input.customerPhone, notes: input.notes, lines: preorder }))
-  }
-  const raw = await callKw<RawDetail>(MODEL, 'waiter_create', [vals, preorder])
-  return detail(raw)
+  const { config_id, ...rest } = vals
+  return detail(await coreRes.create<RawDetail>({ ...rest, restaurant_id: config_id, customer_email: input.customerEmail, customer_phone: input.customerPhone, notes: input.notes, lines: preorder }))
 }
 
 export async function getReservation(id: number): Promise<ReservationDetail | null> {
-  if (onCore()) { try { return detail(await coreRes.get<RawDetail>(id)) } catch { return null } }
-  const raw = await callKw<RawDetail[]>(MODEL, 'waiter_detail', [[id]])
-  return raw[0] ? detail(raw[0]) : null
+  try { return detail(await coreRes.get<RawDetail>(id)) } catch { return null }
 }
 
 /** Reservas activas de una mesa, para el modal "Lista de reservas" del plano. */
 export async function listByTable(tableId: number): Promise<ReservationCard[]> {
-  if (onCore()) return (await coreRes.byTable<RawDetail>(tableId)).map(card)
-  const ids = await callKw<{ id: number }[]>(MODEL, 'search_read', [[['table_ids', 'in', [tableId]], ['state', 'in', ['confirmed', 'seated']]], ['id']], { order: 'date, time_start' })
-  if (ids.length === 0) return []
-  const raw = await callKw<RawDetail[]>(MODEL, 'waiter_detail', [ids.map((r) => r.id)])
-  return raw.map(card)
+  return (await coreRes.byTable<RawDetail>(tableId)).map(card)
 }
 
 /** Cambia o quita (0) el costo de una reserva cuyo anticipo aún no se ha pagado. */
-export const setDeposit = async (id: number, amount: number): Promise<ReservationDetail> => detail(onCore() ? await coreRes.setDeposit<RawDetail>(id, amount) : await callKw<RawDetail>(MODEL, 'waiter_set_deposit', [[id], amount]))
+export const setDeposit = async (id: number, amount: number): Promise<ReservationDetail> => detail(await coreRes.setDeposit<RawDetail>(id, amount))
 /** El cliente pagó por fuera del enlace (efectivo, transferencia): se registra a mano. */
-export const markDepositPaid = async (id: number, reference?: string): Promise<ReservationDetail> => detail(onCore() ? await coreRes.depositPaid<RawDetail>(id, reference ?? '') : await callKw<RawDetail>(MODEL, 'waiter_mark_deposit_paid', [[id], reference ?? false]))
+export const markDepositPaid = async (id: number, reference?: string): Promise<ReservationDetail> => detail(await coreRes.depositPaid<RawDetail>(id, reference ?? ''))
 
 const ACTIONS = { seated: 'action_seated', no_show: 'action_no_show', cancelled: 'action_cancel' } as const
 const CORE_ACTIONS = { seated: 'seat', no_show: 'no-show', cancelled: 'cancel' } as const
-export const setReservationState = (id: number, state: keyof typeof ACTIONS): Promise<boolean> => (onCore() ? coreRes.transition(id, CORE_ACTIONS[state]).then(() => true) : callKw<boolean>(MODEL, ACTIONS[state], [[id]]))
+export const setReservationState = (id: number, state: keyof typeof ACTIONS): Promise<boolean> => (coreRes.transition(id, CORE_ACTIONS[state]).then(() => true))
 
 /** Próxima reserva por mesa del día: la usa el plano para pintar "Reservada · 17:00". */
 export async function reservedAtByTable(date: string): Promise<Record<string, { label: string } | false>> {
   // En el sistema propio, la próxima reserva de cada mesa sale de la línea de tiempo del día.
-  if (onCore()) {
-    const r = currentRestaurantId(); if (r === null) return {}
-    const raw = await coreRes.timeline<RawTimeline>(r, date)
-    return Object.fromEntries(raw.tables.map((t) => { const next = t.reservations.find((x) => x.state === 'confirmed'); return [String(t.id), next ? { label: next.label } : false] }))
-  }
-  return callKw<Record<string, { label: string } | false>>('restaurant.table', 'waiter_reserved_at', [[], date])
+  const r = currentRestaurantId()
+  if (r === null) return {}
+  const raw = await coreRes.timeline<RawTimeline>(r, date)
+  return Object.fromEntries(raw.tables.map((t) => {
+    const next = t.reservations.find((x) => x.state === 'confirmed')
+    return [String(t.id), next ? { label: next.label } : false]
+  }))
 }

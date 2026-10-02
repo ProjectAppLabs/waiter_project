@@ -28,7 +28,6 @@ export function formatCountdown(ms: number): string {
   return `${pad(Math.floor(s / 3600))}h ${pad(Math.floor((s % 3600) / 60))}m ${pad(s % 60)}s`
 }
 
-// Método de Odoo detrás de cada pestaña: efectivo por tipo, QR por nombre y tarjeta el banco que no sea QR.
 export function methodFor(kind: PayKind, methods: PaymentMethod[]): PaymentMethod | null {
   const isQr = (m: PaymentMethod) => /\bqr\b/i.test(m.name)
   if (kind === 'cash') return methods.find((m) => m.type === 'cash') ?? null

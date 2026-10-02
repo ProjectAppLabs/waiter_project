@@ -14,9 +14,6 @@ import { markDepositPaid, setDeposit, type ReservationDetail } from '@/lib/servi
 
 const TONE: Record<DepositState, PillTone> = { none: 'neutral', pending: 'progress', paid: 'success' }
 
-// Anticipo de una reserva. Pendiente: el enlace de pago y tres formas de hacérselo llegar al cliente (copiar, WhatsApp,
-// correo), más registrar un pago hecho por fuera o quitar el costo. Pagado: cuándo y con qué referencia.
-// El enlace lo arma Odoo (`payUrl`); abre la página de pago del menú del restaurante, con su marca.
 export function DepositPanel({ reservation, onChanged }: { reservation: ReservationDetail; onChanged: (next: ReservationDetail) => void }) {
   const t = useTranslations('reservations.detail')
   const [copied, setCopied] = useState(false)

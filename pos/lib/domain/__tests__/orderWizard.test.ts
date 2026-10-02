@@ -45,13 +45,12 @@ it('totals add price_extra per unit and the real tax rate', () => {
   expect(fullProductName(lines[0])).toBe('Hamburguesa Angus (BBQ)')
 })
 
-// Falla si el payload pierde el preset, la mesa en "en mesa", los valores de atributo o la nota de silla de bebé.
-it('payload carries preset, table, attribute values and the baby chair note', () => {
+// Falla si el payload pierde el tipo de servicio, la mesa o la nota de silla de bebé.
+it('payload carries service, table and the baby chair note', () => {
   const info = { ...DEFAULT_INFO, babyChair: true, name: 'Zahir Mays', people: 2 }
   const note = orderNote(info, { babyChair: '[Silla de bebé]', delivery: (a, p) => `[Domicilio: ${a} · ${p}]` })
-  const payload = toKitPayload({ uuid: 'u1', sessionId: 16, tableId: 9, info, note, lines: [newLine(angus, 1, 'sin cebolla', [bbq])] })
-  expect(payload).toMatchObject({ preset_id: 1, table_id: 9, customer_count: 2, floating_order_name: 'Zahir Mays', general_customer_note: '[Silla de bebé]' })
-  expect(payload.lines[0][2]).toMatchObject({ price_unit: 38900, price_extra: 2000, attribute_value_ids: [[6, 0, [2]]], customer_note: 'sin cebolla', full_product_name: 'Hamburguesa Angus (BBQ)' })
-  expect(toKitPayload({ uuid: 'u2', sessionId: 16, tableId: 9, info: { ...info, type: 'takeAway' }, note: '', lines: [] })).toMatchObject({ preset_id: 2, table_id: false })
+  const payload = toKitPayload({ uuid: 'u1', tableId: 9, info, note })
+  expect(payload).toMatchObject({ type: 'dineIn', tableId: 9, people: 2, name: 'Zahir Mays', note: '[Silla de bebé]' })
+  expect(toKitPayload({ uuid: 'u2', tableId: 9, info: { ...info, type: 'takeAway' }, note: '' })).toMatchObject({ type: 'takeAway', tableId: null })
   expect(displayReference('takeAway', '7')).toBe('TA007')
 })

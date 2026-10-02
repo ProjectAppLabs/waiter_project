@@ -32,7 +32,6 @@ interface WizardState {
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 const EMPTY = { info: DEFAULT_INFO, tableId: null, lines: [] as CartLine[], stepIndex: 0, created: null, busy: false, error: null }
 
-// Estado del wizard "Create New Order": vive mientras el mesero lo recorre; el pedido solo existe en Odoo al crearlo.
 export const useOrderWizardStore = create<WizardState>((set, get) => ({
   ...EMPTY, requestUuid: uuid(), extras: null, taxes: [],
   reset: (initial) => set({ ...EMPTY, requestUuid: uuid(), tableId: initial?.tableId ?? null }),
@@ -60,7 +59,7 @@ export const useOrderWizardStore = create<WizardState>((set, get) => ({
     const { info, tableId, lines, requestUuid } = get()
     set({ busy: true, error: null })
     try {
-      const created = await createKitOrder(toKitPayload({ uuid: requestUuid, sessionId, tableId, info, note: orderNote(info, labels), lines }), lines)
+      const created = await createKitOrder(toKitPayload({ uuid: requestUuid, tableId, info, note: orderNote(info, labels) }), lines)
       set({ created, busy: false })
       return created
     } catch (e) {

@@ -13,18 +13,18 @@ from sales.models import CashShift, Order, PaymentMethod
 from tables.models import Table
 from tenancy.http import require
 from tenancy.models import Organization, Restaurant
-from experience_app.adapters.odoo.pos import (
-    Catalog, Product, Category, CompanyBrand, OdooOrder, OrderStatus, OrderLine,
-    PHOTO_FIELDS, DEFAULT_PHOTO_SIZE,
+from .types import (
+    Catalog, Product, Category, CompanyBrand, PlacedOrder, OrderStatus, OrderLine,
+    PHOTO_SIZES, DEFAULT_PHOTO_SIZE,
 )
-from experience_app.adapters.registry.client import Tenant, TenantNotFound
+from experience_app.adapters.core.context import RestaurantContext, RestaurantNotFound
 from experience_app.utils.images import image_content_type
 
 
 def organization(slug):
     org = Organization.objects.filter(slug=slug).first()
     if org is None:
-        raise TenantNotFound(slug)
+        raise RestaurantNotFound(slug)
     require(org.status != 'suspended', 'Este restaurante no está disponible', 'restaurant_unavailable', 404)
     return org
 
@@ -34,14 +34,14 @@ def resolve(org, venue, token=None):
     restaurants = Restaurant.objects.filter(organization=owner, active=True).order_by('id')
     restaurant = restaurants.filter(slug=venue).first() if venue else restaurants.first()
     if restaurant is None:
-        raise TenantNotFound(org, venue)
+        raise RestaurantNotFound(org, venue)
     table = None
     if token:
         table = Table.objects.filter(floor__restaurant=restaurant, floor__active=True, active=True, token=token).first()
         if table is None:
-            raise TenantNotFound(org, venue, token)
-    return Tenant(org, owner.name, restaurant.slug, restaurant.name, token,
-                  table.number if table else None, table.pk if table else None, None,
+            raise RestaurantNotFound(org, venue, token)
+    return RestaurantContext(org, owner.name, restaurant.slug, restaurant.name, token,
+                  table.number if table else None, table.pk if table else None,
                   {'nombre': owner.name, 'color': owner.brand_color, 'fuente': owner.brand_font,
                    'radio': owner.brand_radius, 'lema': owner.tagline, 'saludo': owner.greeting,
                    'mesero': owner.waiter_name, 'bienvenida': owner.welcome, 'logo': owner.logo_url or None},
@@ -144,7 +144,7 @@ def local_order(client, order_id, lock=False):
 
 
 def order_view(order):
-    return OdooOrder(order.pk, order.number, 'cancel' if order.state == 'cancelled' else order.state,
+    return PlacedOrder(order.pk, order.number, 'cancel' if order.state == 'cancelled' else order.state,
                      float(order.total), float(order.tax), float(order.paid))
 
 

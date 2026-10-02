@@ -1,10 +1,11 @@
+from tenancy.http import Problem
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from experience_app.adapters.registry.client import resolve
+from experience_app.adapters.core.pos import resolve
 from experience_app.models import TableSession
 from experience_app.services import agent_cart, agent_chat, catalog
 from experience_app.services.waiter_agent import AgentUnavailable
@@ -59,7 +60,7 @@ class SelectionSerializer(StrictSerializer):
 
 @api_view(['POST'])
 def add_to_cart(request, session_id):
-    from experience_app.adapters.odoo.client import OdooError
+    from django.db import DatabaseError
     from experience_app.services import agent_cart
     from experience_app.views.sessions import cart_of
 
@@ -72,6 +73,6 @@ def add_to_cart(request, session_id):
     body.is_valid(raise_exception=True)
     try:
         agent_cart.add(session, diner, body.validated_data)
-    except OdooError:
+    except (DatabaseError, Problem):
         return Response({'detail': 'No pudimos verificar el plato. Inténtalo de nuevo.'}, status=503)
     return Response({'carrito': cart_of(session, diner), 'selecciones': agent_cart.selected(diner)})

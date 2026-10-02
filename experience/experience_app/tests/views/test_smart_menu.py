@@ -23,12 +23,13 @@ def client_for(name='Ana'):
     return client, diner
 
 
+# Falla si los favoritos se pierden, se duplican o se filtran a otra cuenta.
 def test_favorites_persist_are_idempotent_and_private(catalog_stub):
     a, ana = client_for()
     b, _ = client_for('Beto')
     detail = reverse('account-favorite', args=['burger-house', 'poblado', 3])
     listing = reverse('account-favorites', args=['burger-house', 'poblado'])
-    with patch('experience_app.adapters.registry.client.resolve', return_value=TABLE):
+    with patch('experience_app.adapters.core.pos.resolve', return_value=TABLE):
         assert a.put(detail).json() == {'favoritos': [3]}
         assert a.put(detail).json() == {'favoritos': [3]}
         assert DinerFavorite.objects.count() == 1
@@ -43,11 +44,12 @@ def test_favorites_persist_are_idempotent_and_private(catalog_stub):
         assert a.delete(detail).json() == {'favoritos': []}
 
 
+# Falla si los favoritos no requieren cuenta o se pierden al cambiar de sede.
 def test_favorites_require_account_and_are_shared_between_venues(catalog_stub):
     a, diner = client_for()
-    with patch('experience_app.adapters.registry.client.resolve', return_value=TABLE):
+    with patch('experience_app.adapters.core.pos.resolve', return_value=TABLE):
         a.put(reverse('account-favorite', args=['burger-house', 'poblado', 3]))
-    with patch('experience_app.adapters.registry.client.resolve', return_value=replace(TABLE, venue_slug='otra')):
+    with patch('experience_app.adapters.core.pos.resolve', return_value=replace(TABLE, venue_slug='otra')):
         assert a.get(reverse('account-favorites', args=['burger-house', 'otra'])).json() == {'favoritos': [3]}
     assert a.get(reverse('account-favorites', args=['otra-organizacion', 'centro'])).status_code == 403
     diner.account = None
@@ -56,6 +58,7 @@ def test_favorites_require_account_and_are_shared_between_venues(catalog_stub):
     assert APIClient().get(reverse('account-favorites', args=['burger-house', 'poblado'])).status_code == 404
 
 
+# Falla si guardar el diseño pierde la marca o crea otro diseño activo.
 def test_single_design_and_branding_survive_save():
     seed()
     assert [p['codigo'] for p in services.catalog_view()['plantillas']] == ['S1']
@@ -77,6 +80,7 @@ def test_single_design_and_branding_survive_save():
         services.save('burger-house', 'poblado', {'plantilla': 'S1', 'paleta': {'superficie': '#32324D'}})
 
 
+# Falla si el perfil acepta datos inválidos, pierde cambios o modifica otra cuenta.
 def test_profile_edit_is_validated_persistent_and_scoped_to_cookie():
     client, diner = client_for()
     _, other = client_for('Beto')
@@ -96,6 +100,7 @@ def test_profile_edit_is_validated_persistent_and_scoped_to_cookie():
     assert APIClient().patch(url, {'nombre': 'Guest'}, format='json').status_code == 404
 
 
+# Falla si la opinión se duplica, se pierde o permite acceso a otra persona.
 def test_feedback_persists_is_idempotent_and_excludes_other_diners():
     from experience_app.models import CartLine, DinerFeedback, Order
     a, ana = client_for()
@@ -116,6 +121,7 @@ def test_feedback_persists_is_idempotent_and_excludes_other_diners():
         assert a.put(url, {**payload, **patch}, format='json').status_code == 400
 
 
+# Falla si cerrar sesión pierde el historial o permite acceder a él sin autenticación.
 def test_password_login_preserves_private_history_after_logout():
     from django.contrib.auth.hashers import check_password, make_password
     from django.core.cache import cache
@@ -142,6 +148,7 @@ def test_password_login_preserves_private_history_after_logout():
     assert APIClient().post(url, {'nueva': password}, format='json').status_code == 404
 
 
+# Falla si la recuperación permite reutilizar códigos vencidos o conserva sesiones anteriores.
 def test_reset_email_single_use_expiration_and_session_revocation(settings):
     import re
     from django.core import mail
@@ -170,6 +177,7 @@ def test_reset_email_single_use_expiration_and_session_revocation(settings):
     assert a.post(reverse('account-reset'), {'token': expired_token, 'nueva': 'Another password 42'}, format='json').status_code == 400
 
 
+# Falla si agregar varios platos deja cambios parciales o acepta precios del cliente.
 def test_bundle_is_atomic_and_uses_catalog_prices(catalog_stub):
     from experience_app.models import CartLine
     a, diner = client_for()
@@ -184,17 +192,19 @@ def test_bundle_is_atomic_and_uses_catalog_prices(catalog_stub):
         assert all(line.unit_price > 0 for line in CartLine.objects.all())
 
 
+# Falla si la cocina pierde la indicación para llevar o se modifica la nota original.
 def test_takeaway_is_sent_to_kitchen_without_changing_the_original_note():
     from experience_app.models import CartLine, Order
-    from experience_app.services.orders import _to_odoo_lines
+    from experience_app.services.orders import _to_order_lines
     _, diner = client_for()
     order = Order.objects.create(session=diner.session)
     line = CartLine.objects.create(session=diner.session, diner=diner, product_id=3, name='Plato', qty=1, unit_price=10, note='Sin cebolla', takeaway=True)
-    assert _to_odoo_lines(order, [line])[0].note == 'Para llevar · Sin cebolla'
+    assert _to_order_lines(order, [line])[0].note == 'Para llevar · Sin cebolla'
     line.refresh_from_db()
     assert line.note == 'Sin cebolla'
 
 
+# Falla si la contraseña no se cifra o las opiniones mezclan sedes.
 def test_registration_password_is_hashed_and_rating_totals_are_venue_scoped(catalog_stub):
     from django.contrib.auth.hashers import check_password, make_password
     from django.core.cache import cache
@@ -222,6 +232,7 @@ def test_registration_password_is_hashed_and_rating_totals_are_venue_scoped(cata
     assert ratings.for_menu('burger-house', 'poblado') == {3: {'promedio': 3.0, 'cantidad': 1}}
 
 
+# Falla si el cambio de contraseña envía el código a un correo elegido por el cliente.
 def test_password_change_sends_verification_to_authenticated_email(settings):
     import re
     from django.core import mail
@@ -244,6 +255,7 @@ def test_password_change_sends_verification_to_authenticated_email(settings):
     assert check_password('Verificada por correo 42', diner.account.password)
 
 
+# Falla si desactivar el correo permite cambiar la contraseña sin verificar.
 def test_password_change_disabled_email_cannot_bypass_verification(settings):
     settings.DINER_EMAIL_ENABLED = False
     client, diner = client_for()
@@ -254,6 +266,7 @@ def test_password_change_disabled_email_cannot_bypass_verification(settings):
     assert diner.account.password == original
 
 
+# Falla si los alérgenos se exponen a otra cuenta o no se pueden editar y borrar.
 def test_profile_allergens_are_private_editable_and_clearable():
     client, diner = client_for()
     _, other = client_for('Otro')

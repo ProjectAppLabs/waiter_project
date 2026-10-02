@@ -171,7 +171,7 @@
     "deleteNo": "No, volver",
     "deleteYes": "Sí, eliminar",
     "deletedTitle": "Ingrediente eliminado",
-    "deletedBody": "{name} quedó archivado en Odoo."
+    "deletedBody": "{name} quedó archivado en el servidor."
   },
   "requests": {
     "listTitle": "Lista de solicitudes",

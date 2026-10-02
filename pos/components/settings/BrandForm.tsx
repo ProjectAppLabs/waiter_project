@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/Button'
 import { Field, Select, TextInput, describedBy } from '@/components/ui/Field'
 import { DEFAULT_COLOR, FONTS, INK_LIGHT, RADII, RADIUS_LABELS, isHex, linkContrast, linkReadable, meetsContrast, theme } from '@/lib/domain/brand'
 import { LOGO_TYPES, LogoError, imageDataUrl, resizeImage, validateLogoFile, type LogoFileError } from '@/lib/domain/image'
-import { OdooError } from '@/lib/services/errors'
+import { CoreError } from '@/lib/services/core/http'
 import { getBrand, getBrandLogo, saveBrand, type BrandInfo, type BrandRadius, type LogoChange } from '@/lib/services/settings'
 import { cn } from '@/lib/utils'
 
@@ -25,7 +25,6 @@ export function BrandForm({ restaurantName }: { restaurantName: string }) {
   const readoutId = `${baseId}-color`
   const logoErrorId = `${baseId}-logo`
   const [b, setB] = useState<BrandInfo | null>(null)
-  // Si Odoo aún no tiene los campos brand_* (addon sin actualizar) o falla la red, se dice en vez de dejar la sección en blanco.
   const [failed, setFailed] = useState(false)
   const [logo, setLogo] = useState<string | null>(null)
   const [change, setChange] = useState<LogoChange | undefined>(undefined)
@@ -71,11 +70,9 @@ export function BrandForm({ restaurantName }: { restaurantName: string }) {
   const clearFile = () => { if (fileRef.current) fileRef.current.value = '' }
   // Sin logo guardado, quitar solo descarta el que se acaba de subir; con uno guardado, manda el borrado al guardar.
   const removeLogo = () => { setChange(logo ? { remove: true } : undefined); setLogoError(null); clearFile() }
-  // Odoo explica por qué no guardó (color inválido, logo que no es ráster…) y se muestra tal cual; un AccessError es
-  // que el usuario no es gerente del POS y se dice con palabras propias. Cualquier otro fallo: el mensaje estándar.
   const explain = (err: unknown): string | null => {
-    if (!(err instanceof OdooError)) return null
-    return /Access(Error|Denied)$/.test(err.odooType) ? t('accessDenied') : err.message
+    if (!(err instanceof CoreError)) return null
+    return err.status === 403 ? t('accessDenied') : err.message
   }
   const onSave = () => save(async () => {
     setSaveError(null)
@@ -142,7 +139,6 @@ export function BrandForm({ restaurantName }: { restaurantName: string }) {
             <div className="flex items-center gap-4">
               <div className="grid h-20 w-40 shrink-0 place-items-center overflow-hidden rounded-[10px] border border-border bg-surface px-2 text-center text-[13px] text-soft">
                 {shownLogo
-                  // eslint-disable-next-line @next/next/no-img-element -- base64 recién leído de Odoo o del canvas; next/image no optimiza data URLs.
                   ? <img src={imageDataUrl(shownLogo)} alt={t('logoAlt')} className="max-h-full max-w-full object-contain" />
                   : t('logoNone')}
               </div>

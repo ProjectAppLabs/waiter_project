@@ -6,7 +6,7 @@ import pytest
 from django.contrib.auth.hashers import make_password
 from rest_framework.test import APIClient
 
-from experience_app.adapters.registry.client import TenantNotFound
+from experience_app.adapters.core.context import RestaurantNotFound
 from experience_app.diseno import borradores, decoraciones
 from experience_app.mcp import keys
 from experience_app.models import DinerAccount, DinerFavorite, DinerReward, Order, CartLine
@@ -83,18 +83,16 @@ def test_theme_decorations_keys_and_drafts_are_shared_between_restaurants(compan
 
 def test_public_organization_index_has_exact_contract_and_local_addresses(api_client):
     # Falla si la portada publica credenciales, omite restaurantes o usa la dirección legal para todos.
-    sibling = replace(DELIVERY, venue_slug='laureles', venue_name='Laureles', odoo=replace(DELIVERY.odoo, pos_config_id=2))
-    with patch('experience_app.views.organization.list_restaurants', return_value=[{'slug': 'poblado', 'name': 'Poblado'}, {'slug': 'laureles', 'name': 'Laureles'}]), \
-            patch('experience_app.views.organization.resolve', side_effect=[DELIVERY, sibling]), \
-            patch('experience_app.views.organization.brand_view', return_value={'nombre': 'Burger House'}), \
-            patch('experience_app.views.organization.read_restaurant_location', side_effect=[{'direccion': 'Calle 10'}, {'direccion': 'Carrera 70'}]):
+    from tenancy.models import Restaurant
+    Restaurant.objects.filter(slug='poblado').update(street='Calle 10')
+    Restaurant.objects.filter(slug='laureles').update(street='Carrera 70')
+    with patch('experience_app.views.organization.brand_view', return_value={'nombre': 'Burger House'}):
         response = api_client.get('/api/v1/burger-house/')
     assert response.status_code == 200
     assert response.json() == {'organizacion': {'slug': 'burger-house', 'nombre': 'Burger House', 'marca': {'nombre': 'Burger House'}},
                                'restaurantes': [{'slug': 'poblado', 'nombre': 'Poblado', 'direccion': 'Calle 10'},
                                                 {'slug': 'laureles', 'nombre': 'Laureles', 'direccion': 'Carrera 70'}]}
-    with patch('experience_app.views.organization.list_restaurants', side_effect=TenantNotFound):
-        assert api_client.get('/api/v1/desconocida/').status_code == 404
+    assert api_client.get('/api/v1/desconocida/').status_code == 404
 
 
 def test_favorites_rewards_and_history_are_available_across_the_group():

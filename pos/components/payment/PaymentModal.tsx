@@ -21,17 +21,13 @@ import { useOrderStore } from '@/lib/stores/orderStore'
 import { cn } from '@/lib/utils'
 
 const KIND_ICON = { cash: 'money', card: 'card', qr: 'qr' } as const
-// pos.preset de Odoo → tipo del kit, para el prefijo "DI001 / TA001 / DE001" de la referencia.
 const TYPE_BY_PRESET: Record<number, OrderType> = { 1: 'dineIn', 2: 'takeAway', 3: 'delivery' }
-// "2026-09-07 01:21:00" (UTC de Odoo) → "dom, 7 sept 01:21", como la fecha del kit.
 const whenOf = (raw: string) => {
   const d = serverDate(raw)
   return Number.isNaN(d.getTime()) ? raw : d.toLocaleString('es-CO', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 }
 type TipMode = 'none' | 'suggested' | 'custom'
 
-// Modal "Payment" del kit (9 – Payment): cliente y puntos a la izquierda, métodos a la derecha; el cobro real
-// va a Odoo por orderStore.settle (add_payment + action_pos_order_paid).
 export function PaymentModal({ orderId, onClose, onPaid }: { orderId: number; onClose: () => void; onPaid: (s: PaidSummary) => void }) {
   const t = useTranslations('payment')
   const catalog = useCatalogStore((s) => s.catalog)

@@ -1,7 +1,4 @@
 import { serverDate } from '@/lib/domain/time'
-// Estados del pedido en el lenguaje del kit CloudPos (Plan I, "Estados del pedido").
-// Todo se deriva de lo que ya vive en Odoo: el preset (tipo), los cursos (`fired`, `ready_date`, `served_date`),
-// `pos.order.state` y la bandera local `billing` del orderStore. Nada se inventa ni se persiste aparte.
 
 export type OrderType = 'dine_in' | 'takeout' | 'delivery'
 export type ServiceAt = 'table' | 'counter' | 'delivery'
@@ -29,8 +26,6 @@ const PREFIX: Record<OrderType, string> = { dine_in: 'DI', takeout: 'TA', delive
 const PAID = new Set(['paid', 'done', 'invoiced'])
 const STATUS_ORDER: KitStatus[] = ['pending_send', 'in_progress', 'ready', 'served', 'waiting_payment', 'completed']
 
-// El tipo sale del preset de Odoo (Dine In `table`, Takeout `counter`, Delivery `delivery`).
-// Sin preset (pedidos anteriores a la oleada), una mesa significa "en mesa" y sin mesa "para llevar".
 export function orderTypeOf(serviceAt: ServiceAt | null, hasTable: boolean): OrderType {
   if (serviceAt === 'counter') return 'takeout'
   if (serviceAt === 'delivery') return 'delivery'
@@ -38,13 +33,11 @@ export function orderTypeOf(serviceAt: ServiceAt | null, hasTable: boolean): Ord
   return hasTable ? 'dine_in' : 'takeout'
 }
 
-// "DI001": prefijo por tipo + número de pedido de Odoo (tracking_number) a tres cifras.
 export function orderNumber(type: OrderType, tracking: string | number): string {
   const digits = String(tracking).replace(/\D/g, '') || '0'
   return `${PREFIX[type]}${digits.padStart(3, '0')}`
 }
 
-// El nombre libre del pedido manda; si no lo hay, el cliente de Odoo; si no, vacío (la tarjeta lo muestra como "—").
 export function customerName(floatingName: string | false | null, partner: [number, string] | false | null): string {
   return (floatingName || '').trim() || (partner ? partner[1] : '')
 }
@@ -131,8 +124,7 @@ export function filterHistory(orders: KitOrder[], filter: HistoryFilter): KitOrd
 
 export const statusRank = (s: KitStatus) => STATUS_ORDER.indexOf(s)
 
-// Odoo guarda date_order en UTC sin zona ("2026-09-06 23:33:51").
-export function odooDate(at: string): Date {
+export function orderDate(at: string): Date {
   return serverDate(at)
 }
 
@@ -144,8 +136,6 @@ export function greetingFor(hour: number): 'morning' | 'afternoon' | 'evening' {
 
 export interface TaxRate { id: number; amount: number; priceInclude: boolean }
 export interface CartLine { unitPrice: number; qty: number; taxIds: number[] }
-// Totales de la ronda con los impuestos reales de Odoo (porcentaje, incluido o no en el precio). Solo para mostrar:
-// el total definitivo lo recalcula Odoo al guardar.
 export function cartTotals(lines: CartLine[], taxes: TaxRate[]): { subtotal: number; tax: number; total: number } {
   let subtotal = 0
   let tax = 0

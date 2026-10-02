@@ -1,8 +1,8 @@
 """Plan K4: decoraciones del menú por organización.
 
-Imágenes PNG o WebP pequeñas que una plantilla de componente inserta con <decoracion id="…"/>. Las sube el POS por su
-pasarela de administrador; el comensal las recibe desde experience por su id, nunca por una URL externa. El binario se
-guarda en la base (como el logo en Odoo): son pocas, pequeñas y se comparten entre los restaurantes de la organización.
+Imágenes PNG o WebP pequeñas que una plantilla de componente inserta con <decoracion id="…"/>. Las sube el POS por la
+API administrativa; el comensal las recibe desde experience por su id, nunca por una URL externa. El binario se
+guarda en la base (como el logo en el sistema propio): son pocas, pequeñas y se comparten entre los restaurantes de la organización.
 """
 from django.db import models
 

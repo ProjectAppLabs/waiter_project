@@ -1,5 +1,5 @@
 // Centro de notificaciones del kit (Dashboard / Notification Expand.png) sobre el modelo `waiter.notification`
-// de `projectapp_notify`: cocina (plato listo), inventario (stock bajo), sistema y acceso (plan P: alguien intentó
+// del servidor: cocina (plato listo), inventario (stock bajo), sistema y acceso (plan P: alguien intentó
 // entrar fuera de su turno; le llega al encargado y al dueño) y caja (plan Q: un cierre superó la tolerancia).
 export type NotificationKind = 'kitchen' | 'inventory' | 'system' | 'access' | 'cash'
 export type NotificationTab = 'all' | 'inventory' | 'kitchen'

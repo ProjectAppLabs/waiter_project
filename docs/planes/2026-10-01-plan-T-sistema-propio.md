@@ -941,6 +941,25 @@ Rutas de la plataforma bajo `/api/platform/v1` con la cookie `waiter_platform_si
     PostgreSQL: `experience/conftest.py` fija `ODOO_ORGS=burger-house` para la suite (no hereda el corte del `.env`), el
     SSE no cierra la conexión dentro de una transacción, y la prueba de suspensión cierra las respuestas sin cortar la
     conexión de la prueba. Burger House, migrada como «en prueba» sin fecha, quedó **activa** (regla de T0).
+- **Limpieza de Odoo hecha** (2026-10-02), rama `chore/02102026-limpieza-odoo`, fusionada en `main`.
+  - **Respaldo antes de borrar,** en `~/respaldos/waiter-odoo-2026-10-02/`: volcado de todas las bases de Odoo
+    (verificado), su `filestore`, los restos locales de `odoo/` y `registry/` y los tokens del registro. Después se
+    borraron los contenedores, volúmenes, red e imagen de Odoo y las carpetas ignoradas `odoo/` y `registry/`.
+  - **POS (Codex):** sin `callKw`, `onCore`, `odoo.ts`, `backend.ts` ni `OdooError`; todo habla con el sistema propio.
+    Claude conectó lo que aún leía de Odoo: las adiciones, tamaños y acompañamientos del asistente de pedidos y de
+    reservas (`lib/services/productOptions.ts`, desde los atributos del plato), los componentes de combo que exige el
+    servidor, los impuestos del carrito, la lista de empleados de Configuración y zonas, y el perfil de «Mi cuenta».
+  - **experience (Codex):** sin el adaptador de Odoo, el cliente del registro, el selector de backend ni `ODOO_ORGS`;
+    el comensal usa solo el adaptador propio. El cliente JSON-RPC queda en `tenancy/odoo_migration/client.py` para
+    `migrate_from_odoo` y `reconcile_odoo`. Las columnas `odoo_order_id` y `odoo_table_id` del comensal conservan su
+    nombre (guardan ids del sistema propio) para no migrar datos.
+  - **Errores encontrados y corregidos:** el asistente de pedidos exigía un token de empleado de Odoo y nunca creaba el
+    pedido («Tu rol no tiene permiso»); el resumen llamaba «IVA» a todo impuesto (ahora usa su nombre, p. ej. «8% INC»);
+    una mesa quedaba atada a una visita del comensal cuyo pedido el POS canceló o cuya caja ya cerró, y el siguiente
+    pedido chocaba con «El pedido tiene pagos o ya no se puede editar» (ahora esa visita se cierra al llegar alguien).
+  - **Pruebas e2e reescritas** sin Odoo (`pos/e2e/`, por CDP): acceso, servicio en mesa con cocina y cierre de caja,
+    asistente de pedidos con adición y cobro, consola del dueño, equipo en Configuración, comensal por QR y consola de
+    ProjectApp. 13 de 13 pasan.
 - **Revisado (T3):** el modal de pago carga en cinco entradas seguidas por la URL. La causa probable del «Cargando pedido…» visto en T2 es el límite de seis conexiones por dominio de HTTP/1.1 con varias conexiones de eventos en vivo abiertas en desarrollo; en producción el proxy sirve HTTP/2 y no aplica. Antes: al entrar por la URL
     (recargar lo resuelve; por investigar, posiblemente el doble montaje de React en modo estricto); «Forzar cierre» no
     existe en el sistema propio; las reservas que apartan mesas, los puntos del cobro y Resumen/Rentabilidad llegan con

@@ -19,8 +19,8 @@ beforeEach(() => {
   useOrderStore.setState({ draft: null, saved: null, openOrders: [], shift: null, flags: {}, busy: false, error: null, receipt: null })
 })
 
-// Falla si enviar a cocina no dispara la comanda en Odoo o la marca solo en memoria (cocina no la vería).
-it('sendToKitchen saves the draft and fires the unsent lines in Odoo, without local flags', async () => {
+// Falla si enviar a cocina no dispara la comanda en el servidor o la marca solo en memoria (cocina no la vería).
+it('sendToKitchen saves the draft and fires the unsent lines in el servidor, without local flags', async () => {
   mSave.mockResolvedValue(saved)
   ;(fireUnsentLines as jest.Mock).mockResolvedValue(21)
   act(() => { useOrderStore.getState().start(1, 6, 2); useOrderStore.getState().add(angus) })
@@ -32,8 +32,8 @@ it('sendToKitchen saves the draft and fires the unsent lines in Odoo, without lo
 
 const CTX = { existing: { orderId: 13, tableId: 6 }, tipProductId: 1, tableNumber: 6, company: 'Demo', lines: [], methodName: (id: number) => (id === 1 ? 'Efectivo' : 'Tarjeta') }
 
-// Falla si un error de Odoo deja el store "ocupado" para siempre (botón bloqueado).
-it('save surfaces the Odoo message and releases busy', async () => {
+// Falla si un error del servidor deja el store "ocupado" para siempre (botón bloqueado).
+it('save surfaces the el servidor message and releases busy', async () => {
   mSave.mockRejectedValue(new Error('Invalid preset'))
   act(() => { useOrderStore.getState().start(1, 6, 2); useOrderStore.getState().add(angus) })
   await act(() => useOrderStore.getState().save())
@@ -54,9 +54,7 @@ it('settles an order created elsewhere, with no local draft', async () => {
   expect(useOrderStore.getState().flags[6]).toEqual({})
 })
 
-
-
-// Falla si el cobro mixto no registra cada pago, la propina o el cambio en Odoo, o si no deja recibo.
+// Falla si el cobro mixto no registra cada pago, la propina o el cambio en el servidor, o si no deja recibo.
 it('settle tips, records every payment and the change, closes and leaves a receipt', async () => {
   mClose.mockResolvedValue({ ...saved, state: 'paid', total: 95822, tax: 14022, paid: 95822 })
   ;(addTip as jest.Mock).mockResolvedValue({ ...saved, total: 95822 })
@@ -67,7 +65,6 @@ it('settle tips, records every payment and the change, closes and leaves a recei
   expect(setChange).toHaveBeenCalledWith(13, 4178)
   expect(useOrderStore.getState().receipt).toMatchObject({ total: 95822, tip: 8000, change: 4178, payments: [{ method: 'Tarjeta', amount: 50000, reference: 'A1' }, { method: 'Efectivo', amount: 45822, reference: '' }] })
 })
-
 
 // Falla si un corte de red durante el sondeo del salón deja un rechazo sin capturar o borra lo último conocido.
 test('a network error while polling keeps the last known open orders', async () => {

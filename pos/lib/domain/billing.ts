@@ -1,5 +1,4 @@
 import { serverDate } from '@/lib/domain/time'
-// Odoo entrega fechas de venta en UTC; la administración colombiana las muestra en Bogotá.
 export function billingDate(at: string, includeTime = false): string {
   if (!at) return '—'
   const timestamp = at.length > 10

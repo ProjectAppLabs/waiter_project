@@ -103,7 +103,7 @@
     "small": "Mesa pequeña", "largeH": "Mesa grande (H)", "largeV": "Mesa grande (V)", "smallPeople": "1-4 personas", "largePeople": "6+ personas",
     "deleteZone": "Arrastra aquí para borrar", "rotate": "Rotar mesa {name}", "move": "Mover mesa {name}", "canvas": "Plano del piso",
     "nameTitle": "Nombre de la mesa", "namePlaceholder": "Escribe el nombre de la mesa", "nameConfirm": "Confirmar",
-    "nameHint": "Odoo solo guarda el número de mesa: se usará {number}.", "nameNeedsNumber": "El nombre debe incluir un número.", "nameTaken": "Ya existe la mesa {number} en este piso.",
+    "nameHint": "Solo se guarda el número de mesa: se usará {number}.", "nameNeedsNumber": "El nombre debe incluir un número.", "nameTaken": "Ya existe la mesa {number} en este piso.",
     "overlap": "Ahí no cabe: se solapa con otra mesa.",
     "successTitle": "Mesas creadas con éxito", "successBody": "¡Listo! las mesas nuevas ya están en el", "successMenu": "menú de Mesas",
     "floor": "Piso", "large": "Mesas grandes", "smallCount": "Mesas pequeñas", "total": "Total de mesas", "goTables": "Ir a mesas",

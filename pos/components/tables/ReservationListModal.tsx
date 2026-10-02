@@ -17,8 +17,6 @@ export function formatReservationDate(date: string): string {
   return d.toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
-// "Lista de reservas" del kit (6 – Table / Reservation Information.png): cliente, fecha, hora y "Detalle".
-// Los datos son los de waiter.reservation (addon projectapp_reservations); crear reservas vive en "7 – Reservation".
 export function ReservationListModal({ open, onClose, tableId, tableName, onDetail, load = listTableReservations }: Props) {
   const t = useTranslations('tables.reservations')
   const [loaded, setLoaded] = useState<{ tableId: number; rows: TableReservation[] } | null>(null)

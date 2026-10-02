@@ -1,6 +1,5 @@
 import { coreFetch } from '@/lib/services/core/http'
 
-// Plan T3: reservas del sistema propio. Las respuestas tienen la forma de los métodos `waiter_*` de Odoo.
 const one = <T>(r: T | T[]): T => (Array.isArray(r) ? r[0] : r)
 const q = (p: Record<string, string | number | null | undefined>) => Object.entries(p).filter(([, v]) => v !== undefined && v !== null && v !== '').map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&')
 

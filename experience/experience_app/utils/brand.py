@@ -1,10 +1,7 @@
-"""Tema del restaurante: seis variables derivadas de dos entradas (color y tipografía), sistema de diseño §06.
+"""Tema público de la organización derivado de color, tipografía y radio.
 
-Copia DELIBERADA de registry/registry_app/utils/brand.py. Registro y experiencia son servicios que se despliegan
-aparte (venvs y máquinas distintas en producción), así que no pueden compartir un paquete sin acoplarlos. Las reglas
-tienen que ser las mismas en los dos —el comensal ve el mismo tema tanto si el color viene del registro como si el
-restaurante lo cambió en Odoo—; tests/utils/test_brand_parity.py compara las dos derivaciones y falla si alguna se
-aparta. Si cambias algo aquí, cámbialo también allá.
+Los vectores de tests/utils/test_pos_brand_vectors.py mantienen la coherencia
+con el tema del POS.
 """
 FONTS = ["Instrument Serif", "Playfair Display", "Fraunces", "DM Serif Display", "Lora", "Cormorant Garamond"]
 RADII = [4, 14, 24]

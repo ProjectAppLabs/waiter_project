@@ -24,7 +24,7 @@ class PaymentAttempt(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     gateway = models.ForeignKey(PaymentGateway, on_delete=models.PROTECT)
     # Un intento paga una de dos cosas: la cuenta de una visita (session + diner + order) o el anticipo de una reserva
-    # (reservation_token, el secreto del enlace público; la reserva vive en Odoo). Nunca las dos ni ninguna.
+    # (reservation_token, el secreto del enlace público; la reserva vive en el sistema propio). Nunca las dos ni ninguna.
     session = models.ForeignKey('TableSession', on_delete=models.PROTECT, related_name='payments', null=True, blank=True)
     diner = models.ForeignKey('Diner', on_delete=models.PROTECT, null=True, blank=True)
     order = models.ForeignKey('Order', on_delete=models.PROTECT, null=True, blank=True)

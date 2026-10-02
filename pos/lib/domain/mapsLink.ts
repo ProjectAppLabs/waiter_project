@@ -1,7 +1,3 @@
-// Enlaces de Google Maps → coordenadas del restaurante. El administrador pega el enlace que copia de Google Maps en vez
-// de escribir latitud y longitud; en Odoo se siguen guardando las dos (el comensal las usa para la distancia y «Cómo
-// llegar»). Los enlaces cortos (maps.app.goo.gl) no traen coordenadas: los resuelve el servidor del POS
-// (app/api/mapas/resolver/route.ts) y el resultado vuelve a pasar por aquí.
 export interface Coordinates { lat: number; lng: number }
 
 const NUMBER = '(-?\\d{1,3}(?:\\.\\d+)?)'

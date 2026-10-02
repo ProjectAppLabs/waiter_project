@@ -38,10 +38,6 @@ export default function PosLayout({ children }: { children: React.ReactNode }) {
     if (policy && !allowedPath(effectiveRole(user.role, employee.role), pathname, policy)) { router.replace(homePath(effectiveRole(user.role, employee.role), !!session, policy)); return }
   }, [hydrated, user, employee, session, pathname, router, policy])
 
-  // La carta se carga una vez por turno, no en cada cambio de pantalla. Antes vivía en el efecto del guardia, que
-  // depende de la ruta: cada navegación volvía a pedir `pos.session.load_data` (la llamada más pesada de Odoo) y el
-  // catálogo nuevo hacía que todo lo que depende de él pidiera sus datos otra vez. Las recargas a propósito (tras
-  // guardar la configuración o una ficha de plato) siguen llamando a `load` directamente.
   const ready = hydrated && !!user && !!employee
   const sessionId = session?.id ?? null
   useEffect(() => { if (ready) void load(sessionId) }, [ready, sessionId, load])
@@ -67,7 +63,7 @@ export default function PosLayout({ children }: { children: React.ReactNode }) {
         <AuroraBackground />
         <div role="alert" className="max-w-lg text-center flex flex-col gap-3">
           <span className="text-[20px] font-semibold text-ink">No se pudo cargar la carta</span>
-          <p className="text-[15px] text-soft">Odoo rechazó los datos de este terminal. Avisa a quien administra el punto de venta.</p>
+          <p className="text-[15px] text-soft">el servidor rechazó los datos de este terminal. Avisa a quien administra el punto de venta.</p>
           {catalogError && <p className="text-[13px] text-dim font-mono break-words">{catalogError}</p>}
           <Button variant="primary" className="self-center mt-2" onClick={() => { void load(session?.id ?? null) }}>Reintentar</Button>
         </div>
@@ -75,9 +71,6 @@ export default function PosLayout({ children }: { children: React.ReactNode }) {
     )
   }
   if (!policy) return <BootSkeleton />
-  // La barra vive aquí y no en cada página: así persiste al cambiar de pantalla. Antes cada página montaba la suya, y
-  // cada navegación la desmontaba y volvía a pedir los avisos (dos llamadas a Odoo por cambio de pantalla).
-  // La inactividad solo cierra las pantallas de operación con barra: la cocina queda encendida sin que nadie la toque.
   const shell = withShell(pathname)
   return <>{shell ? <KitShell>{children}</KitShell> : children}<SessionGuard idle={shell} /></>
 }

@@ -26,14 +26,13 @@ it('chimes only for tickets that appear after the first load', async () => {
   expect(useKitchenStore.getState().tickets).toHaveLength(2)
 })
 
-// Falla si "Listo" no llega a Odoo o si la pantalla no se refresca después.
-it('marks a course ready in Odoo and refreshes the board', async () => {
+// Falla si "Listo" no llega al servidor o si la pantalla no se refresca después.
+it('marks a course ready in el servidor and refreshes the board', async () => {
   mTickets.mockResolvedValue([])
   await act(() => useKitchenStore.getState().ready(5, 4, none))
   expect(markReady).toHaveBeenCalledWith(5)
   expect(mTickets).toHaveBeenCalledWith(4, none)
 })
-
 
 // Falla si el aviso crítico suena una sola vez o si "demora" suena antes de los 12 minutos.
 it('warns once at 12 minutes and repeats the critical alarm every 60 s after 18', () => {

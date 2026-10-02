@@ -10,7 +10,7 @@ it('parses the diner attributes with tolerance', () => {
   expect(parseDinerAttributes(false)).toEqual({})
 })
 
-// Falla si se guardan claves vacías (la carta pintaría "0 piezas") o si sin atributos no se manda false a Odoo.
+// Falla si se guardan claves vacías (la carta pintaría "0 piezas") o si sin atributos no se manda false al servidor.
 it('serializes only the filled keys and false when empty', () => {
   expect(serializeDinerAttributes({ piezas: 0, picante: 0, etiquetas: [], tamanos: [{ nombre: ' ', precio: 0 }], soloHoy: false })).toBe(false)
   expect(JSON.parse(serializeDinerAttributes({ picante: 3, alergenos: ['maní'], tamanos: [{ nombre: ' Doble ', precio: 36900 }] }) as string))
@@ -18,11 +18,13 @@ it('serializes only the filled keys and false when empty', () => {
   expect(textToList(' popular, , sin gluten ')).toEqual(['popular', 'sin gluten'])
 })
 
+// Falla si se pierden ingredientes, ceros nutricionales o ids de productos extra.
 it('preserves ingredients, nutritional zeroes and real extra product IDs', () => {
   const input = {ingredientes:['Pan','Tomate'],nutricion:{calorias:250,peso:180.5,grasa:0},extras:[31,42]}
   expect(parseDinerAttributes(serializeDinerAttributes(input))).toEqual(input)
 })
 
+// Falla si se pierden acompañamientos vacíos explícitos o se aceptan ids inválidos.
 it('preserves explicitly empty sides and validates product IDs for both selectors', () => {
   expect(parseDinerAttributes(serializeDinerAttributes({acompanamientos:[]}))).toEqual({acompanamientos:[]})
   expect(parseDinerAttributes('{"acompanamientos":[3,3,-1,0,"4"],"extras":[2,2,1.5]}')).toEqual({acompanamientos:[3],extras:[2]})

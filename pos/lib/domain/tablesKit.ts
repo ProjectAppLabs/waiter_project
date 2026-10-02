@@ -1,8 +1,5 @@
 import type { TableState, TableView } from '@/lib/domain/tableState'
 
-// Reglas del plano del kit CloudPos (6 – Table): plantillas por tamaño, cuadrícula, estados de la leyenda y
-// convenciones que Odoo no guarda (tipo de piso, rotación, nombre de mesa). Sin React ni Odoo aquí.
-
 export type TableTemplate = 'small' | 'largeH' | 'largeV'
 export type KitTableState = 'available' | 'unavailable' | 'reserved'
 export type FloorType = 'indoor' | 'outdoor'
@@ -11,7 +8,6 @@ export type ServiceAt = 'table' | 'counter' | 'delivery'
 export interface Rect { x: number; y: number; width: number; height: number }
 export interface Chairs { top: number; bottom: number; left: number; right: number }
 
-// Paso de la cuadrícula del editor (px de Odoo). Las plantillas miden 3×3 y 6×3 celdas, como en el kit.
 export const GRID = 40
 // Aire mínimo entre mesas: las sillas se dibujan fuera de la caja.
 export const GAP = 24
@@ -44,7 +40,6 @@ export function canPlace<K>(rect: Rect, others: (Rect & { key: K })[], selfKey: 
 export const kitState = (state: TableState, reserved = false): KitTableState =>
   state !== 'free' ? 'unavailable' : reserved ? 'reserved' : 'available'
 
-// waiter.reservation guarda las horas como float (17.5 = 17:30), igual que Odoo. El kit las pinta "17:00".
 export function hourLabel(value: number): string {
   const total = Math.round((value || 0) * 60)
   return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
@@ -56,7 +51,6 @@ export const orderCode = (prefix: OrderPrefix, tracking: string | null, id: numb
 
 export const progressPercent = (served: number, sent: number): number => (sent === 0 ? 0 : Math.round((served / sent) * 100))
 
-// Odoo no tiene tipo de piso: viaja como sufijo del nombre ("Piso 4 · Exterior"). Un número se convierte en "Piso N".
 export function floorName(numberOrName: string, type: FloorType): string {
   const base = /^\d+$/.test(numberOrName.trim()) ? `Piso ${numberOrName.trim()}` : numberOrName.trim()
   return type === 'outdoor' ? base + OUTDOOR_SUFFIX : base

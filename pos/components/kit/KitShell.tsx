@@ -13,9 +13,6 @@ import { useAuthStore } from '@/lib/stores/authStore'
 import { useBusStore } from '@/lib/stores/busStore'
 import { useCatalogStore } from '@/lib/stores/catalogStore'
 
-// Armazón del kit: barra superior por rol, contenido sobre el lienzo y el modal de ajustes.
-// «Cerrar sesión» del modal termina el turno y la sesión de Odoo: en una tablet compartida, la siguiente persona entra con
-// su propia cuenta (plan P).
 export function KitShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()

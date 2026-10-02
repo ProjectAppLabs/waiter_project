@@ -8,7 +8,7 @@ import { messages } from '@/lib/i18n/messages'
 import type { Product } from '@/lib/types'
 
 const angus: Product = { id: 3, templateId: 3, name: 'Hamburguesa Angus', price: 36900, categoryIds: [1], taxIds: [55], favorite: false, storable: false, soldOut: false, hasImage: false }
-const iva: TaxRate = { id: 55, name: '19%', amount: 19, amountType: 'percent', priceInclude: false }
+const iva: TaxRate = { id: 55, name: 'IVA 19%', amount: 19, amountType: 'percent', priceInclude: false }
 const bbq: OptionChoice = { id: 2, name: 'BBQ', priceExtra: 2000, kind: 'attribute', groupId: 1, productId: null, taxIds: [] }
 const line = { ...newLine(angus, 2, 'sin cebolla', [bbq]), uuid: 'l1' }
 const handlers = { onReset: jest.fn(), onQty: jest.fn(), onEdit: jest.fn(), onRemove: jest.fn(), onContinue: jest.fn() }
@@ -19,7 +19,8 @@ const show = () => render(
   </NextIntlClientProvider>,
 )
 
-// Falla si la línea pierde la nota o la adición, o si el total deja de venir del impuesto real de Odoo.
+// Falla si la línea pierde la nota o la adición, si el impuesto no se llama como en la carta (un INC no es IVA) o si
+// el total deja de venir del impuesto real del servidor.
 it('shows note, addition and the real tax total', () => {
   show()
   expect(screen.getByText('Nota: sin cebolla')).toBeInTheDocument()

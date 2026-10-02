@@ -8,7 +8,5 @@ export function cashDifference(expected: number, counted: number, tolerance = TO
   return { amount, tone: amount > 0 ? 'warn' : 'busy' }
 }
 
-// Plan Q: cerrar con una caja que no cuadra (por poco que sea) exige explicar por qué; el dueño lee la nota en los cuadres.
-// Odoo hace la misma comprobación al cerrar.
 export const needsNote = (expected: number, counted: number | null, notes: string): boolean =>
   counted !== null && Math.round(counted - expected) !== 0 && !notes.trim()

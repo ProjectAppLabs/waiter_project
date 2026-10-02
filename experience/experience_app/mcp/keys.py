@@ -1,4 +1,4 @@
-"""Claves MCP: se generan desde el POS (vía la pasarela del addon de Odoo), se guardan como sha256 y se revocan.
+"""Claves MCP: se generan desde el POS (API administrativa del sistema propio), se guardan como sha256 y se revocan.
 
 La clave tiene 256 bits al azar (`secrets.token_urlsafe(32)`): con eso, un sha256 sin sal basta (no es una contraseña
 que alguien elija) y permite buscarla directo por su huella.

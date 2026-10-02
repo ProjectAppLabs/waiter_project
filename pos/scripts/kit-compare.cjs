@@ -1,5 +1,5 @@
 // Captura rutas del POS a 1194×834 (iPad Pro 11 apaisado, el marco del kit) para cotejarlas con docs/diseno/pos-kit/pantallas.
-// Uso: npm run kit:compare -- /kit /salon   (requiere `next dev` en PLAYWRIGHT_BASE_URL o http://localhost:3000 y Odoo demo con admin/admin)
+// Uso: npm run kit:compare -- /kit /salon   (requiere `next dev` en PLAYWRIGHT_BASE_URL o http://localhost:3000 y el sistema propio con datos de prueba)
 // Modo oscuro: KIT_THEME=dark npm run kit:compare -- /salon  → salon-dark.png (fija waiter.theme antes de entrar).
 const { chromium, devices } = require('@playwright/test')
 const fs = require('node:fs')

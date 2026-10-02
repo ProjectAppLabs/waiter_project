@@ -15,7 +15,6 @@ export function useSaveState(): [State, (fn: () => Promise<void>) => Promise<voi
   return [state, async (fn) => { setState('saving'); try { await fn(); setState('saved') } catch { setState('error') } }]
 }
 
-// error: mensaje propio del fallo (p. ej. el que devuelve la pasarela del addon); sin él se muestra el genérico.
 export function SaveBar({ state, onSave, disabled, error }: { state: State; onSave: () => void; disabled?: boolean; error?: string | null }) {
   const t = useTranslations('pos.settings')
   const ui = useTranslations('pos.ui')
@@ -28,7 +27,7 @@ export function SaveBar({ state, onSave, disabled, error }: { state: State; onSa
   )
 }
 
-// Lo que la sala puede hacer y el restaurante decide. Vive en pos.config y lo ven todas las tablets.
+// Lo que la sala puede hacer y el restaurante decide. Vive en los ajustes del restaurante y lo ven todas las tablets.
 // Cobrar: apagado, el mesero sirve y el cajero elige la mesa en el plano y cobra, sin que nadie mande nada.
 // Inventario: verlo lo hace cualquiera; crear, editar o borrar platos e ingredientes es otra cosa.
 const PERMISSIONS = [
@@ -57,7 +56,7 @@ export function WaiterPermissionsForm({ initial, onSave }: { initial: Settings; 
   )
 }
 
-// Umbrales y supuestos del ROI: números enteros/decimales que viven en pos.config y ven todas las tablets.
+// Umbrales y supuestos del ROI: números enteros/decimales que viven en los ajustes del restaurante y ven todas las tablets.
 export function ThresholdsForm({ initial, section, onSave }: { initial: Settings; section: 'alerts' | 'roi'; onSave: (s: Settings) => Promise<void> }) {
   const t = useTranslations('pos.settings')
   const [s, setS] = useState(initial)

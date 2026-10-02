@@ -12,13 +12,13 @@ const dish = (over: Partial<Dish> = {}): Dish => ({
   hasRecipe: true, servings: 30, level: 'high', ...over,
 })
 
-// Falla si el indicador de nivel deja de traducir cada nivel de Odoo a sus barritas (Alto 3, Medio 2, Bajo 1, Vacío 0).
+// Falla si el indicador de nivel deja de traducir cada nivel del servidor a sus barritas (Alto 3, Medio 2, Bajo 1, Vacío 0).
 it('formats a stock level as the kit bars, in the panel order', () => {
   expect(STOCK_LEVELS.map((l) => LEVEL_BARS[l])).toEqual([1, 2, 3, 0])
   expect(STOCK_LEVELS).toEqual(['low', 'medium', 'high', 'empty'])
 })
 
-// Falla si el stock no se muestra en español con su unidad ("1,5 kg"), o si "Units" de Odoo no se dice "Unidades".
+// Falla si el stock no se muestra en español con su unidad ("1,5 kg"), o si "Units" del servidor no se dice "Unidades".
 it('formats the stock with its unit', () => {
   expect(formatStock(1.5, 'kg')).toBe('1,5 kg')
   expect(formatStock(900, 'g')).toBe('900 g')
@@ -29,7 +29,7 @@ it('formats the stock with its unit', () => {
 })
 
 // Falla si las unidades del kit no se reconocen por el nombre que tienen en uom.uom.
-it('recognises the kit units by their Odoo name', () => {
+it('recognises the kit units by their el servidor name', () => {
   expect([kitUnitKey('kg'), kitUnitKey('Units'), kitUnitKey('Manojo'), kitUnitKey('L')]).toEqual(['kilogram', 'pieces', 'bunch', 'liter'])
 })
 

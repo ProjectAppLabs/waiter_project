@@ -1,8 +1,5 @@
 import type { PlanRect } from '@/lib/domain/floorPlan'
 
-// Piezas de decoración del plano: cocina, salón, baños y estructura. No son mesas: no se venden ni se ocupan, solo
-// dibujan el espacio para que el mesero se ubique. Se guardan en el plano del piso (restaurant.floor.waiter_plan.decor)
-// junto a paredes y zonas; Odoo valida `asset` contra la misma lista (projectapp_ops/models/floor_plan.py, DECOR_ASSETS).
 export const DECOR_ASSETS = [
   'stove', 'range', 'fridge', 'sink', 'counter', 'island',
   'bar', 'stool', 'register', 'sofa', 'plant',

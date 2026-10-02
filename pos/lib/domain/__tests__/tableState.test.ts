@@ -37,8 +37,8 @@ it('counts views by state including zero for unused states', () => {
   expect(counts).toMatchObject({ free: 1, occupied: 1, closed: 1, kitchen: 0, assist: 0 })
 })
 
-// Falla si date_order se interpreta en hora local: Odoo lo manda en UTC y la mesa mostraría 5 horas de más.
-it('measures elapsed minutes from an Odoo UTC timestamp', () => {
+// Falla si date_order se interpreta en hora local: el servidor lo manda en UTC y la mesa mostraría 5 horas de más.
+it('measures elapsed minutes from an el servidor UTC timestamp', () => {
   expect(elapsedMinutes('2026-09-04 20:00:00', Date.parse('2026-09-04T21:14:00Z'))).toBe(74)
   expect(formatElapsed(74)).toBe('1:14')
   expect(formatElapsed(34)).toBe('0:34')
@@ -57,22 +57,22 @@ it('matches tables by number, order id or waiter', () => {
   expect([matchesSearch(view, '2'), matchesSearch(view, '#9'), matchesSearch(view, 'ale'), matchesSearch(view, '7'), matchesSearch(view, '')]).toEqual([true, true, true, false, true])
 })
 
-
 // Falla si lo que el comensal pide desde su móvil (pidiendo, mesero, cuenta) no cambia el estado de la mesa.
-it('derives ordering, assist and billing from the diner calls that live in Odoo', () => {
+it('derives ordering, assist and billing from the diner calls that live in el servidor', () => {
   const calls = [{ tableId: 1, kind: 'ordering' as const, since: '2026-09-04 20:00:00' }, { tableId: 2, kind: 'assist' as const, since: '2026-09-04 20:01:00' }, { tableId: 3, kind: 'bill' as const, since: '' }]
   const views = deriveTableViews(tables, [order, { ...order, id: 10, tableId: 3 }], {}, calls)
   expect(views.map((v) => v.state)).toEqual(['ordering', 'assist', 'billing'])
   expect(views[1].callSince).toBe('2026-09-04 20:01:00')
 })
 
-
+// Falla si se pierde alguno de los avisos simultáneos de la mesa.
 it('keeps the ready, unsent and customer-call notices together on the same table', () => {
   const v = deriveTableViews(tables, [{ ...order, kitchen: 'ready', unsent: true }], {}, [{ tableId: 2, kind: 'assist', since: '2026-09-22 00:00:00' }])[1]
   expect(v.state).toBe('assist')
   expect(v.notices).toEqual(['ready', 'unsent', 'assist'])
 })
 
+// Falla si se oculta una solicitud de cuenta sin pedido abierto.
 it('shows a bill request even when the table has no open order', () => {
   const v = deriveTableViews(tables, [], {}, [{ tableId: 2, kind: 'bill', since: '' }])[1]
   expect(v.state).toBe('billing')

@@ -20,8 +20,6 @@ import { useKitchenStore } from '@/lib/stores/kitchenStore'
 const POLL_MS = 5_000
 const POLL_WITH_BUS_MS = 60_000
 
-// Pantalla fija de cocina en modo oscuro del kit (data-theme="dark" propio, independiente del tema del usuario):
-// sondea Odoo cada 5 s, cronómetros cada segundo. Sin barra superior: la cocina es un dispositivo, no un mesero.
 export default function KdsPage() {
   const t = useTranslations('kds')
   const session = useAuthStore((s) => s.session)

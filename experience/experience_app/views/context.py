@@ -5,14 +5,14 @@ from django.urls import reverse
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from experience_app.adapters.registry.client import resolve
+from experience_app.adapters.core.pos import resolve
 from experience_app.plantillas import services as templates
 from experience_app.services import brand, catalog, ratings
 
 
 def _context(tenant):
     table = tenant.table_token and {'numero': tenant.table_number, 'token': tenant.table_token}
-    # La marca sale de Odoo campo a campo (lo que el restaurante editó) y del registro para lo que no tocó.
+    # La marca sale del sistema propio campo a campo (lo que el restaurante editó) y del contexto resuelto para los campos vacíos.
     # La plantilla (Plan H) es la elegida por la sede con la marca y su paleta ya aplicadas: tokens finales y layouts.
     return {'restaurante': {'slug': tenant.restaurant_slug, 'nombre': tenant.restaurant_name},
             'sede': {'slug': tenant.venue_slug, 'nombre': tenant.venue_name}, 'mesa': table or None,

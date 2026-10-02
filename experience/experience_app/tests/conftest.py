@@ -4,15 +4,14 @@ import pytest
 from django.core.cache import cache
 from rest_framework.test import APIClient
 
-from experience_app.adapters.odoo.client import OdooCredentials
-from experience_app.adapters.odoo.pos import Catalog, Category, CompanyBrand, Product
-from experience_app.adapters.registry.client import Tenant
 
-ODOO = OdooCredentials(url='http://odoo', db='bh', login='svc', password='x', pos_config_id=1)
+from experience_app.adapters.core.pos import Catalog, Category, CompanyBrand, Product
+from experience_app.adapters.core.context import RestaurantContext
+
 BRAND = {'color': '#7A2E2A', 'colorTexto': '#FFFFFF', 'colorSuave': '#F2EAEA', 'fuente': 'Fraunces', 'radio': 14, 'lema': 'Cocina de barrio', 'saludo': '', 'mesero': 'Alex', 'bienvenida': '¿Qué te provoca hoy?', 'logo': None}
-TABLE = Tenant('burger-house', 'Burger House', 'poblado', 'Poblado', '8H2KQ7', 8, 9, ODOO, BRAND)
-DELIVERY = Tenant('burger-house', 'Burger House', 'poblado', 'Poblado', None, None, None, ODOO)
-# Odoo sin nada editado: todo vacío, así que la marca del comensal es la del registro (BRAND).
+TABLE = RestaurantContext('burger-house', 'Burger House', 'poblado', 'Poblado', '8H2KQ7', 8, 9, BRAND, 1)
+DELIVERY = RestaurantContext('burger-house', 'Burger House', 'poblado', 'Poblado', None, None, None, restaurant_id=1)
+# El sistema propio sin nada editado: todo vacío, así que la marca del comensal usa los valores iniciales (BRAND).
 UNTOUCHED_COMPANY = CompanyBrand(name='', color='', font='', radius=None, tagline='', greeting='', waiter_name='', welcome='',
                                  has_logo=False, version='20260905010203')
 # template_id distinto del id: atrapa a quien pida la foto con el id del producto en vez del de la plantilla.
@@ -47,7 +46,7 @@ def api_client():
 
 @pytest.fixture
 def company_brand_stub():
-    """Odoo responde la marca sin nada editado: la entrada no sale a la red por la marca y el registro manda."""
+    """el sistema propio responde la marca sin nada editado: la entrada no sale a la red por la marca y se usa la marca inicial."""
     with patch('experience_app.services.brand.pos.read_company_brand', return_value=UNTOUCHED_COMPANY) as read, patch('experience_app.services.banners.for_menu', return_value=None):
         yield read
 
@@ -70,3 +69,18 @@ def two_diners(db):
     session, ana = open_session(TABLE, None)
     _, beto = open_session(TABLE, None)
     return session, ana, beto
+
+
+@pytest.fixture(autouse=True)
+def local_restaurant(request):
+    """Las reglas del comensal resuelven su organización y mesa en la base propia."""
+    if 'core' in request.fixturenames:
+        return
+    request.getfixturevalue('db')
+    from tenancy.models import Organization, Restaurant
+    from tables.models import Floor, Table
+    org = Organization.objects.create(slug='burger-house', name='Burger House', status='active')
+    venue = Restaurant.objects.create(id=1, organization=org, slug='poblado', name='Poblado')
+    Restaurant.objects.create(id=2, organization=org, slug='laureles', name='Laureles')
+    floor = Floor.objects.create(restaurant=venue, name='Salón')
+    Table.objects.create(id=9, floor=floor, number=8, token='8H2KQ7')

@@ -27,7 +27,7 @@ beforeEach(() => {
   ;(listNotifications as jest.Mock).mockResolvedValue([stock, dish])
 })
 
-// Falla si la campana pierde el punto de no leídas, el popover sus pestañas, o "Marcar todas como leídas" no lo apaga en Odoo.
+// Falla si la campana pierde el punto de no leídas, el popover sus pestañas, o "Marcar todas como leídas" no lo apaga en el servidor.
 it('bell shows unread count, the popover filters by tab and marks all as read', async () => {
   wrap()
   await waitFor(() => expect(screen.getByRole('button', { name: 'Notificaciones, 2 sin leer' })).toBeInTheDocument())

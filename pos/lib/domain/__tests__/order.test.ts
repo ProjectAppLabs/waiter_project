@@ -1,4 +1,4 @@
-import { addProduct, createDraft, removeLine, setQty, subtotal, toSyncPayload } from '@/lib/domain/order'
+import { addProduct, createDraft, removeLine, setQty, subtotal } from '@/lib/domain/order'
 import type { Product } from '@/lib/types'
 
 const angus: Product = { id: 3, templateId: 2, name: 'Hamburguesa Angus', price: 36900, categoryIds: [1], taxIds: [5], favorite: false, storable: false, soldOut: false, hasImage: false }
@@ -18,25 +18,10 @@ it('subtotal sums qty times unit price across lines', () => {
   expect(subtotal(setQty(o, o.lines[0].uuid, 3))).toBe(110700)
 })
 
-// Falla si bajar la cantidad a cero deja una línea fantasma que Odoo rechaza.
+// Falla si bajar la cantidad a cero deja una línea fantasma que el servidor rechaza.
 it('setting qty to zero removes the line', () => {
   const o = addProduct(draft(), angus)
   expect(setQty(o, o.lines[0].uuid, 0).lines).toHaveLength(0)
-})
-
-// Falla si el payload deja de llevar uuid estable, session_id, table_id o el comando (0,0,{...}) por línea.
-it('builds the sync_from_ui payload Odoo expects', () => {
-  const o = addProduct(draft(), angus)
-  const p = toSyncPayload(o)
-  expect(p.uuid).toBe(o.uuid)
-  expect(p).toMatchObject({ id: -1, session_id: 1, table_id: 6, customer_count: 2, state: 'draft' })
-  expect(p.lines[0]).toEqual([0, 0, expect.objectContaining({ product_id: 3, qty: 1, price_unit: 36900, tax_ids: [[6, 0, [5]]], uuid: o.lines[0].uuid })])
-})
-
-// Falla si el empleado activo (pos_hr) deja de firmar el pedido o si sin empleado se envía employee_id.
-it('signs the payload with the active employee only when there is one', () => {
-  expect(toSyncPayload(draft(), 2).employee_id).toBe(2)
-  expect('employee_id' in toSyncPayload(draft())).toBe(false)
 })
 
 // Falla si removeLine borra una línea distinta a la pedida.

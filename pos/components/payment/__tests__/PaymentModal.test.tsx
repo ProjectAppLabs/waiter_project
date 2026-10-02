@@ -29,7 +29,7 @@ const show = (onPaid = jest.fn()) => {
   return onPaid
 }
 
-// Falla si el efectivo no registra el pago real en Odoo o si el éxito deja de mostrar el cambio.
+// Falla si el efectivo no registra el pago real en el servidor o si el éxito deja de mostrar el cambio.
 it('pays cash through orderStore.settle and shows the change', async () => {
   show()
   await userEvent.click(await screen.findByRole('button', { name: '100.000' }))
@@ -42,7 +42,7 @@ it('pays cash through orderStore.settle and shows the change', async () => {
 })
 
 // Falla si sin programa de fidelización la pantalla inventa puntos en vez de decir que no hay programa.
-it('says there is no points programme when Odoo has none', async () => {
+it('says there is no points programme when el servidor has none', async () => {
   show()
   expect(await screen.findByPlaceholderText('Sin programa de puntos')).toBeDisabled()
   expect(screen.getByRole('button', { name: 'Buscar' })).toBeDisabled()
@@ -107,6 +107,7 @@ it('lets the cashier choose between two methods of the same kind', async () => {
 
 // Cobertura trasladada del panel provisional de Mesas (components/pay/PayPanel), que se retira: la propina
 // sugerida sube el total y el datáfono conserva el voucher que tecleó el cajero.
+// Falla si la propina sugerida o el comprobante se pierden al cobrar.
 it('applies the suggested tip and keeps the terminal voucher', async () => {
   show()
   await userEvent.click(await screen.findByRole('button', { name: 'Más opciones' }))

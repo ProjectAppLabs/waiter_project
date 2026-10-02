@@ -4,7 +4,7 @@ from copy import deepcopy
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from experience_app.adapters.registry.client import resolve
+from experience_app.adapters.core.pos import resolve
 from experience_app.diseno import borradores, decoraciones, plantillas
 from experience_app.diseno import services as design
 from experience_app.plantillas import services as templates

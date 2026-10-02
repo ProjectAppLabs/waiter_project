@@ -60,7 +60,7 @@ it('entra al POS de un restaurante y crea otro copiando ajustes', async () => {
 
 const P = (over: Partial<Person>): Person => ({ id: 7, name: 'Sofía Mesera', role: 'waiter', configIds: [1], shift: { from: 14, to: 22 }, userId: 20, username: 'sofia.mesera', email: 'sofia@x.co', status: 'active', ...over })
 
-// Falla si el usuario sugerido lleva tildes, espacios o mayúsculas, o si se acepta uno que Odoo rechazaría.
+// Falla si el usuario sugerido lleva tildes, espacios o mayúsculas, o si se acepta uno que el servidor rechazaría.
 it('sugiere el usuario desde el nombre', () => {
   expect(suggestUsername('Sofía Mesera')).toBe('sofia.mesera')
   expect(suggestUsername('  José  Ñúñez-Gil ')).toBe('jose.nunez.gil')
@@ -69,7 +69,7 @@ it('sugiere el usuario desde el nombre', () => {
   expect(validUsername('ab')).toBe(false)
 })
 
-// Falla si el alta no sugiere el usuario, deja a un mesero en dos restaurantes o no manda su turno a Odoo (plan P).
+// Falla si el alta no sugiere el usuario, deja a un mesero en dos restaurantes o no manda su turno al servidor (plan P).
 it('da de alta a una persona con usuario sugerido, un restaurante y su turno', async () => {
   jest.mocked(listPeople).mockResolvedValue([])
   org(<TeamView />)
@@ -91,7 +91,7 @@ it('da de alta a una persona con usuario sugerido, un restaurante y su turno', a
 })
 
 // Falla si la lista no distingue la invitación pendiente, si editar deja cambiar el usuario o si reenviar y desactivar no
-// llaman a Odoo (desactivar pide confirmación).
+// llaman al servidor (desactivar pide confirmación).
 it('edita, reenvía la invitación y desactiva', async () => {
   jest.mocked(listPeople).mockResolvedValue([P({}), P({ id: 8, name: 'Laura', role: 'admin', configIds: [1, 2], shift: null, username: 'laura', email: 'laura@x.co', status: 'pending', userId: 21 }), P({ id: 1, name: 'Dueña', role: 'owner', configIds: [], userId: 1, username: 'admin' })])
   org(<TeamView />)
@@ -155,7 +155,7 @@ it('con muchas personas los grupos empiezan cerrados y la búsqueda los abre', a
 })
 
 // Falla si los ajustes de la organización (promociones, permisos, empresa) se guardan por un restaurante distinto del
-// que va en cada petición: Odoo respondía «La operación pertenece a otro restaurante».
+// que va en cada petición: el servidor respondía «La operación pertenece a otro restaurante».
 it('los ajustes de la organización usan el restaurante en uso', () => {
   const list = [R(1, 'Poblado'), R(2, 'Laureles')]
   expect(anyConfigId(list, 1)).toBe(1)

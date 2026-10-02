@@ -4,7 +4,8 @@ El proveedor de códigos aún no está integrado. En demo, seis dígitos ASCII v
 la cuenta pendiente solicitada por esta cookie, durante diez minutos y una sola vez.
 Nunca se recuperan cuentas existentes por correo. En producción se rechaza el flujo.
 """
-from experience_app.adapters.backend import backend_for, client_for
+from tenancy.http import Problem
+from experience_app.adapters.core.pos import Client
 import re
 
 from django.conf import settings
@@ -12,8 +13,9 @@ from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from experience_app.adapters.registry.client import resolve, RegistryUnavailable, TenantNotFound
-from experience_app.adapters.odoo.client import OdooClient, OdooError
+from experience_app.adapters.core.context import RestaurantNotFound
+from experience_app.adapters.core.pos import resolve
+from django.db import DatabaseError
 from experience_app.services.sessions import close_paid, PAID_STATES
 
 from experience_app.models import CartLine, Diner, DinerAccount, Order, TableSession
@@ -115,7 +117,7 @@ def profile_view(account: DinerAccount) -> dict:
 def history(account: DinerAccount) -> list[dict]:
     """Pedidos enviados de las sesiones donde participó un comensal con esta cuenta, del más reciente al más viejo.
 
-    El estado sale de la sesión (pagada por el salón o no), sin ir a Odoo por cada pedido viejo.
+    El estado sale de la sesión (pagada por el salón o no), sin ir al sistema propio por cada pedido viejo.
     """
     orders = (Order.objects.filter(Q(lines__account=account) | Q(lines__account__isnull=True, session__diners__account=account), state__in=(Order.SENT, Order.CHECKOUT))
               .filter(session__restaurant_slug=account.organization_slug).distinct().select_related('session').prefetch_related('lines').order_by('-created_at'))
@@ -126,7 +128,7 @@ def history(account: DinerAccount) -> list[dict]:
             groups.setdefault((order.session.restaurant_slug, order.session.venue_slug), []).append(order)
     for (restaurant, venue), pending in groups.items():
         try:
-            client = client_for(resolve(restaurant, venue), OdooClient)
+            client = Client(resolve(restaurant, venue))
             states = client.call_kw('pos.order', 'read', [[o.odoo_order_id for o in pending], ['state']])
             paid = {row['id'] for row in states if row['state'] in PAID_STATES}
             statuses = {row['id']: row for row in states}
@@ -134,12 +136,12 @@ def history(account: DinerAccount) -> list[dict]:
                 if order.requires_payment and order.odoo_order_id in paid:
                     from experience_app.services.orders import status_view
                     row = statuses[order.odoo_order_id]
-                    from experience_app.adapters.odoo.pos import OrderStatus
+                    from experience_app.adapters.core.pos import OrderStatus
                     remote = OrderStatus(row['state'], row['kitchen']) if 'kitchen' in row else None
                     order._diner_status = status_view(order, remote_status=remote)['estado']
                 elif order.odoo_order_id in paid and not order.requires_payment:
                     close_paid(order.session)
-        except (OdooError, RegistryUnavailable, TenantNotFound):
+        except (DatabaseError, Problem, RestaurantNotFound):
             pass  # Historial disponible con el último estado conocido si el salón no responde.
     diner_ids = set(account.diners.values_list('id', flat=True))
     lines = CartLine.objects.filter(Q(account=account) | Q(account__isnull=True, diner_id__in=diner_ids), order__in=orders).order_by('created_at')

@@ -11,8 +11,6 @@ import { useAuthStore } from '@/lib/stores/authStore'
 const ACTIVITY = ['pointerdown', 'keydown', 'touchstart', 'wheel'] as const
 const TICK_MS = 15_000
 
-// Plan P: cierra la sesión sola tras 15 minutos sin uso (en las pantallas de operación) y al terminar el turno del mesero
-// o del cajero, con un aviso 5 minutos antes. Cerrar es lo mismo que «Cerrar sesión»: termina el turno y la sesión de Odoo.
 export function SessionGuard({ idle }: { idle: boolean }) {
   const t = useTranslations('account.guard')
   const router = useRouter()

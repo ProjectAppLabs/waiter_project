@@ -11,7 +11,7 @@ it('formats zero as a bare zero', () => {
   expect(formatCop(0)).toBe('0')
 })
 
-// Falla si los centavos de Odoo se cuelan en el ticket.
+// Falla si los centavos del servidor se cuelan en el ticket.
 it('rounds half-up cents away before formatting', () => {
   expect(formatCop(87822.4)).toBe('87.822')
 })

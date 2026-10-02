@@ -19,7 +19,7 @@ import type { Floor, Table } from '@/lib/types'
 // Paso 2 (Select Table.png). Es el mismo plano del salón y del editor: paredes, zonas, imágenes y mesas en su sitio, con
 // el mismo encuadre. Aquí las mesas libres se eligen —una o varias: un grupo grande junta mesas, incluso de pisos
 // distintos— y la barra de abajo va sumando puestos hasta que el grupo cabe. Una reservada a esa hora muestra desde
-// cuándo. La disponibilidad la decide el servidor (`tables`); el plano solo la dibuja. La primera mesa tocada es la
+// cuándo. La disponibilidad la decidel servidor (`tables`); el plano solo la dibuja. La primera mesa tocada es la
 // principal (ahí va el pre-pedido).
 export function TableStep({ tables, floors, floorTables, people, date, time, selected, onSelect, onContinue, continueLabel, busy = false }: {
   tables: AvailableTable[]; floors: Floor[]; floorTables: Table[]; people: number; date: string; time: number; selected: number[]

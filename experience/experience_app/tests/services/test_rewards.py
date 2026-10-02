@@ -9,14 +9,14 @@ from django.db import IntegrityError, transaction
 from django.urls import reverse
 from django.utils import timezone
 
-from experience_app.adapters.odoo.client import OdooUnavailable
-from experience_app.adapters.odoo.pos import OdooOrder, OrderStatus
+from django.db import OperationalError
+from experience_app.adapters.core.pos import PlacedOrder, OrderStatus
 from experience_app.models import CartLine, Diner, DinerAccount, DinerFeedback, DinerReward, Order, PaymentAttempt, PaymentGateway, TableSession
 from experience_app.services import benefits, discount, online_payments, orders, rewards, sessions
 from experience_app.tests.conftest import ANGUS, LIMONADA, TABLE
 
 pytestmark = pytest.mark.django_db
-SENT = OdooOrder(id=13, reference='260-1-1', state='draft', total=87822, tax=14022, paid=0)
+SENT = PlacedOrder(id=13, reference='260-1-1', state='draft', total=87822, tax=14022, paid=0)
 
 
 def action(key, kind='descuento', **values):
@@ -42,7 +42,7 @@ def rpc():
             return {'paid': True}
         raise AssertionError(method)
 
-    with patch('experience_app.adapters.odoo.client.OdooClient.call_kw', side_effect=call) as mock, \
+    with patch('experience_app.adapters.core.pos.Client.call_kw', side_effect=call) as mock, \
             patch('experience_app.services.benefits.tenant_for', return_value=TABLE), \
             patch('experience_app.views.benefits.resolve', return_value=TABLE):
         yield configured, grants, mock
@@ -93,7 +93,7 @@ def test_actions_cache_is_short_scoped_and_failure_is_empty(rpc):
     with patch.object(cache, 'set', wraps=cache.set) as save:
         rewards.actions(other)
         assert save.call_args.args[2] <= 30
-    mock.side_effect = OdooUnavailable('Sin conexión')
+    mock.side_effect = OperationalError('Sin conexión')
     cache.clear()
     assert rewards.actions(TABLE) == []
 
@@ -197,7 +197,7 @@ def test_points_failure_is_pending_and_retry_keeps_original_key_and_amount(table
     def unavailable(model, method, args, kwargs=None):
         if method == 'waiter_grant_points':
             keys.append(args)
-            raise OdooUnavailable('El resultado remoto es incierto')
+            raise OperationalError('El resultado remoto es incierto')
         return original(model, method, args, kwargs)
 
     mock.side_effect = unavailable
@@ -227,8 +227,8 @@ def test_best_discount_only_on_confirming_diner_and_other_prizes_wait(table, rpc
         (ANGUS.name, 25), (LIMONADA.name, 0)]
     best.refresh_from_db()
     smaller.refresh_from_db()
-    assert (best.state, best.order, smaller.state) == ('usado', order, 'disponible')
-    assert best.used_at is not None
+    assert (best.state, best.order, smaller.state) == ('reservado', order, 'disponible')
+    assert best.used_at is None
 
 
 def test_restricted_reward_is_shared_but_only_spent_in_its_restaurant(table, rpc, sending):
@@ -237,13 +237,13 @@ def test_restricted_reward_is_shared_but_only_spent_in_its_restaurant(table, rpc
     restricted = earned(ana, percent=25, prize_snapshot={'tipo': 'descuento', 'porcentaje': 25, 'configs': [2]})
     global_reward = earned(ana, 'novedades', percent=10)
     assert [row['id'] for row in rewards.view(TABLE, ana.account)['beneficios']] == [global_reward.pk]
-    sibling = replace(TABLE, venue_slug='laureles', odoo=replace(TABLE.odoo, pos_config_id=2))
+    sibling = replace(TABLE, venue_slug='laureles', restaurant_id=2)
     assert restricted.pk in [row['id'] for row in rewards.view(sibling, ana.account)['beneficios']]
     order, _ = orders.confirm(session, ana)
     restricted.refresh_from_db()
     global_reward.refresh_from_db()
     assert restricted.state == 'disponible'
-    assert (global_reward.state, global_reward.order_id) == ('usado', order.pk)
+    assert (global_reward.state, global_reward.order_id) == ('reservado', order.pk)
     assert sending.call_args.kwargs['lines'][0].discount == 10
 
 
@@ -263,7 +263,7 @@ def test_coupon_then_first_purchase_then_action_and_points_always_add(table, rpc
     assert sending.call_args.kwargs['lines'][0].discount == expected
     assert sending.call_args.kwargs['lines'][1].discount == 0
     reward.refresh_from_db()
-    assert reward.state == ('usado' if expected == 25 else 'disponible')
+    assert reward.state == ('reservado' if expected == 25 else 'disponible')
     assert DinerReward.objects.get(action='cuenta').state == 'acreditado'
     assert len(rpc[1]) == 1
 
@@ -276,15 +276,15 @@ def test_confirmation_syncs_new_reward_before_reserving(table, rpc, sending):
     rpc[0].append(action('novedades', porcentaje=18))
     orders.confirm(session, ana)
     assert sending.call_args.kwargs['lines'][0].discount == 18
-    assert DinerReward.objects.get().state == 'usado'
+    assert DinerReward.objects.get().state == 'reservado'
 
 
 def test_uncertain_order_reuses_reservation_and_another_session_cannot_spend_it(table, rpc, sending):
     # Falla si un reintento gasta otro premio o una segunda visita consume el premio reservado.
     session, ana, _ = table
     reward = earned(ana)
-    sending.side_effect = [OdooUnavailable('Sin respuesta'), SENT, SENT]
-    with pytest.raises(OdooUnavailable):
+    sending.side_effect = [OperationalError('Sin respuesta'), SENT, SENT]
+    with pytest.raises(OperationalError):
         orders.confirm(session, ana)
     reward.refresh_from_db()
     assert reward.state == 'reservado' and reward.used_at is None
@@ -298,7 +298,7 @@ def test_uncertain_order_reuses_reservation_and_another_session_cannot_spend_it(
     assert sending.call_args.kwargs['lines'][0].discount == 15
     assert DinerReward.objects.get(action='novedades').state == 'disponible'
     reward.refresh_from_db()
-    assert reward.state == 'usado'
+    assert reward.state == 'reservado'
 
 
 @pytest.mark.parametrize('paid_via', ['status', 'online'])

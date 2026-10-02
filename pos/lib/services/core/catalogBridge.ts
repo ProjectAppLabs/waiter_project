@@ -2,24 +2,23 @@ import { parseDinerAttributes, type DinerAttributes } from '@/lib/domain/dinerAt
 import { KIT_UNITS, type Dish, type Ingredient, type RecipeLine } from '@/lib/domain/pantry'
 import type { AdminCategory, AdminProduct, Tax } from '@/lib/services/catalogAdmin'
 import type { CatalogOverview } from '@/lib/services/catalogOverview'
-import type { KitUnit, PantryRequest, Supplier } from '@/lib/services/pantry'
-import type { InventoryDetail, RecipeDetail } from '@/lib/services/restaurantInventory'
-import type { MasterCatalog } from '@/lib/services/masterCatalog'
-import type { Catalog, Settings } from '@/lib/types'
-import { useAuthStore } from '@/lib/stores/authStore'
 import type { CoreCategory, CoreDish, CoreIngredient, CoreMenu, CoreOverview, CoreRecipe, CoreRestaurantsCatalog, CoreSupplier, CoreTax, CoreUnit } from '@/lib/services/core/catalog'
 import type { CoreRequest, CoreStockDetail, CoreStockDish, CoreStockIngredient } from '@/lib/services/core/inventory'
+import type { MasterCatalog } from '@/lib/services/masterCatalog'
+import type { KitUnit, PantryRequest, Supplier } from '@/lib/services/pantry'
+import type { InventoryDetail, RecipeDetail } from '@/lib/services/restaurantInventory'
+import { useAuthStore } from '@/lib/stores/authStore'
+import type { Catalog, Settings } from '@/lib/types'
 
 // Plan T1: traduce el catálogo y el inventario del sistema propio a las formas que ya usan Inventario, Consola → Catálogo y
 // el POS. Los ids del sistema propio son los del producto: plantilla y variante son lo mismo.
 
 // El restaurante con el que se trabaja: el elegido en el dispositivo o, en la consola, el primero de la organización.
 export function currentRestaurantId(): number | null {
-  const { restaurant, restaurants } = useAuthStore.getState()
-  return restaurant?.id ?? restaurants?.[0]?.id ?? null
+  const { session, restaurant, restaurants } = useAuthStore.getState()
+  return session?.configId ?? restaurant?.id ?? restaurants?.[0]?.id ?? null
 }
 
-// Las unidades del kit se reconocen por su nombre; «Unidades» es el nombre en español de lo que Odoo llamaba «Units».
 const UNIT_NAMES: Record<string, string> = { Unidades: 'Units' }
 export const toKitUnits = (units: CoreUnit[]): KitUnit[] => units.flatMap((u) => {
   const name = UNIT_NAMES[u.name] ?? u.name

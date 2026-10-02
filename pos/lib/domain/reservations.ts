@@ -1,5 +1,5 @@
 // Reglas puras de las reservas del kit (7 – Reservation). El servidor manda: solapes, franjas y estados
-// los calcula `projectapp_reservations`. Aquí solo va lo que necesita pintar la grilla y validar el paso 1.
+// los calcula el servidor. Aquí solo va lo que necesita pintar la grilla y validar el paso 1.
 
 export const SLOT_HOURS = 0.5
 export const RESERVATION_STATES = ['confirmed', 'seated', 'no_show', 'cancelled'] as const

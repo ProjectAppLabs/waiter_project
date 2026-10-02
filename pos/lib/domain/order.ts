@@ -4,13 +4,6 @@ import type { Product } from '@/lib/types'
 export interface DraftLine { uuid: string; productId: number; name: string; unitPrice: number; qty: number; note: string; taxIds: number[] }
 export interface DraftOrder { uuid: string; serverId: number | null; sessionId: number; tableId: number; guests: number; note: string; lines: DraftLine[] }
 
-type LineCommand = [0, 0, Record<string, unknown>]
-export interface SyncOrderPayload {
-  id: number; uuid: string; session_id: number; table_id: number; customer_count: number
-  sequence_number: number; state: 'draft'; general_customer_note: string; amount_total: number; amount_tax: number
-  amount_paid: number; amount_return: number; date_order: string; lines: LineCommand[]; employee_id?: number
-}
-
 export function createDraft({ sessionId, tableId, guests = 1 }: { sessionId: number; tableId: number; guests?: number }): DraftOrder {
   return { uuid: uuid(), serverId: null, sessionId, tableId, guests, note: '', lines: [] }
 }
@@ -43,23 +36,4 @@ export function setOrderNote(order: DraftOrder, note: string): DraftOrder {
 
 export function subtotal(order: DraftOrder): number {
   return order.lines.reduce((acc, l) => acc + l.unitPrice * l.qty, 0)
-}
-
-function nowForOdoo(): string {
-  return new Date().toISOString().slice(0, 19).replace('T', ' ')
-}
-
-// employeeId: el empleado activo del dispositivo (pos_hr) firma el pedido cuando lo hay.
-export function toSyncPayload(order: DraftOrder, employeeId: number | null = null): SyncOrderPayload {
-  return {
-    ...(employeeId ? { employee_id: employeeId } : {}),
-    id: order.serverId ?? -1, uuid: order.uuid, session_id: order.sessionId, table_id: order.tableId,
-    customer_count: order.guests, sequence_number: 1, state: 'draft', general_customer_note: order.note,
-    amount_total: 0, amount_tax: 0, amount_paid: 0, amount_return: 0, date_order: nowForOdoo(),
-    lines: order.lines.map((l) => [0, 0, {
-      id: -1, uuid: l.uuid, product_id: l.productId, qty: l.qty, price_unit: l.unitPrice,
-      tax_ids: [[6, 0, l.taxIds]], price_subtotal: 0, price_subtotal_incl: 0,
-      full_product_name: l.name, customer_note: l.note,
-    }]),
-  }
 }

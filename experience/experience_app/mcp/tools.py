@@ -4,15 +4,15 @@ Toda herramienta recibe la clave ya autenticada y trabaja sobre SU sede. Las que
 las mismas reglas que el POS y dejan un cambio pendiente (McpPendingChange) con su vista previa. Solo
 `confirmar_cambio`, con el token que devolvió la preparación, lo aplica. Así la IA propone y una persona decide.
 """
-from experience_app.adapters.backend import backend_for, client_for
+from experience_app.adapters.core.pos import Client
 import uuid
 from copy import deepcopy
 from datetime import timedelta
 
 from django.utils import timezone
 
-from experience_app.adapters.odoo.client import OdooClient, OdooError
-from experience_app.adapters.registry.client import Tenant, resolve
+from experience_app.adapters.core.context import RestaurantContext
+from experience_app.adapters.core.pos import resolve
 from experience_app.diseno import borradores, decoraciones, plantillas
 from experience_app.diseno import services as design
 from experience_app.mcp.models import McpKey, McpPendingChange
@@ -36,19 +36,16 @@ class ToolError(Exception):
 
 
 # ---- acceso a la sede ---------------------------------------------------------------------------------------------
-def _tenant(key: McpKey) -> Tenant:
+def _tenant(key: McpKey) -> RestaurantContext:
     return resolve(key.restaurant_slug, key.venue_slug)
 
 
-def _odoo(tenant: Tenant, model: str, method: str, args: list, kwargs: dict | None = None):
-    try:
-        return client_for(tenant, OdooClient).call_kw(model, method, args, kwargs)
-    except OdooError as exc:
-        raise ToolError(f'Odoo rechazó la operación: {exc}') from exc
+def _call(tenant: RestaurantContext, model: str, method: str, args: list, kwargs: dict | None = None):
+    return Client(tenant).call_kw(model, method, args, kwargs)
 
 
-def _banners(tenant: Tenant) -> list[dict]:
-    return _odoo(tenant, 'pos.config', 'waiter_banner_settings', [[tenant.config_id]]).get('banners', [])
+def _banners(tenant: RestaurantContext) -> list[dict]:
+    return _call(tenant, 'pos.config', 'waiter_banner_settings', [[tenant.config_id]]).get('banners', [])
 
 
 def _pending(key: McpKey, kind: str, payload: dict) -> str:
@@ -312,8 +309,8 @@ def preparar_banners(key: McpKey, args: dict) -> dict:
         else:
             row['image'] = ''
         rows.append(row)
-    # Odoo valida con las mismas reglas del POS (textos, destino en el catálogo, imagen) sin guardar.
-    clean = _odoo(tenant, 'pos.config', 'waiter_banner_settings_integration', [[tenant.config_id], rows],
+    # El sistema propio valida con las mismas reglas del POS (textos, destino en el catálogo, imagen) sin guardar.
+    clean = _call(tenant, 'pos.config', 'waiter_banner_settings_integration', [[tenant.config_id], rows],
                   {'dry_run': True, 'actor': f'MCP {key.prefix}'})['banners']
     preview = [{'titulo': b['title'], 'diseno': b['layout'], 'destino': b['target'], 'visible': b['active'],
                 'con_imagen': bool(b.get('image'))} for b in clean]
@@ -323,10 +320,10 @@ def preparar_banners(key: McpKey, args: dict) -> dict:
 
 def listar_catalogo(key: McpKey, args: dict) -> dict:
     tenant = _tenant(key)
-    products = _odoo(tenant, 'product.product', 'search_read', [[['available_in_pos', '=', True], ['sale_ok', '=', True]],
+    products = _call(tenant, 'product.product', 'search_read', [[['available_in_pos', '=', True], ['sale_ok', '=', True]],
                                                                   ['name', 'lst_price', 'pos_categ_ids']], {'order': 'name'})
     category_ids = sorted({category for product in products for category in product['pos_categ_ids']})
-    categories = _odoo(tenant, 'pos.category', 'search_read', [[["id", "in", category_ids]], ['name']], {'order': 'sequence, name'})
+    categories = _call(tenant, 'pos.category', 'search_read', [[["id", "in", category_ids]], ['name']], {'order': 'sequence, name'})
     return {'productos': [{'id': p['id'], 'nombre': p['name'], 'precio': p['lst_price'], 'categorias': p['pos_categ_ids']} for p in products],
             'categorias': [{'id': c['id'], 'nombre': c['name']} for c in categories]}
 
@@ -353,11 +350,11 @@ def confirmar_cambio(key: McpKey, args: dict) -> dict:
         greeting = payload.pop('saludo', None)
         templates.save(key.restaurant_slug, key.venue_slug, payload)
         if greeting is not None:
-            _odoo(tenant, 'res.company', 'write_brand', [{'brand_greeting': greeting}])
+            _call(tenant, 'res.company', 'write_brand', [{'brand_greeting': greeting}])
             brand.invalidate(key.restaurant_slug, key.venue_slug)
         templates.invalidate(key.restaurant_slug, key.venue_slug)
     elif change.kind == 'banners':
-        _odoo(tenant, 'pos.config', 'waiter_banner_settings_integration', [[tenant.config_id], change.payload['banners']],
+        _call(tenant, 'pos.config', 'waiter_banner_settings_integration', [[tenant.config_id], change.payload['banners']],
               {'dry_run': False, 'actor': f'MCP {key.prefix}'})
     else:
         raise ToolError('Este cambio no se puede confirmar por MCP.')

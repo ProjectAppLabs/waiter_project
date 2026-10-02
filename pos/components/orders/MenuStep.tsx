@@ -1,5 +1,7 @@
 'use client'
 
+import { imageUrl } from '@/lib/services/pantry'
+
 import { useTranslations } from 'next-intl'
 import { useMemo, useState } from 'react'
 
@@ -72,7 +74,7 @@ export function MenuStep({ products, categories, taxes, optionsOf, descriptionOf
                   <li key={p.id} className="rounded-lg border border-border bg-surface overflow-hidden flex flex-col">
                     <div className="relative h-[130px] bg-muted grid place-items-center text-dim">
                       {p.hasImage
-                        ? <img src={`/odoo/web/image/product.template/${p.templateId}/image_512`} alt={t('photo', { name: p.name })} className="absolute inset-0 w-full h-full object-cover" />
+                        ? <img src={imageUrl(p.templateId)} alt={t('photo', { name: p.name })} className="absolute inset-0 w-full h-full object-cover" />
                         : <Icon name="photo" size={26} />}
                       <span className={cn('absolute top-2.5 left-2.5 h-7 px-2.5 rounded-sm bg-surface flex items-center gap-1.5 text-[13px] font-semibold text-ink')}>
                         <span className={cn('w-2 h-2 rounded-full', p.soldOut ? 'bg-danger' : 'bg-success')} />

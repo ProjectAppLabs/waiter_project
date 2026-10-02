@@ -7,12 +7,11 @@ import { LOGIN_INPUT } from '@/components/account/LoginFrame'
 import { Icon } from '@/components/kit/Icon'
 import { Modal } from '@/components/kit/Modal'
 import { Button } from '@/components/ui/Button'
-import { OdooError } from '@/lib/services/errors'
+import { CoreError } from '@/lib/services/core/http'
 import { changePassword } from '@/lib/services/session'
 
 const MIN_LENGTH = 8
 
-// Plan P: «Cambiar contraseña» en Seguridad. Se pide la actual (Odoo la comprueba) y la nueva dos veces.
 export function ChangePasswordModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const t = useTranslations('account.settings.security')
   const [current, setCurrent] = useState('')
@@ -29,8 +28,8 @@ export function ChangePasswordModal({ open, onClose }: { open: boolean; onClose:
     setBusy(true); setFailed(null)
     try { await changePassword(current, next); setDone(true) }
     catch (error) {
-      const denied = error instanceof OdooError && error.odooType === 'odoo.exceptions.AccessDenied'
-      setFailed(denied ? t('wrongCurrent') : error instanceof OdooError && error.message ? error.message : t('failed'))
+      const denied = error instanceof CoreError && error.code === 'wrong_password'
+      setFailed(denied ? t('wrongCurrent') : error instanceof CoreError && error.message ? error.message : t('failed'))
     } finally { setBusy(false) }
   }
 

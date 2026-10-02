@@ -8,8 +8,6 @@ import { formatCop } from '@/lib/domain/money'
 import type { Product } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
-// Tarjeta de plato del kit (8 – Add New Order): foto con badge Disponible / No disponible, nombre, precio y "Agregar" / "Agregar más (n)".
-// Un plato agotado muestra "Disponible: Sin hora" hasta que exista `available_from` en Odoo.
 export function MenuProductCard({ product, inCart, onAdd, disabled = false }: { product: Product; inCart: number; onAdd: () => void; disabled?: boolean }) {
   const t = useTranslations('orders.addRound')
   return (
