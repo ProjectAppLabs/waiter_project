@@ -1,3 +1,6 @@
+import { onCore } from '@/lib/domain/backend'
+import * as coreCatalog from '@/lib/services/core/catalog'
+import { toOverview } from '@/lib/services/core/catalogBridge'
 import { callKw } from '@/lib/services/odoo'
 
 // Plan R: el catálogo de la organización de una vez para la consola (projectapp_pantry ≥ 19.0.2.7.0): cada plato con el
@@ -17,6 +20,7 @@ type Raw = {
 }
 
 export async function catalogOverview(): Promise<CatalogOverview> {
+  if (onCore()) return toOverview(await coreCatalog.overview())
   const r = await callKw<Raw>('product.template', 'waiter_catalog_overview', [])
   return {
     currency: r.currency,
@@ -28,7 +32,7 @@ export async function catalogOverview(): Promise<CatalogOverview> {
 }
 
 // El costo del ingrediente vale para toda la organización (plan Q: solo el dueño lo cambia).
-export const setIngredientCost = (templateId: number, cost: number) =>
+export const setIngredientCost = (templateId: number, cost: number) => onCore() ? coreCatalog.updateProduct(templateId, { cost }).then(() => ({ template_id: templateId, cost })) :
   callKw<{ template_id: number; cost: number }>('product.template', 'waiter_set_ingredient_cost', [[templateId], cost])
 
 // En qué está la receta de un plato: es lo que separa «Sin receta» de «Sin costo» en los filtros de la consola.

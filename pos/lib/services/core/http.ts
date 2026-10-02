@@ -13,7 +13,7 @@ export class CoreError extends Error {
 }
 
 export type CoreScope = 'pos' | 'platform'
-interface Options { method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'; body?: unknown; scope?: CoreScope }
+interface Options { method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; scope?: CoreScope }
 
 export async function coreFetch<T>(path: string, { method = 'GET', body, scope = 'pos' }: Options = {}): Promise<T> {
   const headers: Record<string, string> = { Accept: 'application/json' }

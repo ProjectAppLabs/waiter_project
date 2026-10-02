@@ -8,7 +8,9 @@ import { Icon } from '@/components/kit/Icon'
 import { INPUT, LABEL, PrimaryButton, WizardFrame } from '@/components/pantry/WizardFrame'
 import { imageDataUrl, resizeImage, validateLogoFile } from '@/lib/domain/image'
 import { PANTRY_CATEGORIES, categoryEmoji, type Ingredient, type PantryCategory } from '@/lib/domain/pantry'
-import { createIngredient, imageUrl, updateIngredient, type KitUnit, type Supplier } from '@/lib/services/pantry'
+import { Button } from '@/components/ui/Button'
+import { onCore } from '@/lib/domain/backend'
+import { createIngredient, createSupplier, imageUrl, updateIngredient, type KitUnit, type Supplier } from '@/lib/services/pantry'
 import { toast } from '@/lib/stores/toastStore'
 import { cn } from '@/lib/utils'
 
@@ -33,6 +35,9 @@ export function AddIngredientWizard({ open, onClose, initial = null, units, supp
   const [image, setImage] = useState<string | undefined>(undefined)
   const [supplierId, setSupplierId] = useState<number | null>(initial?.supplierId ?? null)
   const [query, setQuery] = useState('')
+  const [extra, setExtra] = useState<Supplier[]>([])
+  const [newSupplier, setNewSupplier] = useState('')
+  const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const file = useRef<HTMLInputElement>(null)
@@ -65,7 +70,13 @@ export function AddIngredientWizard({ open, onClose, initial = null, units, supp
     } finally { setSaving(false) }
   }
 
-  const visible = suppliers.filter((s) => s.name.toLocaleLowerCase('es').includes(query.trim().toLocaleLowerCase('es')))
+  const visible = [...suppliers, ...extra].filter((s) => s.name.toLocaleLowerCase('es').includes(query.trim().toLocaleLowerCase('es')))
+  async function addSupplier() {
+    if (!newSupplier.trim()) return
+    setCreating(true); setError(null)
+    try { const s = await createSupplier(newSupplier.trim()); setExtra((v) => [...v, s]); setSupplierId(s.id); setNewSupplier('') }
+    catch (e) { setError(e instanceof Error ? e.message : String(e)) } finally { setCreating(false) }
+  }
   const preview = image ? imageDataUrl(image) : initial?.hasImage ? imageUrl(initial.id, 256) : null
   const footer = (
     <>
@@ -109,6 +120,13 @@ export function AddIngredientWizard({ open, onClose, initial = null, units, supp
           </div>
         </div>
       ) : (
+        <div className="flex flex-col gap-4">
+        {onCore() && (
+          <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); void addSupplier() }}>
+            <input value={newSupplier} onChange={(e) => setNewSupplier(e.target.value)} placeholder={t('newSupplierPlaceholder')} aria-label={t('newSupplier')} className={cn(INPUT, 'max-w-[390px]')} />
+            <Button type="submit" disabled={!newSupplier.trim() || creating}>{t('addSupplier')}</Button>
+          </form>
+        )}
         <div className="grid grid-cols-4 gap-4" role="radiogroup" aria-label={t('supplierTitle')}>
           {visible.length === 0 && <p className="col-span-4 text-[14px] text-soft">{t('noSuppliers')}</p>}
           {visible.map((s) => (
@@ -120,6 +138,7 @@ export function AddIngredientWizard({ open, onClose, initial = null, units, supp
               <span className="text-[15px] font-semibold text-ink text-center leading-tight">{s.name}</span>
             </button>
           ))}
+        </div>
         </div>
       )}
     </WizardFrame>

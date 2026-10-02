@@ -1,3 +1,8 @@
+import { onCore } from '@/lib/domain/backend'
+import * as coreCatalog from '@/lib/services/core/catalog'
+import * as corePos from '@/lib/services/core/pos'
+import { currentRestaurantId, toCatalog } from '@/lib/services/core/catalogBridge'
+import { useAuthStore } from '@/lib/stores/authStore'
 import { rolePolicy } from '@/lib/services/rolePermissions'
 import { callKw } from '@/lib/services/odoo'
 import type { Catalog, Category, Floor, PaymentMethod, Product, Settings, Table } from '@/lib/types'
@@ -26,6 +31,14 @@ async function soldOutIds(products: Product[]): Promise<Set<number>> {
 }
 
 export async function loadPosData(sessionId: number | null, restaurantId: number | null = null): Promise<Catalog> {
+  // Plan T: la carta del sistema propio para su restaurante (sin salón ni caja hasta T2).
+  if (onCore()) {
+    const id = restaurantId ?? currentRestaurantId()
+    if (id === null) throw new Error('Elige un restaurante.')
+    const [menu, org] = await Promise.all([coreCatalog.getMenu(id), corePos.getOrg()])
+    const name = useAuthStore.getState().restaurants?.find((r) => r.id === id)?.name ?? org.name
+    return toCatalog(menu, id, name, org.name)
+  }
   // Todos los modelos, como lo hace el propio cliente de Odoo: los cargadores se leen entre sí
   // desde data[...] y una lista parcial rompe con KeyError en cada actualización.
   const raw = sessionId === null ? await loadAdministrationData(restaurantId) : await callKw<RawLoad>('pos.session', 'load_data', [[sessionId], []])

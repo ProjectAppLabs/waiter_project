@@ -145,7 +145,7 @@
     "photoHint": "Formato .jpg, .jpeg o .png y tamaño mínimo de 320 × 320 px",
     "photoChange": "Cambiar foto",
     "supplierTitle": "Proveedor",
-    "noSuppliers": "No hay proveedores registrados en Odoo.",
+    "noSuppliers": "No hay proveedores registrados.",
     "successTitle": "¡Ingrediente agregado!",
     "successBody": "Tu ingrediente quedó registrado y listo para usarse.",
     "editedTitle": "¡Ingrediente actualizado!",
@@ -157,7 +157,10 @@
       "stock": "Escribe una cantidad válida.",
       "supplier": "Elige un proveedor.",
       "photo": "Sube una imagen .jpg o .png."
-    }
+    },
+    "newSupplier": "Nuevo proveedor",
+    "newSupplierPlaceholder": "Nombre del proveedor",
+    "addSupplier": "Agregar proveedor"
   },
   "request": {
     "successTitle": "¡Solicitud enviada!",
@@ -190,10 +193,18 @@
   },
   "error": "No se pudo completar. Intenta de nuevo.",
   "menuAdmin": {
-    "title": "Carta", "loading": "Cargando la carta…", "loadFailed": "No se pudo cargar la carta. Cierra e inténtalo de nuevo.", "notFound": "Este plato ya no está en el catálogo.",
-    "edit": "Editar precio, foto y carta de {name}", "editShort": "Editar precio, foto y carta",
-    "categories": "Categorías", "offMenu": "Fuera de la carta",
-    "offMenuTitle": "Fuera de la carta", "offMenuIntro": "Productos que Inventario no lista porque están ocultos de la carta o no tienen categoría. Abre uno para volver a mostrarlo o darle categoría.",
-    "offMenuEmpty": "No hay nada fuera de la carta.", "hidden": "Oculto de la carta", "noCategory": "Sin categoría"
+    "title": "Carta",
+    "loading": "Cargando la carta…",
+    "loadFailed": "No se pudo cargar la carta. Cierra e inténtalo de nuevo.",
+    "notFound": "Este plato ya no está en el catálogo.",
+    "edit": "Editar precio, foto y carta de {name}",
+    "editShort": "Editar precio, foto y carta",
+    "categories": "Categorías",
+    "offMenu": "Fuera de la carta",
+    "offMenuTitle": "Fuera de la carta",
+    "offMenuIntro": "Productos que Inventario no lista porque están ocultos de la carta o no tienen categoría. Abre uno para volver a mostrarlo o darle categoría.",
+    "offMenuEmpty": "No hay nada fuera de la carta.",
+    "hidden": "Oculto de la carta",
+    "noCategory": "Sin categoría"
   }
 }

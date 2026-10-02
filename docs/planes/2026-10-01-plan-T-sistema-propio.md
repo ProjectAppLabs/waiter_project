@@ -241,7 +241,7 @@ solicitudes y agotados de sus restaurantes; `waiter`/`cashier` leen. Los ids son
 | `GET /inventory/requests?restaurant_id=` | sesión | `{"requests": [{id, state, state_label, supplier_name, date, lines: [{id, ingredient_id, name, qty, unit_name, price_unit}]}]}` |
 | `POST /inventory/requests` | `owner`, `admin` | `{restaurant_id, ingredient_id, qty?}` → crea o amplía la solicitud en borrador de ese proveedor (`qty` por omisión `max(max − stock, 1)`); `409 no_supplier` |
 | `POST /inventory/requests/{id}/mark` | `owner`, `admin` | `{state: "sent"\|"received"\|"cancelled"}`; `received` crea un `receipt` por línea |
-| `GET /photos/{product_id}?size=card\|dish&v=` · `GET /photos/gallery/{photo_id}` | público (con `X-Waiter-Org`) | la imagen WebP (`card` 512, `dish` 1024), `Cache-Control: public, max-age=86400, immutable` |
+| `GET /photos/{product_id}?org=&size=card\|dish&v=` · `GET /photos/gallery/{photo_id}?org=` | público (la organización va en `org`, porque `<img>` no manda cabeceras; también vale `X-Waiter-Org`) | la imagen WebP (`card` 512, `dish` 1024), `Cache-Control: public, max-age=86400, immutable` |
 
 ### Reglas
 

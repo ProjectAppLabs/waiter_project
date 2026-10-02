@@ -1,3 +1,6 @@
+import { onCore } from '@/lib/domain/backend'
+import * as coreCatalog from '@/lib/services/core/catalog'
+import { toMasterCatalog } from '@/lib/services/core/catalogBridge'
 import { callKw } from '@/lib/services/odoo'
 
 // Plan O: el catálogo maestro de la organización con lo propio de cada restaurante (precio local y agotado).
@@ -6,6 +9,7 @@ export interface MasterCatalog { dishes: MasterDish[]; prices: Record<number, Re
 type RawTemplate = { id: number; name: string; list_price: number; pos_categ_ids: number[]; waiter_unavailable_config_ids: number[]; product_variant_id: [number, string] | false }
 
 export async function loadMasterCatalog(restaurantIds: number[]): Promise<MasterCatalog> {
+  if (onCore()) return toMasterCatalog(await coreCatalog.restaurantsCatalog(), restaurantIds)
   const [templates, categories] = await Promise.all([
     callKw<RawTemplate[]>('product.template', 'search_read', [[['available_in_pos', '=', true], ['sale_ok', '=', true]], ['name', 'list_price', 'pos_categ_ids', 'waiter_unavailable_config_ids', 'product_variant_id']], { order: 'name asc' }),
     callKw<{ id: number; name: string }[]>('pos.category', 'search_read', [[], ['name']]),
@@ -20,15 +24,18 @@ export async function loadMasterCatalog(restaurantIds: number[]): Promise<Master
   return { dishes, prices }
 }
 
-export const setDishAvailability = (templateId: number, configId: number, available: boolean) =>
+export const setDishAvailability = (templateId: number, configId: number, available: boolean) => onCore() ? coreCatalog.setRestaurantProduct(configId, templateId, { unavailable: !available }) :
   callKw<boolean>('product.template', 'waiter_set_availability', [[templateId], configId, available])
 
 // `price` null vuelve al precio de la organización. Devuelve el precio resultante en ese restaurante.
-export const setDishPrice = (configId: number, templateId: number, price: number | null) =>
+export const setDishPrice = (configId: number, templateId: number, price: number | null) => onCore()
+  // Devuelve el precio que queda vigente en la sede: el propio o, si se borró, el base de la carta.
+  ? coreCatalog.setRestaurantProduct(configId, templateId, { price }).then(async () => price ?? (await coreCatalog.restaurantsCatalog()).dishes.find((d) => d.id === templateId)?.price ?? 0) :
   callKw<number>('pos.config', 'waiter_set_catalog_price', [[configId], templateId, price ?? false])
 
 // Los platos de `templateIds` agotados en el restaurante `configId`.
 export async function closedDishes(templateIds: number[], configId: number): Promise<Set<number>> {
+  if (onCore()) return new Set(((await coreCatalog.restaurantsCatalog()).unavailable[String(configId)] ?? []).filter((id) => templateIds.includes(id)))
   const rows = await callKw<{ id: number }[]>('product.template', 'search_read', [[['id', 'in', templateIds], ['waiter_unavailable_config_ids', 'in', [configId]]], ['id']])
   return new Set(rows.map((r) => r.id))
 }
