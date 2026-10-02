@@ -9,3 +9,11 @@ it('decide en qué sistema vive cada organización', () => {
   expect(backendFor(null, 'burger-house')).toBe('odoo')
   expect(backendFor('frisby', '')).toBe('core')
 })
+
+// Falla si, tras el corte de T6 (ninguna organización en Odoo), una tableta sin organización conocida sigue llamando a
+// Odoo apagado en vez del sistema propio.
+it('sin organizaciones en Odoo, lo desconocido va al sistema propio', () => {
+  expect(backendFor(null, '')).toBe('core')
+  expect(backendFor(null, 'burger-house')).toBe('odoo')
+  expect(backendFor('burger-house', '')).toBe('core')
+})

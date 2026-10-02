@@ -6,8 +6,9 @@ import { currentOrg } from '@/lib/domain/tenant'
 export type Backend = 'odoo' | 'core'
 
 export function backendFor(org: string | null, odooOrgs = process.env.NEXT_PUBLIC_ODOO_ORGS ?? 'burger-house'): Backend {
-  if (!org) return 'odoo'
   const legacy = odooOrgs.split(',').map((s) => s.trim()).filter(Boolean)
+  // Tras el corte de T6 no queda ninguna organización en Odoo: sin organización conocida también es el sistema propio.
+  if (!org) return legacy.length ? 'odoo' : 'core'
   return legacy.includes(org) ? 'odoo' : 'core'
 }
 
