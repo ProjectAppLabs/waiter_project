@@ -1,5 +1,7 @@
 'use client'
 
+import { onCore } from '@/lib/domain/backend'
+import { getSettings } from '@/lib/services/core/sales'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useEffect, useMemo, useState } from 'react'
@@ -86,7 +88,7 @@ export function OrderWizard({ presetTableId, returnTo = '/pedidos', withoutTable
     if (!created) return
     if (w.info.type === 'dineIn') {
       try {
-        const policy = await callKw<{ require_payment_roles: Role[] }>('pos.config', 'waiter_kitchen_policy', [[catalog!.settings.configId]])
+        const policy = onCore() ? { require_payment_roles: (await getSettings(catalog!.settings.configId)).restaurant.kitchen_prepay_roles as Role[] } : await callKw<{ require_payment_roles: Role[] }>('pos.config', 'waiter_kitchen_policy', [[catalog!.settings.configId]])
         const auth = useAuthStore.getState()
         const role = effectiveRole(auth.user?.role, auth.employee?.role)
         if (policy.require_payment_roles.includes(role)) {

@@ -1,4 +1,6 @@
 'use client'
+import { onCore } from '@/lib/domain/backend'
+import { getSettings, patchSettings } from '@/lib/services/core/sales'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { callKw } from '@/lib/services/odoo'
@@ -14,8 +16,8 @@ export function KitchenPaymentPolicyForm({ configId, readOnly = false }: { confi
   useEffect(() => {
     let active = true
     setPolicy(null)
-    callKw<Policy>('pos.config', 'waiter_kitchen_policy', [[configId]])
-      .then(value => { if (active) setPolicy(value) })
+    ;(onCore() ? getSettings(configId).then((s) => ({ require_payment_roles: s.restaurant.kitchen_prepay_roles } as unknown as Policy)) : callKw<Policy>('pos.config', 'waiter_kitchen_policy', [[configId]]))
+      .then((value: Policy) => { if (active) setPolicy(value) })
       .catch(() => { if (active) setError('No se pudo cargar la política de cocina.') })
     return () => { active = false }
   }, [configId])
@@ -24,7 +26,7 @@ export function KitchenPaymentPolicyForm({ configId, readOnly = false }: { confi
     setBusy(true); setError(''); setNotice('')
     const employee = useAuthStore.getState().employee
     try {
-      setPolicy(await callKw<Policy>('pos.config', 'waiter_kitchen_policy', [[configId], employee?.id, employee?.token, policy.require_payment_roles]))
+      setPolicy(onCore() ? { ...policy, require_payment_roles: (await patchSettings(configId, { kitchen_prepay_roles: policy.require_payment_roles as string[] })).restaurant.kitchen_prepay_roles } as Policy : await callKw<Policy>('pos.config', 'waiter_kitchen_policy', [[configId], employee?.id, employee?.token, policy.require_payment_roles]))
       setNotice('Permisos guardados.')
     } catch (e) { setError(e instanceof Error ? e.message : 'No se pudieron guardar los permisos.') }
     finally { setBusy(false) }

@@ -1,3 +1,6 @@
+import { currentOrg } from '@/lib/domain/tenant'
+import * as coreBusiness from '@/lib/services/core/business'
+import * as coreCatalog from '@/lib/services/core/catalog'
 import * as sales from '@/lib/services/core/sales'
 import * as coreTables from '@/lib/services/core/tables'
 import { currentRestaurantId } from '@/lib/services/core/catalogBridge'
@@ -18,13 +21,14 @@ interface RawFloor { id: number; name: string; table_ids: number[] }
 interface RawTable { id: number; table_number: number; seats: number; active: boolean; floor_id: [number, string] }
 
 export async function getCompany(): Promise<CompanyInfo> {
-  // Plan T: en el sistema propio la empresa es la organización; sus datos legales se editan desde la plataforma (T4 trae impuestos).
-  if (onCore()) { const o = await core.getOrg(); return { id: 0, name: o.name, vat: '', phone: '', email: '', street: '', city: '', waiter_latitude: '', waiter_longitude: '' } }
+  // Plan T4: en el sistema propio la empresa es la organización, con sus datos de emisor.
+  if (onCore()) { const c = await coreBusiness.company(); return { id: 0, name: c.legal_name || c.name, vat: c.tax_id ? `${c.tax_id}${c.tax_id_dv ? '-' + c.tax_id_dv : ''}` : '', phone: c.phone, email: c.email, street: c.address, city: c.city, waiter_latitude: '', waiter_longitude: '' } }
   const [c] = await callKw<RawCompany[]>('res.company', 'search_read', [[], ['name', 'vat', 'phone', 'email', 'street', 'city', 'waiter_latitude', 'waiter_longitude']], { limit: 1 })
   return { id: c.id, name: c.name, vat: c.vat || '', phone: c.phone || '', email: c.email || '', street: c.street || '', city: c.city || '', waiter_latitude: c.waiter_latitude || '', waiter_longitude: c.waiter_longitude || '' }
 }
 
 export async function saveCompany(c: CompanyInfo): Promise<void> {
+  if (onCore()) { const [nit, dv] = c.vat.split('-'); await coreBusiness.saveCompany({ legal_name: c.name, tax_id: (nit ?? '').replace(/\D/g, ''), tax_id_dv: (dv ?? '').replace(/\D/g, ''), phone: c.phone, email: c.email, address: c.street, city: c.city }); return }
   await callKw('res.company', 'write', [[c.id], { name: c.name, vat: c.vat || false, phone: c.phone || false, email: c.email || false, street: c.street || false, city: c.city || false, waiter_latitude: c.waiter_latitude?.trim() || false, waiter_longitude: c.waiter_longitude?.trim() || false }])
 }
 
@@ -38,6 +42,7 @@ const BRAND_FIELDS = ['brand_color', 'brand_font', 'brand_radius', 'brand_taglin
 
 // bin_size: Odoo devuelve el tamaño del binario en vez del base64; solo hace falta saber si hay logo.
 export async function getBrand(): Promise<BrandInfo> {
+  if (onCore()) { const b = await coreBusiness.brand(); return { companyId: 0, color: b.color, font: b.font, radius: (b.radius || '') as BrandRadius, tagline: b.tagline, greeting: b.greeting, waiterName: b.waiter_name, welcome: b.welcome, hasLogo: b.has_logo } }
   const [c] = await callKw<RawBrand[]>('res.company', 'search_read', [[], BRAND_FIELDS], { limit: 1, context: { bin_size: true } })
   return {
     companyId: c.id, color: c.brand_color || '', font: c.brand_font || '', radius: c.brand_radius || '', tagline: c.brand_tagline || '',
@@ -46,6 +51,14 @@ export async function getBrand(): Promise<BrandInfo> {
 }
 
 export async function getBrandLogo(companyId: number): Promise<string | null> {
+  if (onCore()) {
+    void companyId
+    const response = await fetch(`/experience/api/pos/v1/brand/logo?org=${currentOrg()}`)
+    if (!response.ok) return null
+    const bytes = new Uint8Array(await response.arrayBuffer()); let binary = ''
+    for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+    return btoa(binary)
+  }
   const [c] = await callKw<{ id: number; brand_logo: string | false }[]>('res.company', 'read', [[companyId], ['brand_logo']])
   return c?.brand_logo || null
 }
@@ -62,6 +75,7 @@ export async function saveBrand(b: BrandInfo, logo?: LogoChange): Promise<void> 
     brand_greeting: text(b.greeting), brand_waiter_name: text(b.waiterName), brand_welcome: text(b.welcome),
   }
   if (logo) values.brand_logo = 'remove' in logo ? false : logo.base64
+  if (onCore()) { await coreBusiness.saveBrand({ color: values.brand_color || '', font: values.brand_font || '', radius: values.brand_radius || '', tagline: values.brand_tagline || '', greeting: values.brand_greeting || '', waiter_name: values.brand_waiter_name || '', welcome: values.brand_welcome || '', ...(logo && { logo: 'remove' in logo ? null : logo.base64 }) }); return }
   await callKw('res.company', 'write_brand', [values])
 }
 
@@ -69,10 +83,12 @@ export async function saveBrand(b: BrandInfo, logo?: LogoChange): Promise<void> 
 // Por write_brand, como saveBrand: `res.company.write` exige un permiso (base.group_erp_manager) que el administrador del
 // POS no tiene, así que con su usuario fallaba. write_brand escribe en la compañía de quien llama.
 export async function saveBrandGreeting(greeting: string): Promise<void> {
+  if (onCore()) { await coreBusiness.saveBrand({ greeting: greeting.trim() }); return }
   await callKw('res.company', 'write_brand', [{ brand_greeting: greeting.trim() || false }])
 }
 
 export async function saveBrandLogo(logo: LogoChange): Promise<void> {
+  if (onCore()) { await coreBusiness.saveBrand({ logo: 'remove' in logo ? null : logo.base64 }); return }
   await callKw('res.company', 'write_brand', [{ brand_logo: 'remove' in logo ? false : logo.base64 }])
 }
 
@@ -116,6 +132,7 @@ export async function listPaymentMethods(): Promise<PaymentMethodInfo[]> {
 }
 
 export async function listTaxes(): Promise<TaxInfo[]> {
+  if (onCore()) return (await coreCatalog.listTaxes()).taxes.map((t) => ({ id: t.id, name: t.name, amount: t.amount }))
   return callKw<TaxInfo[]>('account.tax', 'search_read', [[['type_tax_use', '=', 'sale']], ['name', 'amount']], { order: 'amount desc' })
 }
 

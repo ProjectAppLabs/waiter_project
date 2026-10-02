@@ -1,3 +1,4 @@
+import * as coreBusiness from '@/lib/services/core/business'
 import { onCore } from '@/lib/domain/backend'
 import * as core from '@/lib/services/core/sales'
 import { toCashClosing } from '@/lib/services/core/salesBridge'
@@ -21,7 +22,7 @@ type RawSummary = {
 const figures = (r: RawFigures): SummaryFigures => ({ sales: r.sales, orders: r.orders, ticket: r.ticket, guests: r.guests, tips: r.tips })
 
 export async function orgSummary(dateFrom: string, dateTo: string): Promise<OrgSummary> {
-  const r = await callKw<RawSummary>('pos.config', 'waiter_org_summary', [dateFrom, dateTo])
+  const r = onCore() ? await coreBusiness.summary<RawSummary>(dateFrom, dateTo) : await callKw<RawSummary>('pos.config', 'waiter_org_summary', [dateFrom, dateTo])
   return {
     currency: r.currency, dateFrom: r.date_from, dateTo: r.date_to, previousFrom: r.previous_from, previousTo: r.previous_to,
     restaurants: r.restaurants.map((x) => ({ ...figures(x), configId: x.config_id, name: x.name, previous: figures(x.previous) })),
@@ -68,7 +69,7 @@ type RawProfit = {
     units: number; revenue: number; gross_profit: number | null; class: MenuClass | null }[]
 }
 export async function profitability(dateFrom: string, dateTo: string, configId: number | null): Promise<Profitability> {
-  const r = await callKw<RawProfit>('product.template', 'waiter_profitability', [dateFrom, dateTo], { config_id: configId })
+  const r = onCore() ? await coreBusiness.profitability<RawProfit>(dateFrom, dateTo, configId) : await callKw<RawProfit>('product.template', 'waiter_profitability', [dateFrom, dateTo], { config_id: configId })
   return {
     currency: r.currency, configId: r.config_id || null, dateFrom: r.date_from, dateTo: r.date_to,
     thresholds: { popularityUnits: r.thresholds.popularity_units, margin: r.thresholds.margin },
