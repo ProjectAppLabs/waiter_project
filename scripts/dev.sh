@@ -25,7 +25,7 @@ REST=${REST:-burger-house}
 SEDE=${SEDE:-poblado}
 LOGS=${LOGS:-/tmp/waiter-dev}
 COMPOSE=(docker compose -p odoo-spike -f "$ROOT/odoo/compose/docker-compose.yml")
-WITH_ODOO=${WITH_ODOO:-1}
+WITH_ODOO=${WITH_ODOO:-0}
 mkdir -p "$LOGS"
 
 ok()   { printf '  \033[32m✓\033[0m %s\n' "$*"; }

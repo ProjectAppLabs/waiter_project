@@ -881,6 +881,37 @@ Rutas de la plataforma bajo `/api/platform/v1` con la cookie `waiter_platform_si
     dos sedes y la marca roja de Frisby; carta por el token de la mesa 1; sesión, carrito con nota, confirmar (queda
     `pendiente_pago`), pago simulado con tarjeta que deja el pedido `DI-001` pagado con «Pago en línea», un curso en
     cocina y estado `enviado`; llamada al mesero. Burger House sigue sirviéndose desde Odoo.
+- **T6 hecha: Burger House migrado y conmutado** (2026-10-02), misma rama.
+  - Backend (Codex): `manage.py migrate_from_odoo` (paquete `tenancy/odoo_migration/`), por dominios, transaccional e
+    idempotente con `LegacySource`/`LegacyMap`, y `--remap-diner` para los ids de Odoo guardados por el comensal.
+  - **Corrida contra el Odoo real** (base `projectapp`): 2 sedes con ajustes y horario, 7 personas, 9 impuestos de
+    venta (se omiten 50 de compra y 6 retenciones), 10 categorías, 2 proveedores, 19 unidades, 63 productos (55
+    platos, de ellos 24 en la carta, 26 archivados y 5 internos; 8 ingredientes) con 3 fotos, 3 recetas, 48 precios por
+    sede y 16 existencias, 2 pisos con 24 mesas en Poblado y 1 con 6 en Laureles con **los tokens del registro**
+    (los QR impresos siguen valiendo), 4 métodos de pago, 19 clientes, 2 tarjetas de puntos (códigos adaptados a 8
+    caracteres), 1 cupón, el programa de puntos, 4 acciones, 9 turnos cerrados, 10 pedidos pagados con 17 líneas, 6
+    cursos y 10 pagos, y 9 avisos. Repetirla no crea nada; el remapeo del comensal actualizó 513 filas.
+  - **Ajustes al importador al correrlo:** decimales de Odoo llevados a la precisión de cada campo; retenciones (impuestos
+    negativos) omitidas; mesas a la cuadrícula de 20 px y colores `rgb()` a `#RRGGBB`; tipos de documento de
+    `l10n_latam` («VAT» = NIT); una sesión cerrada sin `start_at` toma su cierre como apertura; un token del registro de
+    una mesa del piso «Burger House» (sin restaurante en Odoo) quedó fuera.
+  - **Conmutación:** `NEXT_PUBLIC_ODOO_ORGS=` y `NEXT_PUBLIC_DEFAULT_ORG=burger-house` en `pos/.env.local`;
+    `ODOO_ORGS=` en `experience/.env`; Odoo y el registro **detenidos** (`docker compose … stop`, datos intactos) y
+    `scripts/dev.sh` ya no los arranca (`WITH_ODOO=1` los vuelve a levantar). `odoo/`, `registry/` y las ramas `callKw`
+    del POS siguen en el repositorio hasta la revisión del dueño.
+  - **Cuentas de desarrollo:** Odoo no entrega los hashes de contraseña; para la guía de QA se dejaron `admin`/`admin`
+    (dueño) y `laura.encargada`, `carlos.cajero`, `sofia.mesera`, `mateo.mesero` con `waiter-demo-2026`; a Mateo se le
+    puso turno 18–23 para el caso de fuera de horario. Las demás cuentas quedan con invitación pendiente.
+  - **Verificado en Chromium con Odoo apagado:** el dueño entra por `localhost:3000` a la consola con los datos de
+    Burger House (resumen, restaurantes, catálogo, equipo, cuadres, clientes); la encargada entra, abre caja, ve Main
+    Floor y Patio con sus 24 mesas y la carta de 24 platos, un pedido llega a Cocina, se entrega y se cobra, e Historial
+    lo muestra; el menú del comensal abre con el QR de siempre (`K6Q4C9`), y un pedido del comensal se confirma y se
+    paga en línea. **Ninguna llamada a `/odoo`**.
+  - **Decisiones al integrar:** cocina muestra solo las comandas del turno abierto (como la sesión de Odoo; si no, los
+    cursos migrados aparecían como demorados); el fondo del plano se pide al sistema propio; sin organizaciones en Odoo,
+    una tableta sin organización usa el sistema propio.
+  - **Pendiente (decisión del dueño):** retirar `odoo/`, `registry/`, los adaptadores de Odoo y las ramas `callKw` del POS
+    y del comensal en un commit aparte; las pruebas e2e del POS siguen escritas contra Odoo.
 - **Revisado (T3):** el modal de pago carga en cinco entradas seguidas por la URL. La causa probable del «Cargando pedido…» visto en T2 es el límite de seis conexiones por dominio de HTTP/1.1 con varias conexiones de eventos en vivo abiertas en desarrollo; en producción el proxy sirve HTTP/2 y no aplica. Antes: al entrar por la URL
     (recargar lo resuelve; por investigar, posiblemente el doble montaje de React en modo estricto); «Forzar cierre» no
     existe en el sistema propio; las reservas que apartan mesas, los puntos del cobro y Resumen/Rentabilidad llegan con

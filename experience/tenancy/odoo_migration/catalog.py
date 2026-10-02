@@ -19,6 +19,10 @@ class CatalogImport:
             if r.get('type_tax_use', 'sale') != 'sale' or r.get('amount_type', 'percent') != 'percent':
                 self.skip('account.tax', 'impuesto no porcentual de venta')
                 continue
+            if r.get('amount', 0) < 0:
+                # Las retenciones (RteFte, RteIVA, RteICA) son negativas y no se cobran en la carta.
+                self.skip('account.tax', 'retención en la fuente: no aplica a la carta')
+                continue
             obj = self.upsert('account.tax', r, Tax, dict(organization=org, name=r['name'], amount=dec(r['amount']),
                 included=r.get('price_include', True), active=True), match={'organization': org, 'name': r['name']})
             if not r.get('active', True):

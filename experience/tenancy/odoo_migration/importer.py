@@ -1,4 +1,22 @@
 """Orquestación transaccional de los dominios del contrato T6."""
+
+
+def hex_color(value):
+    """Odoo guarda el color de la mesa como «rgb(53,211,116)» o «#35D374»; el plano propio usa #RRGGBB o vacío."""
+    if not value:
+        return ''
+    text = str(value).strip()
+    if re.fullmatch(r'#[0-9a-fA-F]{6}', text):
+        return text.upper()
+    m = re.fullmatch(r'rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)', text)
+    return '#%02X%02X%02X' % tuple(min(255, int(c)) for c in m.groups()) if m else ''
+
+
+def snap(value, cell=20):
+    """Lleva una medida de Odoo a la cuadrícula del plano propio (el mismo redondeo del editor del POS)."""
+    return int(round(float(value or 0) / cell) * cell)
+
+from decimal import Decimal
 import re
 import hashlib
 from datetime import date
@@ -77,6 +95,8 @@ class Migrator(ImportBase, CatalogImport, HistoryImport):
                 match={'organization': self.org, 'legacy_odoo_config_id': r['id']} if Restaurant.objects.filter(organization=self.org, legacy_odoo_config_id=r['id']).exists() else {'organization': self.org, 'slug': slug})
             settings = {f: r[f] for f in ('alert_late_minutes', 'alert_bill_minutes', 'roi_hour_cost', 'roi_minutes_per_order',
                 'roi_baseline_hours_per_100', 'roi_monthly_cost', 'roi_start_date') if r.get(f) is not False and f in r}
+            # Odoo guarda los supuestos como flotantes (18.400000000000002): el sistema propio usa dos decimales.
+            settings = {k: (Decimal(str(round(v, 2))) if isinstance(v, float) else v) for k, v in settings.items()}
             settings['kitchen_prepay_roles'] = parsed(r.get('waiter_kitchen_prepay_roles'), [])
             self.upsert('pos.config.settings', r, RestaurantSettings, dict(restaurant=rest, **settings), match={'restaurant': rest})
             schedule = parsed(r.get('reservation_schedule'), {}) or {'weekly': {str(i): [[r.get('reservation_open', 10), r.get('reservation_close', 22)]] for i in range(7)}}
@@ -183,8 +203,9 @@ class Migrator(ImportBase, CatalogImport, HistoryImport):
             for t in source_tables:
                 old = self.mapping('restaurant.table', t['id'])
                 local_tables.append(dict(id=int(old.local_id) if old else None, key=str(t['id']), number=int(t.get('table_number') or t.get('name')),
-                    seats=t.get('seats', 4), x=int(t.get('position_h', 20)), y=int(t.get('position_v', 20)), width=int(t.get('width', 80)),
-                    height=int(t.get('height', 80)), shape=t.get('shape', 'square'), color=t.get('color') or '', zone=t.get('waiter_zone') or ''))
+                    # El sistema propio guarda las mesas en la cuadrícula de 20 px, como las deja el editor del POS.
+                    seats=t.get('seats', 4), x=snap(t.get('position_h', 20)), y=snap(t.get('position_v', 20)), width=max(20, snap(t.get('width', 80))),
+                    height=max(20, snap(t.get('height', 80))), shape=t.get('shape', 'square'), color=hex_color(t.get('color')), zone=t.get('waiter_zone') or ''))
             plan = parsed(r.get('waiter_plan'), {})
             raw = {key: plan.get(key, []) for key in ('walls', 'zones', 'decor', 'images')}
             raw.update(name=floor.name, revision=floor.revision, tables=local_tables, background_size=plan.get('backgroundSize'))
@@ -210,7 +231,7 @@ class Migrator(ImportBase, CatalogImport, HistoryImport):
                     table.token = token['token']
                     used_tokens.add(i)
                 table.shape = t.get('shape') or 'square'
-                table.color = t.get('color') or ''
+                table.color = hex_color(t.get('color'))
                 table.active = t.get('active', True)
                 table.full_clean()
                 table.save()
@@ -241,7 +262,9 @@ class Migrator(ImportBase, CatalogImport, HistoryImport):
         for r in self.read('res.partner', 'name phone email vat street city active waiter_diner_key l10n_latam_identification_type_id', ['|', ('company_id', '=', False), ('company_id', '=', self.company)]):
             identification = r.get('l10n_latam_identification_type_id')
             label = identification[1] if isinstance(identification, list) else ''
-            types = {'CC': 'CC', 'Cédula de ciudadanía': 'CC', 'CE': 'CE', 'Cédula de extranjería': 'CE', 'NIT': 'NIT', 'PAS': 'PAS', 'Pasaporte': 'PAS', 'TI': 'TI', 'Tarjeta de identidad': 'TI', 'PEP': 'PEP'}
+            types = {'CC': 'CC', 'Cédula de ciudadanía': 'CC', 'CE': 'CE', 'Cédula de extranjería': 'CE', 'NIT': 'NIT', 'PAS': 'PAS', 'Pasaporte': 'PAS', 'TI': 'TI', 'Tarjeta de identidad': 'TI', 'PEP': 'PEP',
+                     # Nombres de l10n_latam en Odoo: «VAT» es el NIT colombiano y «Cédula» la de ciudadanía.
+                     'VAT': 'NIT', 'Cédula': 'CC', 'Passport': 'PAS', 'Foreign ID': 'CE', 'Tarjeta de Identidad': 'TI', 'Cédula de Extranjería': 'CE', 'Cédula de Ciudadanía': 'CC'}
             valid(not label or label in types, f'Tipo de documento no reconocido: {label}.')
             self.upsert('res.partner', r, Customer, dict(organization=org, name=r['name'], phone=r.get('phone') or '', email=r.get('email') or '',
                 id_type=types.get(label, 'CC'), vat=r.get('vat') or '', street=r.get('street') or '', city=r.get('city') or '', active=r.get('active', True), diner_key=r.get('waiter_diner_key') or None),

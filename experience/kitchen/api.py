@@ -26,7 +26,8 @@ class TicketsView(PosView):
         # El contrato permite leer cocina a cualquier sesión; las transiciones exigen kitchen.
         restaurant = restaurant_for(self.account, request.query_params.get("restaurant_id"))
         qs = (
-            Course.objects.filter(order__restaurant=restaurant)
+            # Como en Odoo (una sesión), cocina ve solo lo del turno abierto: los históricos y los migrados no reaparecen.
+            Course.objects.filter(order__restaurant=restaurant, order__shift__state="open")
             .exclude(order__state="cancelled")
             .select_related("order__table", "order__created_by")
             .prefetch_related(

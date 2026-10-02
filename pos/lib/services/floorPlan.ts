@@ -51,3 +51,7 @@ export function assignZones(sessionId: number, floorId: number, assignments: Ass
 
 // En el sistema propio el aviso de plato listo ya llega solo a los meseros de la zona: no hay que filtrar en la tablet.
 export const zoneNoticeTargets = (orderIds: number[]) => (onCore() ? Promise.resolve({} as Record<string, number[]>) : callKw<Record<string, number[]>>('pos.order', 'waiter_zone_targets', [orderIds]))
+
+// La imagen de fondo de un piso: en el sistema propio por su ruta pública, en Odoo por el binario del piso.
+export const floorBackgroundUrl = (floorId: number, revision: number) =>
+  onCore() ? coreTables.backgroundUrl(floorId, revision) : `/odoo/web/image/restaurant.floor/${floorId}/floor_background_image?unique=${revision}`

@@ -494,3 +494,15 @@ def test_notification_includes_order_id(setup):
     call(s["client"], "post", f"courses/{o['courses'][0]['id']}/ready")
     result = call(client, "get", "notifications")["notifications"][0]
     assert result["order_id"] == o["id"] and result["action"] == "serve"
+
+
+def test_kitchen_only_shows_the_open_shift(setup):
+    # Falla si cocina muestra comandas sin servir de un turno ya cerrado (históricos o migrados de Odoo) como si fueran
+    # de hoy: como en Odoo, la pantalla es la del turno abierto.
+    s = setup
+    open_shift(s)
+    o = order(s, lines=[line(s)], fire=True)
+    url = f"kitchen/tickets?restaurant_id={s['r1'].pk}"
+    assert [t["order_id"] for t in call(s["client"], "get", url)["tickets"]] == [o["id"]]
+    CashShift.objects.filter(restaurant=s["r1"], state="open").update(state="closed")
+    assert call(s["client"], "get", url)["tickets"] == []

@@ -3,7 +3,7 @@ import hashlib
 import json
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 from django.apps import apps
 from django.db import models
@@ -112,6 +112,11 @@ class ImportBase:
         obj = obj or cls()
         for key, value in values.items():
             setattr(obj, key, value)
+        # Odoo guarda flotantes (0.001000000000000002): se llevan a los decimales de cada campo antes de validar.
+        for f in obj._meta.fields:
+            value = getattr(obj, f.attname)
+            if isinstance(f, models.DecimalField) and isinstance(value, (Decimal, float, int)) and not isinstance(value, bool):
+                setattr(obj, f.attname, Decimal(str(value)).quantize(Decimal(1).scaleb(-f.decimal_places), rounding=ROUND_HALF_UP))
         # Los campos históricos null sin blank son válidos en la base; full_clean conserva el resto de reglas.
         excluded = [f.name for f in obj._meta.fields if getattr(obj, f.attname) is None or f.name == 'brand_logo' or (isinstance(f, models.JSONField) and getattr(obj, f.attname) in ({}, []))]
         obj.full_clean(exclude=excluded)

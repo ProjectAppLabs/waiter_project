@@ -11,7 +11,7 @@ import type { FloorDocument } from '@/lib/domain/floorPlan'
 import { hourLabel, missingSeats, seatsOf, toggleTable } from '@/lib/domain/reservations'
 import { parseFloorName } from '@/lib/domain/tablesKit'
 import type { TableView } from '@/lib/domain/tableState'
-import { readPlan } from '@/lib/services/floorPlan'
+import { readPlan, floorBackgroundUrl } from '@/lib/services/floorPlan'
 import type { AvailableTable } from '@/lib/services/reservations'
 import type { TableReservation } from '@/lib/services/tables'
 import type { Floor, Table } from '@/lib/types'
@@ -75,7 +75,7 @@ export function TableStep({ tables, floors, floorTables, people, date, time, sel
       <div className="relative flex-1 min-h-0 flex flex-col">
         <FloorPlan plan={plan?.id === floorId ? plan : null} views={views} selectedId={null} selectedIds={selected} pickFree reserved={reserved}
           onSelect={(id) => onSelect(toggleTable(selected, id))}
-          background={floor?.hasBackground ? `/odoo/web/image/restaurant.floor/${floor.id}/floor_background_image?unique=${plan?.id === floor.id ? plan.revision : 0}` : null} />
+          background={floor?.hasBackground ? floorBackgroundUrl(floor.id, plan?.id === floor.id ? plan.revision : 0) : null} />
         <div role="toolbar" aria-label={t('selected')} className="absolute inset-x-4 bottom-6 z-20 mx-auto w-fit max-w-[calc(100%-2rem)] min-h-16 px-4 py-3 rounded-lg bg-overlay text-[#F7F7F7] flex flex-wrap items-center gap-x-4 gap-y-2 shadow-xl">
           {!chosen ? <span className="text-[15px]">{t('pickHint', { people })}</span> : (
             <>

@@ -27,7 +27,8 @@ class HistoryImport:
                 for floor, zones in parsed(r.get('waiter_zone_assignments'), {}).items()}
             self.upsert('pos.session', r, CashShift, dict(restaurant=self.ref('pos.config', r['config_id']), state='closed', zone_staff=staff,
                 opened_by=self.ref('res.users', r['user_id']), closed_by=self.ref('res.users', r.get('waiter_closed_by_id') or r['user_id']),
-                opened_at=stamp(r['start_at']), closed_at=stamp(r['stop_at']), opening_cash=dec(r.get('cash_register_balance_start')),
+                # Una sesión de Odoo cerrada sin abrir (de «opening_control» directo a cerrada) no tiene start_at: vale su cierre.
+                opened_at=stamp(r['start_at'] or r['stop_at']), closed_at=stamp(r['stop_at']), opening_cash=dec(r.get('cash_register_balance_start')),
                 expected_cash=expected, counted_cash=counted, difference=counted - expected,
                 opening_notes=r.get('opening_notes') or '', closing_notes=r.get('closing_notes') or ''))
         orders = list(self.read('pos.order', 'name uuid config_id session_id state date_order user_id employee_id partner_id table_id customer_count '
