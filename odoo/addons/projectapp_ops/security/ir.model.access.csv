@@ -1,7 +1,0 @@
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_product_photo_user,Leer fotos del catálogo,model_projectapp_product_photo,point_of_sale.group_pos_user,1,0,0,0
-access_product_photo_manager,Gestionar fotos del catálogo,model_projectapp_product_photo,point_of_sale.group_pos_manager,1,1,1,1
-access_benefit_action_user,Leer acciones del menú,model_waiter_benefit_action,point_of_sale.group_pos_user,1,0,0,0
-access_benefit_action_manager,Gestionar acciones del menú,model_waiter_benefit_action,point_of_sale.group_pos_manager,1,1,1,1
-access_benefit_grant_user,Leer premios del menú,model_waiter_benefit_grant,point_of_sale.group_pos_user,1,0,0,0
-access_benefit_grant_manager,Gestionar premios del menú,model_waiter_benefit_grant,point_of_sale.group_pos_manager,1,1,1,1

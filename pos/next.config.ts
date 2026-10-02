@@ -1,6 +1,5 @@
 import type { NextConfig } from 'next'
 
-const odooOrigin = (process.env.ODOO_ORIGIN || 'http://192.168.56.10:8069').replace(/\/$/, '')
 // El navegador nunca habla con experience por su URL pública: catálogo, miniaturas y decoraciones pasan por aquí.
 const experienceOrigin = (process.env.EXPERIENCE_ORIGIN || 'http://192.168.56.10:8001').replace(/\/$/, '')
 
@@ -22,7 +21,6 @@ const nextConfig: NextConfig = {
   images: { unoptimized: true },
   async rewrites() {
     return [
-      { source: '/odoo/:path*', destination: `${odooOrigin}/:path*` },
       // :path* no captura la barra final y Django la exige (APPEND_SLASH): se reenvía tal cual, con y sin barra.
       { source: '/experience/:path*/', destination: `${experienceOrigin}/:path*/` },
       { source: '/experience/:path*', destination: `${experienceOrigin}/:path*` },

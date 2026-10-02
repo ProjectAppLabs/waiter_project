@@ -11,6 +11,11 @@ La descripción completa del producto está en
 
 ## Estado
 
+> **Desde el 2 de octubre de 2026 Waiter no usa Odoo ni el registro** (plan T): el sistema propio en `experience/`
+> (Django y PostgreSQL) sirve el POS, la consola del dueño, la consola de ProjectApp y el menú del comensal. Lo que sigue
+> en esta sección describe la etapa anterior; el estado vigente está en
+> [`docs/planes/2026-10-01-plan-T-sistema-propio.md`](docs/planes/2026-10-01-plan-T-sistema-propio.md).
+
 - **Odoo Community 19** evaluado y adoptado como motor operativo *headless*
   (POS, catálogo, impuestos, contabilidad). Una base por restaurante. Nadie
   usa su interfaz.
