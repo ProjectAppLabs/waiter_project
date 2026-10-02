@@ -204,3 +204,19 @@ def test_platform_deactivation_revokes_cookie():
     assert platform_client(admin).post(BASE+f'/team/{operator.id}/deactivate').status_code == 200
     assert operator_client.get(BASE+'/auth/me').status_code == 401
     assert not PlatformSession.objects.filter(user=operator).exists()
+
+
+def test_status_follows_trial_date():
+    # Falla si una organización sin fecha de prueba nace en prueba (el asistente promete que nace activa), si con fecha
+    # no nace en prueba, o si al reactivarla no vuelve a prueba mientras su fecha siga vigente.
+    client = platform_client(platform_user())
+    active = client.post(BASE+'/organizations', body(), format='json').data['organization']
+    assert active['status'] == 'active'
+    future = (timezone.localdate() + timedelta(days=15)).isoformat()
+    trial = client.post(BASE+'/organizations', body(slug='en-prueba', trial_ends=future), format='json').data['organization']
+    assert trial['status'] == 'trial'
+    client.post(BASE+'/organizations/en-prueba/suspend', {'reason': 'prueba'}, format='json')
+    assert client.post(BASE+'/organizations/en-prueba/reactivate', format='json').data['organization']['status'] == 'trial'
+    Organization.objects.filter(slug='en-prueba').update(trial_ends=timezone.localdate() - timedelta(days=1))
+    client.post(BASE+'/organizations/en-prueba/suspend', {'reason': 'prueba'}, format='json')
+    assert client.post(BASE+'/organizations/en-prueba/reactivate', format='json').data['organization']['status'] == 'active'

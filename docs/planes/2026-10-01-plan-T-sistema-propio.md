@@ -166,5 +166,21 @@ restaurante), `kind` (`kitchen` | `inventory` | `system` | `access` | `cash`), `
 
 ## Estado
 
-- 2026-10-01: decisión tomada y plan escrito. T0 en curso: contrato cerrado, Codex en el backend y Claude en la consola
-  de ProjectApp y el transporte del POS.
+- 2026-10-01: decisión tomada y plan escrito.
+- **T0 hecha** (2026-10-02), rama `feat/01102026-plan-t-sistema-propio`.
+  - Backend (Codex, `gpt-6-astra`): apps `tenancy`, `accounts` y `notifications`, las dos APIs del contrato, correo de
+    invitación y `create_platform_admin`. Django: 816 pruebas (110 nuevas). POS: `tsc` y 597 pruebas.
+  - POS (Claude): organización por subdominio, transporte al sistema propio, consola de ProjectApp en `/plataforma`.
+  - **Recorrido en Chromium y por la API:** ProjectApp entra a su consola y da de alta «Frisby» en tres pasos; a la
+    dueña le llega el correo con su usuario, el código y el enlace; activa su cuenta y entra por correo (sin distinguir
+    mayúsculas); su cookie no sirve para otra organización; crea dos restaurantes y el tercero se rechaza por el
+    límite; al suspender, el login responde `organization_suspended` y la sesión vigente deja de valer; al reactivar,
+    vuelve a entrar.
+  - **Decisiones tomadas al integrar:** sin fecha de prueba la organización nace activa; al reactivar vuelve a prueba
+    solo si su fecha sigue vigente; una sesión vigente por cuenta del POS; contraseña mínima de 8; turno con las dos
+    horas iguales = sin restricción.
+  - **Desarrollo:** el sistema propio usa el SQLite de `experience` hasta T2 (PostgreSQL llega con los pedidos). Los
+    correos se escriben en `experience/mail/`. Admin de ProjectApp de prueba: `ana.projectapp` / `Plataforma-2026`.
+    El cliente de prueba `frisby-74312` queda en la base, con su dueña `maria.lopez` (`Frisby-2026!`).
+  - **Pendiente para T2:** aceptar como origen de escritura los subdominios (`*.localhost:3000` y el dominio base),
+    hoy solo `POS_URL` y los orígenes de CORS.
