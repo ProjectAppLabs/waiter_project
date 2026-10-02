@@ -5,12 +5,13 @@
 #   scripts/dev.sh status   dice qué está arriba y qué no, con un chequeo real de cada uno
 #   scripts/dev.sh down     detiene los servicios (los contenedores quedan detenidos, no borrados)
 #
-# Orden: Postgres → Odoo → registro y experiencia (Django) → POS y comensal (Next). Cada paso es idempotente: si el
+# Orden: PostgreSQL de Waiter → (Odoo y registro, solo con WITH_ODOO=1) → experiencia (Django) → POS y comensal (Next). Cada paso es idempotente: si el
 # servicio ya responde, no se vuelve a lanzar. Registros en $LOGS; PID de cada proceso en $LOGS/<servicio>.pid, para
 # detenerlos sin buscar procesos por nombre (un `pkill -f` puede coincidir con la propia shell que lo lanza).
 #
 # Variables: HOST (192.168.56.10 si la máquina tiene esa interfaz host-only; si no, su IP en la red local, p. ej. en WSL,
-# para que otro equipo de la red llegue a los servicios), REST y SEDE (burger-house / poblado: el restaurante demo del chequeo del comensal).
+# para que otro equipo de la red llegue a los servicios), REST y SEDE (burger-house / poblado: el restaurante demo del chequeo del comensal),
+# WITH_ODOO (1 = levantar también Odoo y el registro; tras el corte del plan T6 hacen falta solo para consultar lo viejo).
 set -uo pipefail
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
@@ -24,6 +25,7 @@ REST=${REST:-burger-house}
 SEDE=${SEDE:-poblado}
 LOGS=${LOGS:-/tmp/waiter-dev}
 COMPOSE=(docker compose -p odoo-spike -f "$ROOT/odoo/compose/docker-compose.yml")
+WITH_ODOO=${WITH_ODOO:-1}
 mkdir -p "$LOGS"
 
 ok()   { printf '  \033[32m✓\033[0m %s\n' "$*"; }
@@ -66,6 +68,15 @@ up_db() {
   if wait_for 90 docker exec odoo-spike-db-1 pg_isready -U odoo; then ok "postgres"; else fail "postgres no respondió"; exit 1; fi
 }
 
+# PostgreSQL del sistema propio (plan T2): el contenedor waiter-db; si no existe, se crea como dice experience/.env.example.
+waiter_db_up() { docker exec waiter-db pg_isready -U waiter >/dev/null 2>&1; }
+up_waiter_db() {
+  if waiter_db_up; then ok "postgres de waiter ya estaba arriba (:5433)"; return; fi
+  docker start waiter-db >/dev/null 2>&1 || docker run -d --name waiter-db --restart unless-stopped -e POSTGRES_USER=waiter -e POSTGRES_PASSWORD=waiter \
+    -e POSTGRES_DB=waiter_core -p 127.0.0.1:5433:5432 postgres:16 >/dev/null
+  if wait_for 60 waiter_db_up; then ok "postgres de waiter (:5433)"; else fail "postgres de waiter no respondió: docker logs waiter-db"; exit 1; fi
+}
+
 up_odoo() {
   if odoo_up; then ok "odoo ya estaba arriba (:8069)"; return; fi
   "${COMPOSE[@]}" up -d >/dev/null 2>&1
@@ -97,9 +108,12 @@ cmd_up() {
   echo "Levantando Waiter en $HOST"
   check_host
   if ! redis-cli ping >/dev/null 2>&1; then warn "redis no responde: la caché de la carta del comensal no funcionará"; fi
-  up_db
-  up_odoo
-  up_django registry 8002 registry_up
+  up_waiter_db
+  if [[ $WITH_ODOO == 1 ]]; then
+    up_db
+    up_odoo
+    up_django registry 8002 registry_up
+  fi
   up_django experience 8001 experience_up
   up_next pos 3000 npx next dev --hostname "$HOST" --port 3000
   up_next diner 3001 npm run dev
@@ -109,9 +123,12 @@ cmd_up() {
 
 cmd_status() {
   echo "Estado"
-  docker exec odoo-spike-db-1 pg_isready -U odoo >/dev/null 2>&1 && ok "postgres" || fail "postgres"
-  odoo_up && ok "odoo        http://$HOST:8069" || fail "odoo        :8069"
-  registry_up && ok "registro    http://$HOST:8002" || fail "registro    :8002"
+  waiter_db_up && ok "postgres de waiter (:5433)" || fail "postgres de waiter"
+  if [[ $WITH_ODOO == 1 ]]; then
+    docker exec odoo-spike-db-1 pg_isready -U odoo >/dev/null 2>&1 && ok "postgres de odoo" || fail "postgres de odoo"
+    odoo_up && ok "odoo        http://$HOST:8069" || fail "odoo        :8069"
+    registry_up && ok "registro    http://$HOST:8002" || fail "registro    :8002"
+  fi
   local e; e=$(code "http://$HOST:8001/api/v1/$REST/$SEDE/ubicacion/" 20)
   if [[ $e == 200 ]]; then ok "experiencia http://$HOST:8001"
   elif [[ $e == 000 ]]; then fail "experiencia :8001 (no responde)"
@@ -131,7 +148,7 @@ cmd_down() {
     fi
     rm -f "$LOGS/$name.pid"
   done
-  "${COMPOSE[@]}" stop >/dev/null 2>&1 && ok "odoo y postgres (contenedores detenidos, datos intactos)"
+  if [[ $WITH_ODOO == 1 ]]; then "${COMPOSE[@]}" stop >/dev/null 2>&1 && ok "odoo y su postgres (contenedores detenidos, datos intactos)"; fi
 }
 
 case "${1:-up}" in
