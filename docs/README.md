@@ -16,6 +16,13 @@ prueba que su integración externa exista.
 - H tiene descuento real y pago simulado: confirma y manda a cocina, pero el cobro real
   sigue en el POS. No hay proveedor de OTP, pasarela móvil ni facturación DIAN integrada.
 
+## Guía de QA
+
+La guía para el equipo de QA vive en [`docs/qa/`](qa/guia-qa-00-indice.md): un índice con lineamientos y datos de
+prueba y una guía por rol (acceso, mesero, cajero, cocina, encargado, dueño, comensal y ProjectApp). Es un documento
+vivo: cada plan que se termina añade o corrige casos. Se publica en el gestor de documentos de ProjectApp, carpeta
+«Waiter SaaS / QA» (documentos 218 a 226).
+
 ## Orden de lectura
 
 **Multirrestaurante (en curso):** un dueño con muchos restaurantes; una base de Odoo por organización y un
