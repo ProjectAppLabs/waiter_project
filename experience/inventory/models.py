@@ -29,7 +29,7 @@ class StockMove(models.Model):
     qty = models.DecimalField(max_digits=18, decimal_places=6)
     reason = models.CharField(max_length=300)
     request_key = models.CharField(max_length=80)
-    account = models.ForeignKey('accounts.Account', on_delete=models.PROTECT)
+    account = models.ForeignKey('accounts.Account', on_delete=models.PROTECT, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     # Conserva la unidad del movimiento aunque luego se edite la unidad del ingrediente.
     unit = models.ForeignKey('catalog.Unit', on_delete=models.PROTECT, null=True, blank=True)

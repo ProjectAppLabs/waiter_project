@@ -1,4 +1,5 @@
 """Premios por acciones verificadas en el servidor, aislados por cuenta y organización."""
+from experience_app.adapters.backend import backend_for, client_for
 from decimal import Decimal
 
 from django.conf import settings
@@ -18,8 +19,8 @@ def actions(tenant):
     if cached is not None:
         return cached
     try:
-        result = OdooClient(tenant.odoo).call_kw('pos.config', 'waiter_benefit_actions', [[tenant.odoo.pos_config_id]])
-    except OdooError:
+        result = client_for(tenant, OdooClient).call_kw('pos.config', 'waiter_benefit_actions', [[tenant.config_id]])
+    except (OdooError, TenantNotFound):
         result = []
     # Una versión antigua del addon no debe impedir consultar el carrito.
     result = result if isinstance(result, list) else []
@@ -65,7 +66,7 @@ def sync(tenant, account):
                           'prize_snapshot': dict(prize), 'state': 'pendiente' if prize['tipo'] == 'puntos' else 'disponible'})
     for row in DinerReward.objects.filter(**_scope(tenant, account), reward='puntos', state='pendiente'):
         try:
-            OdooClient(tenant.odoo).call_kw('pos.config', 'waiter_grant_points', [[tenant.odoo.pos_config_id],
+            client_for(tenant, OdooClient).call_kw('pos.config', 'waiter_grant_points', [[tenant.config_id],
                 {'id': str(account.id), 'name': account.name, 'email': account.email, 'phone': account.phone},
                 f'{row.action}:{account.id}:{row.reference}', row.points, f'Premio por {row.action}'])
         except OdooError:
@@ -95,7 +96,7 @@ def reserve(tenant, diner, new_lines, order):
         row = candidates.filter(state='reservado', order=order).first()
         if row is None:
             for candidate in candidates.filter(state='disponible').order_by('-percent', 'created_at', 'pk'):
-                if not _eligible(candidate, tenant.odoo.pos_config_id):
+                if not _eligible(candidate, tenant.config_id):
                     continue
                 if DinerReward.objects.filter(pk=candidate.pk, state='disponible').update(state='reservado', order=order):
                     row = candidate
@@ -118,7 +119,7 @@ def use_coupon(tenant, diner, code, order):
     candidates = DinerReward.objects.filter(**_scope(tenant, diner.account), reward='cupon', coupon_code=code,
                                              state='disponible').order_by('created_at', 'pk')
     for row in candidates:
-        if not _eligible(row, tenant.odoo.pos_config_id):
+        if not _eligible(row, tenant.config_id):
             continue
         if DinerReward.objects.filter(pk=row.pk, state='disponible').update(state='usado', order=order, used_at=timezone.now()):
             break
@@ -160,7 +161,7 @@ def discount_view(lines, diner):
 
 def view(tenant, account):
     rows = [row for row in DinerReward.objects.filter(**_scope(tenant, account)).order_by('created_at', 'pk')
-            if _eligible(row, tenant.odoo.pos_config_id)]
+            if _eligible(row, tenant.config_id)]
     done = {row.action for row in rows}
     references = _references(tenant, account)
     return {'beneficios': [{'id': row.pk, 'accion': row.action, 'premio': row.prize_snapshot,

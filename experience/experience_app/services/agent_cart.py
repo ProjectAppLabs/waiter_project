@@ -1,4 +1,5 @@
 """Menu adapter: explicit card clicks or customer requests can mutate the cart, never kitchen/payment."""
+from experience_app.adapters.backend import backend_for, client_for
 from django.db import transaction
 from rest_framework.exceptions import ValidationError
 
@@ -26,7 +27,7 @@ def prepare(session, diner, data):
     tenant = resolve(session.restaurant_slug, session.venue_slug, session.table_token)
     catalog.invalidate(session.restaurant_slug, session.venue_slug)
     product = catalog.find_product(tenant, data['producto'])
-    rows = OdooClient(tenant.odoo).call_kw('product.product', 'read', [[product.id], [
+    rows = client_for(tenant, OdooClient).call_kw('product.product', 'read', [[product.id], [
         'active', 'available_in_pos', 'sale_ok', 'attribute_line_ids', 'type', 'is_storable', 'qty_available']])
     if not rows or not all(rows[0].get(k) for k in ('active', 'available_in_pos', 'sale_ok')):
         raise ValidationError({'detail': 'Este plato ya no está disponible.'})

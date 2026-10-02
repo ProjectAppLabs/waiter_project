@@ -83,7 +83,8 @@ class Order(models.Model):
     state = models.CharField(max_length=9, default="draft", choices=[(s, s) for s in ("draft", "paid", "cancelled")])
     billing = models.BooleanField(default=False)
     billing_at = models.DateTimeField(null=True)
-    created_by = models.ForeignKey("accounts.Account", on_delete=models.PROTECT, related_name="+")
+    channel_request = models.CharField(max_length=64, blank=True, default="")
+    created_by = models.ForeignKey("accounts.Account", on_delete=models.PROTECT, related_name="+", null=True)
     created_at = models.DateTimeField(default=timezone.now)
     paid_at = models.DateTimeField(null=True)
     paid_by = models.ForeignKey("accounts.Account", on_delete=models.PROTECT, related_name="+", null=True)
@@ -126,6 +127,7 @@ class OrderLine(models.Model):
     parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, related_name="children")
     loyalty_card = models.ForeignKey("loyalty.LoyaltyCard", on_delete=models.PROTECT, null=True, blank=True)
     points_cost = models.DecimalField(max_digits=18, decimal_places=6, default=0)
+    coupon_code = models.CharField(max_length=32, blank=True, default="")
     discount_pct = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     note = models.CharField(max_length=500, blank=True, default="")
     course = models.ForeignKey(Course, on_delete=models.SET_NULL, null=True, related_name="lines")
@@ -153,7 +155,7 @@ class Payment(models.Model):
     received = models.DecimalField(max_digits=16, decimal_places=2, null=True)
     reference = models.CharField(max_length=60, blank=True, default="")
     request_key = models.CharField(max_length=80)
-    account = models.ForeignKey("accounts.Account", on_delete=models.PROTECT)
+    account = models.ForeignKey("accounts.Account", on_delete=models.PROTECT, null=True)
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:

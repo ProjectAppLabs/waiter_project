@@ -40,7 +40,7 @@ def summary(qs):
         count += 1
         autonomous += int(order.origin != "waiter")
         row = waiters.setdefault(
-            order.created_by_id, {"waiter": order.created_by.name, "amount": Decimal(0), "orders": 0}
+            order.created_by_id, {"waiter": order.created_by.name if order.created_by else "Pedido autónomo", "amount": Decimal(0), "orders": 0}
         )
         row["amount"] += amount
         row["orders"] += 1

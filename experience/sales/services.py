@@ -59,7 +59,7 @@ def writing(org, restaurant=None):
 
 
 def seed_organization(org):
-    for name in ("Datáfono", "QR"):
+    for name in ("Datáfono", "QR", "Pago en línea"):
         PaymentMethod.objects.get_or_create(organization=org, name=name, type="bank")
 
 
@@ -246,9 +246,11 @@ def fire(order, account):
     lines = order.lines.filter(course__isnull=True, cancelled=False, points_cost=0)
     if not lines.exists():
         return None
+    require(order.origin != 'diner' or order.state == 'paid',
+            'El pedido del menú debe pagarse antes de enviar a cocina.', 'prepay_required', 409)
     roles = order.restaurant.settings.kitchen_prepay_roles
     require(
-        order.state == "paid" or account.role not in roles,
+        order.state == "paid" or (account is not None and account.role not in roles) or (account is None and order.origin == "ai" and order.channel == "whatsapp"),
         "Tu rol debe cobrar antes de enviar a cocina",
         "prepay_required",
         409,
@@ -270,7 +272,7 @@ def table_for(order, pk):
     return table
 
 
-def create_order(account, raw, *, allow_empty=False):
+def create_order(account, raw, *, allow_empty=False, restaurant=None):
     data = payload(
         raw,
         (
@@ -289,12 +291,17 @@ def create_order(account, raw, *, allow_empty=False):
         ),
         ("restaurant_id", "uuid", "service", "lines", "fire"),
     )
-    restaurant = restaurant_for(account, data["restaurant_id"])
+    if account is not None:
+        restaurant = restaurant_for(account, data["restaurant_id"])
+    else:
+        valid(restaurant is not None and restaurant.pk == data["restaurant_id"])
+    org = restaurant.organization
     uid = uuid_value(data["uuid"])
-    with writing(account.organization, restaurant):
-        existing = Order.objects.filter(organization=account.organization, uuid=uid).first()
+    with writing(org, restaurant):
+        existing = Order.objects.filter(organization=org, uuid=uid).first()
         if existing:
-            restaurant_for(account, existing.restaurant_id)
+            if account is not None:
+                restaurant_for(account, existing.restaurant_id)
             require(
                 existing.restaurant_id == restaurant.pk, "El UUID corresponde a otro restaurante.", "uuid_conflict", 409
             )
@@ -304,7 +311,9 @@ def create_order(account, raw, *, allow_empty=False):
         valid(data["service"] in ("dine_in", "takeout", "delivery"))
         valid(type(data["fire"]) is bool and type(data.get("baby_chair", False)) is bool)
         prefix = {"dine_in": "DI", "takeout": "TA", "delivery": "DE"}[data["service"]]
-        start, end = period(account.organization)
+        created_at = timezone.now()
+        day = created_at.astimezone(ZoneInfo(org.timezone)).date().isoformat()
+        start, end = period(org, day, day)
         tracking = (
             Order.objects.filter(
                 restaurant=restaurant, prefix=prefix, created_at__gte=start, created_at__lt=end
@@ -312,7 +321,7 @@ def create_order(account, raw, *, allow_empty=False):
             or 0
         ) + 1
         order = Order(
-            organization=account.organization,
+            organization=org,
             restaurant=restaurant,
             shift=shift,
             uuid=uid,
@@ -321,6 +330,7 @@ def create_order(account, raw, *, allow_empty=False):
             tracking=tracking,
             number=f"{prefix}-{tracking:03d}",
             created_by=account,
+            created_at=created_at,
             guests=integer(data.get("guests", 1)),
             baby_chair=data.get("baby_chair", False),
         )
@@ -358,7 +368,7 @@ def add_payment(order, account, raw):
     received = money(data["received"]) if data.get("received") is not None else None
     ref = text(data.get("reference", ""), 60)
     method_id = integer(data["method_id"], high=2**63 - 1)
-    existing = Payment.objects.filter(organization=account.organization, request_key=key).first()
+    existing = Payment.objects.filter(organization=order.organization, request_key=key).first()
     if existing:
         require(
             existing.order_id == order.pk
@@ -372,14 +382,14 @@ def add_payment(order, account, raw):
         )
         return
     require(order.state == "draft", "El pedido ya terminó.", "not_editable", 409)
-    method = methods_for(account.organization, order.restaurant).filter(pk=method_id).first()
+    method = methods_for(order.organization, order.restaurant).filter(pk=method_id).first()
     require(method, "No encontramos el método de pago.", "not_found", 404)
     valid(
         received is None or method.type == "cash" and received >= amount, "El efectivo entregado debe cubrir el pago."
     )
     require(order.paid + amount <= order.total, "El pago supera el saldo del pedido.", "overpaid", 400)
     Payment.objects.create(
-        organization=account.organization,
+        organization=order.organization,
         order=order,
         method=method,
         amount=amount,

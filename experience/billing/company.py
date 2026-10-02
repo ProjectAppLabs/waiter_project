@@ -107,36 +107,40 @@ class BrandView(PosView):
 
     def patch(self, request):
         owner(self.account)
-        data = payload(
-            request.data, ("color", "font", "radius", "tagline", "greeting", "waiter_name", "welcome", "logo")
-        )
-        with writing(self.org):
-            org = Organization.objects.get(pk=self.org.pk)
-            for key, value in data.items():
-                if key == "logo":
-                    org.brand_logo = decode_logo(value)
-                    continue
-                value = "" if value is None or isinstance(value, bool) else str(value) if type(value) is int else value
-                valid(isinstance(value, str))
-                value = value.strip()
-                if key == "color":
-                    valid(not value or re.fullmatch(r"#[0-9a-fA-F]{6}", value), "El color debe ser #RRGGBB.")
-                    org.brand_color = value.upper() or "#C1873A"
-                elif key == "font":
-                    valid(not value or value in FONTS, "Selecciona una tipografía de la lista.")
-                    org.brand_font = value or "Instrument Serif"
-                elif key == "radius":
-                    valid(value in ("", "4", "14", "24"), "El redondeo debe ser 4, 14 o 24.")
-                    org.brand_radius = int(value or 14)
-                else:
-                    valid(
-                        len(value) <= {"tagline": 60, "greeting": 40, "waiter_name": 40, "welcome": 140}[key],
-                        "El texto de marca es demasiado largo.",
-                    )
-                    setattr(org, key, value)
-            org.brand_version += 1
-            save_valid(org)
-        return Response({"brand": brand_dict(org)})
+        return Response({'brand': save_brand(self.org, request.data)})
+
+
+def save_brand(organization, data):
+    data = payload(
+        data, ("color", "font", "radius", "tagline", "greeting", "waiter_name", "welcome", "logo")
+    )
+    with writing(organization):
+        org = Organization.objects.get(pk=organization.pk)
+        for key, value in data.items():
+            if key == "logo":
+                org.brand_logo = decode_logo(value)
+                continue
+            value = "" if value is None or isinstance(value, bool) else str(value) if type(value) is int else value
+            valid(isinstance(value, str))
+            value = value.strip()
+            if key == "color":
+                valid(not value or re.fullmatch(r"#[0-9a-fA-F]{6}", value), "El color debe ser #RRGGBB.")
+                org.brand_color = value.upper() or "#C1873A"
+            elif key == "font":
+                valid(not value or value in FONTS, "Selecciona una tipografía de la lista.")
+                org.brand_font = value or "Instrument Serif"
+            elif key == "radius":
+                valid(value in ("", "4", "14", "24"), "El redondeo debe ser 4, 14 o 24.")
+                org.brand_radius = int(value or 14)
+            else:
+                valid(
+                    len(value) <= {"tagline": 60, "greeting": 40, "waiter_name": 40, "welcome": 140}[key],
+                    "El texto de marca es demasiado largo.",
+                )
+                setattr(org, key, value)
+        org.brand_version += 1
+        save_valid(org)
+    return brand_dict(org)
 
 
 class LogoView(ContractView):

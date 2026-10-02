@@ -26,6 +26,7 @@ urlpatterns = [
     path('api/pos/v1/', include('reservations.urls')),
     path('api/pos/v1/', include('reports.urls')),
     path('api/pos/v1/', include('billing.urls')),
+    path('api/pos/v1/', include('experience_app.urls.pos')),
     path('api/pos/v1/', include('accounts.urls')),
     path('api/health/', health_check, name='health-check'),
     path('', include('experience_app.urls')),

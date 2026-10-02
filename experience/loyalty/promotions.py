@@ -249,7 +249,7 @@ def banner_image(value):
         raise Problem("invalid_data", "Usa una imagen PNG, JPG o WebP de hasta 500 KB y 4096 px.") from exc
 
 
-def save_banners(org, raw):
+def save_banners(org, raw, *, dry_run=False):
     valid(isinstance(raw, list) and len(raw) <= 8, "Puedes publicar hasta ocho banners.")
     existing = {image_url(b, org): b.image.name for b in Banner.objects.filter(organization=org) if b.image}
     clean = []
@@ -282,6 +282,9 @@ def save_banners(org, raw):
         picture = existing.get(value) or banner_image(value)
         valid(b["layout"] != "image" or picture, "Sube la imagen del flyer.")
         clean.append((row, picture, configs(org, b.get("configs", []))))
+    if dry_run:
+        return {'banners': [{**{k: v for k, v in row.items() if k != 'target_id'}, 'targetId': row['target_id'], 'configs': [r.pk for r in restaurants],
+                            'image': raw[i].get('image', '')} for i, (row, picture, restaurants) in enumerate(clean)]}
     saved = []
     try:
         # Validar toda la lista antes de crear archivos; conservar los previos usados por URL.

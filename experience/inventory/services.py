@@ -22,7 +22,7 @@ STATE_LABELS = {'draft': 'Borrador', 'sent': 'Enviada', 'received': 'Recibida', 
 def move_dict(move, unit=None):
     qty = move.qty * move.unit.factor / unit.factor if unit and move.unit_id else move.qty
     return {**model_dict(move, ('id', 'reason', 'kind')), 'qty': float(qty), 'date': model_dict(move, ('created_at',))['created_at'],
-            'account_name': move.account.name}
+            'account_name': move.account.name if move.account else 'Pedido autónomo'}
 
 
 def detail(product, restaurant):
@@ -172,7 +172,7 @@ def mark_request(account, pk, raw):
 def apply_sale(account, product, order, qty):
     """Descuenta una receta una sola vez; conserva el faltante en el motivo del movimiento."""
     key = f'order:{order.pk}:ingredient:{product.pk}'
-    if StockMove.objects.filter(organization=account.organization, request_key=key).exists():
+    if StockMove.objects.filter(organization=order.organization, request_key=key).exists():
         return
     stock, _ = Stock.objects.get_or_create(restaurant=order.restaurant, ingredient=product)
     stock = Stock.objects.select_for_update().get(pk=stock.pk)
@@ -182,6 +182,6 @@ def apply_sale(account, product, order, qty):
         reason += f'; faltaron {qty-delta} {product.unit.name}; existencias limitadas a cero'
     stock.qty -= delta
     stock.save()
-    StockMove.objects.create(organization=account.organization, restaurant=order.restaurant, ingredient=product,
+    StockMove.objects.create(organization=order.organization, restaurant=order.restaurant, ingredient=product,
         kind='sale', qty=-delta, reason=reason, request_key=key, account=account, unit=product.unit,
         requested_qty=qty, stock_after=stock.qty)

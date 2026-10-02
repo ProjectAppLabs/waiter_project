@@ -22,7 +22,7 @@ def test_seed_and_unique_shift(setup):
     s = setup
     assert s["r1"].settings.alert_late_minutes == 18
     assert s["r1"].floors.get().name == "Salón"
-    assert PaymentMethod.objects.filter(organization=s["org"], restaurants__isnull=True).count() == 2
+    assert PaymentMethod.objects.filter(organization=s["org"], restaurants__isnull=True).count() == 3
     first = open_shift(s)
     call(s["client"], "post", "shifts", {"restaurant_id": s["r1"].pk, "opening_cash": 0, "notes": ""}, 409)
     open_shift(s, restaurant=s["r2"])

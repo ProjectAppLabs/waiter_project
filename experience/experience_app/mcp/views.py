@@ -36,6 +36,11 @@ def endpoint(request, raw_key: str | None = None):
     if key is None:
         return JsonResponse(protocol._error(None, -32001, 'Clave MCP inválida o revocada. Genera una en el POS: Configuración › Integraciones IA.'),
                             status=401, headers={'WWW-Authenticate': 'Bearer'})
+    from experience_app.adapters.backend import backend_for
+    if hasattr(backend_for(key.restaurant_slug), 'Client'):
+        from tenancy.models import Organization
+        if Organization.objects.filter(slug=key.restaurant_slug, status='suspended').exists():
+            return JsonResponse({'error': 'restaurant_unavailable', 'message': 'Este restaurante no está disponible'}, status=404)
     if len(request.body) > MAX_BODY:
         return JsonResponse(protocol._error(None, protocol.INVALID_REQUEST, 'Mensaje demasiado grande.'), status=413)
     try:

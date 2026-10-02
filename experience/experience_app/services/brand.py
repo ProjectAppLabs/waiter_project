@@ -5,6 +5,7 @@ cambio en Configuración › Restaurante llega a los comensales en menos de un m
 petición. Si Odoo falla, el comensal ve la marca del registro y nunca un 5xx por la marca; el fallo no se cachea
 para que la próxima petición vuelva a intentarlo.
 """
+from experience_app.adapters.backend import backend_for, client_for
 import logging
 from urllib.parse import urlencode
 
@@ -14,7 +15,7 @@ from django.urls import reverse
 
 from experience_app.adapters.odoo import pos
 from experience_app.adapters.odoo.client import OdooClient, OdooError
-from experience_app.adapters.registry.client import Tenant
+from experience_app.adapters.registry.client import Tenant, TenantNotFound
 from experience_app.utils.brand import theme
 
 log = logging.getLogger(__name__)
@@ -42,8 +43,8 @@ def get_company_brand(tenant: Tenant) -> pos.CompanyBrand | None:
     if cached is not None:
         return cached
     try:
-        company = pos.read_company_brand(OdooClient(tenant.odoo))
-    except OdooError as exc:
+        company = backend_for(tenant.restaurant_slug).read_company_brand(client_for(tenant, OdooClient))
+    except (OdooError, TenantNotFound) as exc:
         # Incluye OdooUnavailable. Un error de negocio aquí es, en la práctica, el addon sin actualizar: el comensal
         # sigue viendo la marca del registro mientras tanto, nunca un error.
         log.warning('marca de %s/%s: Odoo no la entregó (%s); se usa la del registro', tenant.restaurant_slug, tenant.venue_slug, exc)
@@ -68,8 +69,8 @@ def get_logo(tenant: Tenant, company: pos.CompanyBrand) -> tuple[bytes, str] | N
     if cached is not _MISSING:
         return cached
     try:
-        found = pos.fetch_company_logo(OdooClient(tenant.odoo))
-    except OdooError as exc:
+        found = backend_for(tenant.restaurant_slug).fetch_company_logo(client_for(tenant, OdooClient))
+    except (OdooError, TenantNotFound) as exc:
         # Incluye OdooUnavailable. La vista responde 404 "sin logo": un <img> solo entiende "no hay imagen".
         log.warning('logo de %s/%s: Odoo no lo entregó (%s); no se cachea', tenant.restaurant_slug, tenant.venue_slug, exc)
         return None

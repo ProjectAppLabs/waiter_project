@@ -169,3 +169,6 @@ CORS_ALLOW_HEADERS = (*default_headers, 'x-waiter-org')
 
 # Fotos propias del catálogo T1.
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Organizaciones que conservan el motor anterior hasta la migración T6.
+ODOO_ORGS = os.getenv('ODOO_ORGS', 'burger-house')

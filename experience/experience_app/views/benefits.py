@@ -1,3 +1,4 @@
+from experience_app.adapters.backend import backend_for, client_for
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -12,9 +13,9 @@ from experience_app.views.sessions import COOKIE, diner_for, cart_of
 @api_view(['GET'])
 def location(request, restaurant, venue):
     tenant = resolve(restaurant, venue, None)
-    client = OdooClient(tenant.odoo)
+    client = client_for(tenant, OdooClient)
     from experience_app.adapters.odoo.pos import read_restaurant_location
-    return Response(read_restaurant_location(client))
+    return Response(backend_for(tenant.restaurant_slug).read_restaurant_location(client))
 
 
 @api_view(['GET'])

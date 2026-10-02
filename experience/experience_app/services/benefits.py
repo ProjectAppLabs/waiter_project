@@ -1,4 +1,5 @@
 """Authenticated diner identity and reusable POS coupons. No browser-supplied amounts."""
+from experience_app.adapters.backend import backend_for, client_for
 from decimal import Decimal
 from rest_framework.exceptions import ValidationError
 from experience_app.adapters.odoo.client import OdooError
@@ -16,13 +17,13 @@ def quote(session, diner, code):
     tenant = tenant_for(session)
     lines = session.lines.filter(diner=diner, status=CartLine.OPEN, order=None)
     amount = sum((line.subtotal for line in lines), Decimal(0))
-    return OdooClient(tenant.odoo).call_kw('pos.config', 'waiter_coupon_quote', [[tenant.odoo.pos_config_id], code, float(amount)])
+    return client_for(tenant, OdooClient).call_kw('pos.config', 'waiter_coupon_quote', [[tenant.config_id], code, float(amount)])
 
 
 def account_benefits(tenant, account, order_uuid=None):
     if account.organization_slug != tenant.restaurant_slug:
         raise ValidationError('La cuenta pertenece a otra organización.')
-    return OdooClient(tenant.odoo).call_kw('pos.config', 'waiter_diner_benefits', [[tenant.odoo.pos_config_id],
+    return client_for(tenant, OdooClient).call_kw('pos.config', 'waiter_diner_benefits', [[tenant.config_id],
         {'id': str(account.id), 'name': account.name, 'email': account.email, 'phone': account.phone}, str(order_uuid) if order_uuid else None])
 
 
@@ -40,7 +41,7 @@ def reserve(tenant, new_lines):
         if diner.coupon_code:
             subtotal = sum((line.subtotal for line in fresh), Decimal(0))
             try:
-                result = OdooClient(tenant.odoo).call_kw('pos.config', 'waiter_coupon_quote', [[tenant.odoo.pos_config_id], diner.coupon_code, float(subtotal)])
+                result = client_for(tenant, OdooClient).call_kw('pos.config', 'waiter_coupon_quote', [[tenant.config_id], diner.coupon_code, float(subtotal)])
             except OdooError as exc:
                 raise ValidationError({'detail': str(exc)}) from exc
             percent = Decimal(str(result['porcentaje']))

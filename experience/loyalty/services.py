@@ -1,6 +1,7 @@
 """Cotización, premios y puntos: importables también por el comensal en T5."""
 
 from decimal import ROUND_FLOOR, Decimal
+from collections import defaultdict
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
@@ -227,8 +228,10 @@ def settle_points(order):
         program = program_for(order.organization)
         default = card_for(order.customer) if program and order.customer_id else None
         reserves = list(LoyaltyMove.objects.filter(order=order, kind="reserve", organization=order.organization))
-        card_ids = {r.card_id for r in reserves} | ({default.pk} if default else set())
-        cards = {c.pk: c for c in LoyaltyCard.objects.select_for_update().filter(pk__in=card_ids).order_by("pk")}
+        lines = list(order.lines.filter(cancelled=False, points_cost=0))
+        menu_cards = {line.loyalty_card_id for line in lines if line.loyalty_card_id} if order.channel == 'menu' else set()
+        card_ids = {r.card_id for r in reserves} | ({default.pk} if default else set()) | menu_cards
+        cards = {c.pk: c for c in LoyaltyCard.objects.select_for_update().filter(organization=order.organization, pk__in=card_ids).order_by("pk")}
         for move in reserves:
             posted, created = LoyaltyMove.objects.get_or_create(
                 organization=order.organization,
@@ -244,32 +247,27 @@ def settle_points(order):
             if created:
                 cards[move.card_id].points += posted.points
         release_points(order)
-        if default:
+        if program and (default or menu_cards):
             net = max(Decimal(0), order.total - order.tip)
-            lines = list(order.lines.filter(cancelled=False, points_cost=0))
             gross = sum((line.total for line in lines), Decimal(0))
-            # Odoo redondea el abono de cada línea antes de sumar el historial.
-            earned = (
-                sum(
-                    (rounded(max(Decimal(0), line.total) * net / gross / program.spend_per_point) for line in lines),
-                    Decimal(0),
-                )
-                if gross > 0 and net >= program.spend_per_point
-                else Decimal(0)
-            )
-            _, created = LoyaltyMove.objects.get_or_create(
-                organization=order.organization,
-                key=f"order:{order.pk}:earn",
-                defaults={
-                    "card_id": default.pk,
-                    "order": order,
-                    "kind": "earn",
-                    "points": earned,
-                    "description": f"Compra {order.number}",
-                },
-            )
-            if created:
-                cards[default.pk].points += earned
+            earnings = defaultdict(Decimal)
+            if order.channel == 'menu':
+                earnings.update({card_id: Decimal(0) for card_id in menu_cards if card_id in cards})
+            elif default:
+                earnings[default.pk] = Decimal(0)
+            if gross > 0 and net >= program.spend_per_point:
+                for line in lines:
+                    card_id = line.loyalty_card_id if order.channel == 'menu' else default.pk
+                    if card_id in cards:
+                        earnings[card_id] += rounded(max(Decimal(0), line.total) * net / gross / program.spend_per_point)
+            for card_id, earned in earnings.items():
+                # La mesa compartida abona por comensal; el canje se liquida antes de repartir el consumo neto.
+                key = f'order:{order.pk}:card:{card_id}:earn' if order.channel == 'menu' else f'order:{order.pk}:earn'
+                _, created = LoyaltyMove.objects.get_or_create(organization=order.organization, key=key,
+                    defaults={'card_id': card_id, 'order': order, 'kind': 'earn', 'points': earned,
+                              'description': f'Compra {order.number}'})
+                if created:
+                    cards[card_id].points += earned
         for card in cards.values():
             card.save(update_fields=["points"])
 
