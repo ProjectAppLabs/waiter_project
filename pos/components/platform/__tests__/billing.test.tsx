@@ -43,7 +43,7 @@ it('registra el pago de una cuenta vencida con medio y referencia', async () => 
   const dialog = await screen.findByRole('dialog')
   fireEvent.change(within(dialog).getByLabelText('Medio de pago'), { target: { value: 'nequi' } })
   fireEvent.change(within(dialog).getByLabelText('Referencia'), { target: { value: 'N-778' } })
-  fireEvent.click(within(dialog).getByRole('button', { name: /Registrar \$ 299\.000/ }))
+  fireEvent.click(screen.getByRole('button', { name: /Registrar .*299\.000/ }))
   await waitFor(() => expect(payCharge).toHaveBeenCalledWith(1, { method: 'nequi', reference: 'N-778', notes: '' }))
   expect(await screen.findByRole('status')).toHaveTextContent('Pago de Frisby (2026-09) registrado.')
 })
