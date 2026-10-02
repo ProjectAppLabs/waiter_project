@@ -637,6 +637,90 @@ numeración consecutiva bajo concurrencia y agotamiento de la resolución, consu
 INC frente a IVA, rechazo simulado y contingencia con reintento, CUFE determinista. Empresa y marca: validaciones de
 `write_brand`, solo dueño. Aislamiento y permisos en cada ruta.
 
+## Contrato T5 · El comensal sobre el sistema propio
+
+`experience_app` (el menú del comensal, el asistente, WhatsApp, el MCP del diseño y los pagos en línea) deja de hablar
+con Odoo y con el registro para las organizaciones del sistema propio. Inventario del 2026-10-02: el único adaptador de
+Odoo es `experience_app/adapters/odoo/pos.py` (más `client.py`), y unos 15 servicios llaman además a
+`OdooClient.call_kw` directamente; la resolución del restaurante pasa por `adapters/registry/client.py`.
+
+### Diseño
+
+- **Un adaptador interno con las mismas formas.** Nuevo paquete `experience_app/adapters/core/` con las mismas
+  funciones y dataclasses públicas que `adapters/odoo/pos.py` (`Catalog`, `Product`, `Category`, `CompanyBrand`,
+  `OdooOrder` → mismo nombre de clase por compatibilidad, `OrderStatus`, `load_catalog`, `read_restaurant_location`,
+  `read_company_brand`, `fetch_company_logo`, `fetch_product_image`, `fetch_gallery_image`, `create_order`,
+  `fire_course`, `read_order_state`, `read_order_status`, `read_order`, `set_table_call`) implementadas sobre
+  `tenancy`, `catalog`, `inventory`, `tables`, `sales`, `kitchen`, `loyalty` y `reservations`, sin HTTP. Y un módulo
+  `adapters/core/calls.py` con equivalentes de cada `call_kw` directo (cupón, beneficios, acciones, puntos, banners,
+  anticipo público y pagado, `waiter_gateway_check`/`waiter_gateway_paid`, WhatsApp `quote`/`confirm`, disponibilidad
+  de un producto para el asistente, estado de un pedido para el historial).
+- **Elección del motor por organización.** `settings.ODOO_ORGS` (lista separada por comas, por omisión
+  `burger-house`, como `NEXT_PUBLIC_ODOO_ORGS` del POS): esas organizaciones siguen con el adaptador de Odoo; las demás
+  usan el interno. Un único punto `experience_app/adapters/backend.py` (`backend_for(org_slug)`) entrega el módulo
+  correcto y todos los servicios y vistas pasan por él. Tras T6, `ODOO_ORGS=` vacío apaga Odoo para todos.
+- **Resolución del restaurante sin registro.** Para el motor interno, `resolve(org, sede, token)` sale de
+  `tenancy.Organization` / `Restaurant` (por `slug`) y de `tables.Table.token` (activa, del restaurante). El `Tenant`
+  conserva sus campos (`odoo` vacío, `odoo_table_id` = id de la mesa propia, `brand` desde `Organization`). Una
+  organización suspendida responde `404 restaurant_unavailable` con «Este restaurante no está disponible» (y el menú lo
+  muestra). La portada `/<org>/` lista los restaurantes activos de la organización.
+- **Tokens de mesa:** `TableSession.table_token` pasa a 64 caracteres; `tables.Table.token` admite de 6 a 64
+  caracteres alfanuméricos (los de 6 del registro se conservan en T6, para que los QR impresos sigan valiendo).
+  `GET /floors` ya entrega el token; el POS mostrará el enlace y el QR de cada mesa (fuera de este contrato).
+- **Pedido del comensal:** `create_order` crea un `sales.Order` con `origin='diner'`, `channel='menu'`, `uuid` del
+  carrito (idempotente), líneas con `discount_pct` (primera compra) y el cupón o la tarjeta de fidelidad del contrato
+  T3; `requires_payment` = el comensal siempre paga antes de cocina (como hoy). **Sin turno de caja abierto** el
+  restaurante no atiende pedidos del menú: `409 restaurant_closed` («El restaurante no está recibiendo pedidos en este
+  momento») en vez de abrir caja solo. El pago simulado y el de Wompi registran un `Payment` con el método `bank`
+  «Pago en línea» (sembrado por organización) y llaman a `pay` (que dispara cocina, descuenta inventario y abona
+  puntos). Las llamadas al mesero usan `tables.Table.call`.
+- **Estados para el comensal:** `OrderStatus.kitchen` = `none | received | cooking | ready | served` derivado de los
+  cursos (`received` = disparado sin iniciar).
+- **WhatsApp:** `quote` y `confirm` sobre `sales` con las mismas reglas de `projectapp_ops/models/channel_orders.py`
+  (turno abierto, 1–30 líneas, cantidad 1–50, nota ≤ 500, sin combos ni atributos, con existencias, cotización con
+  huella y vencimiento, idempotencia por `uuid`, `channel='whatsapp'`, `origin='ai'`, cocina en la misma transacción).
+- **MCP del diseño:** `leer_diseno_menu`, banners, `listar_catalogo` y `confirmar_cambio` usan la marca de
+  `Organization` y los banners de `loyalty` (contrato T3) para las organizaciones del sistema propio.
+- **Administración del menú desde el POS** (hoy pasa por controladores de Odoo hacia rutas internas): nuevas rutas de la
+  API del POS, con la sesión del dueño, que llaman a los mismos servicios que las rutas internas: `GET/PUT
+  /api/pos/v1/menu/settings` (plantilla y ajustes del menú) y `…/menu/drafts`, `GET/POST/DELETE
+  /api/pos/v1/menu/decorations`, `GET/POST /api/pos/v1/mcp-keys` y `POST /api/pos/v1/mcp-keys/{id}/revoke`, `GET/PUT
+  /api/pos/v1/payment-gateways`. Mismos cuerpos y respuestas que hoy reenvían `odoo/addons/projectapp_ops/controllers/admin.py`.
+- **Cachés:** el motor interno invalida la carta y la marca al escribir en `catalog`/`tenancy` (señales) además del
+  tiempo de vida actual.
+
+### Pruebas que deben existir (`# Falla si …`)
+
+Con una organización del sistema propio, de punta a punta por la API pública del comensal: resolver por slug y por
+token de mesa, organización suspendida, portada; carta con precio de la sede, agotados y galería; marca y logo;
+carrito compartido, confirmar con turno abierto y `restaurant_closed` sin él, cupón y primera compra, pago simulado que
+dispara cocina y abona puntos, estado del pedido, llamada y cuenta; anticipo de reserva por token; WhatsApp cotizar y
+confirmar; MCP leer y confirmar banners; las rutas de administración del menú con sesión de dueño. Y que Burger House
+(en `ODOO_ORGS`) sigue usando el adaptador de Odoo (con el cliente simulado de las pruebas actuales).
+
+## Contrato T6 · Migración de Burger House y conmutación
+
+- **Comando** `manage.py migrate_from_odoo --org burger-house --url … --db … --login … --password …` (app `tenancy`),
+  que lee Odoo por JSON-RPC (`/web/session/authenticate` + `/web/dataset/call_kw`, como `adapters/odoo/client.py`) y
+  escribe en el sistema propio por dominios, en este orden, **idempotente** (vuelve a correr sin duplicar, casando por
+  `legacy_odoo_*_id` o un mapa `LegacyMap(organization, model, odoo_id, local_id)`): organización y marca (de
+  `res.company`) y datos del emisor; restaurantes (`pos.config`, con `RestaurantSettings` y horario de reservas);
+  cuentas (`res.users` + `hr.employee`: rol, restaurantes, turno; sin contraseña: quedan con invitación pendiente y se
+  reenvía a quien tenga correo, salvo `--no-invite`); impuestos y régimen; categorías con estación; proveedores;
+  unidades; ingredientes con costo, mínimos y existencias por sede; platos con precio, impuestos, atributos del
+  comensal, fotos y galería (bytes de Odoo → WebP), precios y agotados por sede, recetas; pisos, planos, zonas y mesas
+  (con el token del registro si existe: se leen los `TableToken` de `registry` por su base o por un archivo exportado);
+  métodos de pago; clientes y tarjetas de fidelidad con puntos; cupones, programa de puntos, acciones y banners;
+  reservas futuras con anticipo; pedidos históricos pagados con líneas, pagos y cursos (para los informes), turnos de
+  caja cerrados con su cuadre; avisos no leídos. No migra: asientos contables, facturas de Odoo, pedidos en borrador.
+- **Traducción de ids del comensal:** un segundo paso `--remap-diner` reescribe en `experience_app` los ids de Odoo
+  guardados (`CartLine.product_id`, `DinerFavorite`, `DinerFeedback.dish_ratings`, `AgentCartSelection`,
+  `PaymentGateway.payment_method_id`, `TableSession.odoo_table_id`) con el `LegacyMap`.
+- **Informe:** al final imprime una tabla por dominio (leídos, creados, actualizados, omitidos con motivo).
+- **Conmutación:** con la migración verificada, `NEXT_PUBLIC_ODOO_ORGS=` (POS) y `ODOO_ORGS=` (experience) vacíos;
+  Odoo y el registro se detienen (`scripts/dev.sh` deja de arrancarlos) pero `odoo/`, `registry/` y las ramas `callKw`
+  del POS siguen en el repositorio hasta la revisión del dueño. La retirada es un commit aparte.
+
 ## Estado
 
 - 2026-10-01: decisión tomada y plan escrito.
