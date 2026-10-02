@@ -724,6 +724,61 @@ confirmar; MCP leer y confirmar banners; las rutas de administración del menú 
   Odoo y el registro se detienen (`scripts/dev.sh` deja de arrancarlos) pero `odoo/`, `registry/` y las ramas `callKw`
   del POS siguen en el repositorio hasta la revisión del dueño. La retirada es un commit aparte.
 
+## Contrato M · Multitenancy de ProjectApp (después de T6)
+
+Lo que el dueño de ProjectApp pidió el 2026-10-02 para cerrar el plan S sobre el sistema propio: verificación completa de
+aislamiento y suspensión, métricas por cliente, cobro de la suscripción y el despliegue preparado (sin aplicarlo).
+Rutas de la plataforma bajo `/api/platform/v1` con la cookie `waiter_platform_sid`, como en T0.
+
+### Métricas por cliente
+
+- `GET /metrics?from=&to=` (`admin`, `operator`): `{totals: {organizations, active, trial, suspended, mrr, sales,
+  orders, restaurants}, organizations: [{slug, name, status, plan, monthly_price, restaurants, restaurants_limit,
+  accounts_active, sales, orders, ticket, last_order_at, last_login_at, overdue_amount}]}`. Ventas como en T2 (con
+  impuestos, sin propina, `paid` por `paid_at` en la zona de cada organización); `mrr` = suma de `monthly_price` de las
+  activas y en prueba con fecha vigente.
+- `GET /organizations/{slug}/metrics?from=&to=`: lo mismo para una, más `daily: [{date, sales, orders}]` y
+  `by_restaurant: [{id, name, sales, orders}]`.
+- Lecturas por lotes (agregados por organización, no un bucle de consultas).
+
+### Cobro de la suscripción
+
+- **`tenancy.SubscriptionCharge`**: `organization`, `period` (`YYYY-MM`, único por organización), `amount` (el
+  `monthly_price` al generarla), `due_date` (día `billing_day` del mes, 5 por omisión, + `grace_days`), `state`
+  (`pending` | `paid` | `overdue` | `void`), `paid_at`, `method` (`transferencia` | `nequi` | `efectivo` | `otro`),
+  `reference`, `notes`, `recorded_by` (PlatformUser), `created_at`. Las organizaciones en prueba vigente o con precio 0 no
+  generan cuenta.
+- **Ajustes de cobro** (`tenancy.PlatformSettings`, uno): `billing_day` (5), `grace_days` (10), `suspend_after_days`
+  (15 después del vencimiento), `reminder_days` (3 antes del vencimiento).
+- **Comandos para cron:** `generate_subscription_charges` (el día 1, idempotente por periodo) y `enforce_subscriptions`
+  (a diario): marca `overdue` lo vencido; avisa por correo al dueño `reminder_days` antes del vencimiento y el día que
+  vence (una vez por cuenta y aviso); **suspende** la organización `suspend_after_days` después del vencimiento con
+  `suspension_reason = 'mora'` y auditoría del sistema. Registrar el pago de una organización suspendida **por mora**
+  (y sin otras cuentas vencidas) la reactiva sola; una suspensión manual no se levanta por pagar.
+- **API:** `GET /charges?state=&period=` y `GET /organizations/{slug}/charges` (`admin`, `operator`) →
+  `{charges: [...] , summary: {pending, overdue, paid_this_month}}`; `POST /organizations/{slug}/charges` (`admin`;
+  cuenta manual de un periodo); `POST /charges/{id}/pay` (`admin`, `operator`; `{method, reference, notes, paid_at?}`);
+  `POST /charges/{id}/void` (`admin`; `{notes}`); `GET/PATCH /settings/billing` (`admin`). Todo con auditoría.
+- **El dueño ve su estado:** `GET /api/pos/v1/subscription` (`owner`) → `{plan, monthly_price, next_due, charges:
+  [últimas 6], overdue}`; la consola del dueño muestra un aviso si hay una cuenta vencida y cuántos días faltan para la
+  suspensión.
+
+### Aislamiento y suspensión (verificación)
+
+- Una prueba que recorre **todas** las rutas de `/api/pos/v1` registradas (con la lista de patrones de Django) con una
+  sesión de la organización A y los ids de recursos de la organización B, y exige `404` (o `403`) y que no aparezcan
+  datos de B; lo mismo para las rutas públicas con `?org=` y para el comensal por slug de B con token de A.
+- Suspensión: login, sesión vigente, SSE, rutas públicas de fotos y menú del comensal, MCP y WhatsApp de una
+  organización suspendida responden `organization_suspended` / «Este restaurante no está disponible»; al reactivar,
+  todo vuelve. Cubierto por pruebas.
+
+### Despliegue preparado (lo hace Claude, sin aplicarlo)
+
+`deploy/` con `docker-compose.prod.yml` (PostgreSQL, Redis, experience con Gunicorn, POS y comensal con `next start`),
+`Caddyfile` con certificado comodín `*.waiter.projectapp.co` por desafío DNS, `.env.prod.example`, los cron
+(`generate_subscription_charges`, `enforce_subscriptions`, `notify_low_stock`, `purge_sales_events`) y
+`deploy/README.md` con el DNS comodín, el certificado, el primer despliegue, las copias de seguridad y un ensayo local.
+
 ## Estado
 
 - 2026-10-01: decisión tomada y plan escrito.
