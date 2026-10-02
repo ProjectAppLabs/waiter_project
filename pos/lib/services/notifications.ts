@@ -1,3 +1,5 @@
+import * as coreInventory from '@/lib/services/core/inventory'
+import { currentRestaurantId } from '@/lib/services/core/catalogBridge'
 import { onCore } from '@/lib/domain/backend'
 import * as core from '@/lib/services/core/pos'
 import type { Notification, NotificationKind } from '@/lib/domain/notifications'
@@ -40,6 +42,8 @@ export interface IngredientRequest { purchaseId: number; name: string; partnerNa
 
 // "Solicitar ingredientes": el servidor crea la orden de compra en borrador y marca `action_done`.
 export async function requestIngredient(productId: number, qty?: number): Promise<IngredientRequest> {
+  // En el sistema propio se pide desde el inventario de la sede, con la cantidad por omisión del servidor.
+  if (onCore()) { void qty; const r = currentRestaurantId(); if (r === null) throw new Error('Elige un restaurante.'); const req = await coreInventory.requestIngredient(r, productId); const line = req.lines.find((l) => l.ingredient_id === productId); return { purchaseId: req.id, name: `Solicitud ${req.id}`, partnerName: req.supplier_name, qty: line?.qty ?? 0 } }
   const raw = await callKw<{ purchase_id: number; name: string; partner_name: string; product_qty: number }>(
     MODEL, 'waiter_request_ingredient', [productId, qty ?? null])
   return { purchaseId: raw.purchase_id, name: raw.name, partnerName: raw.partner_name, qty: raw.product_qty }

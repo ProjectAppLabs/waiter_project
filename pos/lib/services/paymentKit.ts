@@ -1,3 +1,4 @@
+import * as coreLoyalty from '@/lib/services/core/loyalty'
 import { onCore } from '@/lib/domain/backend'
 import * as sales from '@/lib/services/core/sales'
 import { toPayableOrder } from '@/lib/services/core/salesBridge'
@@ -35,8 +36,7 @@ export async function readPayableOrder(orderId: number): Promise<PayableOrder> {
 
 // Programa "Loyalty Cards" activo en el POS. Sin programa: la pantalla dice "Sin programa de puntos", no inventa.
 export async function loadLoyaltyProgram(): Promise<LoyaltyProgram | null> {
-  // Los puntos llegan al sistema propio en T3: sin programa, la pantalla lo dice.
-  if (onCore()) return null
+  if (onCore()) { const p = await coreLoyalty.program(); return p ? { id: p.id, name: p.name, copPerPoint: p.value_per_point, rewardId: p.id, minimumPoints: p.minimum_points, rewardProductId: null } : null }
   const programs = await callKw<RawProgram[]>('loyalty.program', 'search_read', [[['program_type', '=', 'loyalty'], ['active', '=', true], ['pos_ok', '=', true]], ['name']], { limit: 1 })
   if (programs.length === 0) return null
   const rewards = await callKw<RawReward[]>('loyalty.reward', 'search_read',
@@ -46,7 +46,7 @@ export async function loadLoyaltyProgram(): Promise<LoyaltyProgram | null> {
 }
 
 export async function lookupMember(code: string, programId: number): Promise<Member | null> {
-  if (onCore()) { void code; void programId; return null }
+  if (onCore()) { void programId; try { const m = await coreLoyalty.member(code); return { cardId: m.card_id, code: m.code, name: m.name, phone: m.phone, points: m.points } } catch { return null } }
   const cards = await callKw<RawCard[]>('loyalty.card', 'search_read', [[['code', '=', code.trim()], ['program_id', '=', programId]], ['code', 'points', 'partner_id']], { limit: 1 })
   const card = cards[0]
   if (!card) return null
@@ -57,7 +57,7 @@ export async function lookupMember(code: string, programId: number): Promise<Mem
 // Odoo validates current balance, program, minimum and order state under a lock.
 // Draft rewards reserve points; the paid-order hook records the actual debit.
 export async function redeemPoints(orderId: number, member: Member, _program: LoyaltyProgram, _points: number, amount: number, _currentTotal: number): Promise<void> {
-  if (onCore()) throw new Error('Los puntos llegan al sistema propio en la fase T3.')
+  if (onCore()) { const r = await coreLoyalty.redeem(orderId, member.cardId); if (Math.abs(r.amount - amount) > 0.01) throw new Error('El saldo disponible cambió. Cierra y vuelve a abrir el cobro para revisar el total.'); return }
   void _program; void _points; void _currentTotal
   const result = await callKw<{amount:number;points:number}>('pos.order', 'waiter_redeem_points', [[orderId], member.cardId])
   if (Math.abs(result.amount - amount) > 0.01) throw new Error('El saldo disponible cambió. Cierra y vuelve a abrir el cobro para revisar el total.')

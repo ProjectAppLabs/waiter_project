@@ -1,3 +1,4 @@
+import * as coreRes from '@/lib/services/core/reservations'
 import { onCore } from '@/lib/domain/backend'
 import * as sales from '@/lib/services/core/sales'
 import * as coreTables from '@/lib/services/core/tables'
@@ -159,8 +160,11 @@ const card = (r: RawCard, tableId: number): TableReservation => ({
 
 // Próxima reserva confirmada de cada mesa (la que el plano pinta en tinta). El RPC devuelve las claves como texto.
 export async function reservedAtByTable(tableIds: number[], date: string): Promise<Record<number, TableReservation | null>> {
-  // Las reservas llegan al sistema propio en T3: ninguna mesa está apartada.
-  if (onCore()) { void date; return Object.fromEntries(tableIds.map((id) => [id, null])) }
+  if (onCore()) {
+    const r = currentRestaurantId(); if (r === null) return {}
+    const raw = await coreRes.timeline<{ tables: { id: number; reservations: RawCard[] }[] }>(r, date)
+    return Object.fromEntries(tableIds.map((id) => { const t = raw.tables.find((x) => x.id === id); const next = t?.reservations.find((x) => x.state === 'confirmed'); return [id, next ? card(next, id) : null] }))
+  }
   if (tableIds.length === 0) return {}
   const raw = await callKw<Record<string, (RawCard & { table_id: number }) | false>>('restaurant.table', 'waiter_reserved_at', [tableIds, date])
   return Object.fromEntries(Object.entries(raw).map(([id, r]) => [Number(id), r ? card(r, Number(id)) : null]))
@@ -168,7 +172,7 @@ export async function reservedAtByTable(tableIds: number[], date: string): Promi
 
 // Reservas vivas de una mesa, de la más próxima a la más lejana ("Lista de reservas" del kit).
 export async function listTableReservations(tableId: number): Promise<TableReservation[]> {
-  if (onCore()) { void tableId; return [] }
+  if (onCore()) return (await coreRes.byTable<RawCard>(tableId)).map((x) => card(x, tableId))
   const rows = await callKw<(RawCard & { table_id: [number, string] })[]>('waiter.reservation', 'search_read',
     [[['table_ids', 'in', [tableId]], ['state', 'in', ['confirmed', 'seated']]], ['name', 'customer_name', 'people', 'baby_chair', 'state', 'date', 'time_start', 'time_end', 'table_id']],
     { order: 'date asc, time_start asc, id asc' })
@@ -183,7 +187,12 @@ interface RawDetail extends RawCard {
 }
 // Detalle con el pre-pedido ("Detalle de reserva" del kit): lo arma el addon en waiter_detail().
 export async function getReservationDetail(id: number): Promise<ReservationDetail> {
-  if (onCore()) { void id; throw new Error('Las reservas llegan al sistema propio en la fase T3.') }
+  if (onCore()) {
+    const raw = await coreRes.get<RawDetail & { table_id?: number; table_number?: number; table_numbers?: number[] }>(id)
+    const table = raw.table ?? { id: raw.table_id ?? 0, table_number: raw.table_number ?? 0 }
+    return { ...card(raw, table.id), email: raw.customer_email || '', phone: raw.customer_phone || '', notes: raw.notes || '', tableNumber: table.table_number, tableNumbers: raw.table_numbers?.length ? raw.table_numbers : [table.table_number], amountTotal: raw.amount_total || 0,
+      lines: (raw.lines ?? []).map((l) => ({ id: l.id, productTemplateId: l.product_tmpl_id, name: l.name, qty: l.qty, unitPrice: l.price_unit, total: l.price_subtotal_incl, note: l.note || '' })) }
+  }
   const [raw] = await callKw<RawDetail[]>('waiter.reservation', 'waiter_detail', [[id]])
   return {
     ...card(raw, raw.table.id), email: raw.customer_email || '', phone: raw.customer_phone || '', notes: raw.notes || '',
