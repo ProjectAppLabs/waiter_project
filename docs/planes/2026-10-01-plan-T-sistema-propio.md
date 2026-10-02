@@ -870,6 +870,17 @@ Rutas de la plataforma bajo `/api/platform/v1` con la cookie `waiter_platform_si
   - **Decisiones al integrar:** el ROI pide hasta 1000 pedidos por consulta (el máximo del servidor).
   - **Pendiente:** el proveedor real de factura electrónica va en el sprint de integraciones; la nota crédito queda
     definida sin pantalla hasta que exista la devolución.
+- **T5 hecha** (2026-10-02), misma rama.
+  - Backend (Codex): adaptador interno `experience_app/adapters/core/` con las mismas formas que el de Odoo, elegido
+    por organización con `ODOO_ORGS` (por omisión `burger-house` hasta el corte); resolución por `tenancy` y el token
+    de la mesa; organización suspendida → `restaurant_unavailable`; pedido del comensal sin caja → `restaurant_closed`;
+    pago en línea con el método «Pago en línea» sembrado; WhatsApp y MCP sobre las apps propias; rutas
+    `/api/pos/v1/admin/{menu_settings,menu_decorations,mcp_keys,payment_gateways}`. Django: 1774 pruebas (44 nuevas).
+  - POS (Claude): plantilla, decoraciones, claves MCP y pasarelas del menú llaman a esas rutas en el sistema propio.
+  - **Verificado (Frisby, por la API pública del comensal y en Chromium móvil):** portada «Elige tu restaurante» con las
+    dos sedes y la marca roja de Frisby; carta por el token de la mesa 1; sesión, carrito con nota, confirmar (queda
+    `pendiente_pago`), pago simulado con tarjeta que deja el pedido `DI-001` pagado con «Pago en línea», un curso en
+    cocina y estado `enviado`; llamada al mesero. Burger House sigue sirviéndose desde Odoo.
 - **Revisado (T3):** el modal de pago carga en cinco entradas seguidas por la URL. La causa probable del «Cargando pedido…» visto en T2 es el límite de seis conexiones por dominio de HTTP/1.1 con varias conexiones de eventos en vivo abiertas en desarrollo; en producción el proxy sirve HTTP/2 y no aplica. Antes: al entrar por la URL
     (recargar lo resuelve; por investigar, posiblemente el doble montaje de React en modo estricto); «Forzar cierre» no
     existe en el sistema propio; las reservas que apartan mesas, los puntos del cobro y Resumen/Rentabilidad llegan con
