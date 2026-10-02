@@ -22,6 +22,8 @@ urlpatterns = [
     path('api/pos/v1/', include('tables.urls')),
     path('api/pos/v1/', include('kitchen.urls')),
     path('api/pos/v1/', include('realtime.urls')),
+    path('api/pos/v1/', include('loyalty.urls')),
+    path('api/pos/v1/', include('reservations.urls')),
     path('api/pos/v1/', include('accounts.urls')),
     path('api/health/', health_check, name='health-check'),
     path('', include('experience_app.urls')),

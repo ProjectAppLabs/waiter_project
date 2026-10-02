@@ -34,7 +34,7 @@ def orders():
 def line_dict(line):
     return fields(
         line,
-        "id uuid product_id name qty unit_price subtotal total note options parent_id discount_pct course_id ready_at served_at cancelled",
+        "id uuid product_id name qty unit_price subtotal total note options parent_id discount_pct loyalty_card_id points_cost course_id ready_at served_at cancelled",
     )
 
 
@@ -46,7 +46,7 @@ def order_dict(order):
     return {
         **fields(
             order,
-            "id uuid number tracking service state origin channel table_id guests baby_chair customer_name delivery_address delivery_phone note billing created_at paid_at subtotal tax tip total paid change",
+            "id uuid number tracking service state origin channel table_id guests baby_chair customer_id customer_name delivery_address delivery_phone note billing created_at paid_at subtotal tax tip total paid change",
         ),
         "table_number": order.table.number if order.table else None,
         "waiter": person(order.created_by),

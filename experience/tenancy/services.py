@@ -51,6 +51,8 @@ def create_organization(actor, data):
     organization = assign_values(Organization(), data)
     from catalog.services import seed_organization
     seed_organization(organization)
+    from loyalty.services import seed_organization as seed_loyalty
+    seed_loyalty(organization)
     # Con fecha de prueba nace en prueba; sin ella, activa (lo que promete el asistente de la consola).
     organization.status = 'trial' if organization.trial_ends else 'active'
     organization.save(update_fields=['status'])

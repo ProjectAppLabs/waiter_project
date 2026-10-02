@@ -39,6 +39,8 @@ class Organization(models.Model):
     trial_ends = models.DateField(null=True, blank=True)
     max_restaurants = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)])
     role_policy = models.JSONField(default=default_role_policy)
+    signup_discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=5)
+    banners_configured = models.BooleanField(default=False)
     cash_tolerance = models.DecimalField(max_digits=14, decimal_places=2, default=0, validators=[MinValueValidator(0)])
     timezone = models.CharField(max_length=64, default='America/Bogota', validators=[validate_timezone])
     brand_color = models.CharField(max_length=7, default='#C1873A', validators=[RegexValidator(r'^#[0-9a-fA-F]{6}$')])

@@ -57,7 +57,9 @@ def closing(shift):
         "cash_moves": [fields(m, "kind amount reason") for m in moves],
         "expected_cash": expected,
         "other_methods": list(methods.values()),
-        "draft_orders": shift.orders.filter(state="draft").count(),
+        # Un pre-pedido confirmado queda programado; se asigna al turno abierto cuando llega el cliente.
+        "draft_orders": shift.orders.filter(state="draft").exclude(
+            Q(reservation__state="confirmed") & Q(payments__isnull=True)).distinct().count(),
         "opening_notes": shift.opening_notes,
     }
 

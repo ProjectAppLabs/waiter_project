@@ -32,7 +32,10 @@ class FloorsView(PosView):
         qs = Floor.objects.filter(restaurant=restaurant).prefetch_related("tables")
         if request.query_params.get("all") != "1":
             qs = qs.filter(active=True)
-        return Response({"floors": [s.floor_dict(f) for f in qs.order_by("sequence", "id")]})
+        from reservations.reading import reserved_at
+        floors = list(qs.order_by('sequence', 'id'))
+        reserved = reserved_at(self.org, [t for f in floors for t in f.tables.all()])
+        return Response({"floors": [s.floor_dict(f, reserved) for f in floors]})
 
     def post(self, request):
         manager(self.account)
@@ -72,7 +75,7 @@ class FloorsView(PosView):
                 s.another_floor(floor)
             s.no_drafts(floor.tables.all())
             restaurant = floor.restaurant
-            if floor.tables.filter(orders__state="paid").exists():
+            if floor.tables.filter(orders__state="paid").exists() or floor.tables.filter(reservations__isnull=False).exists():
                 floor.active = False
                 floor.save()
                 floor.tables.update(active=False)

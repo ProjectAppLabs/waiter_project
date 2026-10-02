@@ -25,7 +25,7 @@ class OrdersView(PosView):
         valid(state in ("open", "paid"))
         qs = orders().filter(restaurant=restaurant)
         if state == "open":
-            qs = qs.filter(state="draft", shift__state="open")
+            qs = qs.filter(state="draft", shift__state="open").exclude(reservation__state="confirmed")
         else:
             qs = qs.filter(state="paid")
             if request.query_params.get("from") or request.query_params.get("to"):
@@ -39,13 +39,20 @@ class OrdersView(PosView):
         return Response(order_response(order), status=201 if created else 200)
 
     def patch(self, request, pk):
-        data = payload(request.data, ("table_id", "note", "guests", "billing", "customer_name"))
-        permit(self.account, *(["create_orders", "serve_orders"] if set(data) <= {"billing"} else ["create_orders"]))
+        data = payload(request.data, ("table_id", "note", "guests", "billing", "customer_name", "customer_id"))
+        if 'customer_id' in data:
+            permit(self.account, 'charge_orders')
+        if set(data) - {'customer_id'}:
+            permit(self.account, *(["create_orders", "serve_orders"] if set(data) <= {"billing"} else ["create_orders"]))
         with s.writing(self.org):
             order = s.get_order(self.account, pk, True)
             require(order.state == "draft", "El pedido ya terminó.", "not_editable", 409)
             for key, value in data.items():
-                if key == "table_id":
+                if key == "customer_id":
+                    from loyalty.models import Customer
+                    s.editable(order)
+                    order.customer = reference(Customer, self.org, value, active=True) if value is not None else None
+                elif key == "table_id":
                     s.editable(order)
                     valid(order.service == "dine_in")
                     table = s.table_for(order, value)
@@ -111,6 +118,8 @@ class OrderActionView(PosView):
                 order.note = reason
                 order.save()
                 order.lines.update(cancelled=True)
+                from loyalty.services import release_points
+                release_points(order)
                 s.event(order.restaurant, "orders", "kitchen", "tables")
         result = order_response(order)
         if self.action == "fire":
@@ -130,12 +139,16 @@ class OrderActionView(PosView):
             valid(all(not line.parent_id or line.parent_id in ids for line in selected), "Cancela el combo completo.")
             selected = list(order.lines.filter(Q(pk__in=ids) | Q(parent_id__in=ids)).select_related("course"))
             s.editable(order, selected)
+            require(not any(line.points_cost for line in selected), 'El canje se libera al cancelar el pedido.', 'not_editable', 409)
             order.lines.filter(pk__in=[line.pk for line in selected]).delete()
             order.courses.filter(lines__isnull=True).delete()
-            if not order.lines.filter(cancelled=False).exists():
+            if not order.lines.filter(cancelled=False, points_cost=0).exists():
                 order.state = "cancelled"
                 order.billing = False
                 order.billing_at = None
+                order.lines.update(cancelled=True)
+                from loyalty.services import release_points
+                release_points(order)
             s.recalculate(order)
             s.event(order.restaurant, "orders", "kitchen", "tables")
         return Response(order_response(order))

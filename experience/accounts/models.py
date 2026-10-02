@@ -5,10 +5,15 @@ from django.db.models.functions import Lower
 from tenancy.models import Identity
 
 
+def default_notify_prefs():
+    return {f'{kind}_{channel}': True for kind in ('kitchen', 'inventory', 'system') for channel in ('popup', 'sound')}
+
+
 class Account(Identity):
     organization = models.ForeignKey('tenancy.Organization', on_delete=models.CASCADE, related_name='accounts')
     email = models.EmailField(null=True, blank=True)
     role = models.CharField(max_length=10, choices=[(r, r) for r in ('owner', 'admin', 'cashier', 'waiter')])
+    notify_prefs = models.JSONField(default=default_notify_prefs)
     shift_start = models.FloatField(null=True, blank=True)
     shift_end = models.FloatField(null=True, blank=True)
     restaurants = models.ManyToManyField('tenancy.Restaurant', related_name='accounts', blank=True)

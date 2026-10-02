@@ -148,7 +148,7 @@ def recalculate(order):
     lines = list(order.lines.filter(cancelled=False))
     order.subtotal = sum((line.subtotal for line in lines), Decimal(0))
     total = sum((line.total for line in lines), Decimal(0))
-    valid(total + order.tip < Decimal("100000000000000"), "El total supera el máximo permitido.")
+    valid(0 <= total + order.tip < Decimal("100000000000000"), "El total no puede ser negativo ni superar el máximo permitido.")
     order.tax = total - order.subtotal
     order.total = total + order.tip
     payments = list(order.payments.select_related("method").order_by("id"))
@@ -243,7 +243,7 @@ def add_lines(order, raw):
 
 def fire(order, account):
     require(order.state != "cancelled", "El pedido está cancelado.", "not_editable", 409)
-    lines = order.lines.filter(course__isnull=True, cancelled=False)
+    lines = order.lines.filter(course__isnull=True, cancelled=False, points_cost=0)
     if not lines.exists():
         return None
     roles = order.restaurant.settings.kitchen_prepay_roles
@@ -270,7 +270,7 @@ def table_for(order, pk):
     return table
 
 
-def create_order(account, raw):
+def create_order(account, raw, *, allow_empty=False):
     data = payload(
         raw,
         (
@@ -332,7 +332,8 @@ def create_order(account, raw):
         else:
             valid(data.get("table_id") is None, "Este servicio no utiliza mesa.")
         order.save()
-        add_lines(order, data["lines"])
+        if data["lines"] or not allow_empty:
+            add_lines(order, data["lines"])
         if data["fire"]:
             fire(order, account)
         event(restaurant, "orders", "tables")
@@ -400,6 +401,8 @@ def pay(order, account):
     order.billing, order.billing_at = False, None
     order.save()
     fire(order, account)
+    from loyalty.services import settle_points
+    settle_points(order)
     from inventory.services import apply_sale
 
     data = CatalogData(order.organization, [order.restaurant])

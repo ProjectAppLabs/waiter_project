@@ -13,5 +13,11 @@ class Notification(models.Model):
     res_id = models.PositiveBigIntegerField(null=True, blank=True)
     action = models.CharField(max_length=80, blank=True, default='')
     action_done = models.BooleanField(default=False)
+    low_stock_open = models.BooleanField(default=False)
     read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['restaurant', 'res_id'],
+            condition=models.Q(kind='inventory', res_model='catalog.Product', low_stock_open=True),
+            name='notification_low_stock_episode_unique')]

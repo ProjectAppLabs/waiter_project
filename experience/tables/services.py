@@ -3,6 +3,7 @@
 import math
 import re
 
+from django.db.models import Q
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 
@@ -39,15 +40,18 @@ DECOR = (
 )
 
 
-def table_dict(table):
+def table_dict(table, reserved=None):
     return {
         **fields(table, "id number seats x y width height shape color zone_id active call call_at token"),
-        "reserved_at": None,
+        "reserved_at": reserved,
     }
 
 
-def floor_dict(floor):
-    tables = [table_dict(t) for t in floor.tables.all() if t.active]
+def floor_dict(floor, reserved=None):
+    if reserved is None:
+        from reservations.reading import reserved_at
+        reserved = reserved_at(floor.restaurant.organization, list(floor.tables.all()))
+    tables = [table_dict(t, reserved.get(t.pk)) for t in floor.tables.all() if t.active]
     return {
         **fields(floor, "id name sequence active revision"),
         "has_background": bool(floor.background),
@@ -57,6 +61,9 @@ def floor_dict(floor):
 
 
 def document(floor):
+    from reservations.reading import reserved_at
+    tables = list(floor.tables.filter(active=True).order_by('id'))
+    reserved = reserved_at(floor.restaurant.organization, tables)
     return {
         **fields(floor, "id name revision"),
         **{k: floor.plan.get(k, []) for k in ("walls", "zones", "decor")},
@@ -64,8 +71,8 @@ def document(floor):
         "background": bool(floor.background),
         "background_size": floor.plan.get("background_size"),
         "tables": [
-            {**fields(t, "id number seats x y width height"), "key": str(t.pk), "zone": t.zone_id}
-            for t in floor.tables.filter(active=True).order_by("id")
+            {**fields(t, "id number seats x y width height"), "key": str(t.pk), "zone": t.zone_id, "reserved_at": reserved.get(t.pk)}
+            for t in tables
         ],
     }
 
@@ -89,6 +96,15 @@ def another_floor(floor):
 
 
 def no_drafts(tables):
+    from reservations.models import Reservation
+    from reservations.schedule import local_now
+    tables = list(tables)
+    if tables:
+        org = tables[0].floor.restaurant.organization
+        now = local_now(org)
+        require(not Reservation.objects.filter(tables__in=tables, state='confirmed').filter(
+            Q(date__gt=now.date()) | Q(date=now.date(), time_end__gt=now.hour + now.minute / 60)).exists(),
+            'Hay mesas con reservas confirmadas pendientes.', 'table_reserved', 409)
     require(
         not Order.objects.filter(table__in=tables, state="draft").exists(),
         "Hay mesas con pedidos pendientes.",
@@ -218,13 +234,13 @@ def save_plan(floor, raw):
         else:
             valid(background is True and bool(floor.background))
         # Los números también son únicos entre mesas archivadas con historial.
-        preserved = [table for pk, table in old.items() if pk not in seen and table.orders.exists()]
+        preserved = [table for pk, table in old.items() if pk not in seen and (table.orders.exists() or table.reservations.exists())]
         valid(
             not numbers & {table.number for table in preserved},
             "Un número pertenece a una mesa archivada; reutiliza su id o elige otro número.",
         )
         for table in old.values():
-            if table.pk not in seen and not table.orders.exists():
+            if table.pk not in seen and not table.orders.exists() and not table.reservations.exists():
                 table.delete()
         floor.tables.filter(pk__in=[table.pk for table in preserved]).update(active=False)
         # Números temporales libres permiten intercambiar dos mesas sin violar la unicidad.
