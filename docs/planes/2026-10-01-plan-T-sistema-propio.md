@@ -841,7 +841,20 @@ Rutas de la plataforma bajo `/api/platform/v1` con la cookie `waiter_platform_si
   - **Decisiones tomadas al integrar:** la vista SSE acepta `Accept: text/event-stream` (DRF respondía 406); `GET
     /settings` devuelve también `cash_tolerance`; el mesero de una comanda viaja como `{id, name}`; cancelar un pedido
     solo vale antes de que cocina empiece (lo empezado se cobra); el cambio sale del `received` del pago en efectivo.
-  - **Pendiente:** en desarrollo el modal de pago a veces se queda en «Cargando pedido…» al entrar por la URL
+- **T3 hecha** (2026-10-02), misma rama.
+  - Backend (Codex): apps `loyalty` (clientes, programa y tarjetas de puntos, canje y abono al cobrar, cupones,
+    acciones con premio, banners) y `reservations` (horario, franjas, mesas que apartan, anticipo con enlace público y
+    conciliación, pre-pedido), preferencias de avisos y existencias bajas (`notify_low_stock`). Django: 1576 pruebas
+    (274 nuevas).
+  - POS (Claude): `core/loyalty.ts` y `core/reservations.ts`; reservas, horario, clientes, puntos en el cobro,
+    promociones, banners, preferencias de avisos y solicitar ingrediente bifurcan con `onCore()`.
+  - **Verificado en Chromium y por la API (Frisby):** cliente nuevo en Consola → Clientes; cupón y programa de puntos
+    guardados; banner con destino a un plato; reserva para mañana con anticipo de $ 20.000 y pre-pedido (exige caja
+    abierta, como en Odoo), enlace público que no muestra teléfono ni correo, anticipo marcado pagado a mano, sentar;
+    preferencias de avisos propias. Las pantallas Reservas y Mesas cargan sin errores.
+  - **Decisiones al integrar:** los banners se guardan enviando la lista completa como cuerpo; `PUT /benefits` no lleva
+    `restaurant_id`; las preferencias viajan como `{prefs}`; el anticipo público devuelve `amount_in_cents`.
+- **Pendiente de T2:** en desarrollo el modal de pago a veces se queda en «Cargando pedido…» al entrar por la URL
     (recargar lo resuelve; por investigar, posiblemente el doble montaje de React en modo estricto); «Forzar cierre» no
     existe en el sistema propio; las reservas que apartan mesas, los puntos del cobro y Resumen/Rentabilidad llegan con
     T3 y T4; el menú del comensal sigue en Odoo hasta T5.

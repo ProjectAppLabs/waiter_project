@@ -10,5 +10,5 @@ export type BenefitReward='descuento'|'cupon'|'puntos'
 export interface BenefitAction {action:BenefitActionKey;active:boolean;reward:BenefitReward;percent:number;couponId:number|null;points:number}
 export interface BenefitsSettings {coupons:Coupon[];loyalty:PointsSettings|null;actions:BenefitAction[]}
 export const benefitsSettings=(configId:number,coupon?:Coupon,loyalty?:PointsSettings,action?:BenefitAction)=>onCore()
-  ?(coupon||loyalty||action?coreLoyalty.saveBenefits<BenefitsSettings>({restaurant_id:configId,coupon:coupon??null,loyalty:loyalty??null,action:action??null}):coreLoyalty.benefits<BenefitsSettings>(configId))
+  ?(coupon||loyalty||action?coreLoyalty.saveBenefits<BenefitsSettings>({coupon:coupon??null,loyalty:loyalty??null,action:action??null}):coreLoyalty.benefits<BenefitsSettings>(configId))
   :callKw<BenefitsSettings>('pos.config','waiter_benefits_settings',[[configId]],{coupon:coupon??null,loyalty:loyalty??null,action:action??null})
