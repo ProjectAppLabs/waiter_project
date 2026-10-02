@@ -1,3 +1,7 @@
+import { onCore } from '@/lib/domain/backend'
+import * as core from '@/lib/services/core/sales'
+import { toShiftOrder } from '@/lib/services/core/salesBridge'
+import { currentRestaurantId } from '@/lib/services/core/catalogBridge'
 import { kitchenPhase, type KitchenPhase } from '@/lib/domain/kitchen'
 import { listCourseSummaries } from '@/lib/services/kitchen'
 import { callKw } from '@/lib/services/odoo'
@@ -13,6 +17,7 @@ interface RawShiftOrder { id: number; pos_reference: string; table_id: [number, 
 
 // Todos los pedidos del turno (abiertos y pagados), con su origen y en qué va cocina. Dos llamadas.
 export async function listShiftOrders(sessionId: number, tableNumberOf: (tableId: number) => number | null): Promise<ShiftOrder[]> {
+  if (onCore()) { void tableNumberOf; const r = currentRestaurantId(); if (r === null) throw new Error('Elige un restaurante.'); const [open, paid] = await Promise.all([core.listOrders(r, 'open'), core.salesOrders(r, { shift_id: sessionId })]); return [...open, ...paid].map(toShiftOrder) }
   const [rows, courses] = await Promise.all([
     callKw<RawShiftOrder[]>('pos.order', 'search_read',
       [[['session_id', '=', sessionId], ['state', '!=', 'cancel']], ['pos_reference', 'table_id', 'user_id', 'waiter_origin', 'amount_total', 'state', 'date_order']], { order: 'id desc' }),
@@ -31,6 +36,7 @@ export async function listShiftOrders(sessionId: number, tableNumberOf: (tableId
 
 // "Sin intervención humana": pedidos del día que no originó un mesero.
 export async function countAutonomy(sessionId: number): Promise<Autonomy> {
+  if (onCore()) { const r = currentRestaurantId(); if (r === null) throw new Error('Elige un restaurante.'); const [open, s] = await Promise.all([core.listOrders(r, 'open'), core.salesSummary(r, { shift_id: sessionId })]); return { total: open.length + s.orders, autonomous: open.filter((o) => o.origin !== 'waiter').length + s.autonomous } }
   const rows = await callKw<{ waiter_origin: Origin | false }[]>('pos.order', 'search_read', [[['session_id', '=', sessionId], ['state', '!=', 'cancel']], ['waiter_origin']])
   return { total: rows.length, autonomous: rows.filter((r) => r.waiter_origin && r.waiter_origin !== 'waiter').length }
 }

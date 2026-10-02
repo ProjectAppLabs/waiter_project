@@ -29,7 +29,7 @@ const GROUPS: [string, [string, string, KitIcon][]][] = [
 
 // Plan T: mientras dura la migración, una organización del sistema propio solo ve las secciones que ya viven allí; el
 // resto llega fase a fase (T1 catálogo, T2 ventas y caja, T3 clientes y promociones, T4 informes y contabilidad).
-const CORE_READY = new Set(['/organizacion/restaurantes', '/organizacion/equipo', '/organizacion/catalogo'])
+const CORE_READY = new Set(['/organizacion/restaurantes', '/organizacion/equipo', '/organizacion/catalogo', '/organizacion/ventas', '/organizacion/cuadres'])
 
 export default function OrganizationLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()

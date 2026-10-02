@@ -1,3 +1,8 @@
+import { onCore } from '@/lib/domain/backend'
+import * as sales from '@/lib/services/core/sales'
+import { toOpenOrder, toSavedOrder } from '@/lib/services/core/salesBridge'
+import { currentRestaurantId } from '@/lib/services/core/catalogBridge'
+import { useAuthStore } from '@/lib/stores/authStore'
 import { toSyncPayload } from '@/lib/domain/order'
 import { kitchenPhase, type KitchenPhase } from '@/lib/domain/kitchen'
 import { uuid } from '@/lib/domain/uuid'
@@ -23,6 +28,12 @@ async function readOrder(id: number): Promise<SavedOrder> {
 }
 
 export async function saveOrder(draft: DraftOrder): Promise<SavedOrder> {
+  if (onCore()) {
+    const { restaurant } = useAuthStore.getState()
+    const order = await sales.createOrder({ restaurant_id: restaurant?.id ?? currentRestaurantId() ?? 0, uuid: draft.uuid, service: 'dine_in', table_id: draft.tableId, guests: draft.guests, note: draft.note,
+      lines: draft.lines.map((l) => ({ uuid: l.uuid, product_id: l.productId, qty: l.qty, note: l.note })), fire: false })
+    return toSavedOrder(order)
+  }
   const result = await callKw<{ 'pos.order': { id: number }[] }>('pos.order', 'sync_from_ui', [[toSyncPayload(draft, activeEmployeeId())]])
   const id = result['pos.order'][0].id
   // sync_from_ui deja amount_total en 0 por la API cruda: el recálculo es obligatorio.
@@ -30,13 +41,15 @@ export async function saveOrder(draft: DraftOrder): Promise<SavedOrder> {
   return readOrder(id)
 }
 
-export async function payOrder(orderId: number, paymentMethodId: number, amount: number): Promise<SavedOrder> {
+export async function payOrder(orderId: number, paymentMethodId: number, amount: number, received?: number, reference?: string): Promise<SavedOrder> {
+  if (onCore()) return toSavedOrder(await sales.addPayment(orderId, { method_id: paymentMethodId, amount, received, reference, request_key: `pay-${orderId}-${uuid()}` }))
   await callKw<void>('pos.order', 'add_payment', [[orderId], { pos_order_id: orderId, payment_method_id: paymentMethodId, amount }])
   return readOrder(orderId)
 }
 
 // La propina en Odoo 19 es una línea del producto de propina (no hay set_tip): se agrega, se recalcula y se anota.
 export async function addTip(orderId: number, tipProductId: number, amount: number): Promise<SavedOrder> {
+  if (onCore()) return toSavedOrder(await sales.setTip(orderId, amount))
   // Sin recompute_prices (pondría el precio de lista del producto de propina) y con amount_total escrito a mano:
   // en Odoo 19 el total del pedido no se recalcula solo al agregar una línea; lo manda el cliente.
   const current = await readOrder(orderId)
@@ -47,15 +60,19 @@ export async function addTip(orderId: number, tipProductId: number, amount: numb
 
 // Cambio entregado en efectivo: Odoo lo guarda en amount_return.
 export async function setChange(orderId: number, amount: number): Promise<void> {
+  // En el sistema propio el cambio sale del efectivo recibido en el pago: nada que escribir aparte.
+  if (onCore()) return
   await callKw('pos.order', 'write', [[orderId], { amount_return: amount }])
 }
 
 export async function closeOrder(orderId: number): Promise<SavedOrder> {
+  if (onCore()) return toSavedOrder(await sales.payOrder(orderId))
   await callKw<void>('pos.order', 'action_pos_order_paid', [[orderId]])
   return readOrder(orderId)
 }
 
 export async function listOpenOrders(sessionId: number): Promise<OpenOrder[]> {
+  if (onCore()) { void sessionId; const r = currentRestaurantId(); if (r === null) throw new Error('Elige un restaurante.'); return (await sales.listOrders(r, 'open')).map(toOpenOrder).filter((o): o is OpenOrder => o !== null) }
   const [rows, courses] = await Promise.all([
     callKw<RawOpen[]>('pos.order', 'search_read',
       [[['session_id', '=', sessionId], ['state', '=', 'draft']], ['table_id', 'amount_total', 'amount_tax', 'state', 'lines', 'date_order', 'user_id', 'tracking_number']]),
@@ -82,6 +99,7 @@ export function openOrderFromKit(o: KitOrder): OpenOrder | null {
 
 // Ventas del turno: lo pagado en la sesión, cuántos pedidos y cuántos meseros distintos.
 export async function getShiftSummary(sessionId: number): Promise<ShiftSummary> {
+  if (onCore()) { const r = currentRestaurantId(); if (r === null) throw new Error('Elige un restaurante.'); const s = await sales.salesSummary(r, { shift_id: sessionId }); return { sales: s.total, orders: s.orders, waiters: s.by_waiter.length } }
   const rows = await callKw<RawPaid[]>('pos.order', 'search_read',
     [[['session_id', '=', sessionId], ['state', 'in', ['paid', 'done', 'invoiced']]], ['amount_total', 'user_id']])
   const waiters = new Set(rows.map((r) => (r.user_id ? r.user_id[0] : 0)))

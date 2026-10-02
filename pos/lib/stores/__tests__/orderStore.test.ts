@@ -48,7 +48,8 @@ it('settles an order created elsewhere, with no local draft', async () => {
   useOrderStore.setState({ draft: null, saved: null, flags: { 6: { billing: true } } })
   const ok = await useOrderStore.getState().settle({ tip: 0, payments: [{ methodId: 1, type: 'cash', amount: 87822, received: 87822, reference: '' }] }, CTX)
   expect(ok).toBe(true)
-  expect(mPay).toHaveBeenCalledWith(13, 1, 87822)
+  // El efectivo recibido y el voucher viajan con el pago: el sistema propio calcula el cambio con ellos (T2).
+  expect(mPay).toHaveBeenCalledWith(13, 1, 87822, 87822, '')
   expect(mClose).toHaveBeenCalledWith(13)
   expect(useOrderStore.getState().flags[6]).toEqual({})
 })
@@ -62,7 +63,7 @@ it('settle tips, records every payment and the change, closes and leaves a recei
   const ok = await useOrderStore.getState().settle({ tip: 8000, payments: [{ methodId: 2, type: 'bank', amount: 50000, received: 50000, reference: 'A1' }, { methodId: 1, type: 'cash', amount: 45822, received: 50000, reference: '' }] }, CTX)
   expect(ok).toBe(true)
   expect(addTip).toHaveBeenCalledWith(13, 1, 8000)
-  expect(mPay.mock.calls.map((c) => c.slice(1))).toEqual([[2, 50000], [1, 45822]])
+  expect(mPay.mock.calls.map((c) => c.slice(1))).toEqual([[2, 50000, 50000, 'A1'], [1, 45822, 50000, '']])
   expect(setChange).toHaveBeenCalledWith(13, 4178)
   expect(useOrderStore.getState().receipt).toMatchObject({ total: 95822, tip: 8000, change: 4178, payments: [{ method: 'Tarjeta', amount: 50000, reference: 'A1' }, { method: 'Efectivo', amount: 45822, reference: '' }] })
 })

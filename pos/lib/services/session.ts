@@ -1,3 +1,6 @@
+import * as sales from '@/lib/services/core/sales'
+import { toPosSession } from '@/lib/services/core/salesBridge'
+import { currentRestaurantId } from '@/lib/services/core/catalogBridge'
 import { onCore } from '@/lib/domain/backend'
 import * as core from '@/lib/services/core/pos'
 import { callKw, jsonRpc } from '@/lib/services/odoo'
@@ -43,8 +46,8 @@ function toSession(raw: RawSession): PosSession {
 
 // La caja abierta del restaurante de este dispositivo (plan O). Sin restaurante elegido se mira cualquiera, como antes.
 export async function getOpenSession(configId: number | null = null): Promise<PosSession | null> {
-  // Plan T: la caja del sistema propio llega con T2; hasta entonces no hay caja abierta.
-  if (onCore()) return null
+  // Plan T2: el turno de caja abierto del restaurante en el sistema propio.
+  if (onCore()) { const r = configId ?? currentRestaurantId(); const shift = r === null ? null : await sales.openShift(r); return shift ? toPosSession(shift) : null }
   const domain: unknown[] = [['state', 'in', OPEN_STATES]]
   if (configId !== null) domain.push(['config_id', '=', configId])
   const rows = await callKw<RawSession[]>('pos.session', 'search_read', [domain, ['id', 'config_id', 'state']], { limit: 1 })
@@ -54,6 +57,7 @@ export async function getOpenSession(configId: number | null = null): Promise<Po
 export async function ensureOpenSession(configId: number): Promise<PosSession> {
   const open = await getOpenSession(configId)
   if (open) return open
+  if (onCore()) return toPosSession(await sales.createShift(configId, 0, 'Apertura automática'))
   const id = await callKw<number>('pos.session', 'create', [{ config_id: configId }])
   await callKw<void>('pos.session', 'action_pos_session_open', [[id]])
   return { id, configId, state: 'opening_control' }

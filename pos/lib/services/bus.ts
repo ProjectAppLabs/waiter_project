@@ -1,3 +1,6 @@
+import { onCore } from '@/lib/domain/backend'
+import { openEvents } from '@/lib/services/core/realtime'
+import { currentRestaurantId } from '@/lib/services/core/catalogBridge'
 import { callKw } from '@/lib/services/odoo'
 
 // Avisos en vivo por el bus de Odoo (addon projectapp_bus). El servidor dice qué cambió y la tablet
@@ -7,7 +10,7 @@ export type BusEvent = 'kitchen' | 'orders' | 'notify'
 export interface BusInfo { version: string; channels: string[] }
 
 // La versión del handshake la fija Odoo y cambia entre versiones: se pregunta, no se escribe aquí.
-export const getBusInfo = (): Promise<BusInfo> => callKw<BusInfo>('waiter.bus', 'waiter_bus_info', [])
+export const getBusInfo = (): Promise<BusInfo> => (onCore() ? Promise.resolve({ version: 'sse', channels: ['sse'] }) : callKw<BusInfo>('waiter.bus', 'waiter_bus_info', []))
 
 // Mismo origen: el websocket sube por el proxy de Next, así que la cookie de sesión viaja sin
 // depender de la política SameSite del navegador ni de dónde esté Odoo.
@@ -24,6 +27,12 @@ export interface BusHandle { close: () => void }
 // Abre la conexión y llama a `onEvent` por cada aviso. `onState` dice si el bus está vivo, para que
 // quien sondea afloje el ritmo mientras lo esté. Reconecta con espera creciente; nunca lanza.
 export function openBus(onEvent: (event: BusEvent) => void, onState: (up: boolean) => void): BusHandle {
+  // Plan T2: en el sistema propio los avisos llegan por SSE con los mismos nombres (las mesas cuentan como pedidos).
+  if (onCore()) {
+    const r = currentRestaurantId()
+    if (r === null) return { close: () => undefined }
+    return openEvents(r, (e) => onEvent(e === 'tables' ? 'orders' : e === 'cash' ? 'notify' : e), onState)
+  }
   let ws: WebSocket | null = null
   let timer: ReturnType<typeof setTimeout> | null = null
   let tries = 0

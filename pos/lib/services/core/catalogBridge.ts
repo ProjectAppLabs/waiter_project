@@ -5,8 +5,7 @@ import type { CatalogOverview } from '@/lib/services/catalogOverview'
 import type { KitUnit, PantryRequest, Supplier } from '@/lib/services/pantry'
 import type { InventoryDetail, RecipeDetail } from '@/lib/services/restaurantInventory'
 import type { MasterCatalog } from '@/lib/services/masterCatalog'
-import type { Catalog } from '@/lib/types'
-import { DEFAULT_ROLE_POLICY } from '@/lib/domain/permissions'
+import type { Catalog, Settings } from '@/lib/types'
 import { useAuthStore } from '@/lib/stores/authStore'
 import type { CoreCategory, CoreDish, CoreIngredient, CoreMenu, CoreOverview, CoreRecipe, CoreRestaurantsCatalog, CoreSupplier, CoreTax, CoreUnit } from '@/lib/services/core/catalog'
 import type { CoreRequest, CoreStockDetail, CoreStockDish, CoreStockIngredient } from '@/lib/services/core/inventory'
@@ -78,16 +77,14 @@ export const toMasterCatalog = (c: CoreRestaurantsCatalog, restaurantIds: number
   prices: Object.fromEntries(restaurantIds.map((r) => [r, Object.fromEntries(Object.entries(c.prices[String(r)] ?? {}).map(([k, v]) => [Number(k), v]))])),
 })
 
-// La carta del POS para un restaurante del sistema propio. Sin salón ni caja todavía (T2): pisos, mesas y métodos vacíos,
-// y los ajustes del restaurante con sus valores por omisión.
-export const toCatalog = (menu: CoreMenu, restaurantId: number, restaurantName: string, companyName: string): Catalog => ({
+// La carta del POS para un restaurante del sistema propio, con su salón, sus métodos de pago y sus ajustes (T2).
+export const toCatalog = (menu: CoreMenu, restaurantId: number, restaurantName: string, companyName: string, salon: Pick<Catalog, 'floors' | 'tables' | 'paymentMethods'>, settings: Settings): Catalog => ({
   company: { name: companyName },
-  settings: { rolePermissions: DEFAULT_ROLE_POLICY, configId: restaurantId, configName: restaurantName, waiterCanCharge: true, waiterCanEditInventory: false,
-    alertLateMinutes: 15, alertBillMinutes: 10, roiHourCost: 0, roiMinutesPerOrder: 0, roiBaselineHoursPer100: 0, roiMonthlyCost: 0, roiStartDate: null, tipProductId: null },
+  settings,
   products: menu.products.filter((p) => p.available_in_pos).map((p) => ({ id: p.id, templateId: p.id, name: p.name, price: p.final_price ?? p.restaurant_price ?? p.price, categoryIds: p.category_ids,
     taxIds: p.tax_ids, favorite: p.favorite, storable: false, soldOut: p.sold_out ?? false, hasImage: p.has_image })),
   categories: menu.categories.map((c) => ({ id: c.id, name: c.name, sequence: c.sequence, station: c.station || null })),
-  floors: [], tables: [], paymentMethods: [],
+  ...salon,
 })
 
 export const mapIngredientInput = (i: { name: string; category: string; uomId: number; supplierId: number; image?: string }) => ({

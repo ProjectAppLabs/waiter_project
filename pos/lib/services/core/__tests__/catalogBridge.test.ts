@@ -1,5 +1,10 @@
 import { toCatalog, toKitUnits, toMasterCatalog, toRecipeDetail, toRecipeLines } from '@/lib/services/core/catalogBridge'
+import { salonOf, toSettings } from '@/lib/services/core/salesBridge'
 import type { CoreMenu, CoreRecipe, CoreRestaurantsCatalog } from '@/lib/services/core/catalog'
+import type { CoreSettings } from '@/lib/services/core/sales'
+
+const SETTINGS: CoreSettings = { restaurant: { alert_late_minutes: 18, alert_bill_minutes: 10, roi_hour_cost: 20000, roi_minutes_per_order: 11, roi_baseline_hours_per_100: 18.4, roi_monthly_cost: 2740000, roi_start_date: null, kitchen_prepay_roles: [] },
+  role_policy: { waiter: { views: ['tables'], actions: ['create_orders', 'serve_orders'] }, cashier: { views: ['orders'], actions: ['create_orders', 'charge_orders'] }, admin: { views: ['tables'], actions: [] } }, can_charge: true, can_edit_inventory: false }
 
 const recipe: CoreRecipe = {
   recipe: { yield_qty: 1, cost: 3200, missing_costs: [], lines: [{ ingredient_id: 7, name: 'Pan', qty: 1, unit: { id: 3, name: 'Unidades' } }, { ingredient_id: 8, name: 'Carne', qty: 150, unit: { id: 1, name: 'g' } }] },
@@ -26,7 +31,7 @@ test('sin receta no hay líneas ni lote', () => {
 })
 
 // Falla si la carta del POS no respeta el precio final por sede, si los platos fuera de la carta se cuelan, o si el
-// restaurante no queda como configuración activa con los permisos por omisión.
+// salón, los métodos de pago y los ajustes del restaurante no llegan a la carta (T2).
 test('la carta del sistema propio toma la forma del catálogo del POS', () => {
   const menu: CoreMenu = {
     categories: [{ id: 1, name: 'Hamburguesas', sequence: 1, station: 'Parrilla' }, { id: 2, name: 'Bebidas', sequence: 2, station: '' }],
@@ -36,11 +41,12 @@ test('la carta del sistema propio toma la forma del catálogo del POS', () => {
       { id: 11, name: 'Secreta', kind: 'dish', category_ids: [1], tax_ids: [], price: 1, favorite: false, available_in_pos: false, has_image: false, image_version: '', image_origin: null, description: '', diner_attributes: {}, preparation_minutes: null },
     ],
   }
-  const c = toCatalog(menu, 2, 'Frisby Laureles', 'Frisby')
+  const c = toCatalog(menu, 2, 'Frisby Laureles', 'Frisby', salonOf([{ id: 1, name: 'Salón', sequence: 1, active: true, revision: 1, has_background: false, table_count: 1, tables: [{ id: 7, number: 4, seats: 4, x: 0, y: 0, width: 100, height: 100, shape: 'square', color: '', zone_id: '', active: true, call: 'none', call_at: null, token: 't', reserved_at: null }] }], [{ id: 1, name: 'Efectivo', type: 'cash' }]), toSettings(SETTINGS, 2, 'Frisby Laureles'))
   expect(c.products.map((p) => [p.id, p.price])).toEqual([[10, 22000]])
   expect(c.categories[1].station).toBeNull()
   expect(c.settings.configId).toBe(2); expect(c.settings.configName).toBe('Frisby Laureles'); expect(c.settings.rolePermissions).toBeDefined()
-  expect(c.floors).toEqual([]); expect(c.paymentMethods).toEqual([])
+  expect(c.floors).toEqual([{ id: 1, name: 'Salón', tableIds: [7], hasBackground: false }]); expect(c.tables[0]).toMatchObject({ id: 7, number: 4, floorId: 1 }); expect(c.paymentMethods).toEqual([{ id: 1, name: 'Efectivo', type: 'cash' }])
+  expect(c.settings.alertLateMinutes).toBe(18); expect(c.settings.rolePermissions?.waiter.actions).toEqual(['create_orders', 'serve_orders'])
 })
 
 // Falla si los precios y las excepciones por sede del catálogo maestro no se cruzan con los restaurantes pedidos.

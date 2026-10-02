@@ -1,3 +1,6 @@
+import * as sales from '@/lib/services/core/sales'
+import * as coreTables from '@/lib/services/core/tables'
+import { salonOf, toSettings } from '@/lib/services/core/salesBridge'
 import { onCore } from '@/lib/domain/backend'
 import * as coreCatalog from '@/lib/services/core/catalog'
 import * as corePos from '@/lib/services/core/pos'
@@ -35,9 +38,9 @@ export async function loadPosData(sessionId: number | null, restaurantId: number
   if (onCore()) {
     const id = restaurantId ?? currentRestaurantId()
     if (id === null) throw new Error('Elige un restaurante.')
-    const [menu, org] = await Promise.all([coreCatalog.getMenu(id), corePos.getOrg()])
+    const [menu, org, floors, methods, settings] = await Promise.all([coreCatalog.getMenu(id), corePos.getOrg(), coreTables.listFloors(id), sales.listMethods(id), sales.getSettings(id)])
     const name = useAuthStore.getState().restaurants?.find((r) => r.id === id)?.name ?? org.name
-    return toCatalog(menu, id, name, org.name)
+    return toCatalog(menu, id, name, org.name, salonOf(floors, methods), toSettings(settings, id, name))
   }
   // Todos los modelos, como lo hace el propio cliente de Odoo: los cargadores se leen entre sí
   // desde data[...] y una lista parcial rompe con KeyError en cada actualización.

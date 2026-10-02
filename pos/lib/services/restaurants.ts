@@ -1,3 +1,4 @@
+import * as sales from '@/lib/services/core/sales'
 import { onCore } from '@/lib/domain/backend'
 import { toRestaurant } from '@/lib/services/core/bridge'
 import * as core from '@/lib/services/core/pos'
@@ -10,7 +11,12 @@ export interface Restaurant { id: number; name: string; slug: string; street: st
 
 // Con un addon anterior al plan O el método no existe: se leen los puntos de venta visibles, que es lo que había.
 export async function listRestaurants(): Promise<Restaurant[]> {
-  if (onCore()) return (await core.listRestaurants()).map(toRestaurant)
+  if (onCore()) {
+    const rows = (await core.listRestaurants()).map(toRestaurant)
+    // Plan T2: la tarjeta dice si la caja está abierta; una consulta por sede (son pocas).
+    const open = await Promise.all(rows.map((r) => sales.openShift(r.id).catch(() => null)))
+    return rows.map((r, i) => ({ ...r, open: open[i] !== null }))
+  }
   try {
     return await callKw<Restaurant[]>('pos.config', 'waiter_restaurants', [])
   } catch (e) {

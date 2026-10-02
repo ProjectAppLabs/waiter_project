@@ -1,3 +1,6 @@
+import * as sales from '@/lib/services/core/sales'
+import * as coreTables from '@/lib/services/core/tables'
+import { currentRestaurantId } from '@/lib/services/core/catalogBridge'
 import { onCore } from '@/lib/domain/backend'
 import * as core from '@/lib/services/core/pos'
 import { callKw, inRestaurant } from '@/lib/services/odoo'
@@ -74,6 +77,7 @@ export async function saveBrandLogo(logo: LogoChange): Promise<void> {
 }
 
 export async function listFloors(): Promise<FloorInfo[]> {
+  if (onCore()) { const r = currentRestaurantId(); if (r === null) throw new Error('Elige un restaurante.'); return (await coreTables.listFloors(r, true)).map((f) => ({ id: f.id, name: f.name, tables: f.tables.map((t) => ({ id: t.id, number: t.number, seats: t.seats, active: t.active })) })) }
   const [floors, tables] = await Promise.all([
     callKw<RawFloor[]>('restaurant.floor', 'search_read', [[], ['name', 'table_ids']], { order: 'sequence asc, id asc' }),
     callKw<RawTable[]>('restaurant.table', 'search_read', [[['active', 'in', [true, false]]], ['table_number', 'seats', 'active', 'floor_id']], { order: 'table_number asc' }),
@@ -82,12 +86,23 @@ export async function listFloors(): Promise<FloorInfo[]> {
 }
 
 export async function saveFloor(id: number | null, name: string, configId: number): Promise<number> {
+  if (onCore()) { if (id === null) return (await coreTables.createFloor(configId, name)).id; await coreTables.patchFloor(id, { name }); return id }
   if (id === null) return callKw<number>('restaurant.floor', 'create', [{ name, pos_config_ids: [[4, configId]] }])
   await callKw('restaurant.floor', 'write', [[id], { name }])
   return id
 }
 
 export async function saveTable(id: number | null, floorId: number, t: { number: number; seats: number; active: boolean }): Promise<number> {
+  if (onCore()) {
+    // Sin editor de plano a mano: la mesa entra o cambia dentro del plano del piso.
+    const plan = await coreTables.readPlan(floorId)
+    const tables = plan.tables.filter((x) => x.id !== id || t.active)
+    const found = tables.find((x) => x.id === id)
+    if (found) { found.number = t.number; found.seats = t.seats }
+    else if (id === null && t.active) tables.push({ id: null, key: `n${Date.now()}`, number: t.number, seats: t.seats, zone: '', x: 20 + (t.number % 5) * 120, y: 20 + Math.floor(t.number / 5) * 120, width: 100, height: 100 })
+    const saved = await coreTables.savePlan(floorId, { ...plan, tables, background: true })
+    return id ?? saved.tables.find((x) => x.number === t.number)?.id ?? 0
+  }
   const values = { table_number: t.number, seats: t.seats, active: t.active, floor_id: floorId }
   if (id === null) return callKw<number>('restaurant.table', 'create', [{ ...values, position_h: 20 + (t.number % 5) * 120, position_v: 20 + Math.floor(t.number / 5) * 120 }])
   await callKw('restaurant.table', 'write', [[id], values])
@@ -95,6 +110,7 @@ export async function saveTable(id: number | null, floorId: number, t: { number:
 }
 
 export async function listPaymentMethods(): Promise<PaymentMethodInfo[]> {
+  if (onCore()) { const r = currentRestaurantId(); if (r === null) throw new Error('Elige un restaurante.'); return (await sales.listMethods(r)).map((m) => ({ id: m.id, name: m.name, type: m.type })) }
   // Los métodos del restaurante en uso (el efectivo es propio de cada uno).
   return callKw<PaymentMethodInfo[]>('pos.payment.method', 'search_read', [inRestaurant([], 'config_ids'), ['name', 'type']], { order: 'sequence asc, id asc' })
 }
@@ -130,6 +146,7 @@ export async function setUserRole(id: number, role: Role): Promise<void> {
 }
 
 export async function saveSettings(s: Settings): Promise<void> {
+  if (onCore()) { await sales.patchSettings(s.configId, { alert_late_minutes: s.alertLateMinutes, alert_bill_minutes: s.alertBillMinutes, roi_hour_cost: s.roiHourCost, roi_minutes_per_order: s.roiMinutesPerOrder, roi_baseline_hours_per_100: s.roiBaselineHoursPer100, roi_monthly_cost: s.roiMonthlyCost, roi_start_date: s.roiStartDate || null }); return }
   await callKw('pos.config', 'write', [[s.configId], {
     waiter_can_charge: s.waiterCanCharge, waiter_can_edit_inventory: s.waiterCanEditInventory, alert_late_minutes: s.alertLateMinutes, alert_bill_minutes: s.alertBillMinutes, roi_hour_cost: s.roiHourCost, roi_minutes_per_order: s.roiMinutesPerOrder,
     roi_baseline_hours_per_100: s.roiBaselineHoursPer100, roi_monthly_cost: s.roiMonthlyCost, roi_start_date: s.roiStartDate || false,

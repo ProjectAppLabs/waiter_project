@@ -1,3 +1,9 @@
+import { onCore } from '@/lib/domain/backend'
+import * as coreCatalog from '@/lib/services/core/catalog'
+import * as coreKitchen from '@/lib/services/core/kitchen'
+import * as sales from '@/lib/services/core/sales'
+import { toKitOrder } from '@/lib/services/core/salesBridge'
+import { currentRestaurantId } from '@/lib/services/core/catalogBridge'
 import type { DraftLine } from '@/lib/domain/order'
 import { customerName, orderNumber, orderTypeOf, type KitCourse, type KitLine, type KitOrder, type ServiceAt, type TaxRate } from '@/lib/domain/orderState'
 import { fireUnsentLines } from '@/lib/services/kitchen'
@@ -51,6 +57,7 @@ function toOrder(r: RawOrder, serviceAt: Map<number, ServiceAt>, tableNumberOf: 
 
 // Pedidos abiertos de la sesión con sus líneas y cursos: tres llamadas por sondeo (pedidos, líneas, cursos).
 export async function listKitOrders(sessionId: number, tableNumberOf: (id: number) => number | null): Promise<KitOrder[]> {
+  if (onCore()) { void sessionId; void tableNumberOf; const r = currentRestaurantId(); if (r === null) throw new Error('Elige un restaurante.'); return (await sales.listOrders(r, 'open')).map(toKitOrder) }
   const [rows, serviceAt] = await Promise.all([
     callKw<RawOrder[]>('pos.order', 'search_read', [[['session_id', '=', sessionId], ['state', '=', 'draft']], ORDER_FIELDS], { order: 'date_order desc, id desc' }),
     presets(),
@@ -67,6 +74,7 @@ export async function listKitOrders(sessionId: number, tableNumberOf: (id: numbe
 
 // Historial: pedidos pagados (todas las sesiones, los últimos primero). Las líneas se leen al seleccionar la cuenta.
 export async function listHistoryOrders(tableNumberOf: (id: number) => number | null, limit = 200): Promise<KitOrder[]> {
+  if (onCore()) { void tableNumberOf; const r = currentRestaurantId(); if (r === null) throw new Error('Elige un restaurante.'); return (await sales.salesOrders(r, { limit })).map(toKitOrder) }
   const [rows, serviceAt] = await Promise.all([
     callKw<RawOrder[]>('pos.order', 'search_read', [[['state', 'in', PAID]], ORDER_FIELDS], { order: 'date_order desc, id desc', limit }),
     presets(),
@@ -75,6 +83,7 @@ export async function listHistoryOrders(tableNumberOf: (id: number) => number | 
 }
 
 export async function getKitOrderLines(orderId: number): Promise<KitLine[]> {
+  if (onCore()) return toKitOrder(await sales.getOrder(orderId)).lines
   const rows = await callKw<RawLine[]>('pos.order.line', 'search_read', [[['order_id', '=', orderId]], LINE_FIELDS], { order: 'id asc' })
   return rows.map(toLine)
 }
@@ -82,16 +91,19 @@ export async function getKitOrderLines(orderId: number): Promise<KitLine[]> {
 // Servir plato a plato (projectapp_kitchen): el servidor marca la línea y cierra el curso cuando ya no
 // queda ninguna sin servir. Antes la casilla solo vivía en la memoria de esta tablet.
 export async function serveLines(lineIds: number[]): Promise<void> {
+  if (onCore()) { if (lineIds.length) await coreKitchen.serveLines(lineIds); return }
   if (lineIds.length === 0) return
   await callKw('pos.order.line', 'action_kitchen_line_served', [lineIds])
 }
 
 export async function serveCourse(courseId: number): Promise<void> {
+  if (onCore()) { await coreKitchen.serveCourse(courseId); return }
   await callKw('restaurant.order.course', 'action_kitchen_served', [[courseId]])
 }
 
 // El servidor cancela solo antes de preparar y recalcula el total en la misma transacción.
 export async function cancelLines(orderId: number, lineIds: number[]): Promise<void> {
+  if (onCore()) { if (lineIds.length) await sales.cancelLines(orderId, lineIds); return }
   if (lineIds.length === 0) return
   void orderId
   await callKw('pos.order.line', 'waiter_cancel_lines', [lineIds])
@@ -100,6 +112,7 @@ export async function cancelLines(orderId: number, lineIds: number[]): Promise<v
 // Nueva ronda sobre un pedido abierto: se agregan las líneas, Odoo recalcula precios e impuestos y se dispara
 // un curso nuevo con todo lo que aún no tenía curso. Devuelve el id del curso (null si no había nada nuevo).
 export async function addRound(orderId: number, lines: DraftLine[]): Promise<number | null> {
+  if (onCore()) { if (!lines.length) return null; const o = await sales.addLines(orderId, lines.map((l) => ({ uuid: l.uuid, product_id: l.productId, qty: l.qty, note: l.note })), true); return o.courses.at(-1)?.id ?? null }
   if (lines.length === 0) return null
   const commands = lines.map((l) => [0, 0, {
     uuid: l.uuid, product_id: l.productId, qty: l.qty, price_unit: l.unitPrice, tax_ids: [[6, 0, l.taxIds]],
@@ -112,6 +125,7 @@ export async function addRound(orderId: number, lines: DraftLine[]): Promise<num
 
 // Tasas reales de los impuestos que usa la carta, para mostrar el subtotal, el impuesto y el total de la ronda.
 export async function listTaxes(ids: number[]): Promise<TaxRate[]> {
+  if (onCore()) return (await coreCatalog.listTaxes()).taxes.filter((t) => ids.includes(t.id)).map((t) => ({ id: t.id, amount: t.amount, priceInclude: t.included }))
   if (ids.length === 0) return []
   const rows = await callKw<RawTax[]>('account.tax', 'read', [ids, ['amount', 'price_include']])
   return rows.map((t) => ({ id: t.id, amount: t.amount, priceInclude: t.price_include }))

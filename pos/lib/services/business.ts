@@ -1,3 +1,7 @@
+import { onCore } from '@/lib/domain/backend'
+import * as core from '@/lib/services/core/sales'
+import { toCashClosing } from '@/lib/services/core/salesBridge'
+import { currentRestaurantId } from '@/lib/services/core/catalogBridge'
 import { callKw } from '@/lib/services/odoo'
 
 // Plan Q: lo del negocio que calcula Odoo (projectapp_ops ≥ 19.0.2.7.0, projectapp_pantry ≥ 19.0.2.6.0). Las fechas van
@@ -34,6 +38,7 @@ type RawClosing = {
   closed_by: { user_id: number; name: string } | false | null; expected: number; counted: number; difference: number; notes: string | false; over_tolerance: boolean
 }
 export async function cashClosings(dateFrom: string, dateTo: string, configIds: number[] | null = null, onlyDifferences = false): Promise<CashClosing[]> {
+  if (onCore()) return (await core.cashClosings(dateFrom, dateTo, configIds, onlyDifferences)).closings.map(toCashClosing)
   const rows = await callKw<RawClosing[]>('pos.session', 'waiter_cash_closings', [dateFrom, dateTo, configIds, onlyDifferences])
   return rows.map((r) => ({
     sessionId: r.session_id, name: r.name, configId: r.config_id, configName: r.config_name, closedAt: r.closed_at,
@@ -42,8 +47,14 @@ export async function cashClosings(dateFrom: string, dateTo: string, configIds: 
   }))
 }
 // Sin argumento solo lee; con un valor lo guarda (solo el dueño).
-export const cashSettings = (tolerance?: number) =>
-  callKw<{ tolerance: number; currency: string }>('res.company', 'waiter_cash_settings', [], tolerance === undefined ? {} : { tolerance })
+export async function cashSettings(tolerance?: number): Promise<{ tolerance: number; currency: string }> {
+  if (onCore()) {
+    if (tolerance !== undefined) return { ...(await core.setCashTolerance(tolerance)), currency: 'COP' }
+    const r = currentRestaurantId()
+    return { tolerance: r === null ? 0 : (await core.getSettings(r)).cash_tolerance ?? 0, currency: 'COP' }
+  }
+  return callKw<{ tolerance: number; currency: string }>('res.company', 'waiter_cash_settings', [], tolerance === undefined ? {} : { tolerance })
+}
 
 export type MenuClass = 'star' | 'plowhorse' | 'puzzle' | 'dog'
 export interface DishProfit {
