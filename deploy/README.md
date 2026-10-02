@@ -12,7 +12,7 @@ esto se ha aplicado todavía: requiere el acceso al DNS del dominio y al servido
 | `https://menu.waiter.projectapp.co/<org>/<sede>/t/<token>` | Menú del comensal (QR de cada mesa) |
 | `https://api.waiter.projectapp.co/mcp/` | MCP del diseño del menú; también los webhooks de pagos |
 
-Servicios del `docker-compose.prod.yml`: PostgreSQL 16, Redis, experience (Gunicorn), las tareas programadas
+Servicios del `docker-compose.prod.yml`: MySQL 8.4, Redis, experience (Gunicorn), las tareas programadas
 (`crontab`), el POS y el menú (Next.js) y Caddy con el certificado comodín.
 
 ## 1. DNS (una sola vez)
@@ -42,23 +42,42 @@ docker compose -f docker-compose.prod.yml exec experience python manage.py creat
 
 experience aplica las migraciones al arrancar. La primera emisión del certificado tarda uno o dos minutos.
 
-## 3. Datos de Burger House
+## 3. Base de datos
 
-La migración desde Odoo (T6) se corre desde la máquina de desarrollo con el comando `migrate_from_odoo`. Para llevar
-la base de desarrollo ya migrada a producción:
+Waiter usa MySQL 8.4, el estándar de los servidores de ProjectApp. Hay dos formas:
+
+- **El servicio `db` del compose.** Crea la base `waiter_core` con utf8mb4 y carga las zonas horarias al iniciar por
+  primera vez (`mysql-zonas.sh`). Basta llenar `DB_USER`, `DB_PASSWORD` y `DB_ROOT_PASSWORD`.
+- **Un servidor MySQL que ya exista.** Quita el servicio `db` y los `depends_on` hacia él, y pon `DB_HOST` y `DB_PORT`
+  en `.env.prod`. En ese servidor:
+
+  ```sql
+  CREATE DATABASE waiter_core CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+  CREATE USER 'waiter'@'%' IDENTIFIED BY '…';
+  GRANT ALL PRIVILEGES ON waiter_core.* TO 'waiter'@'%';
+  ```
+
+  y carga las zonas horarias una vez (sin ellas las métricas por día salen vacías):
+  `mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql -u root -p mysql`.
+
+experience aplica las migraciones al arrancar. Los tokens, claves e identificadores de idempotencia usan la colación
+binaria (`utf8mb4_bin`): distinguen mayúsculas aunque el servidor no lo haga.
+
+## 4. Datos de Burger House y copias de seguridad
+
+Para llevar la base de desarrollo ya migrada a producción:
 
 ```bash
 # en desarrollo
-docker exec waiter-db pg_dump -U waiter -Fc waiter_core > waiter_core.dump
+docker exec waiter-mysql mysqldump -uwaiter -pwaiter --single-transaction --routines waiter_core > waiter_core.sql
 # en producción
-docker compose -f docker-compose.prod.yml exec -T db pg_restore -U waiter -d waiter_core --clean < waiter_core.dump
+docker compose -f docker-compose.prod.yml exec -T db mysql -uwaiter -p"$DB_PASSWORD" waiter_core < waiter_core.sql
 ```
 
 Las fotos van en el volumen `media` (copiar `experience/media/`).
 
-## 4. Copias de seguridad
-
-- Base: `pg_dump -Fc` diario del servicio `db` hacia un almacenamiento externo, con retención de 30 días.
+- Base: `mysqldump --single-transaction` diario hacia un almacenamiento externo, con retención de 30 días (o el
+  respaldo que ya tenga el servidor MySQL de ProjectApp).
 - Archivos: el volumen `media` (fotos, logos, banners, XML de documentos).
 - La clave `PAYMENTS_FERNET_KEY`: sin ella no se descifran los secretos de las pasarelas.
 

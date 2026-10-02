@@ -4,6 +4,7 @@ import secrets
 
 from django.db import models
 from django.core.validators import RegexValidator
+from tenancy.fields import ExactCharField
 
 
 def table_token():
@@ -41,7 +42,7 @@ class Table(models.Model):
         max_length=8, default="none", choices=[(s, s) for s in ("none", "ordering", "assist", "bill")]
     )
     call_at = models.DateTimeField(null=True, blank=True)
-    token = models.CharField(max_length=64, unique=True, default=table_token,
+    token = ExactCharField(max_length=64, unique=True, default=table_token,
         validators=[RegexValidator(r"\A[A-Za-z0-9]{6,64}\Z", "Usa entre 6 y 64 caracteres alfanuméricos.")])
 
     class Meta:

@@ -113,12 +113,14 @@ class ImportBase:
         for key, value in values.items():
             setattr(obj, key, value)
         # Odoo guarda flotantes (0.001000000000000002): se llevan a los decimales de cada campo antes de validar.
-        for f in obj._meta.fields:
+        # Las columnas calculadas (tenancy.fields.only_when) las llena la base al guardar: no se leen ni se validan.
+        fields = [f for f in obj._meta.fields if not f.generated]
+        for f in fields:
             value = getattr(obj, f.attname)
             if isinstance(f, models.DecimalField) and isinstance(value, (Decimal, float, int)) and not isinstance(value, bool):
                 setattr(obj, f.attname, Decimal(str(value)).quantize(Decimal(1).scaleb(-f.decimal_places), rounding=ROUND_HALF_UP))
         # Los campos históricos null sin blank son válidos en la base; full_clean conserva el resto de reglas.
-        excluded = [f.name for f in obj._meta.fields if getattr(obj, f.attname) is None or f.name == 'brand_logo' or (isinstance(f, models.JSONField) and getattr(obj, f.attname) in ({}, []))]
+        excluded = [f.name for f in obj._meta.fields if f.generated] + [f.name for f in fields if getattr(obj, f.attname) is None or f.name == 'brand_logo' or (isinstance(f, models.JSONField) and getattr(obj, f.attname) in ({}, []))]
         obj.full_clean(exclude=excluded)
         obj.save()
         if source == 'pos.config' and creating:

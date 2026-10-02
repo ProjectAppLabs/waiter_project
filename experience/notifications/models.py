@@ -1,5 +1,6 @@
 """Avisos propios y generales de cada restaurante."""
 from django.db import models
+from tenancy.fields import only_when
 
 
 class Notification(models.Model):
@@ -16,8 +17,9 @@ class Notification(models.Model):
     low_stock_open = models.BooleanField(default=False)
     read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    # Un solo aviso abierto de existencias bajas por producto y restaurante (ver tenancy.fields.only_when).
+    low_stock_product = only_when(models.Q(kind='inventory', res_model='catalog.Product', low_stock_open=True), 'res_id',
+                                  models.PositiveBigIntegerField())
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=['restaurant', 'res_id'],
-            condition=models.Q(kind='inventory', res_model='catalog.Product', low_stock_open=True),
-            name='notification_low_stock_episode_unique')]
+        constraints = [models.UniqueConstraint(fields=['restaurant', 'low_stock_product'], name='notification_low_stock_episode_unique')]

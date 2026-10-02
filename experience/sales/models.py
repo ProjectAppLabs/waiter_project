@@ -2,6 +2,7 @@
 
 from django.db import models
 from django.utils import timezone
+from tenancy.fields import ExactCharField, only_when
 
 
 def money(**kwargs):
@@ -42,11 +43,11 @@ class CashShift(models.Model):
     difference = money()
     closing_notes = models.TextField(blank=True, default="")
     zone_staff = models.JSONField(default=dict)
+    # Una sola caja abierta por restaurante (ver tenancy.fields.only_when).
+    open_restaurant = only_when(models.Q(state="open"), "restaurant_id", models.BigIntegerField())
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=["restaurant"], condition=models.Q(state="open"), name="one_open_cash_shift")
-        ]
+        constraints = [models.UniqueConstraint(fields=["open_restaurant"], name="one_open_cash_shift")]
 
 
 class CashMove(models.Model):
@@ -154,7 +155,7 @@ class Payment(models.Model):
     amount = money()
     received = models.DecimalField(max_digits=16, decimal_places=2, null=True)
     reference = models.CharField(max_length=60, blank=True, default="")
-    request_key = models.CharField(max_length=80)
+    request_key = ExactCharField(max_length=80)
     account = models.ForeignKey("accounts.Account", on_delete=models.PROTECT, null=True)
     created_at = models.DateTimeField(default=timezone.now)
 

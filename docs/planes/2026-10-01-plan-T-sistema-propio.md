@@ -960,6 +960,18 @@ Rutas de la plataforma bajo `/api/platform/v1` con la cookie `waiter_platform_si
   - **Pruebas e2e reescritas** sin Odoo (`pos/e2e/`, por CDP): acceso, servicio en mesa con cocina y cierre de caja,
     asistente de pedidos con adición y cobro, consola del dueño, equipo en Configuración, comensal por QR y consola de
     ProjectApp. 13 de 13 pasan.
+- **Base de datos en MySQL 8.4** (2026-10-02), rama `feat/02102026-mysql`: el estándar de los servidores de ProjectApp.
+  - **Lo que cambió en los modelos:** MySQL no tiene índices parciales, así que las seis reglas únicas con condición
+    (una caja abierta por restaurante, una asistencia abierta por persona, un borrador por proveedor, un aviso de
+    existencias abierto por producto, una pasarela activa por sede, un pago sin resolver por visita o reserva) pasan a
+    una columna calculada que vale NULL fuera de la condición, con su índice único (`tenancy.fields.only_when`). Los
+    tokens de mesa, llaves de comensal, claves de idempotencia y similares usan la colación binaria
+    (`tenancy.fields.ExactCharField`), porque la de MySQL ignora mayúsculas y tildes.
+  - **Configuración:** utf8mb4, modo estricto y READ COMMITTED; las zonas horarias de MySQL cargadas (las métricas por
+    día las usan). Desarrollo en el contenedor `waiter-mysql` (`127.0.0.1:3307`, lo crea `scripts/dev.sh`); despliegue
+    con `mysql:8.4` o con un servidor MySQL existente (`deploy/README.md`).
+  - **Datos:** los de desarrollo se pasaron de PostgreSQL con `dumpdata`/`loaddata`; las 76 tablas, la suma de ventas y
+    la de pagos coinciden. El contenedor `waiter-db` de PostgreSQL queda detenido e intacto como respaldo.
 - **Revisado (T3):** el modal de pago carga en cinco entradas seguidas por la URL. La causa probable del «Cargando pedido…» visto en T2 es el límite de seis conexiones por dominio de HTTP/1.1 con varias conexiones de eventos en vivo abiertas en desarrollo; en producción el proxy sirve HTTP/2 y no aplica. Antes: al entrar por la URL
     (recargar lo resuelve; por investigar, posiblemente el doble montaje de React en modo estricto); «Forzar cierre» no
     existe en el sistema propio; las reservas que apartan mesas, los puntos del cobro y Resumen/Rentabilidad llegan con

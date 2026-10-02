@@ -3,6 +3,7 @@ from django.db import models
 from django.db.models.functions import Lower
 
 from tenancy.models import Identity
+from tenancy.fields import only_when
 
 
 def default_notify_prefs():
@@ -32,9 +33,11 @@ class Attendance(models.Model):
     restaurant = models.ForeignKey('tenancy.Restaurant', on_delete=models.SET_NULL, null=True, blank=True)
     check_in = models.DateTimeField()
     check_out = models.DateTimeField(null=True, blank=True)
+    # Una sola asistencia abierta por persona (ver tenancy.fields.only_when).
+    open_account = only_when(models.Q(check_out__isnull=True), 'account_id', models.BigIntegerField())
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=['account'], condition=models.Q(check_out__isnull=True), name='one_open_attendance')]
+        constraints = [models.UniqueConstraint(fields=['open_account'], name='one_open_attendance')]
 
 
 class Session(models.Model):

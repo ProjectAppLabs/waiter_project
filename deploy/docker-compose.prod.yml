@@ -7,15 +7,19 @@
 name: waiter
 
 services:
+  # MySQL 8.4, el estándar de los servidores de ProjectApp. Para usar un servidor MySQL que ya exista, quita este
+  # servicio y los depends_on hacia él, y apunta DB_HOST y DB_PORT a ese servidor (deploy/README.md, «Base de datos»).
   db:
-    image: postgres:16
+    image: mysql:8.4
     restart: unless-stopped
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci"]
     environment:
-      POSTGRES_DB: waiter_core
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes: [db:/var/lib/postgresql/data]
-    healthcheck: { test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d waiter_core"], interval: 10s, retries: 10 }
+      MYSQL_DATABASE: waiter_core
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes: [db:/var/lib/mysql, ./mysql-zonas.sh:/docker-entrypoint-initdb.d/mysql-zonas.sh:ro]
+    healthcheck: { test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u${DB_USER} -p${DB_PASSWORD} --silent"], interval: 10s, retries: 10 }
 
   redis:
     image: redis:7-alpine
@@ -28,13 +32,11 @@ services:
     env_file: .env.prod
     environment:
       DJANGO_ENV: production
-      DJANGO_DB_ENGINE: django.db.backends.postgresql
+      DJANGO_DB_ENGINE: django.db.backends.mysql
       DJANGO_DB_NAME: waiter_core
-      DB_HOST: db
-      DB_PORT: "5432"
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: ${DB_PORT:-3306}
       DJANGO_CACHE_URL: redis://redis:6379/1
-      # Tras el corte de T6 ninguna organización usa Odoo.
-      ODOO_ORGS: ""
     volumes: [media:/app/media, mail:/app/mail]
     depends_on: { db: { condition: service_healthy }, redis: { condition: service_started } }
 
@@ -45,10 +47,10 @@ services:
     env_file: .env.prod
     environment:
       DJANGO_ENV: production
-      DJANGO_DB_ENGINE: django.db.backends.postgresql
+      DJANGO_DB_ENGINE: django.db.backends.mysql
       DJANGO_DB_NAME: waiter_core
-      DB_HOST: db
-      DB_PORT: "5432"
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: ${DB_PORT:-3306}
       DJANGO_CACHE_URL: redis://redis:6379/1
     command: ["supercronic", "/app/deploy/crontab"]
     volumes: [media:/app/media, ./crontab:/app/deploy/crontab:ro]
@@ -58,7 +60,7 @@ services:
     build:
       context: ../pos
       dockerfile: ../deploy/next.Dockerfile
-      args: { EXPERIENCE_ORIGIN: "http://experience:8000", NEXT_PUBLIC_ODOO_ORGS: "" }
+      args: { EXPERIENCE_ORIGIN: "http://experience:8000" }
     restart: unless-stopped
     depends_on: [experience]
 

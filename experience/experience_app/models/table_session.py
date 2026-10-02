@@ -1,6 +1,7 @@
 import uuid
 
 from django.db import models
+from tenancy.fields import ExactCharField
 
 
 class TableSession(models.Model):
@@ -13,7 +14,7 @@ class TableSession(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     restaurant_slug = models.SlugField(max_length=60)
     venue_slug = models.SlugField(max_length=60)
-    table_token = models.CharField(max_length=64, null=True, blank=True)  # null = domicilio
+    table_token = ExactCharField(max_length=64, null=True, blank=True)  # null = domicilio
     table_number = models.PositiveIntegerField(null=True, blank=True)
     odoo_table_id = models.PositiveIntegerField(null=True, blank=True)
     state = models.CharField(max_length=12, choices=STATES, default=COMPOSING)

@@ -6,6 +6,7 @@ from django.db import models
 
 from catalog.models import Owned, choices
 from sales.models import money
+from tenancy.fields import ExactCharField
 
 
 def pay_token():
@@ -53,7 +54,7 @@ class Reservation(Owned):
     deposit_state = models.CharField(max_length=7, choices=choices("none", "pending", "paid"), default="none")
     deposit_reference = models.CharField(max_length=120, blank=True, default="")
     deposit_paid_at = models.DateTimeField(null=True, blank=True)
-    pay_token = models.CharField(max_length=32, default=pay_token, unique=True)
+    pay_token = ExactCharField(max_length=32, default=pay_token, unique=True)
     created_by = models.ForeignKey("accounts.Account", on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
 

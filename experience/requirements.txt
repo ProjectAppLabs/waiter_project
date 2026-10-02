@@ -29,5 +29,6 @@ pycparser==3.0
 # Conversión de fotos del catálogo.
 Pillow==12.1.1
 
-# PostgreSQL de desarrollo y producción del sistema propio (plan T2).
-psycopg[binary]==3.2.9
+# MySQL, el estándar de los servidores de ProjectApp. Compilarlo necesita build-essential, pkg-config y
+# default-libmysqlclient-dev (ver deploy/experience.Dockerfile y el README).
+mysqlclient==2.2.7

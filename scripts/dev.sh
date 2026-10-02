@@ -5,7 +5,7 @@
 #   scripts/dev.sh status   dice qué está arriba y qué no, con un chequeo real de cada uno
 #   scripts/dev.sh down     detiene los servicios (los contenedores quedan detenidos, no borrados)
 #
-# Orden: PostgreSQL de Waiter → experiencia (Django) → POS y comensal (Next). Cada paso es idempotente: si el
+# Orden: MySQL de Waiter → experiencia (Django) → POS y comensal (Next). Cada paso es idempotente: si el
 # servicio ya responde, no se vuelve a lanzar. Registros en $LOGS; PID de cada proceso en $LOGS/<servicio>.pid, para
 # detenerlos sin buscar procesos por nombre (un `pkill -f` puede coincidir con la propia shell que lo lanza).
 #
@@ -57,13 +57,19 @@ check_host() {
 }
 
 
-# PostgreSQL del sistema propio (plan T2): el contenedor waiter-db; si no existe, se crea como dice experience/.env.example.
-waiter_db_up() { docker exec waiter-db pg_isready -U waiter >/dev/null 2>&1; }
+# MySQL del sistema propio, el estándar de ProjectApp: el contenedor waiter-mysql; si no existe, se crea como dice
+# experience/.env.example (con las zonas horarias que usan las métricas).
+waiter_db_up() { docker exec waiter-mysql mysqladmin ping -uwaiter -pwaiter --silent >/dev/null 2>&1; }
 up_waiter_db() {
-  if waiter_db_up; then ok "postgres de waiter ya estaba arriba (:5433)"; return; fi
-  docker start waiter-db >/dev/null 2>&1 || docker run -d --name waiter-db --restart unless-stopped -e POSTGRES_USER=waiter -e POSTGRES_PASSWORD=waiter \
-    -e POSTGRES_DB=waiter_core -p 127.0.0.1:5433:5432 postgres:16 >/dev/null
-  if wait_for 60 waiter_db_up; then ok "postgres de waiter (:5433)"; else fail "postgres de waiter no respondió: docker logs waiter-db"; exit 1; fi
+  if waiter_db_up; then ok "mysql de waiter ya estaba arriba (:3307)"; return; fi
+  if ! docker start waiter-mysql >/dev/null 2>&1; then
+    docker run -d --name waiter-mysql --restart unless-stopped -p 127.0.0.1:3307:3306 -e MYSQL_ROOT_PASSWORD=waiter-root \
+      -e MYSQL_DATABASE=waiter_core -e MYSQL_USER=waiter -e MYSQL_PASSWORD=waiter -v waiter-mysql-data:/var/lib/mysql \
+      mysql:8.4 --character-set-server=utf8mb4 --collation-server=utf8mb4_0900_ai_ci >/dev/null
+    wait_for 90 waiter_db_up && docker exec waiter-mysql sh -c 'mysql_tzinfo_to_sql /usr/share/zoneinfo 2>/dev/null | mysql -uroot -pwaiter-root mysql
+      mysql -uroot -pwaiter-root -e "GRANT ALL PRIVILEGES ON test_waiter_core.* TO waiter"' >/dev/null 2>&1
+  fi
+  if wait_for 90 waiter_db_up; then ok "mysql de waiter (:3307)"; else fail "mysql de waiter no respondió: docker logs waiter-mysql"; exit 1; fi
 }
 
 
@@ -102,7 +108,7 @@ cmd_up() {
 
 cmd_status() {
   echo "Estado"
-  waiter_db_up && ok "postgres de waiter (:5433)" || fail "postgres de waiter"
+  waiter_db_up && ok "mysql de waiter (:3307)" || fail "mysql de waiter"
   local e; e=$(code "http://$HOST:8001/api/v1/$REST/$SEDE/ubicacion/" 20)
   if [[ $e == 200 ]]; then ok "experiencia http://$HOST:8001"
   elif [[ $e == 000 ]]; then fail "experiencia :8001 (no responde)"
