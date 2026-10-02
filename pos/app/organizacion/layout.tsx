@@ -9,6 +9,7 @@ import { BrandMark } from '@/components/kit/BrandMark'
 import { Icon, type KitIcon } from '@/components/kit/Icon'
 import { OrgContext } from '@/components/organization/OrgContext'
 import { Button } from '@/components/ui/Button'
+import { onCore } from '@/lib/domain/backend'
 import { isOwner } from '@/lib/domain/roles'
 import { listRestaurants, type Restaurant } from '@/lib/services/restaurants'
 import { getCompany } from '@/lib/services/settings'
@@ -25,6 +26,10 @@ const GROUPS: [string, [string, string, KitIcon][]][] = [
   ['Organización', [['/organizacion/restaurantes', 'Restaurantes', 'store'], ['/organizacion/catalogo', 'Catálogo', 'bag'], ['/organizacion/equipo', 'Equipo', 'users'],
     ['/organizacion/integraciones', 'Integraciones IA', 'sparkles']]],
 ]
+
+// Plan T: mientras dura la migración, una organización del sistema propio solo ve las secciones que ya viven allí; el
+// resto llega fase a fase (T1 catálogo, T2 ventas y caja, T3 clientes y promociones, T4 informes y contabilidad).
+const CORE_READY = new Set(['/organizacion/restaurantes', '/organizacion/equipo', '/organizacion/catalogo'])
 
 export default function OrganizationLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -61,7 +66,7 @@ export default function OrganizationLayout({ children }: { children: React.React
               <span className="text-[12px] font-bold uppercase tracking-widest text-primary">Organización</span>
               <p className="mt-1 text-[18px] font-semibold truncate">{companyName || 'Tu organización'}</p>
             </div>
-            {GROUPS.map(([group, links]) => (
+            {GROUPS.map(([group, links]) => [group, onCore() ? links.filter(([href]) => CORE_READY.has(href)) : links] as const).filter(([, links]) => links.length).map(([group, links]) => (
               <div key={group} className="flex flex-col gap-1 pb-3">
                 <span className="px-3 pt-2 pb-1 text-[12px] font-semibold uppercase tracking-wider text-dim">{group}</span>
                 {links.map(([href, label, icon]) => (
