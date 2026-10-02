@@ -1,0 +1,39 @@
+# Certificado comodín *.waiter.projectapp.co por desafío DNS (el HTTP no sirve para comodines). La credencial del
+# proveedor de DNS va en .env.prod (DNS_API_TOKEN); ver deploy/README.md.
+{
+	email {$ACME_EMAIL}
+}
+
+(tls_wildcard) {
+	tls {
+		dns {$DNS_PROVIDER} {$DNS_API_TOKEN}
+	}
+}
+
+menu.{$BASE_DOMAIN} {
+	import tls_wildcard
+	encode zstd gzip
+	reverse_proxy diner:3000
+}
+
+api.{$BASE_DOMAIN} {
+	import tls_wildcard
+	encode zstd gzip
+	# Solo el MCP del diseño y los webhooks de pagos: el resto de la API viaja por el POS y el menú (mismo origen).
+	@public path /mcp/* /api/v1/pagos/webhooks/*
+	handle @public {
+		reverse_proxy experience:8000
+	}
+	respond 404
+}
+
+*.{$BASE_DOMAIN}, {$BASE_DOMAIN} {
+	import tls_wildcard
+	encode zstd gzip
+	# El POS decide la organización por el subdominio; `plataforma` abre la consola de ProjectApp.
+	@raiz host {$BASE_DOMAIN}
+	redir @raiz https://plataforma.{$BASE_DOMAIN}{uri} 302
+	reverse_proxy pos:3000 {
+		header_up X-Forwarded-Proto {scheme}
+	}
+}
