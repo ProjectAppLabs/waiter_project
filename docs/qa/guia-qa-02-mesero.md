@@ -1,6 +1,6 @@
 # Guía QA Waiter — 2. Mesero
 
-**Aplica a:** rol Mesero. **Organización:** solo Burger House (`http://localhost:3000`).
+**Aplica a:** rol Mesero. **Organizaciones:** Burger House (`http://localhost:3000`) con los datos de demostración; en Frisby (sistema propio) valen todos los casos salvo M-06 (menú del comensal, T5), con un mesero que cree la dueña y un plano con mesas.
 **Fecha de actualización:** 2 de octubre de 2026
 
 ## 1. Qué vamos a comprobar

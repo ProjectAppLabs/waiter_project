@@ -1,5 +1,6 @@
 'use client'
 
+import { serverDate } from '@/lib/domain/time'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
@@ -43,7 +44,7 @@ export function DepositPanel({ reservation, onChanged }: { reservation: Reservat
       </div>
       {reservation.depositState === 'paid' ? (
         <p className="text-[14px] text-soft">
-          {reservation.depositPaidAt && t('depositPaidAt', { date: new Date(`${reservation.depositPaidAt.replace(' ', 'T')}Z`).toLocaleString('es-CO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) })}
+          {reservation.depositPaidAt && t('depositPaidAt', { date: serverDate(reservation.depositPaidAt).toLocaleString('es-CO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) })}
           {reservation.depositReference && <span className="block font-mono text-[13px] text-dim">{t('depositReference', { reference: reservation.depositReference })}</span>}
         </p>
       ) : !link ? <p role="alert" className="text-[14px] text-danger-ink">{t('linkUnavailable')}</p> : (

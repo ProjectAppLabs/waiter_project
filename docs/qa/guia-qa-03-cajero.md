@@ -1,6 +1,6 @@
 # Guía QA Waiter — 3. Cajero
 
-**Aplica a:** rol Cajero. **Organización:** solo Burger House (`http://localhost:3000`).
+**Aplica a:** rol Cajero. **Organizaciones:** Burger House (`http://localhost:3000`); en Frisby (sistema propio) valen todos los casos salvo C-06 (puntos, T3). En Frisby no existe «Forzar cierre».
 **Fecha de actualización:** 2 de octubre de 2026
 
 ## 1. Qué vamos a comprobar

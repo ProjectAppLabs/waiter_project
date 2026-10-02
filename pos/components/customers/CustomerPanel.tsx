@@ -1,5 +1,6 @@
 'use client'
 
+import { serverDate } from '@/lib/domain/time'
 import { useTranslations } from 'next-intl'
 
 import { Card } from '@/components/kit/Card'
@@ -11,7 +12,7 @@ import type { Customer, CustomerOrder, LoyaltyCard } from '@/lib/services/custom
 import { initials } from '@/lib/utils'
 
 interface CustomerPanelProps { customer: Customer | null; loyalty: LoyaltyCard | null | undefined; history: CustomerOrder[]; onEdit: () => void }
-const day = (at: string) => new Date(at.replace(' ', 'T') + 'Z').toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })
+const day = (at: string) => serverDate(at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })
 
 // Panel derecho del kit (Order History / Bill Selected.png): cabecera con avatar, bloques de datos, puntos e historial.
 export function CustomerPanel({ customer, loyalty, history, onEdit }: CustomerPanelProps) {

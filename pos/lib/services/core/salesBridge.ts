@@ -91,7 +91,7 @@ export const toInvoiceableOrder = (o: CoreOrder): InvoiceableOrder => ({
 // Cocina. La comanda del sistema propio trae el número de mesa; el KDS busca la mesa por id y, si no la encuentra,
 // muestra el valor tal cual: por eso aquí viaja el número.
 export const toKitchenTicket = (t: CoreTicket): KitchenTicket => ({
-  id: t.id, orderId: t.order_id, tableId: t.table_number ?? 0, tracking: t.number, waiter: t.waiter, note: t.note, firedAt: t.fired_at, preparationAt: t.preparation_at, readyAt: t.ready_at,
+  id: t.id, orderId: t.order_id, tableId: t.table_number ?? 0, tracking: t.number, waiter: typeof t.waiter === 'string' ? t.waiter : t.waiter?.name ?? '', note: t.note, firedAt: t.fired_at, preparationAt: t.preparation_at, readyAt: t.ready_at,
   lines: t.lines.map((l) => ({ id: l.id, name: l.name, qty: l.qty, note: l.note, station: l.station || null, readyAt: l.ready_at, servedAt: l.served_at })),
 })
 export const toCompleted = (c: { fired_at: string; ready_at: string }): CompletedCourse => ({ firedAt: c.fired_at, readyAt: c.ready_at })

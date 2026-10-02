@@ -1,6 +1,6 @@
 # Guía QA Waiter — 4. Cocina (vista KDS)
 
-**Aplica a:** la vista Cocina, que por defecto tiene el Encargado y que el dueño puede dar a meseros o cajeros. **Organización:** solo Burger House.
+**Aplica a:** la vista Cocina, que por defecto tiene el Encargado y que el dueño puede dar a meseros o cajeros. **Organizaciones:** Burger House y Frisby (sistema propio; en Frisby el comensal de K-01 no aplica hasta T5).
 **Fecha de actualización:** 2 de octubre de 2026
 
 ## 1. Qué vamos a comprobar

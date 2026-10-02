@@ -1,7 +1,7 @@
 # Guía QA Waiter — 0. Índice, lineamientos y datos de prueba
 
 **Producto:** Waiter · ProjectApp
-**Fecha de actualización:** 2 de octubre de 2026
+**Fecha de actualización:** 2 de octubre de 2026 (T2 del sistema propio incluida)
 **Estado de la entrega:** POS, consola del dueño, cocina, menú del comensal y consola de ProjectApp en desarrollo continuo. Esta guía es un documento vivo: cada plan que se termina añade o corrige casos.
 **Ambiente:** desarrollo compartido (ver «Direcciones»). Nada de lo que se haga aquí toca dinero real ni a clientes reales.
 
@@ -27,7 +27,7 @@ La guía se divide por **rol** y, dentro de cada rol, por **funcionalidad**. Cad
 | Organización | Dirección | Motor | Qué se prueba allí |
 |---|---|---|---|
 | Burger House | `http://localhost:3000` | Odoo | Todo el POS, la cocina, la consola completa y el menú del comensal |
-| Frisby 74312 | `http://frisby-74312.localhost:3000` | Sistema propio | Inicio de sesión, Restaurantes, Equipo, Catálogo e Inventario. Lo demás llega con las fases T2 a T5 |
+| Frisby 74312 | `http://frisby-74312.localhost:3000` | Sistema propio | Inicio de sesión, Restaurantes, Equipo, Catálogo, Inventario y, desde T2, el salón (plano y mesas), pedidos, cocina, cobro, caja, historial, ventas y cuadres. Reservas, puntos, resumen, rentabilidad y el menú del comensal llegan con T3 a T5 |
 
 Cuando un caso diga «solo Burger House», no lo ejecute en Frisby: no está construido allí todavía y el resultado no sería un hallazgo.
 
@@ -68,7 +68,7 @@ No pruebe todavía, porque no están construidos o están simulados a propósito
 - Factura electrónica ante la DIAN.
 - WhatsApp (pedidos y asistente) y tarjetas NFC.
 - El mesero virtual con IA del menú: existe un chat de recomendaciones, pero su contenido no se valida en esta guía.
-- En Frisby (sistema propio): salón, pedidos, caja, reservas, informes y menú del comensal. Llegan con T2 a T5 y tendrán sus casos entonces.
+- En Frisby (sistema propio): reservas, puntos en el cobro, Resumen, Rentabilidad y el menú del comensal. Llegan con T3 a T5 y tendrán sus casos entonces. En Frisby no hay «Forzar cierre» ni datos de demostración: cada probador crea su plano, sus platos y sus pedidos.
 
 ## 5. Glosario
 

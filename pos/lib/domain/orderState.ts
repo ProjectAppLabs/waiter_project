@@ -1,3 +1,4 @@
+import { serverDate } from '@/lib/domain/time'
 // Estados del pedido en el lenguaje del kit CloudPos (Plan I, "Estados del pedido").
 // Todo se deriva de lo que ya vive en Odoo: el preset (tipo), los cursos (`fired`, `ready_date`, `served_date`),
 // `pos.order.state` y la bandera local `billing` del orderStore. Nada se inventa ni se persiste aparte.
@@ -132,7 +133,7 @@ export const statusRank = (s: KitStatus) => STATUS_ORDER.indexOf(s)
 
 // Odoo guarda date_order en UTC sin zona ("2026-09-06 23:33:51").
 export function odooDate(at: string): Date {
-  return new Date(at.replace(' ', 'T') + 'Z')
+  return serverDate(at)
 }
 
 // Saludo por hora local: mañana hasta las 12, tarde hasta las 19, noche después.

@@ -102,6 +102,8 @@ function fromCore(r: core.LoginResult): Pick<AuthState, 'user' | 'restaurants' |
   if (restaurant) storeDeviceRestaurant(restaurant)
   return { user: toAuthUser(r.account), restaurants, restaurant, employee: toActiveEmployee(r), session: null }
 }
+// Plan T2: la caja abierta del restaurante elegido en el sistema propio (null si no hay restaurante o no hay turno).
+const openShiftOf = (restaurant: { id: number } | null) => (restaurant ? getOpenSession(restaurant.id).catch(() => null) : Promise.resolve(null))
 async function coreLogin(l: string, p: string): Promise<core.LoginResult> {
   try { return await core.login(l, p) }
   catch (e) {
@@ -121,7 +123,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (l, p) => {
     storeEmployee(null)
     set({ employee: null })
-    if (onCore()) { set({ ...fromCore(await coreLogin(l, p)), hydrated: true }); return }
+    if (onCore()) { const base = fromCore(await coreLogin(l, p)); set({ ...base, session: await openShiftOf(base.restaurant), hydrated: true }); return }
     const user = await loginRequest(l, p)
     const { restaurants, restaurant } = await resolveRestaurant()
     const employee = await openMyShift(restaurant?.id ?? null)
@@ -131,7 +133,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   // La cookie de Odoo es HttpOnly: la única forma de saber si hay sesión es preguntar.
   hydrate: async () => {
     if (onCore()) {
-      try { set({ ...fromCore(await core.me()), hydrated: true }) }
+      try { const base = fromCore(await core.me()); set({ ...base, session: await openShiftOf(base.restaurant), hydrated: true }) }
       catch { set({ user: null, session: null, employee: null, restaurants: null, restaurant: null, hydrated: true }) }
       return
     }

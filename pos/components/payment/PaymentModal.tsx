@@ -1,5 +1,6 @@
 'use client'
 
+import { serverDate } from '@/lib/domain/time'
 import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -24,7 +25,7 @@ const KIND_ICON = { cash: 'money', card: 'card', qr: 'qr' } as const
 const TYPE_BY_PRESET: Record<number, OrderType> = { 1: 'dineIn', 2: 'takeAway', 3: 'delivery' }
 // "2026-09-07 01:21:00" (UTC de Odoo) → "dom, 7 sept 01:21", como la fecha del kit.
 const whenOf = (raw: string) => {
-  const d = new Date(`${raw.replace(' ', 'T')}Z`)
+  const d = serverDate(raw)
   return Number.isNaN(d.getTime()) ? raw : d.toLocaleString('es-CO', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 }
 type TipMode = 'none' | 'suggested' | 'custom'

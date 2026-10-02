@@ -1,5 +1,6 @@
 'use client'
 
+import { serverDate } from '@/lib/domain/time'
 import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
@@ -21,7 +22,7 @@ interface Props {
 
 // date_order llega en UTC sin zona; se muestra como "lun, 17 feb 12:24 p. m." en la hora del dispositivo.
 export function formatOrderDate(s: string): string {
-  const d = new Date(s.replace(' ', 'T') + 'Z')
+  const d = serverDate(s)
   return `${d.toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' })} ${d.toLocaleTimeString('es-CO', { hour: 'numeric', minute: '2-digit' })}`
 }
 

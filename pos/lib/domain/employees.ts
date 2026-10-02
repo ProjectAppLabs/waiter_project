@@ -1,3 +1,4 @@
+import { serverDate } from '@/lib/domain/time'
 // Reglas puras del empleado: turno de hoy (shift_start / shift_end de hr.employee, horas decimales),
 // cronómetro del turno y el empleado recordado en el dispositivo. El turno lo abre el servidor
 // (`hr.employee.waiter_start_my_shift`) para la cuenta que entró con su usuario y su contraseña.
@@ -34,7 +35,7 @@ export function timeToHours(value: string): number | null {
 export const shiftLabel = (shift: Shift | null, none: string): string => (shift ? `${formatHour(shift.from)} – ${formatHour(shift.to)}` : none)
 
 // Las fechas de Odoo llegan en UTC sin zona ("2026-09-06 10:00:00").
-export const fromOdooDatetime = (value: string): Date => new Date(value.replace(' ', 'T') + 'Z')
+export const fromOdooDatetime = (value: string): Date => serverDate(value)
 export const toOdooDatetime = (date: Date): string => date.toISOString().slice(0, 19).replace('T', ' ')
 
 // Cronómetro del turno "04:25:32" (tarjeta Tiempo del modal Ajustes).

@@ -1,3 +1,4 @@
+import { serverTime } from '@/lib/domain/time'
 import type { CompletedCourse, CourseSummary, KitchenTicket } from '@/lib/services/kitchen'
 
 export type TicketMood = 'fresh' | 'normal' | 'attention' | 'late'
@@ -9,7 +10,7 @@ export const FRESH_MIN = 2
 
 // Las horas de Odoo vienen en UTC sin zona ("2026-09-05 01:12:43").
 export function elapsedSeconds(at: string, now: number): number {
-  return Math.max(0, Math.floor((now - Date.parse(at.replace(' ', 'T') + 'Z')) / 1000))
+  return Math.max(0, Math.floor((now - serverTime(at)) / 1000))
 }
 
 // "18:40" — minutos:segundos, como el cronómetro de la tarjeta del diseño.
@@ -49,7 +50,7 @@ export function countTickets(tickets: KitchenTicket[], now: number): Record<stri
 
 export function averagePrepSeconds(done: CompletedCourse[]): number | null {
   if (done.length === 0) return null
-  const total = done.reduce((acc, c) => acc + elapsedSeconds(c.firedAt, Date.parse(c.readyAt.replace(' ', 'T') + 'Z')), 0)
+  const total = done.reduce((acc, c) => acc + elapsedSeconds(c.firedAt, serverTime(c.readyAt)), 0)
   return Math.round(total / done.length)
 }
 
