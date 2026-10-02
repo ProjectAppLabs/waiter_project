@@ -910,8 +910,11 @@ Rutas de la plataforma bajo `/api/platform/v1` con la cookie `waiter_platform_si
   - **Decisiones al integrar:** cocina muestra solo las comandas del turno abierto (como la sesión de Odoo; si no, los
     cursos migrados aparecían como demorados); el fondo del plano se pide al sistema propio; sin organizaciones en Odoo,
     una tableta sin organización usa el sistema propio.
-  - **Pendiente (decisión del dueño):** retirar `odoo/`, `registry/`, los adaptadores de Odoo y las ramas `callKw` del POS
-    y del comensal en un commit aparte; las pruebas e2e del POS siguen escritas contra Odoo.
+  - **Retirada lista para revisar:** la rama `chore/02102026-retirar-odoo` (commit `8b41fe9`, subida, sin fusionar) borra
+    `odoo/`, `registry/`, `scripts/odoo-test.sh`, las pruebas de contrato del POS contra Odoo y el reenvío `/odoo`, y
+    deja `scripts/dev.sh` y el recorrido del comensal sin Odoo; `tsc` y las 613 pruebas del POS pasan. Quedan para un
+    paso siguiente las ramas `callKw` del POS (código muerto desde el corte), el adaptador de Odoo de `experience_app` y
+    las pruebas e2e del POS escritas contra Odoo.
 - **M hecha: multitenancy de ProjectApp sobre el sistema propio** (2026-10-02), misma rama.
   - Backend (Codex): métricas por cliente (`/metrics`, `/organizations/{slug}/metrics`), cuentas de cobro mensuales
     (`SubscriptionCharge`, reglas en `PlatformSettings`, comandos `generate_subscription_charges` y
