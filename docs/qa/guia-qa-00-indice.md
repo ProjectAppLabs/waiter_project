@@ -1,7 +1,7 @@
 # Guía QA Waiter — 0. Índice, lineamientos y datos de prueba
 
 **Producto:** Waiter · ProjectApp
-**Fecha de actualización:** 2 de octubre de 2026 (T2, T3 y T4 del sistema propio incluidas)
+**Fecha de actualización:** 2 de octubre de 2026 (Waiter sin Odoo: plan T completo)
 **Estado de la entrega:** POS, consola del dueño, cocina, menú del comensal y consola de ProjectApp en desarrollo continuo. Esta guía es un documento vivo: cada plan que se termina añade o corrige casos.
 **Ambiente:** desarrollo compartido (ver «Direcciones»). Nada de lo que se haga aquí toca dinero real ni a clientes reales.
 
@@ -18,18 +18,18 @@ La guía se divide por **rol** y, dentro de cada rol, por **funcionalidad**. Cad
 | 5 | Encargado | E-01 … E-13 |
 | 6 | Dueño (consola de la organización) | D-01 … D-15 |
 | 7 | Comensal (menú por QR) | Co-01 … Co-09 |
-| 8 | ProjectApp (consola de la plataforma) | P-01 … P-08 |
+| 8 | ProjectApp (consola de la plataforma) | P-01 … P-10 |
 
 **Roles del restaurante.** Son cuatro: **Dueño**, **Encargado**, **Cajero** y **Mesero**. Cocina no es un rol: es una vista (KDS) que por defecto solo tiene el encargado y que el dueño puede dar a meseros o cajeros desde la matriz de permisos. Dentro del POS el dueño trabaja como encargado; la consola de la organización es solo del dueño.
 
-**Dos organizaciones de prueba, dos motores.** Waiter está migrando de Odoo a un sistema propio. Hoy conviven:
+**Dos organizaciones de prueba, un solo sistema.** Desde el 2 de octubre de 2026 Waiter ya no usa Odoo: Burger House se migró al sistema propio con sus datos (sedes, carta, mesas con sus QR de siempre, equipo, clientes, historial) y Odoo quedó apagado.
 
-| Organización | Dirección | Motor | Qué se prueba allí |
-|---|---|---|---|
-| Burger House | `http://localhost:3000` | Odoo | Todo el POS, la cocina, la consola completa y el menú del comensal |
-| Frisby 74312 | `http://frisby-74312.localhost:3000` | Sistema propio | Todo el POS y toda la consola del dueño: salón, pedidos, cocina, cobro con puntos, caja, reservas con anticipo, clientes, promociones, banners, resumen, rentabilidad, retorno, empresa e impuestos y documentos de venta (con un proveedor de factura electrónica simulado). El menú del comensal llega con T5 |
+| Organización | Dirección | Qué se prueba allí |
+|---|---|---|
+| Burger House | `http://localhost:3000` (o `http://burger-house.localhost:3000`) | Todo, con los datos de demostración migrados |
+| Frisby 74312 | `http://frisby-74312.localhost:3000` | Todo, con datos que crea cada probador (cliente nuevo de ProjectApp) |
 
-Cuando un caso diga «solo Burger House», no lo ejecute en Frisby: no está construido allí todavía y el resultado no sería un hallazgo.
+Los documentos de venta salen de un proveedor de factura electrónica **simulado**: el número `SETP-…` y el CUFE son de prueba y no van a la DIAN.
 
 ## 2. Direcciones y usuarios de prueba
 
@@ -45,7 +45,7 @@ Cuando un caso diga «solo Burger House», no lo ejecute en Frisby: no está con
 
 Otras direcciones:
 
-- Menú del comensal: `http://localhost:3001/burger-house/poblado`. Con el QR de una mesa la dirección termina en `/t/<token>`.
+- Menú del comensal: `http://localhost:3001/burger-house/poblado` y `http://localhost:3001/frisby-74312/poblado`. Con el QR de una mesa la dirección termina en `/t/<token>` (en Burger House, por ejemplo, la mesa 1 es `/t/K6Q4C9`). El menú solo recibe pedidos con la caja del restaurante abierta.
 - Cocina (KDS): `http://localhost:3000/kds`, con un usuario que tenga la vista Cocina.
 - Los correos que manda el sistema propio (invitaciones y códigos) se guardan como archivos; el equipo de ProjectApp los entrega al probador cuando un caso lo pide.
 
@@ -65,10 +65,11 @@ Datos de demostración de Burger House: restaurantes **Poblado** y **Laureles** 
 No pruebe todavía, porque no están construidos o están simulados a propósito:
 
 - Pagos reales con pasarela (Wompi, Bold, Bre-B). En el POS, el QR es simulado y la tarjeta se registra a mano con «Aprobado» o «Rechazado». En el menú del comensal el pago en línea es simulado.
-- Factura electrónica ante la DIAN.
+- Factura electrónica real ante la DIAN (el proveedor es simulado).
 - WhatsApp (pedidos y asistente) y tarjetas NFC.
 - El mesero virtual con IA del menú: existe un chat de recomendaciones, pero su contenido no se valida en esta guía.
-- En Frisby (sistema propio): el menú del comensal hasta T5. No hay «Forzar cierre» ni datos de demostración: cada probador crea su plano, sus platos y sus pedidos. Los documentos de venta salen de un proveedor **simulado**: el número `SETP-…` y el CUFE son de prueba y no van a la DIAN.
+- «Forzar cierre» de la caja: ya no existe (no hay descuadre contable que forzar).
+- El despliegue en `waiter.projectapp.co`: está preparado pero no aplicado.
 
 ## 5. Glosario
 

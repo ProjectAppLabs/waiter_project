@@ -2,6 +2,7 @@
 import math
 from datetime import timedelta
 import secrets
+from zoneinfo import ZoneInfo
 
 from django.contrib.auth.hashers import check_password
 from django.db import transaction
@@ -78,15 +79,18 @@ def update_organization(actor, organization, data):
 
 @transaction.atomic
 def set_suspension(actor, organization, suspended, reason=''):
-    require(actor.role == 'admin')
+    # actor=None se reserva a los comandos y servicios internos del cobro.
+    require(actor is None or actor.role == 'admin')
     require(isinstance(reason, str), 'Indica el motivo de suspensión.', 'invalid_data', 400)
     organization = Organization.objects.select_for_update().get(pk=organization.pk)
     # Al reactivar vuelve a prueba si su fecha de prueba sigue vigente; si no, activa.
-    still_trial = organization.trial_ends is not None and organization.trial_ends >= timezone.localdate()
+    today = timezone.now().astimezone(ZoneInfo(organization.timezone)).date()
+    still_trial = organization.trial_ends is not None and organization.trial_ends >= today
     organization.status = 'suspended' if suspended else 'trial' if still_trial else 'active'
     organization.suspended_at = timezone.now() if suspended else None
     organization.suspended_reason = reason if suspended else ''
-    organization.save(update_fields=['status', 'suspended_at', 'suspended_reason'])
+    organization.suspension_by_billing = bool(suspended and actor is None and reason == 'mora')
+    organization.save(update_fields=['status', 'suspended_at', 'suspended_reason', 'suspension_by_billing'])
     if suspended:
         Session.objects.filter(account__organization=organization).delete()
         Attendance.objects.filter(account__organization=organization, check_out__isnull=True).update(check_out=timezone.now())

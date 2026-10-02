@@ -16,6 +16,7 @@ def health_check(request):
 
 urlpatterns = [
     path('api/platform/v1/', include('tenancy.urls')),
+    path('api/pos/v1/', include('tenancy.pos_urls')),
     path('api/pos/v1/', include('catalog.urls')),
     path('api/pos/v1/', include('inventory.urls')),
     path('api/pos/v1/', include('sales.urls')),

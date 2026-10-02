@@ -62,7 +62,8 @@ class Command(BaseCommand):
         try:
             with storage_journal() as journal, transaction.atomic():
                 transaction.on_commit(journal.commit)
-                org, org_created = Organization.objects.get_or_create(slug=options['org'], defaults={'name': options['org']})
+                # Sin fecha de prueba, la organización migrada nace activa (regla de T0).
+                org, org_created = Organization.objects.get_or_create(slug=options['org'], defaults={'name': options['org'], 'status': 'active'})
                 org.full_clean(exclude=['brand_logo'])
                 importer = Migrator(client, org, batch_size=options['batch_size'], tokens=tokens, no_invite=options['no_invite'])
                 importer.org_created = org_created

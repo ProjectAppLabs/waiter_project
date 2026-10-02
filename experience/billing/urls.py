@@ -16,6 +16,6 @@ urlpatterns = [
     path("documents/<int:pk>/pdf", api.PrintView.as_view()),
     path("documents/<int:pk>/retry", api.RetryView.as_view()),
     path("billing/settings", api.SettingsView.as_view()),
-    path("billing/resolutions", api.ResolutionsView.as_view()),
-    path("billing/resolutions/<int:pk>", api.ResolutionsView.as_view()),
+    path("billing/resolutions", api.ResolutionsView.as_view(http_method_names=["get", "head", "post", "options"])),
+    path("billing/resolutions/<int:pk>", api.ResolutionsView.as_view(http_method_names=["patch", "options"])),
 ]

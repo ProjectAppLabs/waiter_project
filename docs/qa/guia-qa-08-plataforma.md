@@ -26,6 +26,8 @@ Que ProjectApp da de alta a un cliente nuevo en tres pasos sin tocar scripts, in
 | P-06 | Aislamiento entre organizaciones | Dueño de una organización |
 | P-07 | Equipo de ProjectApp | Administra |
 | P-08 | Lo que el rol Opera no puede hacer | Opera |
+| P-09 | Métricas por cliente | Administra u Opera |
+| P-10 | Cobro de la suscripción: mora, suspensión automática y pago | Administra, Opera y el dueño |
 
 ## 4. Paso a paso
 
@@ -99,6 +101,25 @@ Que ProjectApp da de alta a un cliente nuevo en tres pasos sin tocar scripts, in
 
 **Resultado esperado:** Opera ve clientes, da de alta, edita plan y datos y reenvía la invitación al dueño; no ve «Suspender» ni los botones de equipo. Si «Reactivar» aparece en el menú de la tabla, el servidor debe rechazarlo con un mensaje claro: anótelo como observación de interfaz.
 
+### P-09 — Métricas por cliente
+
+1. Abra Métricas. Cambie entre «Este mes», «Últimos 30 días» y «Mes pasado».
+2. Revise los totales (ingreso mensual, clientes por estado, ventas y pedidos de los clientes) y la tabla por cliente; ordene por ventas y por mora.
+
+**Resultado esperado:** el ingreso mensual suma lo que pagan los clientes activos y en prueba vigente; las ventas de cada cliente coinciden con su consola (Resumen) para el mismo periodo; la columna «En mora» muestra lo vencido.
+
+### P-10 — Cobro de la suscripción: mora, suspensión automática y pago
+
+**Quién:** Administra; un cliente con precio mensual y su dueño. Coordine con el equipo el paso 2 (simula el paso del tiempo).
+
+1. En Cobros, revise la cuenta del mes de cada cliente con precio (se generan solas el día 1) y los totales por pagar, vencido y recibido. Con Administra, revise y guarde las «Reglas de cobro» (día de cobro, plazo, suspender tras, recordar antes).
+2. El equipo vence una cuenta y corre la revisión diaria.
+3. El dueño de ese cliente intenta entrar a su Waiter.
+4. En Cobros, «Registrar pago» con medio y referencia.
+5. El dueño vuelve a entrar.
+
+**Resultado esperado:** con la mora pasada el plazo, el cliente queda **Suspendido** solo y su dueño ve «La cuenta de tu organización está suspendida. Escribe a ProjectApp.»; antes de suspender, su consola muestra el aviso de la cuenta vencida y la fecha de suspensión. Al registrar el pago queda **Activa** sola y el dueño entra. Una suspensión hecha a mano no se levanta por pagar. Opera registra pagos, pero no ve las reglas ni anula cuentas.
+
 ## 5. Registro de resultados
 
 | Caso | Resultado | Observaciones | Evidencia |
@@ -111,3 +132,5 @@ Que ProjectApp da de alta a un cliente nuevo en tres pasos sin tocar scripts, in
 | P-06 | | | |
 | P-07 | | | |
 | P-08 | | | |
+| P-09 | | | |
+| P-10 | | | |

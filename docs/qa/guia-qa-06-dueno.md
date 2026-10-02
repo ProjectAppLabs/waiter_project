@@ -1,6 +1,6 @@
 # Guía QA Waiter — 6. Dueño (consola de la organización)
 
-**Aplica a:** rol Dueño. **Organizaciones:** Burger House (`admin`) y Frisby (`maria.lopez`, sistema propio), con todos los casos. En Frisby, Facturación emite con un proveedor simulado (D-14) y el recibo dice «INC incluido» o «IVA incluido» según la tarifa.
+**Aplica a:** rol Dueño. **Organizaciones:** Burger House y Frisby, con todos los casos.
 **Fecha de actualización:** 2 de octubre de 2026
 
 ## 1. Qué vamos a comprobar

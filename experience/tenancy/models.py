@@ -2,7 +2,7 @@
 import uuid
 from sales.policy import default_role_policy
 
-from django.core.validators import MinValueValidator, RegexValidator
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
 from django.db.models.functions import Lower
 
@@ -60,6 +60,7 @@ class Organization(models.Model):
     greeting = models.CharField(max_length=60, blank=True, default='')
     waiter_name = models.CharField(max_length=40, blank=True, default='')
     welcome = models.CharField(max_length=140, blank=True, default='')
+    suspension_by_billing = models.BooleanField(default=False)
     suspended_at = models.DateTimeField(null=True, blank=True)
     suspended_reason = models.TextField(blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -108,6 +109,8 @@ class PlatformAudit(models.Model):
     action = models.CharField(max_length=40, choices=[(s, s) for s in (
         'organization.created', 'organization.updated', 'organization.suspended', 'organization.reactivated',
         'organization.invite_resent', 'platform_user.invited', 'platform_user.deactivated',
+        'subscription.created', 'subscription.paid', 'subscription.void', 'subscription.overdue',
+        'subscription.reminder', 'billing_settings.updated',
     )])
     detail = models.JSONField(default=dict)
     at = models.DateTimeField(auto_now_add=True)
@@ -132,3 +135,37 @@ class LegacyMap(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['organization', 'model', 'odoo_id'], name='legacy_org_model_id_unique')]
+
+
+class PlatformSettings(models.Model):
+    """Una sola configuración de cobro para ProjectApp."""
+    id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
+    billing_day = models.PositiveSmallIntegerField(default=5, validators=[MinValueValidator(1), MaxValueValidator(31)])
+    grace_days = models.PositiveSmallIntegerField(default=10)
+    suspend_after_days = models.PositiveSmallIntegerField(default=15)
+    reminder_days = models.PositiveSmallIntegerField(default=3)
+
+    class Meta:
+        constraints = [models.CheckConstraint(condition=models.Q(id=1), name='platform_settings_singleton'),
+                       models.CheckConstraint(condition=models.Q(billing_day__gte=1, billing_day__lte=31), name='billing_day_valid')]
+
+
+class SubscriptionCharge(models.Model):
+    organization = models.ForeignKey(Organization, on_delete=models.PROTECT, related_name='subscription_charges')
+    period = models.CharField(max_length=7, validators=[RegexValidator(r'^[0-9]{4}-(0[1-9]|1[0-2])$')])
+    amount = models.DecimalField(max_digits=14, decimal_places=2, validators=[MinValueValidator(0)])
+    due_date = models.DateField()
+    state = models.CharField(max_length=8, default='pending', choices=[(s, s) for s in ('pending', 'paid', 'overdue', 'void')])
+    paid_at = models.DateTimeField(null=True, blank=True)
+    method = models.CharField(max_length=13, blank=True, default='', choices=[(s, s) for s in ('transferencia', 'nequi', 'efectivo', 'otro')])
+    reference = models.CharField(max_length=200, blank=True, default='')
+    notes = models.TextField(blank=True, default='')
+    recorded_by = models.ForeignKey(PlatformUser, null=True, blank=True, on_delete=models.SET_NULL)
+    created_at = models.DateTimeField(auto_now_add=True)
+    reminder_sent_at = models.DateTimeField(null=True, blank=True)
+    due_notice_sent_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['organization', 'period'], name='subscription_org_period_unique'),
+                       models.CheckConstraint(condition=models.Q(amount__gte=0), name='subscription_amount_nonnegative')]
+        indexes = [models.Index(fields=['state', 'due_date'])]

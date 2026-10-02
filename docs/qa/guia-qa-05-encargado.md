@@ -1,6 +1,6 @@
 # Guía QA Waiter — 5. Encargado
 
-**Aplica a:** rol Encargado (administrador de uno o varios restaurantes). **Organizaciones:** Burger House y Frisby (sistema propio), con todos los casos salvo «Forzar cierre», que no existe en Frisby. En Frisby las reservas con pre-pedido exigen la caja abierta, como en Burger House.
+**Aplica a:** rol Encargado (administrador de uno o varios restaurantes). **Organizaciones:** Burger House y Frisby, con todos los casos.
 **Fecha de actualización:** 2 de octubre de 2026
 
 ## 1. Qué vamos a comprobar
@@ -92,7 +92,7 @@ Que el encargado opera su sede completa: entra sin abrir caja, lee el Inicio, ma
 1. Administración → Ventas: cambie los periodos (hoy, ayer, semana, mes, rango, por turno) y revise indicadores.
 2. En la tarjeta de caja registre una entrada y una salida de efectivo.
 3. «Cerrar caja» con un contado distinto al esperado, primero sin nota y luego con nota.
-4. Si Odoo detecta un descuadre contable, aparece «Forzar cierre (administrador)»: úselo solo si el equipo lo pide.
+4. «Forzar cierre» ya no existe: el cierre siempre se hace con el contado y, si hay diferencia, con su nota.
 
 **Resultado esperado:** las entradas y salidas cambian el efectivo esperado; el cierre con diferencia exige la nota; con la nota se cierra y el cuadre queda registrado con esperado, contado, diferencia y nota. Si la diferencia supera $ 2.000, el dueño recibe el aviso (D-08).
 

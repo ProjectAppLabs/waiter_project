@@ -3,12 +3,13 @@
 import time
 
 from django.conf import settings
-from django.db import close_old_connections
+from django.db import close_old_connections, connection
 from django.http import StreamingHttpResponse
 from rest_framework.renderers import BaseRenderer, JSONRenderer
 
 from catalog.api import PosView
 from catalog.services import restaurant_for, valid
+from tenancy.models import Organization
 
 from .models import SalesEvent
 
@@ -18,8 +19,14 @@ def stream(organization_id, restaurant_id, after, iterations=None):
     heartbeat = started
     iteration = 0
     while time.monotonic() - started < 300 and (iterations is None or iteration < iterations):
-        if iterations is None:
+        # Suelta la conexión entre sondeos (el flujo dura minutos), salvo dentro de una transacción: cerrarla ahí rompe
+        # a quien la abrió (en las pruebas, la transacción de cada prueba sobre PostgreSQL).
+        if iterations is None and not connection.in_atomic_block:
             close_old_connections()
+        # También se detienen las conexiones abiertas antes de la suspensión.
+        if Organization.objects.filter(pk=organization_id, status='suspended').exists():
+            yield 'event: organization_suspended\ndata: {"error":"organization_suspended","message":"Este restaurante no está disponible"}\n\n'
+            return
         events = list(
             SalesEvent.objects.filter(
                 organization_id=organization_id, restaurant_id=restaurant_id, id__gt=after

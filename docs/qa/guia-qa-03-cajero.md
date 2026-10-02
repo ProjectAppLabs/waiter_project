@@ -1,6 +1,6 @@
 # Guía QA Waiter — 3. Cajero
 
-**Aplica a:** rol Cajero. **Organizaciones:** Burger House (`http://localhost:3000`) y Frisby (sistema propio), con todos los casos. En Frisby no existe «Forzar cierre».
+**Aplica a:** rol Cajero. **Organizaciones:** Burger House y Frisby, con todos los casos.
 **Fecha de actualización:** 2 de octubre de 2026
 
 ## 1. Qué vamos a comprobar
@@ -91,7 +91,7 @@ Que el cajero abre el turno, ve y crea pedidos, cobra de todas las formas que of
 3. En otro turno, abra la caja y ciérrela con un contado distinto al esperado **sin nota**.
 4. Escriba la nota («Faltó el vuelto de la mesa 4») y confirme.
 
-**Resultado esperado:** con la caja cuadrada el cierre pasa sin nota. Con diferencia, «Confirmar» queda bloqueado y el mensaje dice «Escribe el motivo para cerrar: el dueño lo verá en los cuadres de caja.»; con la nota se cierra. Si la diferencia supera la tolerancia del dueño ($ 2.000 en Burger House), el dueño recibe un aviso de caja (D-08). Un cajero no ve «Forzar cierre», que es solo del encargado.
+**Resultado esperado:** con la caja cuadrada el cierre pasa sin nota. Con diferencia, «Confirmar» queda bloqueado y el mensaje dice «Escribe el motivo para cerrar: el dueño lo verá en los cuadres de caja.»; con la nota se cierra. Si la diferencia supera la tolerancia del dueño ($ 2.000 en Burger House), el dueño recibe un aviso de caja (D-08).
 
 ## 5. Registro de resultados
 

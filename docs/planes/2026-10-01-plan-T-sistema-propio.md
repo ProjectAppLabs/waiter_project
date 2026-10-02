@@ -912,6 +912,23 @@ Rutas de la plataforma bajo `/api/platform/v1` con la cookie `waiter_platform_si
     una tableta sin organización usa el sistema propio.
   - **Pendiente (decisión del dueño):** retirar `odoo/`, `registry/`, los adaptadores de Odoo y las ramas `callKw` del POS
     y del comensal en un commit aparte; las pruebas e2e del POS siguen escritas contra Odoo.
+- **M hecha: multitenancy de ProjectApp sobre el sistema propio** (2026-10-02), misma rama.
+  - Backend (Codex): métricas por cliente (`/metrics`, `/organizations/{slug}/metrics`), cuentas de cobro mensuales
+    (`SubscriptionCharge`, reglas en `PlatformSettings`, comandos `generate_subscription_charges` y
+    `enforce_subscriptions`: mora, recordatorios por correo y suspensión automática que se levanta al pagar; una
+    suspensión manual no), `/api/pos/v1/subscription` para el dueño, el evento SSE `organization_suspended`, y dos
+    pruebas transversales: todas las rutas de `/api/pos/v1` con ids de otra organización y la suspensión por todas las
+    entradas (login, sesión, SSE, fotos, menú, MCP, WhatsApp). Django: 2007 pruebas (208 nuevas).
+  - POS (Claude): consola de ProjectApp con **Métricas** y **Cobros** (registrar pago con medio y referencia, anular,
+    reglas de cobro solo para Administra) y aviso de cuenta vencida en la consola del dueño.
+  - Despliegue preparado en `deploy/` (compose de producción, Caddy con comodín por DNS, cron y guía); no aplicado.
+  - **Verificado en Chromium:** Métricas con el MRR y las ventas de Frisby y Burger House; una cuenta de Frisby vencida
+    hace 20 días suspende sola a Frisby al correr `enforce_subscriptions`; la dueña ve «La cuenta de tu organización
+    está suspendida»; ProjectApp registra el pago en Cobros y Frisby vuelve a **activa** y su dueña entra.
+  - **Decisiones al integrar:** desde que el `.env` de desarrollo apunta a PostgreSQL, las pruebas también corren sobre
+    PostgreSQL: `experience/conftest.py` fija `ODOO_ORGS=burger-house` para la suite (no hereda el corte del `.env`), el
+    SSE no cierra la conexión dentro de una transacción, y la prueba de suspensión cierra las respuestas sin cortar la
+    conexión de la prueba. Burger House, migrada como «en prueba» sin fecha, quedó **activa** (regla de T0).
 - **Revisado (T3):** el modal de pago carga en cinco entradas seguidas por la URL. La causa probable del «Cargando pedido…» visto en T2 es el límite de seis conexiones por dominio de HTTP/1.1 con varias conexiones de eventos en vivo abiertas en desarrollo; en producción el proxy sirve HTTP/2 y no aplica. Antes: al entrar por la URL
     (recargar lo resuelve; por investigar, posiblemente el doble montaje de React en modo estricto); «Forzar cierre» no
     existe en el sistema propio; las reservas que apartan mesas, los puntos del cobro y Resumen/Rentabilidad llegan con

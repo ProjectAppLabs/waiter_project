@@ -1,6 +1,6 @@
 # Guía QA Waiter — 7. Comensal (menú por QR)
 
-**Aplica a:** la persona que come en el restaurante y usa el menú desde su teléfono. **Organización:** solo Burger House (`http://localhost:3001/burger-house/poblado`).
+**Aplica a:** la persona que come en el restaurante y usa el menú desde su teléfono. **Organizaciones:** Burger House y Frisby, con todos los casos.
 **Fecha de actualización:** 2 de octubre de 2026
 
 ## 1. Qué vamos a comprobar
@@ -34,7 +34,7 @@ Que el comensal abre la carta desde el QR de su mesa, entiende cada plato, arma 
 1. Abra la dirección con `/t/<token>`.
 2. Abra `/burger-house` sin sede.
 
-**Resultado esperado:** con el token, la carta abre ya con la mesa identificada, sin escribir códigos; `/burger-house` muestra «Elige tu restaurante» con Poblado y Laureles (si la organización tuviera una sola sede, iría directo).
+**Resultado esperado:** con el token, la carta abre ya con la mesa identificada, sin escribir códigos (los QR impresos de Burger House siguen valiendo después de la migración); `/burger-house` muestra «Elige tu restaurante» con Poblado y Laureles (si la organización tuviera una sola sede, iría directo).
 
 ### Co-02 — La carta: categorías, búsqueda y ficha del plato
 
@@ -55,7 +55,7 @@ Que el comensal abre la carta desde el QR de su mesa, entiende cada plato, arma 
 
 ### Co-04 — Confirmar el pedido y seguir su estado
 
-1. «Confirmar pedido». Según la política, el menú pide pagar primero (Co-06).
+1. «Confirmar pedido». Según la política, el menú pide pagar primero (Co-06). Con la caja del restaurante cerrada el menú debe decir que el restaurante no está recibiendo pedidos en este momento.
 2. Siga el estado: Recibido → En preparación → Listo → Entregado, mientras cocina (K-03) y el mesero (M-05) avanzan.
 
 **Resultado esperado:** la comanda aparece en Cocina con la mesa y las notas; el estado del comensal cambia solo al compás de cocina y del salón; el pedido se ve en Pedidos del POS con el tipo correcto.
@@ -93,7 +93,7 @@ Que el comensal abre la carta desde el QR de su mesa, entiende cada plato, arma 
 1. Con la encargada marque «Agotar aquí» un plato en Poblado (E-05) y recargue la carta de Poblado y la de Laureles.
 2. Pida a ProjectApp que suspenda la organización de prueba (P-05) y abra su menú.
 
-**Resultado esperado:** el plato no se puede pedir en Poblado y sí en Laureles; con la organización suspendida el menú dice que el restaurante no está disponible y no acepta pedidos (si no lo hace, repórtelo: la suspensión del menú llega completa en T5).
+**Resultado esperado:** el plato no se puede pedir en Poblado y sí en Laureles; con la organización suspendida el menú dice «Este restaurante no está disponible» y no acepta pedidos.
 
 ## 5. Registro de resultados
 

@@ -104,3 +104,62 @@ class TeamView(ContractView):
         else:
             raise Problem('not_found', 'La ruta no existe.', 404)
         return Response({'ok': True})
+
+
+class MetricsView(ContractView):
+    def get(self, request, slug=None):
+        from .metrics import metrics
+        require(platform_session(request).user.role in ('admin', 'operator'))
+        return Response(metrics(request.query_params, slug))
+
+
+class ChargesView(ContractView):
+    action = None
+
+    def get(self, request, slug=None):
+        from .subscriptions import charges_query, charges_response, parse_period
+        require(platform_session(request).user.role in ('admin', 'operator'))
+        qs = charges_query()
+        if slug:
+            org = OrganizationsView().organization(slug)
+            qs = qs.filter(organization=org)
+        state, period = request.query_params.get('state'), request.query_params.get('period')
+        if state is not None:
+            require(state in ('pending', 'paid', 'overdue', 'void'), 'Indica un estado de cuenta válido.', 'invalid_data', 400)
+            qs = qs.filter(state=state)
+        if period is not None:
+            parse_period(period)
+            qs = qs.filter(period=period)
+        return Response(charges_response(qs))
+
+    def post(self, request, slug=None, pk=None):
+        from .subscriptions import change_charge, charge_dict, create_charge
+        actor = platform_session(request).user
+        if slug:
+            require(actor.role == 'admin')
+            charge, created = create_charge(actor, OrganizationsView().organization(slug), request.data)
+            return Response({'charge': charge_dict(charge)}, status=201 if created else 200)
+        charge = change_charge(actor, pk, request.data, void=self.action == 'void')
+        return Response({'charge': charge_dict(charge)})
+
+
+class BillingSettingsView(ContractView):
+    def get(self, request):
+        from .http import model_dict
+        from .subscriptions import RULE_FIELDS, billing_settings
+        require(platform_session(request).user.role == 'admin')
+        return Response(model_dict(billing_settings(), RULE_FIELDS))
+
+    def patch(self, request):
+        from .http import model_dict
+        from .subscriptions import RULE_FIELDS, update_rules
+        return Response(model_dict(update_rules(platform_session(request).user, request.data), RULE_FIELDS))
+
+
+class SubscriptionView(ContractView):
+    def get(self, request):
+        from accounts.authentication import pos_session
+        from .subscriptions import subscription_response
+        person = pos_session(request).account
+        require(person.role == 'owner')
+        return Response(subscription_response(person.organization))
