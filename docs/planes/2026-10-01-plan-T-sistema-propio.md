@@ -555,6 +555,88 @@ propina e idempotente; grant idempotente; acción `cuenta` sincroniza el descuen
 imagen. Clientes: búsqueda, consumidor final, pedido asociado. Avisos: preferencias propias, existencias bajas sin
 duplicar. Aislamiento entre organizaciones y permisos por rol en cada ruta.
 
+## Contrato T4 · Informes, empresa y documentos de venta
+
+Lo que hoy usan Consola → Resumen, Rentabilidad, Retorno, Facturación, Empresa e impuestos y Diseño (marca), el recibo
+del cobro y la política «cobrar antes de cocina», según el inventario del 2026-10-02 sobre
+`pos/lib/services/{business,roi,invoices,taxRegime,settings,issuer}.ts` y `projectapp_ops/models/{business_reports,
+billing,tax_regime,company}.py`, `projectapp_pantry/models/profitability.py`. Mismas reglas comunes. **Mismo principio
+que T3:** donde la tabla dice «como `waiter_x`», el JSON copia la forma del método de Odoo.
+
+**No hay contabilidad en el sistema propio** (ADR 2026-10-01): en lugar del asiento de Odoo hay un **documento de venta**
+que se emite ante un **proveedor de factura electrónica** detrás de una interfaz propia. En desarrollo y pruebas el
+proveedor es simulado (`billing.providers.simulated`); el real llega en el sprint de integraciones.
+
+### Modelos
+
+- **`Organization`** (ampliar, datos del emisor): `legal_name` y `tax_id` ya existen; añadir `tax_id_dv` (dígito de
+  verificación), `fiscal_regime` (`responsable_iva` | `no_responsable` | `inc`), `fiscal_responsibilities` (lista RUT,
+  p. ej. `R-99-PN`), `address`, `city`, `phone`, `email`, `signup_discount_percent` (si T3 no lo añadió).
+- **`billing.Resolution`** (numeración DIAN por organización): `kind` (`invoice` | `pos`), `prefix`, `number_from`,
+  `number_to`, `next_number`, `valid_from`, `valid_to`, `technical_key`, `active`. Se siembra una de prueba por
+  organización (`SETP`, 990000000–995000000) para el proveedor simulado.
+- **`billing.SalesDocument`**: `organization`, `restaurant`, `order` (1:1 con un pedido pagado), `kind` (`invoice` |
+  `pos`), `resolution`, `number` (texto `PREFIJO-N`), `buyer` (FK a `loyalty.Customer`; el consumidor final si no se
+  identifica), `issued_at`, `subtotal`, `tax_total`, `tip` (fuera de la base), `total`, `taxes` (JSON por tasa: `[{name,
+  rate, base, amount}]`), `lines` (copia de las líneas con base, impuesto y total), `state` (`pending` | `issued` |
+  `rejected` | `contingency`), `provider_id`, `cufe` (o CUDE), `qr`, `xml` (FileField), `errors` (JSON), `attempts`,
+  `request_key` (idempotencia), `created_by`. Nota crédito (`kind = credit_note`, `original`) queda definida pero sin
+  pantalla hasta que exista la devolución.
+- **`billing.BillingSettings`** (1:1 con la organización): `tip_label` (cómo se nombra la propina en el documento,
+  «Propina voluntaria»), `send_email` (enviar el documento al comprador), `default_kind` (`pos` por omisión).
+
+### Reglas
+
+- **Resumen** (como `waiter_org_summary`, `business_reports.py`): solo `owner`; periodo inclusivo en la zona de la
+  organización y el anterior de igual duración; ventas = total − propina de pedidos `paid`; pedidos; comensales =
+  `guests`; ticket = ventas / pedidos; propinas; por sede y total.
+- **Rentabilidad** (como `waiter_profitability`): `owner` toda la organización o una sede; `admin` solo las suyas (y debe
+  elegir una). Ingresos sin impuestos; precio de la sede; neto sin impuestos; costo de la receta actual (null si falta un
+  costo); margen; food cost; clases Estrella / Caballo de batalla / Rompecabezas / Perro con popularidad ≥ 70 % del
+  promedio de unidades y margen ≥ promedio ponderado; sin ingredientes ni componentes de combo.
+- **ROI:** los pedidos pagados del periodo con su `origin` (ya existe `GET /sales/orders`); los supuestos son de
+  `RestaurantSettings` (T2). Sin endpoint nuevo.
+- **Documento de venta:** `owner` revisa y emite. **Revisión** (sin escribir), con `issues` en español: el pedido debe
+  estar pagado; comprador válido (con documento y nombre) o consumidor final; Σ líneas = total sin propina; Σ impuestos
+  por línea = impuesto del pedido; pagos = total; resolución vigente con números disponibles; datos del emisor
+  completos (NIT, DV, régimen, dirección); la propina no lleva impuesto. **Emitir** es idempotente por pedido: bloquea
+  el pedido, toma el siguiente número de la resolución (bloqueo de fila), arma el documento, llama al proveedor; el
+  simulado devuelve `issued` con un CUFE (SHA-384 de los campos de la DIAN) y un XML UBL mínimo, y rechaza si el NIT
+  del comprador termina en `000` (para probar el rechazo). Rechazo → `rejected` con `errors`; error de red →
+  `contingency` y reintento con `POST /documents/{id}/retry`.
+- **Impuestos de Colombia:** INC 8 % o IVA 19 % según el régimen; el precio de la carta incluye el impuesto; base =
+  total / (1 + tasa) redondeada a 2 decimales por línea; la propina nunca entra en la base (art. 512-9 ET) y va en su
+  propia línea informativa; el recibo nombra el impuesto real (INC o IVA), no siempre «IVA».
+- **Empresa y marca:** `GET/PATCH /company` (datos del emisor; `owner`); `GET/PATCH /brand` (los campos `brand_*` de la
+  organización con las reglas de `company.py` `write_brand`: color `#RRGGBB`, tipografía de la lista, redondeo 4/14/24,
+  logo PNG/JPG/GIF hasta 2 MB, nunca SVG; `owner`) y `GET /brand/logo?org=` público.
+
+### API
+
+| Método y ruta | Quién | Cuerpo → Respuesta |
+|---|---|---|
+| `GET /reports/summary?from=&to=` | `owner` | como `waiter_org_summary` |
+| `GET /reports/profitability?from=&to=&restaurant_id=` | `owner`, `admin` | como `waiter_profitability` |
+| `GET /company` · `PATCH /company` | sesión · `owner` | `{company: {name, legal_name, tax_id, tax_id_dv, fiscal_regime, fiscal_responsibilities, address, city, phone, email}}` |
+| `GET /brand` · `PATCH /brand` · `GET /brand/logo?org=` | sesión · `owner` · público | `{brand: {name, color, font, radius, tagline, greeting, waiter_name, welcome, has_logo, version}}`; el PATCH acepta `logo` en base64 o `null` |
+| `GET /billing/orders?restaurant_id=&offset=&limit=&q=&method_id=&pending=1` | `owner` | `{orders: [{id, number, paid_at, total, tax, tip, table_id, customer_id, customer_name, document_id, payments: [{method_id, method, amount}]}]}` |
+| `GET /billing/orders/{id}/review?customer_id=` | `owner` | `{company, journal (la resolución), currency, tip, issues, ready}` (forma de `waiter_billing_review`) |
+| `POST /billing/orders/{id}/document` | `owner` | `{customer_id \| null, kind?, request_key}` → `{document}` (201; repetido devuelve el existente); `409 not_ready` con `issues` |
+| `GET /documents?offset=&limit=&q=` · `GET /documents/{id}` | `owner` | `{documents: [{id, number, issued_at, buyer, total, state, kind}]}` · `{document}` con líneas, impuestos, CUFE y errores |
+| `GET /documents/{id}/detail` | `owner` | forma de `waiter_accounting_detail` (para la pantalla actual): `{ready, issues, company, journal, date, origin, currency, company_currency, untaxed, tax, total, residual: 0, tip, debit, credit, original, lines: [{id, account, label, debit, credit}], taxes: [{id, name, amount}]}` con partidas informativas (Caja / Ingresos / Impuesto / Propina para terceros) |
+| `GET /documents/{id}/pdf?org=` | `owner` (cookie) | la representación gráfica (PDF; si no hay librería de PDF, HTML imprimible) con NIT, resolución, CUFE y QR |
+| `POST /documents/{id}/retry` | `owner` | → `{document}` |
+| `GET /billing/settings` · `PATCH /billing/settings` | `owner` | `{company, journal, currency, tip_label, send_email, default_kind, resolutions: [...]}` |
+| `GET /billing/resolutions` · `POST /billing/resolutions` · `PATCH /billing/resolutions/{id}` | `owner` | `{resolutions}` |
+
+### Pruebas que deben existir (`# Falla si …`)
+
+Resumen: periodo anterior, sin propina, por sede, solo dueño. Rentabilidad: costo null con ingrediente sin costo,
+neto sin impuestos, clases, encargado solo su sede. Documento: revisión con cada `issue`, emisión idempotente,
+numeración consecutiva bajo concurrencia y agotamiento de la resolución, consumidor final, propina fuera de la base,
+INC frente a IVA, rechazo simulado y contingencia con reintento, CUFE determinista. Empresa y marca: validaciones de
+`write_brand`, solo dueño. Aislamiento y permisos en cada ruta.
+
 ## Estado
 
 - 2026-10-01: decisión tomada y plan escrito.
