@@ -49,10 +49,10 @@
     "drafts": "{n, plural, one {Hay # cuenta abierta} other {Hay # cuentas abiertas}}: cóbralas antes de cerrar.",
     "confirm": "Cerrar caja",
     "closing": "Cerrando…",
-    "closed": "Caja cerrada. El turno queda contabilizado en Odoo.",
-    "failed": "Odoo no cerró la caja: {message}",
+    "closed": "Caja cerrada. El turno queda contabilizado en el servidor.",
+    "failed": "el servidor no cerró la caja: {message}",
     "force": "Forzar cierre (administrador)",
-    "forceHint": "Odoo detectó un descuadre contable. Forzar el cierre lo contabiliza como diferencia de caja."
+    "forceHint": "el servidor detectó un descuadre contable. Forzar el cierre lo contabiliza como diferencia de caja."
   },
   "sales": {
     "title": "Ventas",

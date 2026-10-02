@@ -31,7 +31,6 @@ const STATE: Record<RecipeState, { label: string; tone: 'success' | 'neutral' | 
   costed: { label: 'Con costo', tone: 'success' }, noRecipe: { label: 'Sin receta', tone: 'neutral' }, missingCost: { label: 'Ingrediente sin costo', tone: 'progress' },
 }
 const money = (v: number) => `$\u00a0${formatCop(Math.round(v))}`
-// «por kg», «por unidad»: Odoo nombra la unidad «Units» (en inglés).
 const perUnit = (uom: string) => (uom === 'Units' ? 'unidad' : uom)
 const INPUT = 'h-11 px-3 rounded-md border border-border bg-surface text-[15px] text-ink'
 

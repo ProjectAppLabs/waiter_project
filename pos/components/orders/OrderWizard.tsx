@@ -1,9 +1,8 @@
 'use client'
 
-import { onCore } from '@/lib/domain/backend'
 import { getSettings } from '@/lib/services/core/sales'
-import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 
 import { Icon } from '@/components/kit/Icon'
@@ -14,10 +13,9 @@ import { SummaryStep } from '@/components/orders/SummaryStep'
 import { TableStep } from '@/components/orders/TableStep'
 import { PaymentModal } from '@/components/payment/PaymentModal'
 import { cartTotals, displayReference, stepsFor, type OptionGroup, type OrderType } from '@/lib/domain/orderWizard'
-import { useOrderLocations } from '@/lib/hooks/useOrderLocations'
 import { roleCan } from '@/lib/domain/permissions'
 import { can, effectiveRole, type Role } from '@/lib/domain/roles'
-import { callKw } from '@/lib/services/odoo'
+import { useOrderLocations } from '@/lib/hooks/useOrderLocations'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useCatalogStore } from '@/lib/stores/catalogStore'
 import { useOrderStore } from '@/lib/stores/orderStore'
@@ -79,7 +77,7 @@ export function OrderWizard({ presetTableId, returnTo = '/pedidos', withoutTable
     if (!session || !catalog || (withoutTable && (!chosenType || w.info.type === 'dineIn'))) return
     const auth = useAuthStore.getState()
     const role = effectiveRole(auth.user?.role, auth.employee?.role)
-    if (!auth.employee?.token || !roleCan(role, 'create_orders', catalog.settings.rolePermissions)) {
+    if (!auth.employee || !roleCan(role, 'create_orders', catalog.settings.rolePermissions)) {
       useOrderWizardStore.setState({ error: 'Tu rol no tiene permiso para crear pedidos.' })
       return
     }
@@ -88,7 +86,7 @@ export function OrderWizard({ presetTableId, returnTo = '/pedidos', withoutTable
     if (!created) return
     if (w.info.type === 'dineIn') {
       try {
-        const policy = onCore() ? { require_payment_roles: (await getSettings(catalog!.settings.configId)).restaurant.kitchen_prepay_roles as Role[] } : await callKw<{ require_payment_roles: Role[] }>('pos.config', 'waiter_kitchen_policy', [[catalog!.settings.configId]])
+        const policy = { require_payment_roles: (await getSettings(catalog!.settings.configId)).restaurant.kitchen_prepay_roles as Role[] }
         const auth = useAuthStore.getState()
         const role = effectiveRole(auth.user?.role, auth.employee?.role)
         if (policy.require_payment_roles.includes(role)) {

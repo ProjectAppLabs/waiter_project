@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from accounts.authentication import pos_session
 from catalog.services import restaurant_for, valid
 from tenancy.http import ContractView, payload, require
-from experience_app.adapters.registry.client import resolve
+from experience_app.adapters.core.pos import resolve
 from experience_app.diseno import borradores, decoraciones, plantillas
 from experience_app.mcp import keys
 from experience_app.models import PaymentGateway

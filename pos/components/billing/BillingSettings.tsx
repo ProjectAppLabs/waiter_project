@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { useEffect, useState } from 'react'
 
-import { Modal } from '@/components/kit/Modal'
 import { Icon } from '@/components/kit/Icon'
+import { Modal } from '@/components/kit/Modal'
 import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
-import { OdooError } from '@/lib/services/errors'
+import { CoreError } from '@/lib/services/core/http'
 import { billingSettings, setTipAccount, type BillingSettings as Settings } from '@/lib/services/invoices'
 
 export function BillingSettings({ configId, onSaved }: { configId: number; onSaved: () => void }) {
@@ -31,7 +31,7 @@ export function BillingSettings({ configId, onSaved }: { configId: number; onSav
     if (!account || saving) return
     setSaving(true); setError(''); setSaved(false)
     try { setData(await setTipAccount(configId, Number(account))); setSaved(true); onSaved() }
-    catch (e) { setError(e instanceof OdooError ? e.message : t('saveError')) }
+    catch (e) { setError(e instanceof CoreError ? e.message : t('saveError')) }
     finally { setSaving(false) }
   }
   return <>

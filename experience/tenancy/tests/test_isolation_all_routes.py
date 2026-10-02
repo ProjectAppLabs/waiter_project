@@ -51,7 +51,6 @@ ROUTES = list(registered())
 
 @pytest.fixture
 def isolated(context, settings):
-    settings.ODOO_ORGS = ''
     settings.SALES_SSE_TEST_ITERATIONS = 1
     s = context
     org_b = s['org']

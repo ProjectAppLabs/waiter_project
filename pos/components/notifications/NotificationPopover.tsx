@@ -23,9 +23,6 @@ const TONE: Record<NotificationKind, string> = {
   cash: 'bg-danger-soft border-danger/40 text-danger-ink',
 }
 
-// Popover de la campana (3 – Dashboard / Notification Expand.png): pestañas Todas / Inventario / Cocina,
-// "Marcar todas como leídas", tarjetas "¡Stock bajo!" (con "Solicitar ingredientes" o "Ya solicitado") y
-// "¡Plato listo para servir!". Lee `waiter.notification` de Odoo y sondea cada 30 s mientras hay sesión.
 export function NotificationPopover({ open, onClose }: { open: boolean; onClose: () => void }) {
   const t = useTranslations('notifications')
   const user = useAuthStore((s) => s.user)

@@ -1,14 +1,13 @@
 """Puente interno de WhatsApp al motor operativo. Sin mensajes externos ni llamadas a IA."""
-from experience_app.adapters.backend import backend_for, client_for
+from experience_app.adapters.core import pos
+from experience_app.adapters.core.pos import Client
 from datetime import timedelta
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework.exceptions import APIException
 
-from experience_app.adapters.odoo import pos
-from experience_app.adapters.odoo.client import OdooClient
-from experience_app.adapters.registry.client import resolve
+from experience_app.adapters.core.pos import resolve
 from experience_app.models import ChannelOrder
 
 
@@ -23,7 +22,7 @@ def create(restaurant, venue, data):
     if existing:
         return _same_request(existing, data), False
     tenant = resolve(restaurant, venue)
-    quote = client_for(tenant, OdooClient).call_kw('pos.order', 'waiter_whatsapp_quote',
+    quote = Client(tenant).call_kw('pos.order', 'waiter_whatsapp_quote',
                                           [tenant.config_id, data['lineas']])
     try:
         with transaction.atomic():
@@ -47,8 +46,8 @@ def confirm(order, quote):
         return order
     tenant = resolve(order.restaurant_slug, order.venue_slug)
     # Una sola transacción RPC crea pedido + comanda. El UUID remoto sobrevive a timeouts,
-    # reinicios y pagos posteriores; Odoo comprueba caducidad solo si todavía no existe.
-    result = client_for(tenant, OdooClient).call_kw('pos.order', 'waiter_whatsapp_confirm', [
+    # reinicios y pagos posteriores; el sistema propio comprueba caducidad solo si todavía no existe.
+    result = Client(tenant).call_kw('pos.order', 'waiter_whatsapp_confirm', [
         tenant.config_id, str(order.id), order.lines, order.customer, quote,
         order.expires_at.strftime('%Y-%m-%d %H:%M:%S'),
     ])
@@ -61,7 +60,7 @@ def status(order):
     if order.result is None:
         return 'borrador'
     tenant = resolve(order.restaurant_slug, order.venue_slug)
-    remote = backend_for(tenant.restaurant_slug).read_order_status(client_for(tenant, OdooClient), order.result['id'])
+    remote = pos.read_order_status(Client(tenant), order.result['id'])
     if remote.state in {'paid', 'done', 'invoiced'}:
         return 'pagado'
     if remote.state == 'cancel':

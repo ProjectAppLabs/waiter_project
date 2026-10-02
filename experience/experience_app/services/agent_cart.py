@@ -1,10 +1,10 @@
 """Menu adapter: explicit card clicks or customer requests can mutate the cart, never kitchen/payment."""
-from experience_app.adapters.backend import backend_for, client_for
+from tenancy.http import Problem
+from experience_app.adapters.core.pos import Client
 from django.db import transaction
 from rest_framework.exceptions import ValidationError
 
-from experience_app.adapters.odoo.client import OdooClient
-from experience_app.adapters.registry.client import resolve
+from experience_app.adapters.core.pos import resolve
 from experience_app.models import AgentCartSelection, AgentConversation, TableSession
 from experience_app.services import catalog, sessions
 from experience_app.utils.errors import ConfirmationBusy
@@ -27,7 +27,7 @@ def prepare(session, diner, data):
     tenant = resolve(session.restaurant_slug, session.venue_slug, session.table_token)
     catalog.invalidate(session.restaurant_slug, session.venue_slug)
     product = catalog.find_product(tenant, data['producto'])
-    rows = client_for(tenant, OdooClient).call_kw('product.product', 'read', [[product.id], [
+    rows = Client(tenant).call_kw('product.product', 'read', [[product.id], [
         'active', 'available_in_pos', 'sale_ok', 'attribute_line_ids', 'type', 'is_storable', 'qty_available']])
     if not rows or not all(rows[0].get(k) for k in ('active', 'available_in_pos', 'sale_ok')):
         raise ValidationError({'detail': 'Este plato ya no está disponible.'})
@@ -73,7 +73,7 @@ def _same(selection, data):
 def apply_requested(session, diner, chat, turn):
     from rest_framework.exceptions import APIException
 
-    from experience_app.adapters.odoo.client import OdooError
+    from django.db import DatabaseError
     from experience_app.services.agent_chat import explicit_add
     from experience_app.views.sessions import cart_of
 
@@ -85,7 +85,7 @@ def apply_requested(session, diner, chat, turn):
             add_many(session, diner, [{'mensaje': turn['id'], 'producto': line['producto'],
                 'cantidad': line['cantidad'], 'nota': line.get('nota', '')} for line in turn['lineas']])
             updated.update(resultado_carrito='agregado', respuesta='Listo, añadí tu selección a Mi pedido. Allí puedes revisarla antes de confirmar a cocina.')
-        except (APIException, OdooError):
+        except (APIException, DatabaseError, Problem):
             updated.update(resultado_carrito='no_agregado', respuesta='No pude añadir la selección completa. Revisa disponibilidad y opciones en las fichas de los platos; no añadí nuevos platos de esta solicitud.')
         # Merge just this turn, preserving any newer turns created in another tab.
         with transaction.atomic():

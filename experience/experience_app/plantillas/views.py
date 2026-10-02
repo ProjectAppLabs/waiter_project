@@ -4,14 +4,14 @@ Públicos (los lee el POS por el navegador y el comensal):
 - GET /api/v1/plantillas/                      catálogo con miniaturas, sin las notas de implementación (resumen, estructura)
 - GET /api/v1/plantillas/<codigo>/miniatura/   PNG del menú de la plantilla, caché larga (cambia solo con un despliegue)
 
-Internos (X-Internal-Key; los llama el addon de Odoo desde /waiter/admin/menu_settings):
+Internos de compatibilidad (X-Internal-Key):
 - GET /internal/v1/<rest>/<sede>/menu/         ajustes crudos de la sede (plantilla, paleta, tipografia)
 - PUT /internal/v1/<rest>/<sede>/menu/         valida contra el catálogo, guarda, invalida caché y devuelve la plantilla resuelta
 """
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from experience_app.adapters.registry.client import resolve
+from experience_app.adapters.core.pos import resolve
 from experience_app.plantillas import services
 from experience_app.plantillas.seed import thumbnail_path
 from experience_app.services import brand
@@ -49,8 +49,8 @@ def venue_settings(request, restaurant, venue):
         return Response(INVALID_KEY, status=401)
     if request.method == 'GET':
         return Response(services.settings_view(restaurant, venue))
-    # Orden: validar (400 sin tocar nada) → resolver la sede en el registro (si no responde, no se persiste nada y el
-    # POS recibe el 404/503 sin ajustes a medias) → guardar. La plantilla resuelta necesita la marca (Odoo) y el descuento.
+    # Orden: validar (400 sin tocar nada) → resolver la sede en la base propia (si no responde, no se persiste nada y el
+    # POS recibe el 404/503 sin ajustes a medias) → guardar. La plantilla resuelta necesita la marca (el sistema propio) y el descuento.
     try:
         services.prepare(restaurant, venue, request.data)
     except services.InvalidSettings as exc:

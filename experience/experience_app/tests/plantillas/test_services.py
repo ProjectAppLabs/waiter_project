@@ -13,7 +13,7 @@ from experience_app.plantillas.seed import CATALOG_DIR
 from experience_app.tests.conftest import DELIVERY, TABLE
 
 NO_BRAND = {'color': '', 'fuente': '', 'radio': None}
-# Marca del registro de TABLE (conftest.BRAND): color, tipografía y redondeo fijados en el onboarding.
+# Marca inicial de TABLE (conftest.BRAND): color, tipografía y redondeo fijados en el onboarding.
 REGISTRY_BRAND = {'color': '#7A2E2A', 'fuente': 'Fraunces', 'radio': 14}
 PERCENT = 'experience_app.services.discount.percent_for'
 
@@ -29,12 +29,14 @@ def stubs(company_brand_stub):
         yield
 
 
+# Falla si ocurre este error: una base recién migrada sin catálogo: el comensal y el POS verían una lista vacía.
 def test_the_catalog_is_seeded_after_migrate(db):
     """Atrapa una base recién migrada sin catálogo: el comensal y el POS verían una lista vacía."""
     assert MenuTemplate.objects.count() == len(list(CATALOG_DIR.glob('*.json'))) >= 1
     assert MenuTemplate.objects.get(code='B1').spec['pantallas']['menu']['layout'] == 'B1'
 
 
+# Falla si ocurre este error: el acento del diseño pisando el color de la marca, o la marca pisando lo que la sede eligió a mano.
 def test_brand_overrides_the_design_and_the_venue_overrides_the_brand(b1):
     """Atrapa el acento del diseño pisando el color de la marca, o la marca pisando lo que la sede eligió a mano."""
     brand = {'color': '#7A2E2A', 'fuente': 'Lora', 'radio': 24}
@@ -45,6 +47,7 @@ def test_brand_overrides_the_design_and_the_venue_overrides_the_brand(b1):
     assert (from_venue['acento'], from_venue['displayFont']) == ('#2F7A4F', 'Fraunces')
 
 
+# Falla si ocurre este error: texto blanco sobre un acento claro (ilegible) o un acentoSuave que no siga al acento; y atrapa que se recalculen cuando el acento es el del diseño (perdería la tinta exacta que eligió el diseñador).
 def test_accent_ink_and_soft_are_recomputed_only_when_the_accent_changes(b1):
     """Atrapa texto blanco sobre un acento claro (ilegible) o un acentoSuave que no siga al acento; y atrapa que se
     recalculen cuando el acento es el del diseño (perdería la tinta exacta que eligió el diseñador)."""
@@ -55,6 +58,7 @@ def test_accent_ink_and_soft_are_recomputed_only_when_the_accent_changes(b1):
     assert light['acentoSuave'] == '#FEFAED'  # = utils/brand.soft_for sobre el fondo blanco de B1
 
 
+# Falla si ocurre este error: una paleta que toque tokens que la plantilla no cede (borde, tintaSuave) o un valor que no es un color.
 def test_only_customizable_colors_and_display_font_are_taken_from_the_venue(b1):
     """Atrapa una paleta que toque tokens que la plantilla no cede (borde, tintaSuave) o un valor que no es un color."""
     tokens = services.final_tokens(b1.spec, NO_BRAND, {'borde': '#000000', 'tinta': 'rojo', 'acento': '#000000'}, {})
@@ -66,6 +70,7 @@ def test_only_customizable_colors_and_display_font_are_taken_from_the_venue(b1):
     assert services.final_tokens(dark, NO_BRAND, {}, {'display': 'Lora'})['displayFont'] == 'Ubuntu'
 
 
+# Falla si ocurre este error: un comensal que descarga la fuente del diseño que ya no usa, o que no descarga la de la marca.
 def test_google_fonts_follow_the_final_display_font(b1):
     """Atrapa un comensal que descarga la fuente del diseño que ya no usa, o que no descarga la de la marca."""
     resolved = services.build(b1.spec, {'color': '', 'fuente': 'Fraunces', 'radio': None}, {}, {}, 5.0)
@@ -76,6 +81,7 @@ def test_google_fonts_follow_the_final_display_font(b1):
     assert services.build(bebas, NO_BRAND, {}, {'display': 'Lora'}, 5.0)['fuentesGoogle'] == ['Lora']
 
 
+# Falla si ocurre este error: una plantilla resuelta sin alguna clave del Contrato 3 (el motor del comensal las lee todas).
 def test_build_has_the_contract_3_shape(b1):
     """Atrapa una plantilla resuelta sin alguna clave del Contrato 3 (el motor del comensal las lee todas)."""
     resolved = services.build(b1.spec, NO_BRAND, {}, {}, 5.0)

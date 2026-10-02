@@ -1,7 +1,7 @@
 'use client'
 
-import Link from 'next/link'
 import { useTranslations } from 'next-intl'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 import { AccountingDetail } from '@/components/billing/AccountingDetail'
@@ -13,19 +13,16 @@ import { Button } from '@/components/ui/Button'
 import { SearchInput } from '@/components/ui/SearchInput'
 import { billingDate } from '@/lib/domain/billing'
 import { formatCop } from '@/lib/domain/money'
+import { CoreError } from '@/lib/services/core/http'
 import { listCustomers, type Customer } from '@/lib/services/customers'
-import { OdooError } from '@/lib/services/errors'
 import { invoicePdfUrl, orderLines, reviewOrder, type BillingReview, type Invoice, type InvoiceableOrder, type OrderLine } from '@/lib/services/invoices'
 import { cn } from '@/lib/utils'
 
 export type Selection = { kind: 'order'; order: InvoiceableOrder } | { kind: 'invoice'; invoice: Invoice } | null
 interface InvoicePanelProps { selection: Selection; onClose?: () => void; tableNumber: number | null; onIssue: (orderId: number, partnerId: number | null) => Promise<{ id: number; name: string }> }
 
-
 const STATE_TONE = { draft: 'neutral', posted: 'info', cancel: 'danger' } as const
 
-// Panel "Bill Information" del kit (Order History / Bill Selected.png): cabecera con avatar, detalle de líneas, totales
-// y la acción contable o el PDF. El estado de Odoo no acredita validación DIAN.
 export function InvoicePanel({ selection, tableNumber, onIssue, onClose }: InvoicePanelProps) {
   const t = useTranslations('admin.billing')
   const pdfLink = (id: number) => <a href={invoicePdfUrl(id)} target="_blank" rel="noreferrer" className="h-tap rounded-md bg-brand-500 text-white flex items-center justify-center gap-2 text-base font-bold"><Icon name="printer" size={20} />{t('panel.pdf')}</a>
@@ -93,7 +90,7 @@ function OrderPanel({ order, tableNumber, onIssue, pdfLink }: { order: Invoiceab
   async function issue() {
     if (!ready || loadingLines || linesError || state === 'saving') return
     setState('saving')
-    try { setIssued(await onIssue(order.id, partnerId)); setState('idle') } catch (error) { setSaveError(error instanceof OdooError ? error.message : t('panel.saveError')); setState('error') }
+    try { setIssued(await onIssue(order.id, partnerId)); setState('idle') } catch (error) { setSaveError(error instanceof CoreError ? error.message : t('panel.saveError')); setState('error') }
   }
   const tip = currentReview?.tip ?? order.tip ?? 0
   const subtotal = order.total - order.tax - tip

@@ -1,41 +1,40 @@
-"""La carta y las fotos por sede, desde caché. Odoo no está en el camino caliente del comensal."""
-from experience_app.adapters.backend import backend_for, client_for
+"""Carta y fotos por restaurante, con caché para evitar lecturas repetidas."""
+from experience_app.adapters.core import pos
+from experience_app.adapters.core.pos import Client
 from collections.abc import Callable
 from urllib.parse import urlsplit, urlunsplit
 
 from django.conf import settings
 from django.core.cache import cache
 
-from experience_app.adapters.odoo import pos
-from experience_app.adapters.odoo.client import OdooClient
-from experience_app.adapters.registry.client import Tenant
+from experience_app.adapters.core.context import RestaurantContext
 from experience_app.utils.errors import ProductNotFound
 
-PHOTO_SIZES = frozenset(pos.PHOTO_FIELDS)
+PHOTO_SIZES = pos.PHOTO_SIZES
 DEFAULT_PHOTO_SIZE = pos.DEFAULT_PHOTO_SIZE
 # La clave de la foto lleva la versión de la plantilla: una foto nueva es una clave nueva, así que la caché puede
-# vivir mucho más que la carta sin servir nunca una foto vieja (ni volver a Odoo por cada comensal).
+# vivir mucho más que la carta sin servir nunca una foto vieja (ni volver al sistema propio por cada comensal).
 PHOTO_CACHE_SECONDS = max(settings.MENU_CACHE_SECONDS, 3600)
-# Origen de la foto (product.template.image_origin) → contrato del comensal. Vacío o un valor que la app no conoce sale
+# Origen de la foto (catalog.Product.image_origin) → contrato del comensal. Vacío o un valor que la app no conoce sale
 # como null: la app solo entiende estos tres.
 PHOTO_ORIGINS = {'real': 'real', 'ai': 'ia', 'placeholder': 'placeholder'}
 
 
-def _key(tenant: Tenant) -> str:
+def _key(tenant: RestaurantContext) -> str:
     return f'catalog:{tenant.restaurant_slug}/{tenant.venue_slug}'
 
 
-def _photo_key(tenant: Tenant, product: pos.Product, size: str) -> str:
+def _photo_key(tenant: RestaurantContext, product: pos.Product, size: str) -> str:
     return f'photo:{tenant.restaurant_slug}/{tenant.venue_slug}/{product.template_id}/{size}/{product.image_version}'
 
 
-def get_catalog(tenant: Tenant) -> pos.Catalog:
+def get_catalog(tenant: RestaurantContext) -> pos.Catalog:
     cached = cache.get(_key(tenant))
     if cached is not None:
         return cached
-    client = client_for(tenant, OdooClient)
-    session_id = backend_for(tenant.restaurant_slug).catalog_session(client, tenant.config_id)
-    catalog = backend_for(tenant.restaurant_slug).load_catalog(client, session_id)
+    client = Client(tenant)
+    session_id = pos.catalog_session(client, tenant.config_id)
+    catalog = pos.load_catalog(client, session_id)
     cache.set(_key(tenant), catalog, settings.MENU_CACHE_SECONDS)
     return catalog
 
@@ -44,36 +43,36 @@ def invalidate(restaurant: str, venue: str) -> None:
     cache.delete(f'catalog:{restaurant}/{venue}')
 
 
-def find_product(tenant: Tenant, product_id: int) -> pos.Product:
+def find_product(tenant: RestaurantContext, product_id: int) -> pos.Product:
     product = next((p for p in get_catalog(tenant).products if p.id == product_id), None)
     if product is None:
         raise ProductNotFound(product_id)
     return product
 
 
-def get_photo(tenant: Tenant, product: pos.Product, size: str = DEFAULT_PHOTO_SIZE) -> tuple[bytes, str] | None:
-    """(bytes, content-type) de la foto, o None si Odoo ya no la tiene. Una sola lectura a Odoo por foto, tamaño y versión.
+def get_photo(tenant: RestaurantContext, product: pos.Product, size: str = DEFAULT_PHOTO_SIZE) -> tuple[bytes, str] | None:
+    """(bytes, content-type) de la foto, o None si el sistema propio ya no la tiene. Una sola lectura al sistema propio por foto, tamaño y versión.
 
-    El None también se cachea: una carta que aún dice "tiene foto" no manda a Odoo a cada comensal.
+    El None también se cachea: una carta que aún dice "tiene foto" no manda al sistema propio a cada comensal.
     """
     return cache.get_or_set(_photo_key(tenant, product, size),
-                            lambda: backend_for(tenant.restaurant_slug).fetch_product_image(client_for(tenant, OdooClient), product.template_id, size),
+                            lambda: pos.fetch_product_image(Client(tenant), product.template_id, size),
                             PHOTO_CACHE_SECONDS)
 
 
-def get_gallery_photo(tenant: Tenant, product: pos.Product, photo_id: int) -> tuple[bytes, str] | None:
+def get_gallery_photo(tenant: RestaurantContext, product: pos.Product, photo_id: int) -> tuple[bytes, str] | None:
     """La pertenencia se comprueba antes de usar una caché aislada por sede, plantilla, foto y versión."""
     photo = next((p for p in product.gallery if p['id'] == photo_id), None)
     if photo is None:
         return None
     key = f"gallery:{tenant.restaurant_slug}/{tenant.venue_slug}/{product.template_id}/{photo_id}/{photo['version']}"
-    return cache.get_or_set(key, lambda: backend_for(tenant.restaurant_slug).fetch_gallery_image(client_for(tenant, OdooClient), product.template_id, photo_id),
+    return cache.get_or_set(key, lambda: pos.fetch_gallery_image(Client(tenant), product.template_id, photo_id),
                             PHOTO_CACHE_SECONDS)
 
 
 def _gallery_url(photo_url: Callable[[int, str], str], product_id: int, photo: dict) -> str:
     # Conserva la sede y la versión de la URL pública que recibe menu_view; así ambas entradas
-    # (mesa y domicilio) usan la misma ruta sin conocer la dirección interna de Odoo.
+    # (mesa y domicilio) usan la misma ruta sin conocer el almacenamiento interno.
     parts = urlsplit(photo_url(product_id, photo['version']))
     return urlunsplit(parts._replace(path=f"{parts.path.rstrip('/')}/galeria/{photo['id']}/"))
 
@@ -81,7 +80,7 @@ def _gallery_url(photo_url: Callable[[int, str], str], product_id: int, photo: d
 def menu_view(catalog: pos.Catalog, photo_url: Callable[[int, str], str]) -> dict:
     """Carta normalizada para el comensal: categorías con sus productos, en el orden del POS.
 
-    `photo_url(product_id, version)` construye la URL pública de la foto: la carta nunca lleva la URL de Odoo, y la
+    `photo_url(product_id, version)` construye la URL pública de la foto: la carta usa la ruta pública del comensal, y la
     versión (write_date de la plantilla) cambia la URL cuando cambia la foto para que la caché pública no la retenga.
     `fotoOrigen` dice de dónde salió la foto ('real' | 'ia' | 'placeholder' | null) y `imagenesDeReferencia`, si la carta
     debe avisar que las fotos son de referencia.

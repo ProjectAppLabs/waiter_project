@@ -21,14 +21,14 @@ beforeEach(() => {
   localStorage.clear(); delete document.documentElement.dataset.theme
   useAuthStore.setState({
     user: { uid: 7, name: 'Ana', companyId: 1, role: 'admin' },
-    employee: { id: 2, name: 'Sofía Mesera', code: 'WT-0001', role: 'waiter', shift: { from: 10, to: 14 }, userId: null, checkIn: new Date(Date.now() - 65_000).toISOString(), attendanceId: 9, token: 'tok-demo', sessionEnds: null },
+    employee: { id: 2, name: 'Sofía Mesera', code: 'WT-0001', role: 'waiter', shift: { from: 10, to: 14 }, userId: null, checkIn: new Date(Date.now() - 65_000).toISOString(), attendanceId: 9, sessionEnds: null },
   })
   ;(getEmployeeProfile as jest.Mock).mockResolvedValue({ id: 2, name: 'Sofía Mesera', code: 'WT-0001', phone: '300', email: null, address: 'Calle 10', joiningDate: '2025-01-01', accessRole: 'waiter', employmentStatus: 'full_time', manager: 'Administrator', jobTitle: null, shift: { from: 10, to: 14 } })
   ;(getNotifyPrefs as jest.Mock).mockResolvedValue({ kitchen_popup: true, kitchen_sound: true, inventory_popup: true, inventory_sound: true, system_popup: true, system_sound: true })
 })
 
-// Falla si la pestaña Empleado no muestra el perfil leído de Odoo con "—" en lo que falta, o si el cronómetro no corre.
-it('employee tab shows the profile from Odoo with dashes for missing data and the shift clock', async () => {
+// Falla si la pestaña Empleado no muestra el perfil leído del servidor con "—" en lo que falta, o si el cronómetro no corre.
+it('employee tab shows the profile from el servidor with dashes for missing data and the shift clock', async () => {
   wrap(modal())
   expect(await screen.findByText('Sofía Mesera', { selector: 'span' })).toBeInTheDocument()
   expect(screen.getByText('WT-0001')).toBeInTheDocument()
@@ -38,7 +38,7 @@ it('employee tab shows the profile from Odoo with dashes for missing data and th
   expect(screen.getByTestId('shift-clock')).toHaveTextContent(/00:01:0\d/)
 })
 
-// Falla si «Cambiar contraseña» no comprueba que las nuevas coincidan, no envía la actual y la nueva a Odoo o no confirma.
+// Falla si «Cambiar contraseña» no comprueba que las nuevas coincidan, no envía la actual y la nueva al servidor o no confirma.
 it('security tab changes the password and confirms', async () => {
   wrap(modal())
   await userEvent.click(screen.getByRole('tab', { name: 'Seguridad' }))
@@ -79,8 +79,8 @@ it('shows the shift time and a one-row logout that asks before closing', async (
   expect(onLogout).not.toHaveBeenCalled()
 })
 
-// Falla si un toggle de notificaciones no guarda la preferencia en res.users (set_waiter_notify).
-it('notification toggles are saved on the Odoo user', async () => {
+// Falla si un toggle de notificaciones no guarda la preferencia en la cuenta propia.
+it('notification toggles are saved on the el servidor user', async () => {
   wrap(modal())
   await userEvent.click(screen.getByRole('tab', { name: 'Notificaciones' }))
   const sound = await screen.findByRole('switch', { name: 'Novedades de cocina Sonido de notificación' })

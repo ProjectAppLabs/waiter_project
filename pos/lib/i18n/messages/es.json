@@ -59,7 +59,7 @@
       "remember": "Recordar mi usuario en este dispositivo",
       "submit": "Entrar",
       "failed": "Usuario, correo o contraseña incorrectos",
-      "unreachable": "No se pudo conectar con Odoo. Revisa la conexión de este terminal.",
+      "unreachable": "No se pudo conectar con el servidor. Revisa la conexión de este terminal.",
       "code": {
         "title": "Escribe el código",
         "intro": "Escribe tu usuario o tu correo y te enviamos a tu correo un código de un solo uso. Vence en 30 minutos.",
@@ -77,9 +77,9 @@
         "check": "Lo enviamos al correo de {login}. Sirve una sola vez y vence en 30 minutos.",
         "invited": "Bienvenido, {login}. Escribe el código de tu invitación y elige tu contraseña."
       },
-      "footer": "Waiter 1.1 · Odoo {odoo}",
-      "online": "Conectado a Odoo",
-      "offline": "Sin conexión con Odoo",
+      "footer": "Waiter 1.1",
+      "online": "Conectado al servidor",
+      "offline": "Sin conexión con el servidor",
       "frases": [
         {
           "frase": "Buena comida, mejores momentos.",
@@ -458,7 +458,7 @@
     },
     "billing": {
       "title": "Facturación",
-      "subtitle": "Factura normal de Odoo. La electrónica (DIAN) llega como módulo aparte.",
+      "subtitle": "Documentos de venta y estado de facturación electrónica.",
       "tabs": {
         "pending": "Por facturar",
         "invoices": "Facturas"
@@ -612,7 +612,7 @@
         "tables": "{n} mesas"
       },
       "payments": {
-        "hint": "Los métodos se crean en Odoo por el aprovisionamiento; aquí se ven los del canal.",
+        "hint": "Aquí se muestran los medios de pago disponibles en este restaurante.",
         "type": {
           "cash": "Efectivo",
           "bank": "Datáfono / banco",
@@ -848,10 +848,10 @@
         "drafts": "{n, plural, one {Hay # cuenta abierta} other {Hay # cuentas abiertas}}: cóbralas antes de cerrar.",
         "confirm": "Cerrar caja",
         "closing": "Cerrando…",
-        "closed": "Caja cerrada. El turno queda contabilizado en Odoo.",
-        "failed": "Odoo no cerró la caja: {message}",
+        "closed": "Caja cerrada. El turno queda contabilizado en el servidor.",
+        "failed": "el servidor no cerró la caja: {message}",
         "force": "Forzar cierre (administrador)",
-        "forceHint": "Odoo detectó un descuadre contable. Forzar el cierre lo contabiliza como diferencia de caja.",
+        "forceHint": "el servidor detectó un descuadre contable. Forzar el cierre lo contabiliza como diferencia de caja.",
         "forced": "Cierre forzado. La diferencia quedó contabilizada."
       }
     },

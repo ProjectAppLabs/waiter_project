@@ -2,8 +2,8 @@
 from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
-from experience_app.adapters.odoo.client import OdooUnavailable
-from experience_app.adapters.registry.client import RegistryUnavailable, TenantNotFound
+from django.db import OperationalError
+from experience_app.adapters.core.context import RestaurantNotFound
 
 
 class NotOwner(Exception):
@@ -28,13 +28,12 @@ class SessionAlreadyPaid(Exception):
 
 MAPPING = [
     (ConfirmationBusy, 423, 'El pedido se está confirmando; espera y vuelve a intentar'),
-    (TenantNotFound, 404, 'Esta mesa no está disponible'),
+    (RestaurantNotFound, 404, 'Esta mesa no está disponible'),
     (ProductNotFound, 400, 'Ese producto no está en la carta'),
     (NotOwner, 403, 'Solo quien agregó el plato puede cambiarlo'),
     (NothingToConfirm, 400, 'No hay nada que confirmar'),
     (SessionAlreadyPaid, 409, 'La cuenta de esta mesa ya se pagó. Vuelve a tocar el NFC para empezar una nueva.'),
-    (OdooUnavailable, 503, 'El restaurante no responde; tu pedido se conserva, intenta de nuevo'),
-    (RegistryUnavailable, 503, 'Servicio no disponible, intenta de nuevo'),
+    (OperationalError, 503, 'El restaurante no responde; tu pedido se conserva, intenta de nuevo'),
 ]
 
 

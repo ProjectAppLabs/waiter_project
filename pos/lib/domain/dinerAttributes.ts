@@ -1,5 +1,3 @@
-// product.template.diner_attributes (addon projectapp_ops, Plan H contrato 2): objeto JSON que las plantillas del
-// comensal pintan si existe. Aquí se lee con tolerancia (lo que no sea un objeto es {}) y se escribe sin claves vacías.
 export type SpicyLevel = 0 | 1 | 2 | 3
 export interface DinerSize { nombre: string; precio: number }
 export interface DinerAttributes {
@@ -44,7 +42,6 @@ export function parseDinerAttributes(raw: string | false | null | undefined): Di
   return out
 }
 
-// Sin claves vacías; sin atributos devuelve false para que Odoo guarde NULL y la carta no lea "{}".
 export function serializeDinerAttributes(a: DinerAttributes): string | false {
   const clean: DinerAttributes = {}
   if(a.combo?.length)clean.combo=a.combo

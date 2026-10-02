@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Chip } from '@/components/kit/Chip'
 import { RoiBento } from '@/components/roi/RoiBento'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { inRange, metrics, monthsOfUse, pctChange, periodRange, toOdooDate, type Period } from '@/lib/domain/roi'
+import { inRange, metrics, monthsOfUse, pctChange, periodRange, toServerDate, type Period } from '@/lib/domain/roi'
 import { listPaidOrders, type PaidOrder } from '@/lib/services/roi'
 import { useCatalogStore } from '@/lib/stores/catalogStore'
 
@@ -24,7 +24,7 @@ export function RoiView() {
   const ranges = useMemo(() => Array.from({ length: HISTORY }, (_, i) => periodRange(period, now, HISTORY - 1 - i)), [period, now])
 
   useEffect(() => {
-    void listPaidOrders(toOdooDate(ranges[0].start), toOdooDate(ranges[HISTORY - 1].end)).then((orders) => setData({ key: period, orders }))
+    void listPaidOrders(toServerDate(ranges[0].start), toServerDate(ranges[HISTORY - 1].end)).then((orders) => setData({ key: period, orders }))
   }, [ranges, period])
   const orders = data?.key === period ? data.orders : null
 

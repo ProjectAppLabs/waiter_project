@@ -10,15 +10,10 @@ import { formatQty, unitLabel } from '@/lib/domain/pantry'
 import type { PantryRequest } from '@/lib/services/pantry'
 
 const TONE: Record<string, PillTone> = { draft: 'progress', sent: 'info', 'to approve': 'info', purchase: 'success', done: 'success', cancel: 'neutral' }
-// El estado de la orden de compra llega traducido por Odoo, que aquí responde en inglés ("RFQ"): se prefiere la
-// etiqueta española del kit y solo se cae en la de Odoo si aparece un estado que no está en pantry.json.
 const STATES = ['draft', 'sent', 'to approve', 'purchase', 'done', 'cancel']
 const dateFormat = new Intl.DateTimeFormat('es-CO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-// Odoo devuelve fechas UTC sin zona ("2026-09-06 14:03:11"): se leen como UTC y se muestran en la hora local.
 export const formatDate = (s: string) => dateFormat.format(serverDate(s))
 
-// Pestaña "Request List" (el kit no trae captura): sigue la fila de Ingredientes con PROVEEDOR · FECHA · ESTADO.
-// El estado y su etiqueta vienen de `waiter_request_list()`, que los toma de la orden de compra de Odoo.
 export function RequestList({ requests, query }: { requests: PantryRequest[]; query: string }) {
   const t = useTranslations('pantry.requests')
   const q = query.trim().toLocaleLowerCase('es')

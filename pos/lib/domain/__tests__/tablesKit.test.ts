@@ -10,7 +10,7 @@ const largeH = { id: 2, number: 2, seats: 6, x: 200, y: 40, width: 240, height: 
 const largeV = { id: 3, number: 3, seats: 8, x: 500, y: 40, width: 120, height: 240, ...geo }
 const view = (table: typeof small, state: TableView['state']): TableView => ({ table, state, total: 0, tax: 0, orderId: null, startedAt: null, waiter: null, callSince: null })
 
-// Falla si una mesa de Odoo (110×110) deja de dibujarse como pequeña, o si la apaisada y la vertical se confunden.
+// Falla si una mesa del servidor (110×110) deja de dibujarse como pequeña, o si la apaisada y la vertical se confunden.
 it('classifies tables into the three kit templates by width and height', () => {
   expect([templateFor(small), templateFor(largeH), templateFor(largeV)]).toEqual(['small', 'largeH', 'largeV'])
   expect(TEMPLATES.largeH).toEqual({ width: 240, height: 120, seats: 6 })
@@ -24,7 +24,7 @@ it('draws the chairs of each template as in the kit', () => {
   expect(chairsFor('largeV')).toEqual({ top: 1, bottom: 1, left: 3, right: 3 })
 })
 
-// Falla si el snapping deja de caer en la cuadrícula o si rotar no intercambia ancho y alto (Odoo no guarda rotación).
+// Falla si el snapping deja de caer en la cuadrícula o si rotar no intercambia ancho y alto (el servidor no guarda rotación).
 it('snaps to the grid and rotates by swapping width and height', () => {
   expect([snap(57), snap(63), snap(-5)]).toEqual([GRID, 2 * GRID, 0])
   expect(rotated(largeH)).toMatchObject({ width: 120, height: 240 })
@@ -48,7 +48,7 @@ it('maps salon states to the kit legend', () => {
   expect(kitState('occupied', true)).toBe('unavailable')
 })
 
-// Falla si la hora de una reserva de Odoo (float) deja de leerse como "17:00" o si media hora se pierde.
+// Falla si la hora de una reserva del servidor (float) deja de leerse como "17:00" o si media hora se pierde.
 it('reads the reservation hour as the kit badge shows it', () => {
   expect([hourLabel(17), hourLabel(17.5), hourLabel(9.25)]).toEqual(['17:00', '17:30', '09:15'])
 })
@@ -65,7 +65,7 @@ it('computes the served percentage over the lines sent to the kitchen', () => {
   expect([progressPercent(0, 0), progressPercent(1, 3), progressPercent(3, 3)]).toEqual([0, 33, 100])
 })
 
-// Falla si el tipo de piso deja de viajar como sufijo del nombre (Odoo no tiene floor_type) o si el número no se extrae.
+// Falla si el tipo de piso deja de viajar como sufijo del nombre (el servidor no tiene floor_type) o si el número no se extrae.
 it('encodes the floor type as a name suffix and reads it back', () => {
   expect(floorName('4', 'outdoor')).toBe('Piso 4 · Exterior')
   expect(floorName('4', 'indoor')).toBe('Piso 4')
@@ -83,7 +83,7 @@ it('summarizes a layout and sizes the plan canvas', () => {
   expect(planSize([])).toEqual({ width: 0, height: 0 })
 })
 
-// Falla si "Mesa 12" no se reduce al número 12 (Odoo solo guarda table_number) o si un nombre sin dígitos pasa.
+// Falla si "Mesa 12" no se reduce al número 12 (el servidor solo guarda table_number) o si un nombre sin dígitos pasa.
 it('reads the table number out of a free-text table name', () => {
   expect(parseTableName('12')).toEqual({ number: 12, exact: true })
   expect(parseTableName('Mesa A12')).toEqual({ number: 12, exact: false })

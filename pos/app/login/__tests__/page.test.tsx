@@ -5,7 +5,7 @@ import { NextIntlClientProvider } from 'next-intl'
 import LoginPage from '@/app/login/page'
 import { activate, requestCode } from '@/lib/services/activation'
 import { messages } from '@/lib/i18n/messages'
-import { OdooError } from '@/lib/services/errors'
+import { CoreError } from '@/lib/services/core/http'
 import { ShiftDeniedError, useAuthStore, type ActiveEmployee } from '@/lib/stores/authStore'
 import type { AuthUser } from '@/lib/services/session'
 
@@ -17,9 +17,9 @@ jest.mock('@/lib/services/session', () => ({ currentUser: jest.fn(), getOpenSess
 jest.mock('@/lib/services/cashRegister', () => ({ openRegister: jest.fn() }))
 
 const wrap = () => render(<NextIntlClientProvider locale="es" messages={messages}><LoginPage /></NextIntlClientProvider>)
-const person = (role: ActiveEmployee['role']): ActiveEmployee => ({ id: 2, name: 'Sofía', code: null, role, shift: null, userId: 5, checkIn: '', attendanceId: 1, token: 't', sessionEnds: null })
+const person = (role: ActiveEmployee['role']): ActiveEmployee => ({ id: 2, name: 'Sofía', code: null, role, shift: null, userId: 5, checkIn: '', attendanceId: 1, sessionEnds: null })
 const account = (role: AuthUser['role']): AuthUser => ({ uid: 5, name: 'Sofía', companyId: 1, role })
-// Simula a `login` del store: entra con la cuenta y deja a la persona y su caja como lo haría Odoo.
+// Simula a `login` del store: entra con la cuenta y deja a la persona y su caja como lo haría el servidor.
 const signsInAs = (role: AuthUser['role'], extra: Record<string, unknown> = {}) => jest.fn(async () => {
   useAuthStore.setState({ user: account(role), employee: person(role), session: { id: 16, configId: 1, state: 'opened' }, ...extra })
 })
@@ -103,12 +103,12 @@ it('fuera del turno explica el horario y no entra', async () => {
   expect(replace).not.toHaveBeenCalled()
 })
 
-// Falla si el inicio llama «incorrectos» a lo que no lo es (un permiso, el horario que Odoo rechaza al autenticar) o si
+// Falla si el inicio llama «incorrectos» a lo que no lo es (un permiso, el horario que el servidor rechaza al autenticar) o si
 // deja de decirlo cuando sí lo es.
 it('dice el motivo real del rechazo', async () => {
   const login = jest.fn()
-    .mockRejectedValueOnce(new OdooError('Mateo intentó entrar fuera de su turno (14:00–22:00).', 'odoo.exceptions.AccessDenied'))
-    .mockRejectedValueOnce(new OdooError('Access Denied', 'odoo.exceptions.AccessDenied'))
+    .mockRejectedValueOnce(new CoreError(403, 'outside_hours', 'Mateo intentó entrar fuera de su turno (14:00–22:00).'))
+    .mockRejectedValueOnce(new CoreError(403, 'invalid_credentials', 'Access Denied'))
   useAuthStore.setState({ login })
   wrap()
   await signIn()

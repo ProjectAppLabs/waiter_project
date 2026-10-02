@@ -1,9 +1,8 @@
-from experience_app.adapters.backend import backend_for, client_for
-from experience_app.adapters.odoo.client import OdooClient
+from experience_app.adapters.core.pos import Client
 
 
 def for_menu(tenant, menu):
-    config = client_for(tenant, OdooClient).call_kw('pos.config', 'waiter_banner_settings', [[tenant.config_id]])
+    config = Client(tenant).call_kw('pos.config', 'waiter_banner_settings', [[tenant.config_id]])
     if not config.get('configured'):
         return None  # Conserva los destacados automáticos hasta configurar banners.
     products = {p['id']: p for c in menu['categorias'] for p in c['productos']}

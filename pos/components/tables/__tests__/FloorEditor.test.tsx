@@ -11,6 +11,7 @@ beforeEach(()=>{
  SVGElement.prototype.setPointerCapture=jest.fn()
  jest.clearAllMocks()
 })
+// Falla si rotar permite guardar una colisión o deshacer escribe cambios.
 it('rotates into a collision, disables save and supports undo without writing',()=>{
  render(<FloorEditor initial={initial} configId={1} onCancel={jest.fn()} onSaved={jest.fn()}/> )
  const svg=screen.getByLabelText('Cuadrícula del restaurante')
@@ -24,6 +25,7 @@ it('rotates into a collision, disables save and supports undo without writing',(
  expect(screen.getByRole('button',{name:'Guardar'})).toBeEnabled()
  expect(savePlan).not.toHaveBeenCalled()
 })
+// Falla si cancelar guarda los cambios de capacidad del plano.
 it('cancel leaves capacity edits unsaved',()=>{
  const cancel=jest.fn()
  render(<FloorEditor initial={initial} configId={1} onCancel={cancel} onSaved={jest.fn()}/> )
@@ -50,6 +52,7 @@ it('renews the expired shift token with the account session and saves the retain
  expect(savePlan).toHaveBeenLastCalledWith(1,expect.objectContaining({name:'Sala editada'}))
  expect(screen.queryByLabelText('PIN del administrador')).toBeNull()
 })
+// Falla si seleccionar una capa mueve otro elemento superpuesto.
 it('selects covered zones and the image from layers and moves only the chosen element',async()=>{
  const saved=jest.fn()
  ;(savePlan as jest.Mock).mockResolvedValue(initial)
@@ -72,6 +75,7 @@ it('selects covered zones and the image from layers and moves only the chosen el
  expect(result.backgroundSize).toEqual({x:100,y:80,width:1200,height:800})
  expect(result.tables).toEqual(initial.tables)
 })
+// Falla si arrastrar fuera del origen pierde las posiciones relativas del plano.
 it('drags past the old origin and saves the whole layout with relative positions intact',async()=>{
  const saved=jest.fn()
  ;(savePlan as jest.Mock).mockResolvedValue(initial)
@@ -141,7 +145,7 @@ it('pans with the wheel pressed even when it starts on a table',()=>{
  expect(screen.queryByLabelText('Capacidad (personas)')).toBeNull()
  expect(svg).toHaveClass('cursor-grab')
 })
-// Falla si una pieza de la galería no aparece en el plano, no gira con Rotar o no viaja a Odoo al guardar.
+// Falla si una pieza de la galería no aparece en el plano, no gira con Rotar o no viaja al servidor al guardar.
 it('adds a gallery piece at the center, rotates it and saves it with the plan',async()=>{
  ;(savePlan as jest.Mock).mockImplementation(async(_c:number,p:FloorDocument)=>p)
  ;(useAuthStore.getState as jest.Mock).mockReturnValue({employee:{id:1,token:'t'}})

@@ -55,7 +55,6 @@ export interface SettleContext {
   lines: ReceiptData['lines']; methodName: (id: number) => string
 }
 
-// El mensaje de Odoo ya viene en el idioma del usuario; no se traduce aquí ni se inventa copy.
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 export const useOrderStore = create<OrderState>((set, get) => {
@@ -89,7 +88,6 @@ export const useOrderStore = create<OrderState>((set, get) => {
     orderNote: (n) => update((d) => setOrderNote(d, n)),
     remove: (u) => update((d) => removeLine(d, u)),
     save: async () => { await persist() },
-    // La comanda vive en Odoo (un curso disparado); el salón la verá al refrescar. Nada local.
     sendToKitchen: async () => {
       const saved = await persist()
       if (!saved) return
@@ -100,7 +98,6 @@ export const useOrderStore = create<OrderState>((set, get) => {
       const saved = await persist()
       if (saved) { flag(get().draft!.tableId, { billing: true }); useOpsStore.getState().markBilling(get().draft!.tableId, Date.now()) }
     },
-    // Cobro completo: propina (línea en Odoo), un add_payment por pago, cambio en amount_return, cierre y recibo.
     settle: async (plan, ctx) => {
       let orderId = ctx.existing?.orderId ?? null
       let tableId = ctx.existing?.tableId ?? null
@@ -121,9 +118,6 @@ export const useOrderStore = create<OrderState>((set, get) => {
         const receipt: ReceiptData = { company: ctx.company, tableNumber: ctx.tableNumber, tableLabel: ctx.tableLabel, reference: closed.reference, at: Date.now(), lines: ctx.lines,
           subtotal: closed.total - closed.tax - plan.tip, tax: closed.tax, tip: plan.tip, total: closed.total,
           payments: plan.payments.map((p) => ({ method: ctx.methodName(p.methodId), amount: p.amount, reference: p.reference })), change: ch }
-        // La mesa deja de llamar al cobrar, pero lo hace Odoo dentro del cierre del pedido
-        // (`_waiter_release_table`): pedirlo desde aquí exigía al cajero permisos de servicio que no tiene,
-        // y el rechazo se perdía en el `catch`, dejando el aviso encendido después de pagar.
         set((s) => ({ draft: null, saved: null, busy: false, receipt, flags: { ...s.flags, [tableId!]: {} } }))
         return true
       } catch (e) {

@@ -4,7 +4,7 @@ Pública (la llaman los clientes MCP, p. ej. Claude):
 - POST /mcp/                 clave en «Authorization: Bearer wtr_…» (Claude Code y clientes que permiten cabeceras)
 - POST /mcp/<clave>/         clave en la ruta, para conectores que solo aceptan una URL (p. ej. claude.ai)
 
-Internas (X-Internal-Key; las llama el addon de Odoo desde /waiter/admin/mcp_keys, con el administrador del POS):
+Internas de compatibilidad (X-Internal-Key):
 - GET  /internal/v1/<rest>/<sede>/mcp/claves/                  lista (sin las claves: solo nombre, prefijo y fechas)
 - POST /internal/v1/<rest>/<sede>/mcp/claves/                  crea una; la respuesta trae la clave en claro UNA vez
 - POST /internal/v1/<rest>/<sede>/mcp/claves/<id>/revocar/     revoca una clave de esa sede
@@ -36,11 +36,9 @@ def endpoint(request, raw_key: str | None = None):
     if key is None:
         return JsonResponse(protocol._error(None, -32001, 'Clave MCP inválida o revocada. Genera una en el POS: Configuración › Integraciones IA.'),
                             status=401, headers={'WWW-Authenticate': 'Bearer'})
-    from experience_app.adapters.backend import backend_for
-    if hasattr(backend_for(key.restaurant_slug), 'Client'):
-        from tenancy.models import Organization
-        if Organization.objects.filter(slug=key.restaurant_slug, status='suspended').exists():
-            return JsonResponse({'error': 'restaurant_unavailable', 'message': 'Este restaurante no está disponible'}, status=404)
+    from tenancy.models import Organization
+    if Organization.objects.filter(slug=key.restaurant_slug, status='suspended').exists():
+        return JsonResponse({'error': 'restaurant_unavailable', 'message': 'Este restaurante no está disponible'}, status=404)
     if len(request.body) > MAX_BODY:
         return JsonResponse(protocol._error(None, protocol.INVALID_REQUEST, 'Mensaje demasiado grande.'), status=413)
     try:

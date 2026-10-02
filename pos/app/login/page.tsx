@@ -1,47 +1,35 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
-import { RestaurantPicker } from '@/components/account/RestaurantPicker'
 import { LOGIN_INPUT, LoginFrame } from '@/components/account/LoginFrame'
+import { RestaurantPicker } from '@/components/account/RestaurantPicker'
 import { Icon } from '@/components/kit/Icon'
 import { Toggle } from '@/components/kit/Toggle'
 import { Button } from '@/components/ui/Button'
 import { homePath } from '@/lib/domain/navigation'
 import { effectiveRole, isOwner } from '@/lib/domain/roles'
 import { readLogoutReason, rememberLogoutReason, type GuardReason } from '@/lib/domain/sessionGuard'
+import { useStored } from '@/lib/hooks/useStored'
 import { activate, requestCode } from '@/lib/services/activation'
 import { CoreError } from '@/lib/services/core/http'
-import { OdooError } from '@/lib/services/errors'
 import { ShiftDeniedError, useAuthStore } from '@/lib/stores/authStore'
-import { useStored } from '@/lib/hooks/useStored'
 import { cn } from '@/lib/utils'
 
 const write = (key: string, value: string) => { try { if (value) localStorage.setItem(key, value); else localStorage.removeItem(key) } catch { /* sin almacenamiento */ } }
 type View = 'main' | 'forgot' | 'code'
 // El enlace de la invitación abre el inicio en «escribe el código» con el usuario puesto: /login?codigo=<usuario>.
 const invitedLogin = (): string | null => { try { return new URLSearchParams(window.location.search).get('codigo') } catch { return null } }
-const GENERIC_DENIED = /^(access denied|acceso denegado)\.?$/i
 
-// Odoo responde `AccessDenied` tanto por credencial mala como fuera del turno (plan P). El genérico se dice como
-// «incorrectos»; el del horario trae su propio mensaje y se muestra tal cual. Cualquier otro fallo —un permiso, la red—
-// se dice como es: darlo por «contraseña incorrecta» manda a buscar donde no es.
 export function loginError(error: unknown, tl: (key: string) => string): string {
   if (error instanceof ShiftDeniedError) return error.message
   // Plan T: el sistema propio responde con código y mensaje; la credencial mala se dice como siempre.
   if (error instanceof CoreError) return error.code === 'invalid_credentials' ? tl('failed') : error.code === 'unreachable' ? tl('unreachable') : error.message
-  if (error instanceof OdooError) {
-    if (error.odooType === 'odoo.exceptions.AccessDenied') return !error.message || GENERIC_DENIED.test(error.message.trim()) ? tl('failed') : error.message
-    return error.message || tl('failed')
-  }
   return tl('unreachable')
 }
 
-// Plan P: un solo inicio para todos. Cada persona entra con su usuario o su correo y su contraseña, y en el mismo paso
-// abre su turno (`waiter_start_my_shift`). Luego va a su sitio: el dueño a la consola; el encargado de varios
-// restaurantes elige uno; el resto, a su inicio por rol en su restaurante. Ya no hay cuenta del terminal ni PIN.
 export default function LoginPage() {
   const t = useTranslations('account')
   const tl = useTranslations('pos.login')
@@ -97,7 +85,7 @@ export default function LoginPage() {
       await login(email.trim(), newPassword)
     } catch (e) {
       // El código sirvió pero entrar no (p. ej. fuera de su turno): la contraseña ya quedó guardada, se explica en el inicio.
-      if (e instanceof ShiftDeniedError || e instanceof OdooError) { setView('main'); setFailed(loginError(e, tl)) } else setCodeState('invalid')
+      if (e instanceof ShiftDeniedError || (e instanceof CoreError && e.code !== 'invalid_code')) { setView('main'); setFailed(loginError(e, tl)) } else setCodeState('invalid')
     } finally { setBusy(false) }
   }
   const openForgot = () => { setView('forgot'); setCodeState('idle'); setFailed(null) }

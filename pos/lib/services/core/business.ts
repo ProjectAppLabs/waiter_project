@@ -1,7 +1,5 @@
 import { coreFetch } from '@/lib/services/core/http'
 
-// Plan T4: informes, empresa, marca y documentos de venta del sistema propio. Donde el contrato dice «como `waiter_x`»,
-// la respuesta tiene la forma del método de Odoo, y el POS reutiliza sus traductores.
 const q = (p: Record<string, string | number | boolean | null | undefined>) => Object.entries(p).filter(([, v]) => v !== undefined && v !== null && v !== '' && v !== false).map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&')
 
 export interface CoreCompany { name: string; legal_name: string; tax_id: string; tax_id_dv: string; fiscal_regime: string; fiscal_responsibilities: string[]; address: string; city: string; phone: string; email: string }

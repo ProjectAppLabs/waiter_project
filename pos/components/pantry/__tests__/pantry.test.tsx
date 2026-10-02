@@ -12,7 +12,7 @@ import type { Dish, Ingredient, RecipeLine } from '@/lib/domain/pantry'
 import { messages } from '@/lib/i18n/messages'
 import { createDish, createIngredient } from '@/lib/services/pantry'
 
-jest.mock('@/lib/services/pantry', () => ({ createDish: jest.fn(async () => 99), createIngredient: jest.fn(async () => 60), updateIngredient: jest.fn(), imageUrl: (id: number) => `/odoo/web/image/product.template/${id}/image_512` }))
+jest.mock('@/lib/services/pantry', () => ({ createDish: jest.fn(async () => 99), createIngredient: jest.fn(async () => 60), updateIngredient: jest.fn(), imageUrl: (id: number) => `/experience/api/pos/v1/photos/${id}?org=null&size=dish&v=` }))
 const wrap = (ui: React.ReactElement) => render(<NextIntlClientProvider locale="es" messages={messages}>{ui}</NextIntlClientProvider>)
 
 const UNITS = [{ key: 'gram' as const, id: 15, uomName: 'g' }, { key: 'kilogram' as const, id: 16, uomName: 'kg' }]

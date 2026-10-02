@@ -106,16 +106,12 @@ LOGGING = {
 # ---------------------------------------------------------------------------
 # Bloque 3 — experiencia del comensal
 # ---------------------------------------------------------------------------
-REGISTRY_URL = os.getenv('REGISTRY_URL', 'http://192.168.56.10:8002').rstrip('/')
-REGISTRY_INTERNAL_KEY = os.getenv('REGISTRY_INTERNAL_KEY', '')
 EXPERIENCE_INTERNAL_KEY = os.getenv('EXPERIENCE_INTERNAL_KEY', '')
 MENU_CACHE_SECONDS = int(os.getenv('MENU_CACHE_SECONDS', '60'))
-# Marca del restaurante (res.company en Odoo): un cambio llega al comensal en ≤ este tiempo.
+# Marca del restaurante (tenancy.Organization): un cambio llega al comensal en ≤ este tiempo.
 BRAND_CACHE_SECONDS = int(os.getenv('BRAND_CACHE_SECONDS', '60'))
 # Plantilla del menú resuelta por sede (Plan H): un cambio desde el POS la invalida; este es el tope si nadie avisa.
 TEMPLATE_CACHE_SECONDS = int(os.getenv('TEMPLATE_CACHE_SECONDS', '60'))
-TENANT_CACHE_SECONDS = int(os.getenv('TENANT_CACHE_SECONDS', '120'))
-ODOO_TIMEOUT_SECONDS = int(os.getenv('ODOO_TIMEOUT_SECONDS', '20'))
 
 # Recuperación de cuenta: se habilita únicamente con un proveedor de correo configurado.
 DINER_EMAIL_ENABLED = os.getenv('DINER_EMAIL_ENABLED', 'false').lower() in {'1', 'true', 'yes', 'on'}
@@ -169,6 +165,3 @@ CORS_ALLOW_HEADERS = (*default_headers, 'x-waiter-org')
 
 # Fotos propias del catálogo T1.
 MEDIA_ROOT = BASE_DIR / 'media'
-
-# Organizaciones que conservan el motor anterior hasta la migración T6.
-ODOO_ORGS = os.getenv('ODOO_ORGS', 'burger-house')

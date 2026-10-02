@@ -1,13 +1,14 @@
 """Sesión de mesa, comensales y carrito con atribución por persona."""
-from experience_app.adapters.backend import backend_for, client_for
+from tenancy.http import Problem
+from experience_app.adapters.core import pos
+from experience_app.adapters.core.pos import Client
 from decimal import Decimal
 
 from django.utils import timezone
 
-from experience_app.adapters.odoo import pos
-from experience_app.adapters.odoo.client import OdooClient, OdooError
-from experience_app.adapters.odoo.pos import Product
-from experience_app.adapters.registry.client import Tenant
+from django.db import DatabaseError
+from experience_app.adapters.core.pos import Product
+from experience_app.adapters.core.context import RestaurantContext
 from experience_app.models import CartLine, Diner, Order, TableSession
 from experience_app.services import discount, rewards
 from experience_app.utils.errors import ConfirmationBusy, NotOwner
@@ -23,35 +24,47 @@ def close_paid(session: TableSession) -> None:
         session.save(update_fields=['state', 'closed_at'])
 
 
-def _settled_in_odoo(session: TableSession, tenant: Tenant) -> bool:
-    order = session.orders.filter(state__in=(Order.SENT, Order.CHECKOUT)).exclude(odoo_order_id=None).order_by('-created_at').first()
+def _finished_state(session: TableSession, tenant: RestaurantContext) -> str | None:
+    """Con qué estado termina la visita según su último pedido en el POS, o None si sigue abierta.
+
+    Pagada: el POS cobró (y, si era prepago, el salón ya sirvió). Cerrada: el POS canceló el pedido o la caja de su turno
+    ya cerró; así una mesa no queda atada a una visita de otro día ni a un pedido que ya no se puede tocar.
+    """
+    order = session.orders.exclude(odoo_order_id=None).order_by('-created_at').first()
     if order is None:
-        return False
+        return None
+    client = Client(tenant)
     try:
-        if order.requires_payment:
-            status = backend_for(tenant.restaurant_slug).read_order_status(client_for(tenant, OdooClient), order.odoo_order_id)
-            return status.state in PAID_STATES and status.kitchen == 'served'
-        return backend_for(tenant.restaurant_slug).read_order_state(client_for(tenant, OdooClient), order.odoo_order_id) in PAID_STATES
-    except OdooError:
-        return False  # sin Odoo no se cierra nada: la sesión sigue hasta poder verificar
+        status = pos.read_order_status(client, order.odoo_order_id)
+        paid = status.state in PAID_STATES
+        if paid and (not order.requires_payment or status.kitchen == 'served'):
+            return TableSession.PAID
+        placed = pos.local_order(client, order.odoo_order_id)
+    except (DatabaseError, Problem):
+        return None  # sin el sistema propio no se cierra nada: la sesión sigue hasta poder verificar
+    if status.state == 'cancel' or (placed.shift_id and placed.shift.state == 'closed'):
+        return TableSession.PAID if paid else TableSession.CLOSED
+    return None
 
 
-def _open_table_session(tenant: Tenant) -> TableSession | None:
+def _open_table_session(tenant: RestaurantContext) -> TableSession | None:
     session = TableSession.objects.filter(restaurant_slug=tenant.restaurant_slug, venue_slug=tenant.venue_slug,
                                           table_token=tenant.table_token, state__in=TableSession.OPEN_STATES).first()
-    if session is not None and _settled_in_odoo(session, tenant):
-        close_paid(session)
+    finished = session and _finished_state(session, tenant)
+    if finished:
+        session.state, session.closed_at = finished, timezone.now()
+        session.save(update_fields=['state', 'closed_at'])
         return None
     return session
 
 
-def open_session(tenant: Tenant, diner_key: str | None) -> tuple[TableSession, Diner]:
+def open_session(tenant: RestaurantContext, diner_key: str | None) -> tuple[TableSession, Diner]:
     """Mesa: todos los que tocan el NFC caen en la misma sesión abierta. Domicilio: la sesión es de quien la abre."""
     diner = Diner.objects.select_related('session').filter(key=diner_key).first() if diner_key else None
     if tenant.table_token:
         session = _open_table_session(tenant) or TableSession.objects.create(
             restaurant_slug=tenant.restaurant_slug, venue_slug=tenant.venue_slug, table_token=tenant.table_token,
-            table_number=tenant.table_number, odoo_table_id=tenant.odoo_table_id)
+            table_number=tenant.table_number, odoo_table_id=tenant.table_id)
     elif diner and diner.session.is_delivery and diner.session.state in TableSession.OPEN_STATES \
             and (diner.session.restaurant_slug, diner.session.venue_slug) == (tenant.restaurant_slug, tenant.venue_slug):
         session = diner.session
@@ -117,20 +130,20 @@ def cart_view(session: TableSession, diner: Diner, discount_percent: float = dis
     }
 
 
-# ---- Llamadas al salón: viajan por Odoo (adaptador), nunca por un canal paralelo. Un fallo de Odoo no rompe la sesión.
-def table_call(tenant: Tenant, session: TableSession, kind: str) -> bool:
+# ---- Llamadas al salón: viajan por el sistema propio (adaptador), nunca por un canal paralelo. Un fallo del sistema propio no rompe la sesión.
+def table_call(tenant: RestaurantContext, session: TableSession, kind: str) -> bool:
     if session.odoo_table_id is None:
         return False
     try:
-        backend_for(tenant.restaurant_slug).set_table_call(client_for(tenant, OdooClient), session.odoo_table_id, kind)
+        pos.set_table_call(Client(tenant), session.odoo_table_id, kind)
         return True
-    except OdooError:
+    except (DatabaseError, Problem):
         return False
 
 
 def bill_summary(session: TableSession, diner: Diner, discount_percent: float = discount.DEFAULT_PERCENT, include_open: bool = False) -> dict:
     """Todo / lo mío / dividir sobre lo ya confirmado (lo abierto aún no es cuenta). Los totales son netos: ya restan el
-    descuento que viajó a Odoo con cada línea; `descuento` dice cuánto fue (aplicado) y si aún puede aplicarse (aplicable)."""
+    descuento que viajó al sistema propio con cada línea; `descuento` dice cuánto fue (aplicado) y si aún puede aplicarse (aplicable)."""
     rewards.sync_for_diner(diner)
     lines = list(session.lines.filter(status__in=[CartLine.CONFIRMED, CartLine.OPEN] if include_open else [CartLine.CONFIRMED]).select_related('diner'))
     per: dict[str, Decimal] = {}

@@ -90,7 +90,7 @@ it('los enlaces viejos llevan al dueño a la consola y al encargado a su inicio'
   const { unmount } = render(<MovedToConsole to="/organizacion/facturacion" />)
   expect(replace).toHaveBeenLastCalledWith('/organizacion/facturacion')
   unmount()
-  useAuthStore.setState({ user: { uid: 7, name: 'Laura', companyId: 1, role: 'admin' }, employee: { id: 4, name: 'Laura', code: null, role: 'admin', shift: null, userId: 7, checkIn: '', attendanceId: 1, token: 't', sessionEnds: null } })
+  useAuthStore.setState({ user: { uid: 7, name: 'Laura', companyId: 1, role: 'admin' }, employee: { id: 4, name: 'Laura', code: null, role: 'admin', shift: null, userId: 7, checkIn: '', attendanceId: 1, sessionEnds: null } })
   render(<MovedToConsole to="/organizacion/facturacion" />)
   expect(replace).toHaveBeenLastCalledWith('/dashboard')
 })

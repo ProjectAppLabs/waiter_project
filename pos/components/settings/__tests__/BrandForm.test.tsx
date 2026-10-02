@@ -4,7 +4,7 @@ import { NextIntlClientProvider } from 'next-intl'
 import { BrandForm } from '@/components/settings/BrandForm'
 import { resizeImage } from '@/lib/domain/image'
 import messages from '@/lib/i18n/messages/es.json'
-import { OdooError } from '@/lib/services/errors'
+import { CoreError } from '@/lib/services/core/http'
 import { getBrand, getBrandLogo, saveBrand, type BrandInfo } from '@/lib/services/settings'
 
 jest.mock('@/lib/services/settings', () => ({ getBrand: jest.fn(), getBrandLogo: jest.fn(), saveBrand: jest.fn() }))
@@ -21,7 +21,7 @@ const upload = (file: File) => fireEvent.change(screen.getByLabelText('Subir log
 beforeEach(() => { mGet.mockReset().mockResolvedValue(BRAND); mLogo.mockReset().mockResolvedValue(PNG); mSave.mockReset().mockResolvedValue(undefined); mResize.mockReset() })
 afterEach(() => jest.restoreAllMocks())
 
-// Falla si el formulario no refleja lo guardado en Odoo (color, fuente, redondeo, textos, logo) o pinta el logo como PNG sin serlo.
+// Falla si el formulario no refleja lo guardado en el servidor (color, fuente, redondeo, textos, logo) o pinta el logo como PNG sin serlo.
 it('renders the saved brand, its contrast readout and the current logo', async () => {
   wrap()
   expect(await screen.findByLabelText('Código hex')).toHaveValue('#7A2E2A')
@@ -127,15 +127,15 @@ it('saves the edited fields without touching the logo and confirms', async () =>
   expect(await screen.findByRole('status')).toHaveTextContent('Guardado')
 })
 
-// Falla si el motivo que da Odoo al rechazar el guardado se pierde tras el mensaje estándar, si un AccessError (el
-// usuario no es gerente del POS) no se dice con palabras propias, o si un fallo sin mensaje de Odoo no cae en el estándar.
-it('shows the real save error from Odoo and a plain message for access errors', async () => {
+// Falla si el motivo que da el servidor al rechazar el guardado se pierde tras el mensaje estándar, si un AccessError (el
+// usuario no es gerente del POS) no se dice con palabras propias, o si un fallo sin mensaje del servidor no cae en el estándar.
+it('shows the real save error from el servidor and a plain message for access errors', async () => {
   wrap()
   await screen.findByLabelText('Código hex')
-  mSave.mockRejectedValueOnce(new OdooError('El color de acción debe ser #RRGGBB, por ejemplo #7A2E2A.', 'odoo.exceptions.ValidationError'))
+  mSave.mockRejectedValueOnce(new CoreError(400, 'validation_error', 'El color de acción debe ser #RRGGBB, por ejemplo #7A2E2A.'))
   fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
   expect(await screen.findByRole('alert')).toHaveTextContent('El color de acción debe ser #RRGGBB, por ejemplo #7A2E2A.')
-  mSave.mockRejectedValueOnce(new OdooError('You are not allowed to modify this document', 'odoo.exceptions.AccessError'))
+  mSave.mockRejectedValueOnce(new CoreError(403, 'forbidden', 'You are not allowed to modify this document'))
   fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
   expect(await screen.findByText('Solo un administrador puede cambiar la marca')).toHaveAttribute('role', 'alert')
   mSave.mockRejectedValueOnce(new Error('Network Error'))
@@ -144,7 +144,7 @@ it('shows the real save error from Odoo and a plain message for access errors', 
   expect(mGet).toHaveBeenCalledTimes(1)
 })
 
-// Falla si un Odoo sin los campos brand_* (addon sin actualizar) deja la sección en blanco en vez de avisar.
+// Falla si un el servidor sin los campos brand_* (addon sin actualizar) deja la sección en blanco en vez de avisar.
 it('shows the standard error when the brand cannot be read', async () => {
   mGet.mockRejectedValue(new Error('Invalid field brand_color'))
   wrap()

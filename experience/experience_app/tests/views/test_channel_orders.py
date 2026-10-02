@@ -3,7 +3,7 @@ from uuid import uuid4
 
 import pytest
 
-from experience_app.adapters.odoo.client import OdooUnavailable
+from django.db import OperationalError
 from experience_app.models import ChannelOrder
 from experience_app.tests.conftest import DELIVERY
 
@@ -18,7 +18,7 @@ def channel(api_client, settings):
     settings.EXPERIENCE_INTERNAL_KEY = 'channel-test-key'
     api_client.credentials(HTTP_X_INTERNAL_KEY='channel-test-key')
     with patch('experience_app.services.channel_orders.resolve', return_value=DELIVERY), \
-         patch('experience_app.services.channel_orders.OdooClient') as cls:
+         patch('experience_app.services.channel_orders.Client') as cls:
         cls.return_value.call_kw.return_value = QUOTE
         yield api_client, cls.return_value.call_kw
 
@@ -28,6 +28,7 @@ def payload():
             'lineas': [{'producto': 3, 'cantidad': 1, 'nota': ''}]}
 
 
+# Falla si una petición sin clave resuelve una sede.
 def test_authentication_is_required_before_any_resolution(api_client):
     with patch('experience_app.services.channel_orders.resolve') as resolve:
         response = api_client.post(BASE + 'pedidos/', payload(), format='json')
@@ -35,6 +36,7 @@ def test_authentication_is_required_before_any_resolution(api_client):
     resolve.assert_not_called()
 
 
+# Falla si un reintento duplica la cotización o reutiliza una clave con otro contenido.
 def test_quote_retry_and_conflicting_reuse(channel):
     client, rpc = channel
     data = payload()
@@ -50,6 +52,7 @@ def test_quote_retry_and_conflicting_reuse(channel):
     assert ChannelOrder.objects.count() == 1
 
 
+# Falla si se confirma otra cotización o se duplica el pedido al reintentar.
 def test_confirmation_requires_acceptance_of_exact_quote_and_stays_idempotent(channel):
     client, rpc = channel
     order = client.post(BASE + 'pedidos/', payload(), format='json').data
@@ -67,11 +70,12 @@ def test_confirmation_requires_acceptance_of_exact_quote_and_stays_idempotent(ch
     assert rpc.call_args.args[2][1] == order['id']
 
 
+# Falla si un timeout cambia la identidad del pedido al reintentar.
 def test_timeout_preserves_same_remote_uuid_for_retry(channel):
     client, rpc = channel
     order = client.post(BASE + 'pedidos/', payload(), format='json').data
     url = BASE + f"pedidos/{order['id']}/confirmar/"
-    rpc.side_effect = [OdooUnavailable('timeout'), RESULT]
+    rpc.side_effect = [OperationalError('timeout'), RESULT]
     body = {'confirmado': True, 'cotizacion': 'a' * 64}
     assert client.post(url, body, format='json').status_code == 503
     assert ChannelOrder.objects.get(id=order['id']).result is None
@@ -79,6 +83,7 @@ def test_timeout_preserves_same_remote_uuid_for_retry(channel):
     assert rpc.call_args_list[-1] == rpc.call_args_list[-2]
 
 
+# Falla si una sede consulta o confirma pedidos de otra.
 def test_other_venue_cannot_access_or_confirm_order(channel):
     client, rpc = channel
     order = client.post(BASE + 'pedidos/', payload(), format='json').data
@@ -89,6 +94,7 @@ def test_other_venue_cannot_access_or_confirm_order(channel):
     rpc.assert_not_called()
 
 
+# Falla si el canal acepta precios del cliente o entradas inválidas.
 @pytest.mark.parametrize('change', ['precio', 'empty', 'phone', 'quantity'])
 def test_rejects_untrusted_prices_and_invalid_input(channel, change):
     client, rpc = channel

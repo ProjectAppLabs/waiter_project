@@ -6,7 +6,7 @@ import { Icon } from '@/components/kit/Icon'
 import { formatOrderDay, formatOrderTime } from '@/components/orders/format'
 import { PrintableReceipt } from '@/components/pay/PrintableReceipt'
 import { formatCop } from '@/lib/domain/money'
-import { odooDate, type KitLine, type KitOrder } from '@/lib/domain/orderState'
+import { orderDate, type KitLine, type KitOrder } from '@/lib/domain/orderState'
 import type { ReceiptData } from '@/lib/stores/orderStore'
 
 interface Props { order: KitOrder | null; lines: KitLine[]; company: string }
@@ -29,7 +29,7 @@ export function BillInfo({ order, lines, company }: Props) {
   }
   const subtotal = order.total - order.tax
   const receipt: ReceiptData = {
-    company, tableNumber: order.tableNumber ?? 0, reference: order.number, at: odooDate(order.startedAt).getTime(),
+    company, tableNumber: order.tableNumber ?? 0, reference: order.number, at: orderDate(order.startedAt).getTime(),
     lines: lines.map((l) => ({ uuid: l.uuid, name: l.name, qty: l.qty, unitPrice: l.unitPrice, total: l.total })),
     subtotal, tax: order.tax, tip: 0, total: order.total, payments: [], change: 0,
   }

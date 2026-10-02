@@ -21,7 +21,6 @@ interface NotificationState {
   unread: () => number
 }
 
-// Todo el estado vive en Odoo (`waiter.notification`): leído y "ya solicitado" son campos del modelo.
 export const useNotificationStore = create<NotificationState>((set, get) => ({
   items: [],
   kitchenPing: 0,

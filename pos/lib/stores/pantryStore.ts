@@ -22,8 +22,6 @@ interface PantryState {
   refresh: () => Promise<void>
 }
 
-// Pestaña Inventario del kit: una carga trae los catálogos (unidades, categorías del POS, proveedores) y las tres
-// listas del addon; los filtros viven aquí para que no se pierdan al cambiar de pestaña.
 export const usePantryStore = create<PantryState>((set) => ({
   tab: 'menu', loading: false, error: null,
   dishes: [], ingredients: [], requests: [], units: [], posCategories: [], suppliers: [],

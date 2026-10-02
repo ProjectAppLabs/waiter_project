@@ -9,7 +9,7 @@ const order = (patch: Partial<KitOrder> = {}): KitOrder => ({
   id: 7, number: 'DI007', type: 'dine_in', state: 'draft', tableId: 4, tableNumber: 3, customer: 'Eva', startedAt: '2026-09-06 20:00:00', total: 0, tax: 0, lines: [], courses: [], ...patch,
 })
 
-// Falla si el tipo no sale del preset de Odoo o si un pedido viejo sin preset y con mesa deja de ser "en mesa".
+// Falla si el tipo no sale del preset del servidor o si un pedido viejo sin preset y con mesa deja de ser "en mesa".
 it('derives the order type from the preset and falls back to the table', () => {
   expect(orderTypeOf('table', true)).toBe('dine_in')
   expect(orderTypeOf('counter', false)).toBe('takeout')
@@ -23,8 +23,8 @@ it('builds DI001-style numbers and picks the customer name', () => {
   expect(orderNumber('dine_in', '7')).toBe('DI007')
   expect(orderNumber('takeout', 112)).toBe('TA112')
   expect(orderNumber('delivery', 'x')).toBe('DE000')
-  expect(customerName('Eva', [5, 'Cliente Odoo'])).toBe('Eva')
-  expect(customerName(false, [5, 'Cliente Odoo'])).toBe('Cliente Odoo')
+  expect(customerName('Eva', [5, 'Cliente el servidor'])).toBe('Eva')
+  expect(customerName(false, [5, 'Cliente el servidor'])).toBe('Cliente el servidor')
   expect(customerName('  ', false)).toBe('')
 })
 
@@ -95,7 +95,7 @@ it('sorts by latest, oldest and type; filters history by type', () => {
 })
 
 // Falla si el IVA del 19 % no incluido se suma mal o si un impuesto incluido en el precio se cobra dos veces.
-it('computes cart totals with real Odoo tax rates and greets by hour', () => {
+it('computes cart totals with real el servidor tax rates and greets by hour', () => {
   const taxes = [{ id: 55, amount: 19, priceInclude: false }, { id: 9, amount: 19, priceInclude: true }]
   expect(cartTotals([{ unitPrice: 36900, qty: 2, taxIds: [55] }], taxes)).toEqual({ subtotal: 73800, tax: 14022, total: 87822 })
   expect(cartTotals([{ unitPrice: 11900, qty: 1, taxIds: [9] }], taxes)).toEqual({ subtotal: 10000, tax: 1900, total: 11900 })
@@ -104,6 +104,7 @@ it('computes cart totals with real Odoo tax rates and greets by hour', () => {
   expect(greetingFor(21)).toBe('evening')
 })
 
+// Falla si se impide cancelar antes de preparar o se permite después.
 it('allows cancellation after receipt until preparation starts', () => {
   const o = order({ courses: [course(1, { preparationAt: null })], lines: [line(1, 1)] })
   expect(lineGroup(o, o.lines[0])).toBe('waiting')
@@ -111,7 +112,7 @@ it('allows cancellation after receipt until preparation starts', () => {
   expect(lineGroup(o, o.lines[0])).toBe('in_progress')
 })
 
-
+// Falla si guardar un pedido se confunde con enviarlo a cocina.
 it('distinguishes a saved order from an actual kitchen dispatch', () => {
   expect(orderStatus(order(), false)).toBe('pending_send')
   expect(orderStatus(order({ courses: [course(1, { fired: false })], lines: [line(1, 1)] }), false)).toBe('pending_send')

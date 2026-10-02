@@ -1,12 +1,8 @@
 import { uuid } from '@/lib/domain/uuid'
 import type { Product } from '@/lib/types'
 
-// Wizard "Create New Order" del kit: tipo de pedido (pos.preset de Odoo), datos del cliente, mesa, carrito con
-// adiciones y resumen. Reglas puras; el store y los componentes solo las llaman.
 export type OrderType = 'dineIn' | 'takeAway' | 'delivery'
 export const ORDER_TYPES: OrderType[] = ['dineIn', 'takeAway', 'delivery']
-// Presets sembrados en Odoo 19: 1 Dine In (mesa), 2 Takeout (mostrador), 3 Delivery (domicilio).
-export const PRESET_ID: Record<OrderType, number> = { dineIn: 1, takeAway: 2, delivery: 3 }
 export const TYPE_PREFIX: Record<OrderType, string> = { dineIn: 'DI', takeAway: 'TA', delivery: 'DE' }
 
 export type WizardStep = 'customer' | 'table' | 'menu' | 'summary' | 'payment'
@@ -68,7 +64,6 @@ export const lineUnitPrice = (line: CartLine) => line.unitPrice + extrasOf(line)
 export const lineSubtotal = (line: CartLine) => lineUnitPrice(line) * line.qty
 export const itemCount = (lines: CartLine[]) => lines.reduce((a, l) => a + l.qty, 0)
 export const additionNames = (line: CartLine) => line.options.map((o) => o.name).join(', ')
-// Nombre que Odoo guarda en full_product_name: "Hamburguesa Angus (BBQ)".
 export const fullProductName = (line: CartLine) => (line.options.length ? `${line.name} (${additionNames(line)})` : line.name)
 
 // Impuestos reales de account.tax (porcentaje o fijo, incluido o no en el precio). Sin "12 %" inventado.
@@ -101,7 +96,7 @@ export function cartTotals(lines: CartLine[], taxes: TaxRate[]): CartTotals {
   return { subtotal: Math.round(subtotal), tax: Math.round(tax), total: Math.round(subtotal + tax), taxNames: names }
 }
 
-// Silla de bebé y datos de domicilio viajan en general_customer_note hasta que exista el campo en projectapp_ops.
+// La nota del pedido incluye silla de bebé y datos de domicilio para cocina.
 export function orderNote(info: CustomerInfo, labels: { babyChair: string; delivery: (address: string, phone: string) => string }): string {
   const parts: string[] = []
   if (info.babyChair) parts.push(labels.babyChair)
@@ -109,42 +104,16 @@ export function orderNote(info: CustomerInfo, labels: { babyChair: string; deliv
   return parts.join(' ')
 }
 
-type LineCommand = [0, 0, Record<string, unknown>]
 export interface KitOrderPayload {
-  id: number; uuid: string; session_id: number; table_id: number | false; preset_id: number; floating_order_name: string; customer_count: number
-  sequence_number: number; state: 'draft'; general_customer_note: string; amount_total: number; amount_tax: number; amount_paid: number; amount_return: number
-  date_order: string; lines: LineCommand[]
+  uuid: string; type: OrderType; tableId: number | null; name: string; people: number; note: string
 }
 
-const nowForOdoo = () => new Date().toISOString().slice(0, 19).replace('T', ' ')
 
-const attributeExtras = (line: CartLine) => line.options.filter((o) => o.kind === 'attribute').reduce((a, o) => a + o.priceExtra, 0)
-// Las opciones de combo son líneas hijas en Odoo (combo_item_id); el uuid deriva del padre para enlazarlas al crear.
-export const comboChildUuid = (parentUuid: string, itemId: number) => `${parentUuid}-c${itemId}`
-
-// Payload de sync_from_ui: preset, nombre libre, comensales y mesa cuando aplica. Las adiciones por atributo van en
-// attribute_value_ids y en price_unit (Odoo respeta ese precio al recalcular cuando los valores están enlazados).
-export function toKitPayload(args: { uuid: string; sessionId: number; tableId: number | null; info: CustomerInfo; note: string; lines: CartLine[] }): KitOrderPayload {
-  const { info } = args
-  return {
-    id: -1, uuid: args.uuid, session_id: args.sessionId, table_id: info.type === 'dineIn' && args.tableId ? args.tableId : false,
-    preset_id: PRESET_ID[info.type], floating_order_name: info.name.trim(), customer_count: info.people, sequence_number: 1, state: 'draft',
-    general_customer_note: args.note, amount_total: 0, amount_tax: 0, amount_paid: 0, amount_return: 0, date_order: nowForOdoo(),
-    lines: args.lines.flatMap((l): LineCommand[] => [
-      [0, 0, {
-        id: -1, uuid: l.uuid, product_id: l.productId, qty: l.qty, price_unit: l.unitPrice + attributeExtras(l), price_extra: attributeExtras(l),
-        attribute_value_ids: [[6, 0, l.options.filter((o) => o.kind === 'attribute').map((o) => o.id)]],
-        tax_ids: [[6, 0, l.taxIds]], price_subtotal: 0, price_subtotal_incl: 0, full_product_name: fullProductName(l), customer_note: l.note,
-      }],
-      ...l.options.filter((o) => o.kind === 'combo' && o.productId !== null).map((o): LineCommand => [0, 0, {
-        id: -1, uuid: comboChildUuid(l.uuid, o.id), product_id: o.productId, qty: l.qty, price_unit: o.priceExtra, price_extra: 0, combo_item_id: o.id,
-        attribute_value_ids: [[6, 0, []]], tax_ids: [[6, 0, o.taxIds]], price_subtotal: 0, price_subtotal_incl: 0, full_product_name: o.name, customer_note: '',
-      }]),
-    ]),
-  }
+export function toKitPayload(args: { uuid: string; tableId: number | null; info: CustomerInfo; note: string }): KitOrderPayload {
+  return { uuid: args.uuid, type: args.info.type, tableId: args.info.type === 'dineIn' ? args.tableId : null,
+    name: args.info.name.trim(), people: args.info.people, note: args.note }
 }
 
-// "#DI001": prefijo por tipo + tracking_number de Odoo a tres cifras. Solo presentación hasta que el addon fije el prefijo.
 export function displayReference(type: OrderType, trackingNumber: string | number): string {
   const digits = String(trackingNumber).replace(/\D/g, '') || '0'
   return `${TYPE_PREFIX[type]}${digits.padStart(3, '0')}`

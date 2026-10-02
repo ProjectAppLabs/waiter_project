@@ -7,7 +7,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction, IntegrityError
 from django.db.models import F
 
-from experience_app.adapters.odoo.client import OdooClient, OdooCredentials, OdooError
+from tenancy.odoo_migration.client import OdooClient, OdooCredentials, OdooError
 from tenancy.http import Problem
 from tenancy.models import Organization, LegacySource
 from tenancy.odoo_migration.base import ImportBase

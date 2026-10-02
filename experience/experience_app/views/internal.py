@@ -1,4 +1,4 @@
-"""Rutas internas (X-Internal-Key): las llaman el registro, el addon de Odoo y los scripts, nunca el comensal."""
+"""Rutas internas (X-Internal-Key): para integraciones autorizadas, nunca para el comensal."""
 import hmac
 
 from django.conf import settings
@@ -21,7 +21,7 @@ def invalidate_menu(request, restaurant, venue):
     if not key_is_valid(request):
         return Response(INVALID_KEY, status=401)
     catalog.invalidate(restaurant, venue)
-    # La marca y la plantilla caen con la carta: quien avisa "algo cambió en Odoo" no tiene que distinguir qué.
+    # La marca y la plantilla caen con la carta: quien avisa "algo cambió en el sistema propio" no tiene que distinguir qué.
     brand.invalidate(restaurant, venue)
     templates.invalidate(restaurant, venue)
     return Response({'invalidada': f'{restaurant}/{venue}'})

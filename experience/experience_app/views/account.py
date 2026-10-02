@@ -107,7 +107,7 @@ def logout(request):
 
 @api_view(['GET', 'PUT', 'DELETE'])
 def favorites(request, restaurant, venue, product_id=None):
-    from experience_app.adapters.registry.client import resolve
+    from experience_app.adapters.core.pos import resolve
     from experience_app.services import catalog
     from experience_app.models import DinerFavorite
 

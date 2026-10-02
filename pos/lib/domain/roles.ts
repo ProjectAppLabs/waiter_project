@@ -5,11 +5,6 @@ import { pathAllowed } from '@/lib/domain/navigation'
 export const NAV_ITEMS = ['operation', 'sales', 'catalog', 'inventory', 'customers', 'automation', 'billing', 'settings'] as const
 export type NavItem = (typeof NAV_ITEMS)[number]
 
-// Roles del restaurante más el dueño de la organización (plan O). El rol vive en Odoo (res.users.waiter_role y
-// hr.employee.waiter_role) y ahí se sincroniza con los grupos. `admin` se muestra como «Encargado»: opera uno o varios
-// restaurantes; el dueño tiene además la consola de la organización.
-// `Role` es el rol dentro de un restaurante (lo que miran permisos y pantallas); `AccountRole` es lo guardado en la
-// cuenta o el empleado, que además puede ser dueño.
 export type Role = 'waiter' | 'cashier' | 'admin'
 export type AccountRole = Role | 'owner'
 // Los que se asignan dentro de un restaurante (listas de invitar y cambiar rol).

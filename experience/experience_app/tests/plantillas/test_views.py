@@ -26,6 +26,7 @@ def test_public_catalog_is_cacheable_and_carries_thumbnails(api_client):
     assert 'resumen' not in body['plantillas'][0]['pantallas']['carrito']
 
 
+# Falla si ocurre este error: una miniatura sin caché inmutable, mal tipada, o una ruta que lea fuera de la carpeta de miniaturas.
 def test_thumbnail_is_a_png_with_long_cache_and_404_when_missing(api_client):
     """Atrapa una miniatura sin caché inmutable, mal tipada, o una ruta que lea fuera de la carpeta de miniaturas."""
     response = api_client.get(reverse('template-thumbnail', args=['B1']))
@@ -37,9 +38,10 @@ def test_thumbnail_is_a_png_with_long_cache_and_404_when_missing(api_client):
     assert api_client.get('/api/v1/plantillas/../miniatura/').status_code == 404
 
 
+# Falla si ocurre este error: ajustes de sede legibles o escribibles sin la clave interna (las integraciones requieren autenticación interna).
 @pytest.mark.django_db
 def test_internal_settings_require_the_key(api_client, settings):
-    """Atrapa ajustes de sede legibles o escribibles sin la clave interna (el POS pasa por el addon, nunca directo)."""
+    """Atrapa ajustes de sede legibles o escribibles sin la clave interna (las integraciones requieren autenticación interna)."""
     settings.EXPERIENCE_INTERNAL_KEY = 'k'
     assert api_client.get(SETTINGS).status_code == 401
     assert api_client.put(SETTINGS, {'plantilla': 'A1'}, format='json', HTTP_X_INTERNAL_KEY='nope').status_code == 401
@@ -87,6 +89,7 @@ def test_entry_context_carries_the_resolved_template(api_client, table_tenant, c
     assert plantilla['descuento'] == {'porcentaje': 5.0, 'activo': True}  # pos.config no lo fijó: el 5 % del diseño
 
 
+# Falla si una clave interna no ASCII provoca un error del servidor en lugar de rechazo.
 @pytest.mark.django_db
 def test_non_ascii_internal_key_is_unauthorized_not_server_error(api_client, settings):
     settings.EXPERIENCE_INTERNAL_KEY = 'secret'

@@ -11,7 +11,7 @@ from decimal import Decimal
 
 from django.core.management.base import BaseCommand, CommandError
 
-from experience_app.adapters.odoo.client import OdooClient, OdooCredentials
+from tenancy.odoo_migration.client import OdooClient, OdooCredentials
 from tenancy.models import LegacyMap, Organization
 
 MONEY = Decimal('0.01')

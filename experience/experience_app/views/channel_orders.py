@@ -1,5 +1,6 @@
 """API exclusiva para el backend del canal; nunca entregar la clave interna al navegador o al modelo."""
-from experience_app.adapters.backend import backend_for, client_for
+from experience_app.adapters.core import pos
+from experience_app.adapters.core.pos import Client
 from functools import wraps
 
 from django.shortcuts import get_object_or_404
@@ -7,9 +8,8 @@ from rest_framework import serializers
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from experience_app.adapters.odoo import pos
-from experience_app.adapters.odoo.client import OdooClient, OdooError, OdooUnavailable
-from experience_app.adapters.registry.client import resolve
+from django.db import OperationalError
+from experience_app.adapters.core.pos import resolve
 from experience_app.models import ChannelOrder
 from experience_app.services import channel_orders
 from experience_app.views.internal import INVALID_KEY, key_is_valid
@@ -50,15 +50,10 @@ def internal_endpoint(fn):
         if not key_is_valid(request):
             return Response(INVALID_KEY, status=401)
         try:
-            if hasattr(backend_for(kwargs.get('restaurant', '')), 'Client'):
-                resolve(kwargs['restaurant'], kwargs['venue'])
+            resolve(kwargs['restaurant'], kwargs['venue'])
             return fn(request, *args, **kwargs)
-        except OdooUnavailable:
+        except OperationalError:
             return Response({'detail': 'El POS no responde. Conserva la referencia y reintenta.'}, status=503)
-        except OdooError as exc:
-            if exc.data.get('name') in {'odoo.exceptions.UserError', 'odoo.exceptions.ValidationError'}:
-                return Response({'detail': str(exc)}, status=409)
-            return Response({'detail': 'No se pudo procesar el pedido en el POS.'}, status=502)
     return wrapped
 
 
@@ -66,12 +61,12 @@ def internal_endpoint(fn):
 @internal_endpoint
 def menu(request, restaurant, venue):
     tenant = resolve(restaurant, venue)
-    client = client_for(tenant, OdooClient)
+    client = Client(tenant)
     sessions = client.call_kw('pos.session', 'search_read', [
         [['config_id', '=', tenant.config_id], ['state', '=', 'opened']], ['id']], {'limit': 1})
     if not sessions:
         return Response({'detail': 'Abre la caja del POS para recibir pedidos de WhatsApp.'}, status=409)
-    catalog = backend_for(tenant.restaurant_slug).load_catalog(client, sessions[0]['id'])
+    catalog = pos.load_catalog(client, sessions[0]['id'])
     return Response({'productos': [{'id': p.id, 'nombre': p.name, 'precio_orientativo': p.final_price,
                                    'agotado': p.sold_out, 'descripcion': p.description,
                                    'ingredientes': p.attributes.get('ingredientes', [])} for p in catalog.products],

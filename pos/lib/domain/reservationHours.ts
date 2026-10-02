@@ -2,7 +2,7 @@ import { hourLabel } from '@/lib/domain/reservations'
 
 // Horario de reservas, al estilo cal.com: cada día de la semana tiene cero o más franjas (cero = cerrado) y una fecha
 // especial reemplaza por completo al día que le tocaría. Las horas van en horas decimales (12.5 = 12:30), en medias
-// horas. El servidor (projectapp_reservations, `clean_schedule`) valida lo mismo: aquí se valida para avisar antes.
+// horas. El servidor  valida lo mismo: aquí se valida para avisar antes.
 export { hourLabel }
 export type Range = [number, number]
 export type DayKey = '0' | '1' | '2' | '3' | '4' | '5' | '6' // 0 = lunes … 6 = domingo

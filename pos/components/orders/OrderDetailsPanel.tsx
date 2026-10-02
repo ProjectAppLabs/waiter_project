@@ -1,5 +1,7 @@
 'use client'
 
+import { imageUrl } from '@/lib/services/pantry'
+
 import { useTranslations } from 'next-intl'
 
 import { Icon } from '@/components/kit/Icon'
@@ -36,7 +38,7 @@ export function OrderDetailsPanel({ lines, totals, busy = false, onReset, onQty,
                   <div className="flex items-start gap-3">
                     <span className="w-[68px] h-[52px] rounded-md bg-muted overflow-hidden grid place-items-center text-dim shrink-0">
                       {line.hasImage
-                        ? <img src={`/odoo/web/image/product.template/${line.templateId}/image_512`} alt={t('photo', { name: line.name })} className="w-full h-full object-cover" />
+                        ? <img src={imageUrl(line.templateId)} alt={t('photo', { name: line.name })} className="w-full h-full object-cover" />
                         : <Icon name="photo" size={20} />}
                     </span>
                     <div className="flex-1 min-w-0">

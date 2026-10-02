@@ -23,8 +23,8 @@ it('paints available and unavailable tables with the kit colors, code and state 
   expect(busy).toHaveTextContent('En progreso')
 })
 
-// Falla si la mesa se pinta fuera de su posición de Odoo o si la seleccionada pierde el halo del kit.
-it('places each table at its Odoo position and marks the selected one', async () => {
+// Falla si la mesa se pinta fuera de su posición del servidor o si la seleccionada pierde el halo del kit.
+it('places each table at its el servidor position and marks the selected one', async () => {
   const onSelect = jest.fn()
   wrap(<FloorPlan views={[view(1, 'free'), view(2, 'served', 9)]} selectedId={2} onSelect={onSelect} />)
   expect(screen.getByRole('button', { name: 'Mesa 1: Disponible' }).parentElement).toHaveStyle({ left: '150px', top: '40px', width: '110px' })
@@ -40,6 +40,7 @@ it('only lets available tables be picked while choosing a destination', () => {
   expect(screen.getByRole('button', { name: 'Mesa 2: Sin enviar a cocina' })).toBeDisabled()
 })
 
+// Falla si un piso sin mesas deja de mostrar su estado vacío.
 it('shows the kit empty state when the floor has no tables', () => {
   wrap(<FloorPlan views={[]} selectedId={null} onSelect={() => undefined} />)
   expect(screen.getByText('Este piso no tiene mesas')).toBeInTheDocument()
@@ -56,14 +57,14 @@ it('paints a free table with a booking as reserved, with the hour of the kit', (
   expect(table).toBeDisabled()
 })
 
-
+// Falla si un pedido guardado sin enviar aparece como enviado a cocina.
 it('labels an occupied table without kitchen dispatch as unsent', () => {
   wrap(<FloorPlan views={[view(2, 'occupied', 9)]} selectedId={null} onSelect={() => undefined} />)
   expect(screen.getByRole('button', { name: 'Mesa 2: Sin enviar a cocina' })).toBeEnabled()
   expect(screen.queryByText('En progreso')).not.toBeInTheDocument()
 })
 
-
+// Falla si el doble clic no abre el detalle o desaparecen avisos simultáneos.
 it('opens the table detail on double click and exposes simultaneous service notices', async () => {
   const onOpenTable = jest.fn()
   wrap(<FloorPlan views={[{ ...view(2, 'assist', 9), notices: ['ready', 'unsent', 'assist'] }]} selectedId={null} onSelect={jest.fn()} onOpenTable={onOpenTable} />)

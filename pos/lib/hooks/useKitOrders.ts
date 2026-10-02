@@ -17,13 +17,8 @@ import { useOrderStore } from '@/lib/stores/orderStore'
 const POLL_MS = 10_000
 const POLL_WITH_BUS_MS = 60_000
 
-// Lo último que se leyó, por turno. Vive fuera del componente para que cambiar de pantalla no lo pierda: al volver, la
-// vista se pinta al instante con esto y se refresca detrás (antes arrancaba vacía y esperaba a Odoo).
-// Va ligado al turno: un turno nuevo (otra sesión) nunca ve los pedidos del anterior.
 let last: { sessionId: number; orders: KitOrder[] } | null = null
 
-// Pedidos abiertos del turno en el lenguaje del kit, sondeados cada 10 s. "Esperando pago" sale de la bandera local
-// `billing` del orderStore o de que el comensal pidiera la cuenta desde su móvil (llamada de mesa en Odoo).
 export function useKitOrders() {
   const session = useAuthStore((s) => s.session)
   const catalog = useCatalogStore((s) => s.catalog)

@@ -20,12 +20,13 @@ def selection(api_client, two_diners, catalog_stub):
     api_client.cookies['waiter_diner'] = ana.key
     with patch('experience_app.services.agent_cart.resolve', return_value=TABLE), \
          patch('experience_app.views.sessions.discount_percent', return_value=0), \
-         patch('experience_app.services.agent_cart.OdooClient') as client:
+         patch('experience_app.services.agent_cart.Client') as client:
         client.return_value.call_kw.return_value = [ROW]
         yield f'/api/v1/sesiones/{session.id}/asistente/agregar/', {
             'mensaje': str(message), 'producto': 3, 'cantidad': 2, 'nota': 'Sin cebolla'}, beto, client
 
 
+# Falla si el asistente duplica una adición o usa precios ajenos al catálogo.
 def test_adds_real_price_once_and_returns_cart(selection, api_client):
     url, body, _, client = selection
     response = api_client.post(url, body, format='json')
@@ -43,6 +44,7 @@ def test_adds_real_price_once_and_returns_cart(selection, api_client):
     assert CartLine.objects.count() == 0  # a retry after removal never resurrects the line
 
 
+# Falla si otra persona puede usar una recomendación privada.
 def test_other_diner_cannot_use_recommendation(selection, api_client):
     url, body, beto, _ = selection
     api_client.cookies['waiter_diner'] = beto.key
@@ -52,6 +54,7 @@ def test_other_diner_cannot_use_recommendation(selection, api_client):
     assert api_client.post(url, body, format='json').status_code == 404
 
 
+# Falla si el asistente agrega platos inactivos, agotados o con opciones pendientes.
 @pytest.mark.parametrize('patch_row', [{'attribute_line_ids': [1]}, {'type': 'combo'},
     {'is_storable': True, 'qty_available': 1}, {'active': False}])
 def test_rejects_options_sold_out_and_inactive(selection, api_client, patch_row):
@@ -62,6 +65,7 @@ def test_rejects_options_sold_out_and_inactive(selection, api_client, patch_row)
     assert not AgentCartSelection.objects.exists()
 
 
+# Falla si el navegador puede imponer precios o productos no recomendados.
 def test_cannot_supply_prices_or_unrecommended_products(selection, api_client):
     url, body, _, _ = selection
     for change in [{'precio': 0}, {'producto': 7}, {'cantidad': 0}, {'mensaje': str(uuid4())}]:

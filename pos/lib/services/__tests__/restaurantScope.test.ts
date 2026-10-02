@@ -1,30 +1,22 @@
-import { currentConfigId, inRestaurant } from '@/lib/services/odoo'
+import { currentRestaurantId } from '@/lib/services/core/catalogBridge'
 import { useAuthStore } from '@/lib/stores/authStore'
-
-afterEach(() => useAuthStore.setState({ session: null, restaurant: null }))
-
-// Falla si las lecturas del POS dejan de limitarse al restaurante en uso (el dueño ve toda la empresa) o si, sin caja
-// abierta, no se usa el restaurante del dispositivo (plan O).
-it('filtra por el restaurante de la caja o, sin caja, por el del dispositivo', () => {
-  expect(currentConfigId()).toBeNull()
-  expect(inRestaurant([['state', '=', 'paid']])).toEqual([['state', '=', 'paid']])
-  useAuthStore.setState({ restaurant: { id: 2, name: 'Laureles' } })
-  expect(inRestaurant([['state', '=', 'paid']])).toEqual([['state', '=', 'paid'], ['config_id', '=', 2]])
-  useAuthStore.setState({ session: { id: 9, configId: 3, state: 'opened' } })
-  expect(currentConfigId()).toBe(3)
-  expect(inRestaurant([], 'config_ids')).toEqual([['config_ids', '=', 3]])
+import { adminCall } from '@/lib/services/core/admin'
+import { coreFetch } from '@/lib/services/core/http'
+jest.mock('@/lib/services/core/http', () => ({ coreFetch: jest.fn() }))
+beforeEach(() => { jest.clearAllMocks(); useAuthStore.setState({ restaurant: null, restaurants: null, session: null }) })
+// Falla si se pierde la prioridad de la caja, el dispositivo y la primera sede disponible.
+it('resuelve el restaurante de trabajo', () => {
+ expect(currentRestaurantId()).toBeNull()
+ useAuthStore.setState({ restaurants: [{ id: 1, name: 'Primero' }] as never })
+ expect(currentRestaurantId()).toBe(1)
+ useAuthStore.setState({ restaurant: { id: 2, name: 'Laureles' } })
+ expect(currentRestaurantId()).toBe(2)
+ useAuthStore.setState({ session: { id: 9, configId: 3, state: 'opened' } })
+ expect(currentRestaurantId()).toBe(3)
 })
-
-// Falla si las pasarelas de administración del addon dejan de recibir el restaurante en uso (con varios, el addon
-// rechaza la operación ambigua) o si se le añade a otras rutas.
-it('manda el restaurante en uso a las pasarelas /waiter/admin', async () => {
-  const { http, jsonRpc } = jest.requireActual<typeof import('@/lib/services/odoo')>('@/lib/services/odoo')
-  const post = jest.spyOn(http, 'post').mockResolvedValue({ data: { jsonrpc: '2.0', id: 1, result: { ok: true } } })
-  useAuthStore.setState({ restaurant: { id: 2, name: 'Laureles' } })
-  await jsonRpc('/waiter/admin/menu_settings', { action: 'get' })
-  expect(post.mock.calls[0][1]).toMatchObject({ params: { action: 'get', config_id: 2 } })
-  await jsonRpc('/web/session/get_session_info', {})
-  expect(post.mock.calls[1][1]).toMatchObject({ params: {} })
-  expect((post.mock.calls[1][1] as { params: Record<string, unknown> }).params).not.toHaveProperty('config_id')
-  post.mockRestore()
+// Falla si la administración deja de enviar la sede seleccionada en su petición.
+it('envía la sede a la administración del menú', async () => {
+ useAuthStore.setState({ restaurant: { id: 2, name: 'Laureles' } })
+ await adminCall('menu_settings', { action: 'get' })
+ expect(coreFetch).toHaveBeenCalledWith('admin/menu_settings', { method: 'POST', body: { action: 'get', restaurant_id: 2 } })
 })

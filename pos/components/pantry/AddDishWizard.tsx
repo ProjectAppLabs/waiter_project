@@ -14,8 +14,6 @@ import { toast } from '@/lib/stores/toastStore'
 interface Line { ingredientId: number | null; qty: string; uomId: number | null }
 const emptyLine = (): Line => ({ ingredientId: null, qty: '', uomId: null })
 
-// "Add New Dish" del kit en dos pasos: datos del plato y filas de ingredientes. Al enviar llama a
-// `waiter_create_dish` del addon, que crea el producto del POS y su receta.
 export function AddDishWizard({ open, onClose, categories, ingredients, units, onSaved }: {
   open: boolean; onClose: () => void; categories: AdminCategory[]; ingredients: Ingredient[]; units: KitUnit[]; onSaved: () => Promise<void>
 }) {
@@ -41,7 +39,6 @@ export function AddDishWizard({ open, onClose, categories, ingredients, units, o
     setError(null); setStep(1)
   }
   const patch = (i: number, p: Partial<Line>) => setLines((ls) => ls.map((l, j) => (j === i ? { ...l, ...p } : l)))
-  // Al elegir el ingrediente se propone su unidad de Odoo, si es una de las seis del kit.
   const pickIngredient = (i: number, ingredientId: number | null) => {
     const ing = ingredients.find((x) => x.id === ingredientId)
     patch(i, { ingredientId, uomId: units.find((u) => u.id === ing?.uomId)?.id ?? null })

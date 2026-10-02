@@ -1,24 +1,26 @@
 'use client'
 
-import { useRouter, useSearchParams } from 'next/navigation'
+import { imageUrl } from '@/lib/services/pantry'
+
 import { useTranslations } from 'next-intl'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 
-import { PageTitle } from '@/components/ui/PageHeader'
-import { Button } from '@/components/ui/Button'
 import { Icon } from '@/components/kit/Icon'
-import { cn } from '@/lib/utils'
 import { ChangeTableModal } from '@/components/tables/ChangeTableModal'
 import { FloorEditor } from '@/components/tables/FloorEditor'
-import type { FloorDocument } from '@/lib/domain/floorPlan'
-import { deleteFloor, readPlan, floorBackgroundUrl } from '@/lib/services/floorPlan'
 import { FloorSwitcher, SelectedTableBar, TableLegend } from '@/components/tables/FloorHeader'
+import { FloorPane } from '@/components/tables/FloorPane'
+import { FloorSettingsPopover } from '@/components/tables/FloorSettingsPopover'
+import { FloorSkeleton } from '@/components/tables/FloorSkeleton'
 import { ServiceSidebar } from '@/components/tables/ServiceSidebar'
+import { Button } from '@/components/ui/Button'
+import { PageTitle } from '@/components/ui/PageHeader'
+import type { FloorDocument } from '@/lib/domain/floorPlan'
 import { useKitOrders } from '@/lib/hooks/useKitOrders'
 import { useOrderLocations } from '@/lib/hooks/useOrderLocations'
-import { FloorPane } from '@/components/tables/FloorPane'
-import { FloorSkeleton } from '@/components/tables/FloorSkeleton'
-import { FloorSettingsPopover } from '@/components/tables/FloorSettingsPopover'
+import { deleteFloor, floorBackgroundUrl, readPlan } from '@/lib/services/floorPlan'
+import { cn } from '@/lib/utils'
 
 import { PickTablePrompt } from '@/components/tables/PickTablePrompt'
 import { ReservationDetailModal } from '@/components/tables/ReservationDetailModal'
@@ -38,12 +40,10 @@ import { useFloorStore } from '@/lib/stores/floorStore'
 import { useOrderStore } from '@/lib/stores/orderStore'
 import { toast } from '@/lib/stores/toastStore'
 
-
 type Sheet = null | 'reservations' | 'detail' | 'wizard'
 // Las demás pantallas mandan aquí con ?elegir=mesa cuando se pulsa "Crear pedido" sin mesa elegida.
 const PICK_TABLE = 'elegir'
 
-// Fecha de hoy en la zona del dispositivo: es la que el addon usa para "la próxima reserva" de cada mesa.
 const today = (): string => new Date().toLocaleDateString('en-CA')
 const EMPTY_RESERVED: Record<number, TableReservation | null> = {}
 
@@ -134,7 +134,7 @@ export default function SalonPage() {
   const selected = views.find((v) => v.table.id === selectedTableId) ?? null
   const floor = catalog?.floors.find((f) => f.id === floorId) ?? null
   const secondFloor = catalog?.floors.find((f) => f.id === secondId) ?? null
-  const imageFor = useCallback((productId: number) => { const p = catalog?.products.find((x) => x.id === productId); return p?.hasImage ? `/odoo/web/image/product.template/${p.templateId}/image_512` : null }, [catalog])
+  const imageFor = useCallback((productId: number) => { const p = catalog?.products.find((x) => x.id === productId); return p?.hasImage ? imageUrl(p.templateId) : null }, [catalog])
   const codeFor = useCallback((v: (typeof views)[number]) => { const o = openOrders.find((x) => x.id === v.orderId); return o ? orderCode('DI', o.tracking, o.id) : null }, [openOrders])
 
   function onSelect(id: number) {
@@ -164,8 +164,6 @@ export default function SalonPage() {
     if (session) { toast({ title: 'Cierra la caja para crear un piso.', tone: 'danger' }); return }
     setSettings(false); setEditing({id:null,name:'Nuevo piso',revision:0,tables:[],walls:[],zones:[]})
   }
-  // Odoo se niega a tocar un piso con la caja abierta (obligaría a recalcular el turno en marcha): se explica
-  // en una nota, no en una pantalla de error.
   async function toggleFloor(f: FloorSetting, active: boolean) {
     try {
       await setFloorActive(f.id, active)
@@ -185,14 +183,12 @@ export default function SalonPage() {
       if (activeFloorId === f.id) setFloor(catalog!.floors.find((x) => x.id !== f.id)?.id ?? f.id)
       await refreshFloors()
       await reload()
-      toast({ title: t(result === 'archived' ? 'floorSettings.deletedArchived' : result === 'detached' ? 'floorSettings.deletedDetached' : 'floorSettings.deleted') })
+      toast({ title: t(result === 'archived' ? 'floorSettings.deletedArchived' : 'floorSettings.deleted') })
     } catch (e) {
       toast({ title: t('floorSettings.deleteFailed'), body: e instanceof Error ? e.message : '', tone: 'danger' })
     }
   }
 
-  // Entregar desde la mesa: lo mismo que marcarlo en Pedidos, guardado en Odoo. Uno o todos los que
-  // cocina ya sacó al pase.
   async function serveLine(lines: OrderDetailLine[]) {
     await serveLines(lines.map((line) => line.id))
     await refreshOrders()

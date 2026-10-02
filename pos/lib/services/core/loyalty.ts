@@ -1,7 +1,5 @@
 import { coreFetch } from '@/lib/services/core/http'
 
-// Plan T3: clientes, puntos, cupones, acciones con premio y banners del sistema propio. Las respuestas copian la forma
-// de los métodos de Odoo que reemplazan (contrato T3), así el POS reutiliza sus traductores.
 export interface CoreCustomer { id: number; name: string; phone: string; email: string; vat: string; id_type: string; street: string; city: string; orders: number; invoiced: number }
 export interface CoreCard { id: number; points: number; code: string; program: string; expires: string | null }
 export interface CoreProgram { id: number; name: string; spend_per_point: number; value_per_point: number; minimum_points: number }

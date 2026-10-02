@@ -33,9 +33,6 @@ function ModePreview({ mode }: { mode: ThemeMode }) {
   return <span className="flex-1 flex rounded-sm border border-border overflow-hidden">{mode === 'dark' ? pane(true) : mode === 'light' ? pane(false) : <>{pane(false)}{pane(true)}</>}</span>
 }
 
-// Modal "Setting" del kit (10 – Account Setting/*.png): pestañas verticales, panel con cabecera, tarjeta
-// "Tiempo" con el cronómetro del turno y "Cerrar sesión" (cierra la asistencia con `waiter_end_shift`;
-// la sesión de Odoo del terminal sigue). Los seis avisos son `res.users.waiter_notify`.
 export function SettingsModal({ open, onClose, onLogout }: { open: boolean; onClose: () => void; user: { name: string; role: Role }; restaurant?: string; onLogout: () => Promise<void> }) {
   const t = useTranslations('account.settings')
   const [tab, setTab] = useState<Tab>('profile')
@@ -45,7 +42,7 @@ export function SettingsModal({ open, onClose, onLogout }: { open: boolean; onCl
   const employee = useAuthStore((s) => s.employee)
   const uid = useAuthStore((s) => s.user?.uid ?? null)
   const [notify, setNotify] = useState<NotifyPrefs | null>(null)
-  // Las preferencias son del usuario del terminal (res.users.waiter_notify): se leen al abrir el modal.
+  // Las preferencias son del usuario del terminal: se leen al abrir el modal.
   useEffect(() => {
     if (!open || !uid) return
     let alive = true

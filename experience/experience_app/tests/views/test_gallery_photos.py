@@ -51,7 +51,7 @@ def test_gallery_response_headers_and_cache(version, control, api_client, galler
         assert response['Content-Disposition'] == 'inline; filename="foto"'
         api_client.get(gallery_url())
         assert fetch.call_count == 1
-        assert fetch.call_args.args[0].creds == DELIVERY.odoo
+        assert fetch.call_args.args[0].restaurant.slug == DELIVERY.venue_slug
         assert fetch.call_args.args[1:] == (21, 44)
 
 
@@ -69,7 +69,7 @@ def test_gallery_rejects_wrong_product_or_photo(product, photo, api_client, gall
 
 # // Falla si otra sede puede obtener una foto del catálogo o de la caché de la primera.
 def test_gallery_is_scoped_to_the_resolved_venue(api_client):
-    other = replace(DELIVERY, venue_slug='otra')
+    other = replace(DELIVERY, venue_slug='laureles', restaurant_id=2)
     own_catalog = replace(CATALOG, products=[PRODUCT])
     with patch('experience_app.views.photos.resolve', side_effect=[DELIVERY, other]), \
             patch('experience_app.services.catalog.get_catalog', side_effect=[own_catalog, CATALOG]), \
@@ -79,7 +79,7 @@ def test_gallery_is_scoped_to_the_resolved_venue(api_client):
         assert fetch.call_count == 1
 
 
-# // Falla si una carta antigua convierte una foto borrada en un 200 vacío o vuelve a Odoo en cada petición.
+# // Falla si una carta antigua convierte una foto borrada en un 200 vacío o vuelve al sistema propio en cada petición.
 def test_deleted_gallery_photo_is_a_cached_404(api_client, gallery_catalog):
     with patch('experience_app.views.photos.resolve', return_value=DELIVERY), patch(FETCH, return_value=None) as fetch:
         assert api_client.get(gallery_url()).status_code == 404
@@ -95,7 +95,7 @@ def test_gallery_cache_keys_cover_identity_and_version():
         assert fetch.call_count == 1
         catalog.get_gallery_photo(DELIVERY, PRODUCT, 41)
         catalog.get_gallery_photo(DELIVERY, replace(PRODUCT, template_id=99), 44)
-        catalog.get_gallery_photo(replace(DELIVERY, venue_slug='otra'), PRODUCT, 44)
+        catalog.get_gallery_photo(replace(DELIVERY, venue_slug='laureles', restaurant_id=2), PRODUCT, 44)
         catalog.get_gallery_photo(DELIVERY, replace(PRODUCT, gallery=[{'id': 44, 'version': 'nueva'}]), 44)
         assert fetch.call_count == 5
         assert catalog.get_gallery_photo(DELIVERY, ANGUS, 44) is None

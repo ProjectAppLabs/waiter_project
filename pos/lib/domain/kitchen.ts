@@ -8,7 +8,6 @@ export const LATE = 'late'
 export const LATE_MIN = 18
 export const FRESH_MIN = 2
 
-// Las horas de Odoo vienen en UTC sin zona ("2026-09-05 01:12:43").
 export function elapsedSeconds(at: string, now: number): number {
   return Math.max(0, Math.floor((now - serverTime(at)) / 1000))
 }

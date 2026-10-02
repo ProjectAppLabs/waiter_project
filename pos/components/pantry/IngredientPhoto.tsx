@@ -5,7 +5,6 @@ import { useTranslations } from 'next-intl'
 import { Icon } from '@/components/kit/Icon'
 import { imageUrl } from '@/lib/services/pantry'
 
-// Miniatura del ingrediente o del plato: la foto de Odoo, o el marcador del kit si el producto no tiene ninguna.
 export function IngredientPhoto({ id, hasImage, size }: { id: number; hasImage: boolean; size: 40 | 48 }) {
   const t = useTranslations('pantry.ingredients')
   return (

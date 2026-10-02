@@ -1,13 +1,10 @@
-import type { ActiveEmployee } from '@/lib/stores/authStore'
-import type { AuthUser } from '@/lib/services/session'
-import type { Restaurant } from '@/lib/services/restaurants'
-import type { Person, PersonValues } from '@/lib/services/team'
-import type { RestaurantInfo } from '@/lib/services/restaurantInfo'
 import type { CoreAccount, CorePerson, CoreRestaurant, LoginResult } from '@/lib/services/core/pos'
+import type { RestaurantInfo } from '@/lib/services/restaurantInfo'
+import type { Restaurant } from '@/lib/services/restaurants'
+import type { AuthUser } from '@/lib/services/session'
+import type { Person, PersonValues } from '@/lib/services/team'
+import type { ActiveEmployee } from '@/lib/stores/authStore'
 
-// Plan T: mientras conviven Odoo (Burger House, hasta T6) y el sistema propio, las pantallas siguen hablando con las
-// mismas formas de siempre. Aquí se traduce lo que responde el sistema propio a esas formas; cada servicio decide con
-// `onCore()` a quién preguntar.
 const num = (v: string | number) => Number(v)
 
 export const toAuthUser = (a: CoreAccount): AuthUser => ({ uid: num(a.id), name: a.name, companyId: 0, role: a.role })
@@ -15,10 +12,10 @@ export const toAuthUser = (a: CoreAccount): AuthUser => ({ uid: num(a.id), name:
 // Las cookies del sistema propio llevan la identidad: no hay token de turno que mostrar ni guardar.
 export const toActiveEmployee = (r: LoginResult): ActiveEmployee => ({
   id: num(r.account.id), name: r.account.name, code: null, role: r.account.role, shift: r.account.shift, userId: num(r.account.id),
-  checkIn: new Date().toISOString(), attendanceId: r.attendance_id === null ? null : num(r.attendance_id), token: '', sessionEnds: r.session_ends,
+  checkIn: new Date().toISOString(), attendanceId: r.attendance_id === null ? null : num(r.attendance_id), sessionEnds: r.session_ends,
 })
 
-// Las ventas y la caja llegan con T2: hasta entonces un restaurante del sistema propio se lista sin cifras del día.
+// La lista de acceso no incluye cifras de ventas; los informes las consultan por separado.
 export const toRestaurant = (r: CoreRestaurant | { id: string | number; name: string; slug?: string }): Restaurant => ({
   id: num(r.id), name: r.name, slug: r.slug ?? '', street: 'street' in r ? r.street : '', city: 'city' in r ? r.city : '', phone: 'phone' in r ? r.phone : '',
   open: false, salesToday: 0, ordersToday: 0,

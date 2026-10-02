@@ -1,5 +1,6 @@
 """Durable payments: reserve once, verify remotely, reconcile idempotently with POS."""
-from experience_app.adapters.backend import backend_for, client_for
+from experience_app.adapters.core import pos
+from experience_app.adapters.core.pos import Client
 import uuid
 from datetime import timedelta
 from decimal import ROUND_HALF_UP, Decimal
@@ -11,9 +12,8 @@ from django.utils import timezone
 from rest_framework.exceptions import APIException, ValidationError
 from rest_framework.response import Response
 
-from experience_app.adapters.odoo import pos
-from experience_app.adapters.odoo.client import OdooClient, OdooError
-from experience_app.adapters.registry.client import resolve
+from django.db import DatabaseError
+from experience_app.adapters.core.pos import resolve
 from experience_app.models import CartLine, Order, PaymentAttempt, PaymentGateway, TableSession
 from experience_app.payments import PROVIDERS
 from experience_app.payments.crypto import PaymentUnavailable, decrypt, encrypt
@@ -76,7 +76,7 @@ def context(session, diner):
     order = session.orders.filter(state__in=(Order.SENT, Order.CHECKOUT)).exclude(odoo_order_id=None).first()
     if order and not session.lines.filter(status=CartLine.OPEN).exists() and session.state in TableSession.OPEN_STATES:
         tenant = resolve(session.restaurant_slug, session.venue_slug, session.table_token)
-        payable = backend_for(tenant.restaurant_slug).read_order(client_for(tenant, OdooClient), order.odoo_order_id)
+        payable = pos.read_order(Client(tenant), order.odoo_order_id)
         amount = max(0, cents(Decimal(str(payable.total)) - Decimal(str(payable.paid))))
     result.update(checkout_context(config), amount_in_cents=amount)
     return result
@@ -109,8 +109,8 @@ def create(session, diner, data):
         if not order:
             raise PaymentConflict('Confirma el pedido antes de pagar.')
         tenant = resolve(session.restaurant_slug, session.venue_slug, session.table_token)
-        client = client_for(tenant, OdooClient)
-        payable = backend_for(tenant.restaurant_slug).read_order(client, order.odoo_order_id)
+        client = Client(tenant)
+        payable = pos.read_order(client, order.odoo_order_id)
         amount = cents(Decimal(str(payable.total)) - Decimal(str(payable.paid)))
         if payable.state in PAID_STATES or amount <= 0:
             raise PaymentConflict('Esta cuenta ya no tiene saldo pendiente.')
@@ -153,13 +153,13 @@ def submit(provider, config, credentials, attempt, data, return_url):
 
 
 def reconcile_reservation(attempt):
-    """Anticipo aprobado en producción: se marca pagado en la reserva de Odoo. Idempotente por referencia."""
+    """Anticipo aprobado en producción: se marca pagado en la reserva del sistema propio. Idempotente por referencia."""
     try:
         tenant = resolve(attempt.gateway.restaurant_slug, attempt.gateway.venue_slug)
-        result = client_for(tenant, OdooClient).call_kw('waiter.reservation', 'waiter_deposit_paid',
+        result = Client(tenant).call_kw('waiter.reservation', 'waiter_deposit_paid',
             [attempt.reservation_token, attempt.amount_in_cents, attempt.reference])
         PaymentAttempt.objects.filter(id=attempt.id).update(reconciled=bool(result.get('paid')), needs_review=not result.get('paid'))
-    except (OdooError, Problem):
+    except (DatabaseError, Problem):
         PaymentAttempt.objects.filter(id=attempt.id).update(needs_review=True)
     attempt.refresh_from_db()
     return attempt
@@ -172,7 +172,7 @@ def reconcile(attempt):
         return reconcile_reservation(attempt)
     try:
         tenant = resolve(attempt.session.restaurant_slug, attempt.session.venue_slug, attempt.session.table_token)
-        result = client_for(tenant, OdooClient).call_kw('pos.order', 'waiter_gateway_paid', [[attempt.order.odoo_order_id],
+        result = Client(tenant).call_kw('pos.order', 'waiter_gateway_paid', [[attempt.order.odoo_order_id],
             attempt.payment_method_id, attempt.amount_in_cents, attempt.reference])
         if result.get('paid'):
             PaymentAttempt.objects.filter(id=attempt.id).update(reconciled=True, needs_review=False)
@@ -186,7 +186,7 @@ def reconcile(attempt):
                 close_paid(attempt.session)
         else:
             PaymentAttempt.objects.filter(id=attempt.id).update(needs_review=True)
-    except (OdooError, Problem):
+    except (DatabaseError, Problem):
         PaymentAttempt.objects.filter(id=attempt.id).update(needs_review=True)
     attempt.refresh_from_db()
     return attempt

@@ -1,7 +1,3 @@
-// Logo del restaurante: se ajusta en el navegador antes de subirlo a Odoo para que res.company no guarde
-// originales de varios megas y el bloque 3 sirva siempre un ráster pequeño. Se conserva el formato de entrada
-// (un JPEG recodificado como PNG RGBA crece hasta 6×) y, si la imagen ya cabe, viajan los bytes originales sin
-// recodificar. Las dependencias del DOM se inyectan para poder probar la lógica sin un canvas real.
 export interface Size { width: number; height: number }
 export const LOGO_MAX: Size = { width: 1024, height: 512 }
 export const LOGO_MAX_BYTES = 1024 * 1024
@@ -33,21 +29,17 @@ export function fitWithin(size: Size, max: Size): Size {
 
 export const fitsWithin = (size: Size, max: Size): boolean => size.width <= max.width && size.height <= max.height
 
-// Odoo guarda el binario sin tipo: se reconoce por los primeros bytes (en base64) para armar la data URL.
 export function imageDataUrl(base64: string): string {
   const mime = base64.startsWith('/9j/') ? 'image/jpeg' : base64.startsWith('R0lGOD') ? 'image/gif' : 'image/png'
   return `data:${mime};base64,${base64}`
 }
 
-// Base64 sin prefijo data:, que es lo que espera el campo Binary de Odoo. Por trozos: btoa recibe un string binario
-// y String.fromCharCode con un logo entero de 1 MB desbordaría la pila de argumentos.
 export function bytesToBase64(bytes: Uint8Array): string {
   let binary = ''
   for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
   return btoa(binary)
 }
 
-// Tamaño en bytes de lo que Odoo guardará, sin decodificar: 3 bytes por cada 4 caracteres menos el relleno.
 export function base64Bytes(base64: string): number {
   const padding = base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0
   return Math.floor((base64.length * 3) / 4) - padding

@@ -62,6 +62,7 @@ it('saves optional dish information and allows clearing nutrition', async () => 
   await waitFor(() => expect(onSave).toHaveBeenLastCalledWith({...initial,description:'Pan tostado con huevo',dinerAttributes:{ingredientes:['Pan','Huevo'],nutricion:{peso:undefined,grasa:undefined}}}))
 })
 
+// Falla si el combo pierde sus componentes o cambia el precio propio del plato.
 it('builds a fixed combo from catalog products and keeps its own selling price',async()=>{
  const onSave=jest.fn().mockResolvedValue(undefined)
  wrap(<ProductForm initial={initial} isNew categories={categories} taxes={taxes} extraProducts={[{id:3,name:'Hamburguesa'},{id:7,name:'Bebida'}]} onSave={onSave} onClose={jest.fn()}/>)
@@ -83,7 +84,7 @@ it('edits the dish gallery and saves its final order', async () => {
   const onSave = jest.fn().mockResolvedValue(undefined)
   wrap(<ProductForm initial={initial} templateId={3} isNew={false} categories={categories} taxes={taxes} onSave={onSave} onClose={jest.fn()} />)
   fireEvent.click(screen.getByRole('tab', { name: /Foto|Imagen/ }))
-  expect(await screen.findByRole('img', { name: 'Foto 2 de la galería' })).toHaveAttribute('src', '/odoo/web/image/projectapp.product.photo/8/image')
+  expect(await screen.findByRole('img', { name: 'Foto 2 de la galería' })).toHaveAttribute('src', '/experience/api/pos/v1/photos/gallery/8?org=null')
   fireEvent.click(screen.getByRole('button', { name: 'Mover la foto 2 antes' }))
   fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
   await waitFor(() => expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ gallery: [{ id: 8 }, { id: 7 }] })))

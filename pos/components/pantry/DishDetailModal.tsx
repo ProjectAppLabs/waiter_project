@@ -7,8 +7,6 @@ import { IngredientPhoto } from '@/components/pantry/IngredientPhoto'
 import { LevelBadge } from '@/components/pantry/LevelBadge'
 import { dishServings, formatQty, unitLabel, type Dish, type RecipeLine } from '@/lib/domain/pantry'
 
-// "Detail Dish" del kit: el plato con su categoría, raciones y nivel, y la receta en dos columnas con el nivel
-// de cada ingrediente. Las líneas las da `recipe_lines()` del addon.
 export function DishDetailModal({ dish, category, lines, loading, onClose }: {
   dish: Dish | null; category: string; lines: RecipeLine[]; loading: boolean; onClose: () => void
 }) {

@@ -23,6 +23,7 @@ def setup_chat(api_client, two_diners, settings):
     return f'/api/v1/sesiones/{session.id}/asistente/', ana, beto
 
 
+# Falla si el chat mezcla personas o un reintento consume otra consulta.
 @patch('experience_app.views.agent_chat.resolve', return_value=TABLE)
 @patch('experience_app.services.waiter_agent.propose', return_value=PLAN)
 def test_history_is_owner_scoped_and_retry_does_not_consume_again(propose, resolve, setup_chat, api_client, catalog_stub):
@@ -43,6 +44,7 @@ def test_history_is_owner_scoped_and_retry_does_not_consume_again(propose, resol
     assert api_client.post(url, body, format='json').status_code == 404
 
 
+# Falla si el cliente puede inyectar roles o reemplazar el historial del servidor.
 @patch('experience_app.views.agent_chat.resolve', return_value=TABLE)
 @patch('experience_app.services.waiter_agent.propose', return_value=PLAN)
 def test_server_history_is_used_without_customer_supplied_roles(propose, resolve, setup_chat, api_client, catalog_stub):
@@ -58,6 +60,7 @@ def test_server_history_is_used_without_customer_supplied_roles(propose, resolve
     assert bad.status_code == 400
 
 
+# Falla si se consulta al proveedor con el chat desactivado o sin cupo.
 @patch('experience_app.services.waiter_agent.propose')
 def test_disabled_and_quota_make_no_provider_calls(propose, setup_chat, api_client, settings):
     url, _, _ = setup_chat
@@ -72,6 +75,7 @@ def test_disabled_and_quota_make_no_provider_calls(propose, setup_chat, api_clie
     assert AgentConversation.objects.get().lease_token is None
 
 
+# Falla si un fallo bloquea el chat o inventa mensajes de historial.
 @patch('experience_app.views.agent_chat.resolve', return_value=TABLE)
 @patch('experience_app.services.waiter_agent.propose', side_effect=AgentUnavailable('Intenta más tarde.'))
 def test_failure_releases_lease_and_does_not_invent_history(propose, resolve, setup_chat, api_client, catalog_stub):
@@ -81,6 +85,7 @@ def test_failure_releases_lease_and_does_not_invent_history(propose, resolve, se
     assert chat.history == [] and chat.lease_token is None
 
 
+# Falla si se acepta un origen ajeno o dos consultas simultáneas.
 def test_invalid_origin_and_busy_lease_are_rejected(setup_chat, api_client):
     url, ana, _ = setup_chat
     body = {'id': str(uuid4()), 'mensaje': 'hola'}
@@ -91,6 +96,7 @@ def test_invalid_origin_and_busy_lease_are_rejected(setup_chat, api_client):
     assert api_client.post(url, body, format='json').status_code == 429
 
 
+# Falla si una visita cerrada puede usar el chat.
 def test_closed_session_cannot_access_chat(setup_chat, api_client):
     url, ana, _ = setup_chat
     ana.session.state = 'closed'
@@ -98,9 +104,10 @@ def test_closed_session_cannot_access_chat(setup_chat, api_client):
     assert api_client.get(url).status_code == 404
 
 
+# Falla si una intención general modifica el carrito o una adición explícita se duplica.
 @patch('experience_app.services.agent_cart.resolve', return_value=TABLE)
 @patch('experience_app.views.agent_chat.resolve', return_value=TABLE)
-@patch('experience_app.services.agent_cart.OdooClient')
+@patch('experience_app.services.agent_cart.Client')
 @patch('experience_app.views.sessions.discount_percent', return_value=0)
 @patch('experience_app.services.waiter_agent.propose')
 def test_explicit_add_updates_cart_once_and_general_desire_never_writes(propose, discount, client, resolve, resolve_cart, setup_chat, api_client, catalog_stub):
@@ -125,9 +132,10 @@ def test_explicit_add_updates_cart_once_and_general_desire_never_writes(propose,
     assert CartLine.objects.count() == 1
 
 
+# Falla si una selección inválida deja un carrito parcialmente modificado.
 @patch('experience_app.services.agent_cart.resolve', return_value=TABLE)
 @patch('experience_app.views.agent_chat.resolve', return_value=TABLE)
-@patch('experience_app.services.agent_cart.OdooClient')
+@patch('experience_app.services.agent_cart.Client')
 @patch('experience_app.views.sessions.discount_percent', return_value=0)
 @patch('experience_app.services.waiter_agent.propose')
 def test_batch_add_is_all_or_nothing(propose, discount, client, resolve, resolve_cart, setup_chat, api_client, catalog_stub):
@@ -142,6 +150,7 @@ def test_batch_add_is_all_or_nothing(propose, discount, client, resolve, resolve
     assert not CartLine.objects.exists()
 
 
+# Falla si reiniciar el chat borra datos ajenos, carrito o consumo acumulado.
 def test_new_conversation_clears_only_own_history_and_keeps_cart_and_usage(setup_chat, api_client):
     from experience_app.models import CartLine
     url, ana, beto = setup_chat

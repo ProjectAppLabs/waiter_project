@@ -98,7 +98,7 @@ def preview_venue(change):
     """El local de la vista previa no decide el alcance del diseño compartido."""
     venue = change.payload.get('preview_venue_slug') or change.venue_slug
     if not venue:
-        from experience_app.adapters.registry.client import resolve
+        from experience_app.adapters.core.pos import resolve
         venue = resolve(change.restaurant_slug, '').venue_slug
     return venue
 

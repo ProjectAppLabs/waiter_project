@@ -1,7 +1,5 @@
 import { currentOrg } from '@/lib/domain/tenant'
 
-// Plan T2: avisos en vivo por SSE desde el sistema propio. Reemplaza al bus de Odoo con el mismo contrato para quien
-// lo usa: el servidor dice qué cambió (sin datos) y la tablet vuelve a leer. Nunca lanza; reconecta con espera creciente.
 export type CoreEvent = 'orders' | 'kitchen' | 'tables' | 'cash' | 'notify'
 const EVENTS: CoreEvent[] = ['orders', 'kitchen', 'tables', 'cash', 'notify']
 const RETRY_MS = [1_000, 2_000, 5_000, 10_000, 30_000]

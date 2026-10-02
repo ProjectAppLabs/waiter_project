@@ -8,9 +8,9 @@ import { DisplayForm, PaymentMethodsList, UsersForm } from '@/components/setting
 import { KitchenPaymentPolicyForm } from '@/components/settings/KitchenPaymentPolicyForm'
 import { RestaurantInfoForm } from '@/components/settings/RestaurantInfoForm'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { listPaymentMethods, type PaymentMethodInfo } from '@/lib/services/settings'
-import { getRestaurantInfo, type RestaurantInfo } from '@/lib/services/restaurantInfo'
 import { listPosEmployees, type PosEmployee } from '@/lib/services/employees'
+import { getRestaurantInfo, type RestaurantInfo } from '@/lib/services/restaurantInfo'
+import { listPaymentMethods, type PaymentMethodInfo } from '@/lib/services/settings'
 import { useCatalogStore } from '@/lib/stores/catalogStore'
 import { cn } from '@/lib/utils'
 
@@ -61,7 +61,7 @@ function ConfiguracionInner() {
                 <p className="text-sm text-soft">La pasarela de pago y sus credenciales las configura el dueño en su consola (Pagos).</p></div>}
               {/* El equipo de este restaurante y quién cobra antes de cocina; asignar personas y permisos es de la consola del dueño. */}
               {section === 'users' && <div className="flex max-w-4xl flex-col gap-10">
-                <UsersForm users={[]} employees={employees} onChanged={async () => undefined} readOnly />
+                <UsersForm employees={employees} />
                 <KitchenPaymentPolicyForm configId={catalog.settings.configId} readOnly />
               </div>}
               {section === 'display' && <DisplayForm />}

@@ -8,13 +8,11 @@ import { Icon } from '@/components/kit/Icon'
 import { StatusPill } from '@/components/kit/StatusPill'
 import { MapsLinkField, type MapsStatus } from '@/components/settings/MapsLinkField'
 import { SaveBar, useSaveState } from '@/components/settings/SettingsForms'
-import { Button } from '@/components/ui/Button'
 import { Select, TextInput } from '@/components/ui/Field'
 import { play, setStation, type SoundId, type Station } from '@/lib/audio/sounds'
-import { ROLES, type Role } from '@/lib/domain/roles'
 import { shiftLabel } from '@/lib/domain/employees'
 import type { PosEmployee } from '@/lib/services/employees'
-import { inviteUser, resendInvite, saveCompany, setUserRole, type CompanyInfo, type PaymentMethodInfo, type TaxInfo, type UserInfo } from '@/lib/services/settings'
+import { saveCompany, type CompanyInfo, type PaymentMethodInfo, type TaxInfo } from '@/lib/services/settings'
 
 // Secciones de Configuración dibujadas con los componentes del kit (tarjetas, chips, píldoras, toggles).
 // Marca y Plantilla del menú tienen su propio componente; umbrales y ROI usan ThresholdsForm.
@@ -29,7 +27,6 @@ export function CompanyForm({ initial }: { initial: CompanyInfo }) {
   const t = useTranslations('pos.settings.restaurant')
   const [c, setC] = useState(initial)
   const [state, save] = useSaveState()
-  // La ubicación entra como enlace de Google Maps; en Odoo se guardan latitud y longitud como siempre.
   const [maps, setMaps] = useState<MapsStatus>('empty')
   const initialPoint = c.waiter_latitude && c.waiter_longitude ? { lat: Number(c.waiter_latitude), lng: Number(c.waiter_longitude) } : null
   const [start] = useState(initialPoint && Number.isFinite(initialPoint.lat) && Number.isFinite(initialPoint.lng) ? initialPoint : null)
@@ -75,56 +72,18 @@ export function TaxesList({ taxes }: { taxes: TaxInfo[] }) {
   )
 }
 
-// `employees`: quienes inician turno con PIN (hr.employee); el rol de ellos es el que aplica la tabla de permisos.
-// `readOnly`: el equipo de un restaurante dentro de su POS (plan O); invitar y asignar se hace en la consola del dueño.
-export function UsersForm({ users, employees = [], onChanged, readOnly = false }: { users: UserInfo[]; employees?: PosEmployee[]; onChanged: () => Promise<void>; readOnly?: boolean }) {
+// Equipo del restaurante; las invitaciones y los roles se administran en la consola del dueño.
+export function UsersForm({ employees = [] }: { employees?: PosEmployee[] }) {
   const t = useTranslations('admin.settings.users')
   const roles = useTranslations('pos.nav.roles')
-  const [u, setU] = useState<{ name: string; email: string; role: Role }>({ name: '', email: '', role: 'waiter' })
-  const [resent, setResent] = useState<number | null>(null)
-  const [state, save] = useSaveState()
-  return (
-    <div className="flex flex-col gap-4">
-      <section aria-label={t('list')} className={box}>
-        <div><h3 className="text-lg font-semibold text-ink">{t('list')}</h3><p className="mt-1 text-sm text-soft">{t('listHint')}</p></div>
-        {employees.length > 0 && <>
-          <div><p className="text-[15px] font-semibold text-ink">{t('withPin')}</p><p className="text-[13px] text-soft">{t('withPinHint')}</p></div>
-          {employees.map((x) => (
-            <div key={`e${x.id}`} className="flex items-center gap-3 rounded-md bg-muted p-3 text-[15px]">
-              <span className="w-10 h-10 rounded-md bg-surface border border-border text-ink grid place-items-center"><Icon name="lock" size={20} /></span>
-              <div className="min-w-0"><p className="font-semibold text-ink truncate">{x.name}</p><p className="text-[13px] text-soft truncate">{shiftLabel(x.shift, t('noShift'))}</p></div>
-              <span className="ml-auto"><StatusPill tone="neutral">{x.role ? roles(x.role) : t('accountRole')}</StatusPill></span>
-            </div>
-          ))}
-          {!readOnly && <p className="text-[15px] font-semibold text-ink">{t('withEmail')}</p>}
-        </>}
-        {users.map((x) => (
-          <div key={x.id} className="flex items-center gap-3 rounded-md bg-muted p-3 text-[15px]">
-            <span className="w-10 h-10 rounded-md bg-surface border border-border text-ink grid place-items-center"><Icon name="user" size={20} /></span>
-            <div className="min-w-0"><p className="font-semibold text-ink truncate">{x.name}</p><p className="text-[13px] text-soft truncate">{x.login} · {t('lastLogin')}: {x.lastLogin ? x.lastLogin.slice(0, 10) : t('never')}</p></div>
-            <span className="ml-auto flex items-center gap-3">
-              <StatusPill tone={x.activated ? 'success' : 'progress'}>{x.activated ? t('active') : t('pending')}</StatusPill>
-              {!x.activated && <Button size="compact" onClick={async () => { await resendInvite(x.id); setResent(x.id) }}>{resent === x.id ? t('resent') : t('resend')}</Button>}
-              <select aria-label={`${t('role')}: ${x.name}`} value={x.role} onChange={async (e) => { await setUserRole(x.id, e.target.value as Role); await onChanged() }} className="h-tap-min px-3 rounded-[10px] border border-border bg-surface text-[15px] text-ink">
-                {ROLES.map((r) => <option key={r} value={r}>{roles(r)}</option>)}
-              </select>
-            </span>
-          </div>
-        ))}
-      </section>
-      {!readOnly && (
-        <section aria-label={t('invite')} className={box}>
-          <p className="text-[15px] font-semibold text-ink">{t('invite')}</p>
-          <div className="grid grid-cols-3 gap-4">
-            <TextInput label={t('name')} value={u.name} onChange={(e) => setU((v) => ({ ...v, name: e.target.value }))} />
-            <TextInput label={t('email')} type="email" value={u.email} onChange={(e) => setU((v) => ({ ...v, email: e.target.value }))} hint={t('emailHint')} />
-            <Select label={t('role')} hint={t('roleHint')} value={u.role} onChange={(e) => setU((v) => ({ ...v, role: e.target.value as Role }))}>{ROLES.map((r) => <option key={r} value={r}>{roles(r)}</option>)}</Select>
-          </div>
-          <SaveBar state={state} onSave={() => save(async () => { await inviteUser(u); setU({ name: '', email: '', role: 'waiter' }); await onChanged() })} disabled={!u.name.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(u.email)} />
-        </section>
-      )}
-    </div>
-  )
+  return <section aria-label={t('list')} className={box}>
+    <div><h3 className="text-lg font-semibold text-ink">{t('list')}</h3><p className="mt-1 text-sm text-soft">{t('listHint')}</p></div>
+    {employees.map((x) => <div key={x.id} className="flex items-center gap-3 rounded-md bg-muted p-3 text-[15px]">
+      <span className="w-10 h-10 rounded-md bg-surface border border-border text-ink grid place-items-center"><Icon name="user" size={20} /></span>
+      <div className="min-w-0"><p className="font-semibold text-ink truncate">{x.name}</p><p className="text-[13px] text-soft truncate">{shiftLabel(x.shift, t('noShift'))}</p></div>
+      <span className="ml-auto"><StatusPill tone="neutral">{x.role ? roles(x.role) : t('accountRole')}</StatusPill></span>
+    </div>)}
+  </section>
 }
 
 export function DisplayForm() {

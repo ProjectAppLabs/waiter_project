@@ -1,4 +1,4 @@
-"""Contrato T5 por las rutas públicas, sin Odoo ni registro remoto."""
+"""Contrato del comensal por las rutas públicas y los modelos propios."""
 from datetime import timedelta
 from decimal import Decimal
 from uuid import uuid4
@@ -28,7 +28,6 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture
 def core(settings, tmp_path):
     settings.MEDIA_ROOT = tmp_path
-    settings.ODOO_ORGS = 'burger-house'
     settings.DINER_DEMO_ENABLED = True
     settings.IS_PRODUCTION = False
     org = Organization.objects.create(slug='la-casa', name='La casa', status='active', signup_discount_percent=5)
@@ -208,13 +207,14 @@ def test_core_whatsapp_quote_confirm(core, settings):
 # Falla si una cotización vencida o con precio distinto crea un pedido o deja una comanda parcial.
 @pytest.mark.parametrize('change', ['price', 'expired', 'stock', 'options'])
 def test_core_whatsapp_rechecks_before_confirm(core, change):
-    from experience_app.adapters.backend import client_for
-    from experience_app.adapters.registry.client import resolve
+    from experience_app.adapters.core import pos
+    from experience_app.adapters.core.pos import Client
+    from experience_app.adapters.core.pos import resolve
     from experience_app.adapters.core import whatsapp
     from tenancy.http import Problem
     org, venue, owner, table, product = core
     CashShift.objects.create(restaurant=venue, opened_by=owner, opening_cash=0)
-    client = client_for(resolve(org.slug, venue.slug))
+    client = Client(resolve(org.slug, venue.slug))
     lines = [{'producto': product.pk, 'cantidad': 1}]
     quoted = whatsapp.quote(client, lines)
     expiry = timezone.now() + timedelta(minutes=10)
@@ -236,8 +236,9 @@ def test_core_whatsapp_rechecks_before_confirm(core, change):
 # Falla si el anticipo filtra datos privados, acepta otra sede o concilia centavos como pesos.
 def test_core_reservation_public_and_reconciliation(core):
     from reservations.models import Reservation
-    from experience_app.adapters.backend import client_for
-    from experience_app.adapters.registry.client import resolve
+    from experience_app.adapters.core import pos
+    from experience_app.adapters.core.pos import Client
+    from experience_app.adapters.core.pos import resolve
     org, venue, owner, table, product = core
     row = Reservation.objects.create(organization=org, restaurant=venue, code='R1', customer_name='Ana Pérez',
         customer_phone='+573001234567', customer_email='privado@example.com', notes='Privado',
@@ -252,7 +253,7 @@ def test_core_reservation_public_and_reconciliation(core):
     assert 'privado' not in str(response.data).lower()
     Restaurant.objects.create(organization=org, slug='norte', name='Norte')
     assert client.get(path.replace('/centro/', '/norte/')).status_code == 404
-    adapter = client_for(resolve(org.slug, venue.slug))
+    adapter = Client(resolve(org.slug, venue.slug))
     for _ in range(2):
         assert adapter.call_kw('waiter.reservation', 'waiter_deposit_paid', [row.pay_token, 5000000, 'ref-1'])['paid']
     row.refresh_from_db()
@@ -308,7 +309,7 @@ def test_core_catalog_batched_and_foreign_photo(core, django_assert_num_queries)
     from django.db import connection
     from django.test.utils import CaptureQueriesContext
     from experience_app.adapters.core import pos
-    from experience_app.adapters.registry.client import resolve
+    from experience_app.adapters.core.pos import resolve
     org, venue, owner, table, product = core
     adapter = pos.Client(resolve(org.slug, venue.slug))
     with CaptureQueriesContext(connection) as before:
@@ -321,18 +322,6 @@ def test_core_catalog_batched_and_foreign_photo(core, django_assert_num_queries)
     dish = Product.objects.create(organization=foreign, name='Privado', kind='dish', price=100)
     photo = ProductPhoto.objects.create(product=dish, image=ContentFile(b'RIFF1234WEBP', name='privado.webp'), width=1, height=1, file_size=12)
     assert pos.fetch_gallery_image(adapter, dish.pk, photo.pk) is None
-
-
-# Falla si el cambio de motor ignora la lista explícita o no permite apagar Odoo completamente.
-def test_backend_selection(settings):
-    from experience_app.adapters.backend import backend_for
-    from experience_app.adapters.odoo import pos as odoo
-    from experience_app.adapters.core import pos as internal
-    settings.ODOO_ORGS = 'burger-house, otra'
-    assert backend_for('burger-house') is odoo and backend_for('otra') is odoo
-    assert backend_for('la-casa') is internal
-    settings.ODOO_ORGS = ''
-    assert backend_for('burger-house') is internal
 
 
 # Falla si añadir otra ronda antes del pago confirma líneas que nunca llegan al pedido propio.
@@ -381,8 +370,9 @@ def test_core_wompi_amount_conflict(core):
 
 # Falla si los estados del menú no siguen a los cursos o un rol del POS libera un pedido sin pagar.
 def test_core_kitchen_states_and_staff_prepayment(core):
-    from experience_app.adapters.backend import client_for
-    from experience_app.adapters.registry.client import resolve
+    from experience_app.adapters.core import pos
+    from experience_app.adapters.core.pos import Client
+    from experience_app.adapters.core.pos import resolve
     from experience_app.adapters.core.pos import read_order_status
     from sales.services import fire
     from tenancy.http import Problem
@@ -392,7 +382,7 @@ def test_core_kitchen_states_and_staff_prepayment(core):
     with pytest.raises(Problem):
         fire(order, core[2])
     client.post(f'/api/v1/sesiones/{sid}/pago/simulado/', {'metodo':'tarjeta'}, format='json')
-    adapter = client_for(resolve(core[0].slug, core[1].slug))
+    adapter = Client(resolve(core[0].slug, core[1].slug))
     course = order.courses.get()
     assert read_order_status(adapter, order.pk).kitchen == 'received'
     for field, state in [('preparation_at','cooking'), ('ready_at','ready'), ('served_at','served')]:
@@ -471,3 +461,24 @@ def test_core_autonomous_reports(core):
     client.post(f'/api/v1/sesiones/{sid}/pago/simulado/', {'metodo':'tarjeta'}, format='json')
     result = summary(orders())
     assert result['autonomous'] == 1 and result['by_waiter'][0]['waiter'] == 'Pedido autónomo'
+
+
+# Falla si una mesa queda atada a la visita anterior cuando el POS ya cerró la caja de ese turno o canceló su pedido:
+# el siguiente comensal caería en esa sesión y su pedido chocaría con uno pagado o cancelado.
+def test_core_table_session_ends_with_closed_shift_or_cancelled_order(core):
+    from experience_app.models import TableSession
+    org, venue, owner, table, product = core
+    client, sid = opened(core)
+    client.post(f'/api/v1/sesiones/{sid}/confirmar/', {}, format='json')
+    assert client.post(f'/api/v1/sesiones/{sid}/pago/simulado/', {'metodo': 'tarjeta'}, format='json').status_code == 200
+    join = lambda: APIClient().post('/api/v1/sesiones/', {'restaurante': org.slug, 'sede': venue.slug, 'token': table.token}, format='json').data['sesion']['id']
+    # Pagado pero sin servir y con la caja abierta: quien llega a la mesa sigue la misma visita.
+    assert join() == sid
+    CashShift.objects.filter(restaurant=venue).update(state='closed')
+    assert TableSession.objects.get(id=sid).state == TableSession.OPEN_STATES[1]
+    second_client, second = opened(core)
+    assert second != sid and TableSession.objects.get(id=sid).state == TableSession.PAID
+    assert second_client.post(f'/api/v1/sesiones/{second}/confirmar/', {}, format='json').status_code in (200, 201)
+    Order.objects.filter(table=table, state='draft').update(state='cancelled')
+    third = join()
+    assert third != second and TableSession.objects.get(id=second).state == TableSession.CLOSED

@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// Solo levanta Next: Odoo viene del compose (odoo/compose) y debe estar arriba.
+// Solo levanta Next; experience (el sistema propio) y su PostgreSQL deben estar arriba (scripts/dev.sh up). En esta
+// máquina el navegador se usa por CDP: PLAYWRIGHT_CDP=http://127.0.0.1:9333 npm run e2e:desktop.
 // El reporter de cobertura de flujos de la plantilla vuelve cuando exista e2e/flow-definitions.json.
 const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
 

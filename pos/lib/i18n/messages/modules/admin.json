@@ -156,7 +156,7 @@
       "code": "Código de socio",
       "program": "Programa",
       "noLoyalty": "Sin tarjeta de fidelización",
-      "noLoyaltyBody": "Se crea desde el programa de fidelización de Odoo.",
+      "noLoyaltyBody": "El dueño configura el programa de puntos en Promociones.",
       "history": "Historial de pedidos",
       "noHistory": "Sin pedidos a su nombre todavía",
       "orders": "{n, plural, one {# pedido} other {# pedidos}}",
@@ -346,7 +346,7 @@
       "benefits": "Promociones"
     },
     "payments": {
-      "hint": "Los métodos se crean en Odoo por el aprovisionamiento; aquí se ven los del canal.",
+      "hint": "Aquí se muestran los medios de pago disponibles en este restaurante.",
       "type": {
         "cash": "Efectivo",
         "bank": "Datáfono / banco",

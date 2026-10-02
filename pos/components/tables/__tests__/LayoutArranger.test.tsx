@@ -27,7 +27,7 @@ it('dropping a palette template on the canvas asks for the name and places the t
   expect(screen.getByRole('button', { name: 'Mover mesa 7' }).parentElement).toHaveStyle({ left: '160px', top: '120px', width: '120px', height: '120px' })
 })
 
-// Falla si "Mesa A12" no se traduce al número 12 con el aviso de Odoo, o si un nombre sin número puede confirmarse.
+// Falla si "Mesa A12" no se traduce al número 12 con el aviso del servidor, o si un nombre sin número puede confirmarse.
 it('reads the number out of a free-text name and refuses names without one', async () => {
   mount()
   drop(screen.getByRole('button', { name: 'Mesa grande (H)' }), 700, 300)
@@ -35,7 +35,7 @@ it('reads the number out of a free-text name and refuses names without one', asy
   fireEvent.change(input, { target: { value: 'Ventana' } })
   expect(screen.getByRole('button', { name: 'Confirmar' })).toBeDisabled()
   fireEvent.change(input, { target: { value: 'Mesa A12' } })
-  expect(screen.getByText('Odoo solo guarda el número de mesa: se usará 12.')).toBeInTheDocument()
+  expect(screen.getByText('Solo se guarda el número de mesa: se usará 12.')).toBeInTheDocument()
   await userEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
   expect(screen.getByRole('button', { name: 'Mover mesa 12' })).toBeInTheDocument()
 })

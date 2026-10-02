@@ -11,11 +11,6 @@ export interface TableView { notices?: TableNotice[]; table: Table; state: Table
 
 const STATES: TableState[] = ['free', 'occupied', 'kitchen', 'ready', 'billing', 'paid', 'ordering', 'served', 'assist', 'closed']
 
-// Odoo sabe libre / con pedido / pagado y, por los cursos, en cocina / servido (ADR 2026-09-05).
-// Lo demás es estado local (o del registro central más adelante).
-// Prioridad cuando coinciden: closed > assist > billing > served > listo > kitchen.
-// Las llamadas del comensal (pidiendo / pide mesero / pide la cuenta) vienen de Odoo; las banderas locales
-// son lo que el mesero marcó en esta tablet. Asistencia gana a todo lo demás.
 function stateFor(order: OpenOrder | undefined, flags: LocalFlags, call: TableCall | undefined): TableState {
   if (flags.closed) return 'closed'
   if (flags.assist || call?.kind === 'assist') return 'assist'
@@ -58,7 +53,6 @@ export function countByState(views: TableView[]): Record<TableState, number> {
   return counts
 }
 
-// date_order de Odoo viene en UTC sin zona ("2026-09-04 23:16:43").
 export function elapsedMinutes(startedAt: string, now: number): number {
   const t = serverTime(startedAt)
   return Math.max(0, Math.floor((now - t) / 60_000))

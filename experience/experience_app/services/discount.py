@@ -1,26 +1,25 @@
-"""Descuento de primera compra (Plan H): un porcentaje, una sola vez, sobre las líneas del comensal con cuenta verificada.
+"""Descuento de primera compra sobre las líneas de una cuenta verificada.
 
-El porcentaje lo fija el restaurante en `pos.config.signup_discount_percent` (addon projectapp_ops) y llega con la carta
-(load_data); si Odoo no lo entrega —addon sin actualizar, Odoo caído al consultar los ajustes— vale el 5 % del diseño.
-Se aplica de verdad al confirmar (services/orders.py): las líneas viajan a Odoo con `discount` y la cuenta queda marcada
-`discount_used_at`. El carrito y la cuenta lo exponen como `descuento: {porcentaje, monto, aplicable, aplicado}`.
+El porcentaje pertenece a la organización y llega con la carta. Confirmar fija el
+porcentaje en las líneas y reserva su uso para conservarlo entre reintentos.
 """
+from tenancy.http import Problem
 from decimal import Decimal
 import hashlib
 import re
 
-from experience_app.adapters.odoo.client import OdooError
-from experience_app.adapters.registry.client import RegistryUnavailable, Tenant
+from django.db import DatabaseError
+from experience_app.adapters.core.context import RestaurantContext
 from experience_app.models import CartLine, Diner, DinerAccount, SignupDiscountClaim
 from experience_app.services import catalog
 
 DEFAULT_PERCENT = 5.0
 
 
-def percent_for(tenant: Tenant) -> float:
+def percent_for(tenant: RestaurantContext) -> float:
     try:
         return float(catalog.get_catalog(tenant).signup_discount_percent)
-    except (OdooError, RegistryUnavailable):
+    except (DatabaseError, Problem):
         return DEFAULT_PERCENT
 
 
@@ -53,8 +52,8 @@ def view(lines: list[CartLine], diner: Diner, percent: float) -> dict:
         if pending:
             try:
                 result = benefits.quote(diner.session, diner, diner.coupon_code)
-            except OdooError as exc:
-                error = str(exc)
+            except (DatabaseError, Problem) as exc:
+                error = exc.body['message'] if isinstance(exc, Problem) else str(exc)
         return {**result, 'monto': float(applied) + result['monto'], 'aplicable': bool(pending) and not error,
                 'aplicado': applied > 0, 'registrado': bool(diner.account_id), 'error': error}
     projected = Decimal(0)

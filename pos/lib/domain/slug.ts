@@ -5,8 +5,6 @@ export function slugify(name: string): string {
 }
 export const validSlug = (slug: string) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)
 
-// Plan P: el usuario con el que entra cada persona. Minúsculas, letras, números y puntos, de 3 a 32; único en toda la
-// organización (lo comprueba Odoo). Se sugiere desde el nombre: «Sofía Mesera» → «sofia.mesera».
 export function suggestUsername(name: string): string {
   return name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.+|\.+$/g, '').slice(0, 32).replace(/\.+$/, '')
 }

@@ -5,11 +5,12 @@ from experience_app.services import catalog
 from experience_app.tests.conftest import ANGUS, CATALOG, LIMONADA, TABLE
 
 
+# Falla si ocurre este error: una carta que consulta el sistema propio en cada comensal, o una invalidación que no invalida.
 @patch('experience_app.services.catalog.pos.load_catalog', return_value=CATALOG)
 @patch('experience_app.services.catalog.pos.catalog_session', return_value=4)
-@patch('experience_app.services.catalog.OdooClient')
-def test_catalog_hits_odoo_once_until_invalidated(client, ensure, load):
-    """Atrapa una carta que golpea Odoo en cada comensal, o una invalidación que no invalida."""
+@patch('experience_app.services.catalog.Client')
+def test_catalog_hits_core_once_until_invalidated(client, ensure, load):
+    """Atrapa una carta que consulta el sistema propio en cada comensal, o una invalidación que no invalida."""
     catalog.get_catalog(TABLE)
     catalog.get_catalog(TABLE)
     assert load.call_count == 1
@@ -18,10 +19,11 @@ def test_catalog_hits_odoo_once_until_invalidated(client, ensure, load):
     assert load.call_count == 2
 
 
+# Falla si ocurre este error: una foto que va al sistema propio por cada comensal, o una foto vieja servida bajo la versión nueva (o con el tamaño equivocado).
 @patch('experience_app.services.catalog.pos.fetch_product_image', return_value=(b'\x89PNG', 'image/png'))
-@patch('experience_app.services.catalog.OdooClient')
-def test_photo_hits_odoo_once_per_size_and_version(client, fetch):
-    """Atrapa una foto que va a Odoo por cada comensal, o una foto vieja servida bajo la versión nueva (o con el tamaño equivocado)."""
+@patch('experience_app.services.catalog.Client')
+def test_photo_hits_core_once_per_size_and_version(client, fetch):
+    """Atrapa una foto que va al sistema propio por cada comensal, o una foto vieja servida bajo la versión nueva (o con el tamaño equivocado)."""
     assert catalog.get_photo(TABLE, ANGUS) == (b'\x89PNG', 'image/png')
     catalog.get_photo(TABLE, ANGUS)
     assert fetch.call_count == 1
@@ -47,8 +49,9 @@ def test_menu_view_groups_products_by_category_in_pos_order():
     }
 
 
+# Falla si ocurre este error: el valor del sistema propio ('ai') filtrado tal cual, un plato sin marcar que no salga como null, o un valor desconocido que rompa el tipo de la app.
 def test_menu_view_translates_the_photo_origin_for_the_diner():
-    """Atrapa el valor de Odoo ('ai') filtrado tal cual, un plato sin marcar que no salga como null, o un valor desconocido
+    """Atrapa el valor del sistema propio ('ai') filtrado tal cual, un plato sin marcar que no salga como null, o un valor desconocido
     que rompa el tipo de la app."""
     def origin_of(product):
         return catalog.menu_view(replace(CATALOG, products=[product]), photo_url)['categorias'][1]['productos'][0]['fotoOrigen']
@@ -60,6 +63,7 @@ def test_menu_view_translates_the_photo_origin_for_the_diner():
     assert origin_of(replace(ANGUS, image_origin='stock')) is None
 
 
+# Falla si ocurre este error: una carta con foto generada sin el aviso legal, o el aviso encendido por un plato marcado 'ai' que no tiene foto.
 def test_menu_view_flags_reference_images_only_when_a_dish_with_photo_was_generated():
     """Atrapa una carta con foto generada sin el aviso legal, o el aviso encendido por un plato marcado 'ai' que no tiene foto."""
     assert catalog.menu_view(CATALOG, photo_url)['imagenesDeReferencia'] is True
@@ -69,6 +73,7 @@ def test_menu_view_flags_reference_images_only_when_a_dish_with_photo_was_genera
     assert catalog.menu_view(marked_without_photo, photo_url)['imagenesDeReferencia'] is False
 
 
+# Falla si ocurre este error: una URL de foto para un plato sin imagen: el comensal vería un hueco roto en cada tarjeta.
 def test_menu_view_gives_no_photo_url_to_products_without_image():
     """Atrapa una URL de foto para un plato sin imagen: el comensal vería un hueco roto en cada tarjeta."""
     limonada = catalog.menu_view(CATALOG, photo_url)['categorias'][0]['productos'][0]
@@ -76,6 +81,7 @@ def test_menu_view_gives_no_photo_url_to_products_without_image():
     assert (limonada['descripcion'], limonada['favorito']) == ('', False)
 
 
+# Falla si ocurre este error: una foto cambiada que el navegador no vuelve a pedir: la URL debe llevar la versión de la plantilla.
 def test_menu_view_changes_the_photo_url_when_the_photo_changes():
     """Atrapa una foto cambiada que el navegador no vuelve a pedir: la URL debe llevar la versión de la plantilla."""
     before = catalog.menu_view(CATALOG, photo_url)['categorias'][1]['productos'][0]['foto']

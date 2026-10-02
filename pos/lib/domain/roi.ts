@@ -29,7 +29,7 @@ export function periodRange(period: Period, now: Date, back = 0): Range {
   return { start, end, label: `Semana del ${start.getDate()} de ${MONTHS[start.getMonth()]}`, days: 7 }
 }
 
-export function toOdooDate(d: Date): string {
+export function toServerDate(d: Date): string {
   return d.toISOString().slice(0, 19).replace('T', ' ')
 }
 
@@ -38,7 +38,7 @@ export function inRange(o: PaidOrder, r: Range): boolean {
   return t >= r.start.getTime() && t < r.end.getTime()
 }
 
-// Todo sale de conteos reales + supuestos configurables (pos.config). Ventas IA y errores: 0 hasta que existan datos.
+// Todo sale de conteos reales + supuestos configurables. Ventas IA y errores: 0 hasta que existan datos.
 export function metrics(orders: PaidOrder[], s: Settings, days: number): RoiMetrics {
   const total = orders.length
   const auto = orders.filter((o) => o.origin !== 'waiter')

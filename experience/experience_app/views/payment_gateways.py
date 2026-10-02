@@ -6,7 +6,7 @@ from rest_framework.decorators import api_view
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
-from experience_app.adapters.registry.client import resolve
+from experience_app.adapters.core.pos import resolve
 from experience_app.models import PaymentAttempt, PaymentGateway, TableSession
 from experience_app.payments import PROVIDERS
 from experience_app.services import online_payments, payment_settings
@@ -150,4 +150,3 @@ def reservation_payment_detail(request, restaurant, venue, token, payment_id):
     response = Response(online_payments.serialize(online_payments.refresh(attempt)))
     response['Cache-Control'] = 'no-store'
     return response
-

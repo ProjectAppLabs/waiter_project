@@ -1,5 +1,7 @@
 'use client'
 
+import { imageUrl } from '@/lib/services/pantry'
+
 import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
@@ -53,7 +55,7 @@ export function ReservationDetailModal({ open, onClose, reservationId, load = ge
                 <li key={l.id} className="rounded-md border border-border overflow-hidden bg-surface">
                   <div className="p-3 flex gap-3">
                     <span className="w-20 h-20 shrink-0 rounded-sm bg-muted overflow-hidden grid place-items-center text-dim">
-                      <img src={`/odoo/web/image/product.template/${l.productTemplateId}/image_512`} alt="" className="w-full h-full object-cover" />
+                      <img src={imageUrl(l.productTemplateId)} alt="" className="w-full h-full object-cover" />
                     </span>
                     <div className="min-w-0 flex flex-col gap-1 text-[13px] text-dim">
                       <span className="text-[15px] font-semibold text-ink">{l.name}</span>

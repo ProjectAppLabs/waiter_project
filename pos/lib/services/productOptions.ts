@@ -1,61 +1,77 @@
 import type { OptionChoice, OptionGroup, TaxRate } from '@/lib/domain/orderWizard'
-import { callKw } from '@/lib/services/odoo'
+import { parseDinerAttributes } from '@/lib/domain/dinerAttributes'
+import * as coreCatalog from '@/lib/services/core/catalog'
 
-// Adiciones del modal "Add Order": atributos de producto con price_extra (grupo obligatorio de una opción) y combos
-// de Odoo (product.combo, opcionales y múltiples). También la descripción de venta y los impuestos reales.
-interface RawTemplate { id: number; description_sale: string | false; combo_ids: number[]; attribute_line_ids: number[] }
-interface RawLine { id: number; product_tmpl_id: [number, string]; attribute_id: [number, string] }
-interface RawValue { id: number; name: string; price_extra: number; attribute_line_id: [number, string] }
-interface RawCombo { id: number; name: string }
-interface RawComboItem { id: number; combo_id: [number, string]; product_id: [number, string]; extra_price: number }
-interface RawVariant { id: number; taxes_id: number[] }
-interface RawTax { id: number; name: string; amount: number; amount_type: TaxRate['amountType']; price_include: boolean }
-
+// Adiciones del modal «Agregar al pedido», a partir de los atributos de cada plato en el catálogo del sistema propio:
+// los tamaños son un grupo obligatorio de una opción (el precio de cada tamaño sobre el precio base), y las adiciones y
+// los acompañamientos son grupos opcionales de varias opciones al precio de cada producto. Los componentes de un combo
+// no se eligen: los arma el pedido (ver `withComboChildren`).
 export interface MenuExtras { options: Map<number, OptionGroup[]>; descriptions: Map<number, string> }
+
+// Los ids de grupo son negativos y estables por plato: no chocan con ids de producto y el carrito los distingue.
+const SIZE_GROUP = -1, EXTRA_GROUP = -2, SIDE_GROUP = -3
+
+// La carta se lee una vez por minuto: abrir el asistente varias veces seguidas no repite la lectura, y un cambio del
+// catálogo llega al siguiente minuto.
+const TTL = 60_000
+let dishes: { at: number; list: Promise<coreCatalog.CoreDish[]> } | null = null
+function loadDishes() {
+  if (!dishes || Date.now() - dishes.at > TTL) {
+    const list = coreCatalog.listProducts('dish').then((all) => all.filter((p): p is coreCatalog.CoreDish => p.kind === 'dish'))
+    list.catch(() => { dishes = null })
+    dishes = { at: Date.now(), list }
+  }
+  return dishes.list
+}
+// Solo para las pruebas: la próxima lectura vuelve al servidor.
+export const resetMenuExtras = () => { dishes = null }
 
 export async function loadMenuExtras(templateIds: number[]): Promise<MenuExtras> {
   const options = new Map<number, OptionGroup[]>()
   const descriptions = new Map<number, string>()
   if (templateIds.length === 0) return { options, descriptions }
-  const templates = await callKw<RawTemplate[]>('product.template', 'read', [templateIds, ['description_sale', 'combo_ids', 'attribute_line_ids']])
-  templates.forEach((t) => { if (t.description_sale) descriptions.set(t.id, t.description_sale) })
-  const push = (templateId: number, group: OptionGroup) => options.set(templateId, [...(options.get(templateId) ?? []), group])
-
-  const lineIds = templates.flatMap((t) => t.attribute_line_ids)
-  if (lineIds.length > 0) {
-    const [lines, values] = await Promise.all([
-      callKw<RawLine[]>('product.template.attribute.line', 'read', [lineIds, ['product_tmpl_id', 'attribute_id']]),
-      callKw<RawValue[]>('product.template.attribute.value', 'search_read', [[['attribute_line_id', 'in', lineIds], ['ptav_active', '=', true]], ['name', 'price_extra', 'attribute_line_id']]),
-    ])
-    for (const line of lines) {
-      const choices: OptionChoice[] = values.filter((v) => v.attribute_line_id[0] === line.id)
-        .map((v) => ({ id: v.id, name: v.name, priceExtra: v.price_extra, kind: 'attribute', groupId: line.id, productId: null, taxIds: [] }))
-      if (choices.length > 0) push(line.product_tmpl_id[0], { id: line.id, name: line.attribute_id[1], kind: 'attribute', required: true, multiple: false, choices })
+  const all = await loadDishes()
+  const byId = new Map(all.map((p) => [p.id, p]))
+  for (const id of templateIds) {
+    const dish = byId.get(id)
+    if (!dish) continue
+    if (dish.description) descriptions.set(id, dish.description)
+    const attrs = parseDinerAttributes(JSON.stringify(dish.diner_attributes ?? {}))
+    const groups: OptionGroup[] = []
+    const sizes = attrs.tamanos ?? []
+    if (sizes.length) {
+      groups.push({ id: SIZE_GROUP, name: 'Tamaño', kind: 'attribute', required: true, multiple: false,
+        choices: sizes.map((s, i): OptionChoice => ({ id: -(i + 1), name: s.nombre, priceExtra: s.precio - dish.price, kind: 'attribute', groupId: SIZE_GROUP, productId: null, taxIds: [] })) })
     }
-  }
-
-  const comboIds = [...new Set(templates.flatMap((t) => t.combo_ids))]
-  if (comboIds.length > 0) {
-    const [combos, items] = await Promise.all([
-      callKw<RawCombo[]>('product.combo', 'read', [comboIds, ['name']]),
-      callKw<RawComboItem[]>('product.combo.item', 'search_read', [[['combo_id', 'in', comboIds]], ['combo_id', 'product_id', 'extra_price']]),
-    ])
-    const variants = items.length ? await callKw<RawVariant[]>('product.product', 'read', [[...new Set(items.map((i) => i.product_id[0]))], ['taxes_id']]) : []
-    for (const t of templates) for (const comboId of t.combo_ids) {
-      const combo = combos.find((c) => c.id === comboId)
-      const choices: OptionChoice[] = items.filter((i) => i.combo_id[0] === comboId).map((i) => ({
-        id: i.id, name: i.product_id[1], priceExtra: i.extra_price, kind: 'combo', groupId: comboId, productId: i.product_id[0],
-        taxIds: variants.find((v) => v.id === i.product_id[0])?.taxes_id ?? [],
-      }))
-      if (combo && choices.length > 0) push(t.id, { id: comboId, name: combo.name, kind: 'combo', required: false, multiple: true, choices })
+    for (const [groupId, name, ids] of [[EXTRA_GROUP, 'Adiciones', attrs.extras ?? []], [SIDE_GROUP, 'Acompañamientos', attrs.acompanamientos ?? []]] as const) {
+      const choices = ids.flatMap((pid): OptionChoice[] => {
+        const p = byId.get(pid)
+        return p ? [{ id: p.id, name: p.name, priceExtra: p.price, kind: 'attribute', groupId, productId: null, taxIds: [] }] : []
+      })
+      if (choices.length) groups.push({ id: groupId, name, kind: 'attribute', required: false, multiple: true, choices })
     }
+    if (groups.length) options.set(id, groups)
   }
   return { options, descriptions }
 }
 
-// Tasas reales de account.tax para calcular el carrito antes de que Odoo lo recalcule al guardar.
+// El uuid de un componente sale del de su línea y del producto: reintentar el mismo pedido manda los mismos uuid.
+export const comboChildUuid = (parentUuid: string, productId: number) => parentUuid.slice(0, 24) + productId.toString(16).padStart(12, '0')
+
+// Componentes de los combos para el pedido: el servidor exige cada componente con su cantidad (la del combo por las
+// unidades pedidas). Las líneas que no son combo salen sin componentes.
+export interface ComboChild { uuid: string; product_id: number; qty: number }
+export async function withComboChildren<L extends ComboChild>(lines: L[]): Promise<(L & { children?: ComboChild[] })[]> {
+  const byId = new Map((await loadDishes()).map((p) => [p.id, p]))
+  return lines.map((l) => {
+    const combo = parseDinerAttributes(JSON.stringify(byId.get(l.product_id)?.diner_attributes ?? {})).combo ?? []
+    return combo.length ? { ...l, children: combo.map((c) => ({ uuid: comboChildUuid(l.uuid, c.producto), product_id: c.producto, qty: c.cantidad * l.qty })) } : l
+  })
+}
+
+// Tasas de los impuestos de la carta para calcular el carrito antes de que el servidor lo recalcule al guardar.
 export async function loadTaxes(ids: number[]): Promise<TaxRate[]> {
   if (ids.length === 0) return []
-  const rows = await callKw<RawTax[]>('account.tax', 'read', [ids, ['name', 'amount', 'amount_type', 'price_include']])
-  return rows.map((r) => ({ id: r.id, name: r.name, amount: r.amount, amountType: r.amount_type, priceInclude: Boolean(r.price_include) }))
+  const { taxes } = await coreCatalog.listTaxes()
+  return taxes.filter((t) => ids.includes(t.id)).map((t) => ({ id: t.id, name: t.name, amount: t.amount, amountType: 'percent', priceInclude: t.included }))
 }

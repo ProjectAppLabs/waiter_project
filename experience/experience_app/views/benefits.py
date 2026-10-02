@@ -1,10 +1,12 @@
-from experience_app.adapters.backend import backend_for, client_for
+from tenancy.http import Problem
+from experience_app.adapters.core import pos
+from experience_app.adapters.core.pos import Client
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from experience_app.adapters.odoo.client import OdooClient, OdooError
-from experience_app.adapters.registry.client import resolve
+from django.db import DatabaseError
+from experience_app.adapters.core.pos import resolve
 from experience_app.models import TableSession, Diner
 from experience_app.services import benefits, rewards as action_rewards
 from experience_app.views.sessions import COOKIE, diner_for, cart_of
@@ -13,9 +15,8 @@ from experience_app.views.sessions import COOKIE, diner_for, cart_of
 @api_view(['GET'])
 def location(request, restaurant, venue):
     tenant = resolve(restaurant, venue, None)
-    client = client_for(tenant, OdooClient)
-    from experience_app.adapters.odoo.pos import read_restaurant_location
-    return Response(backend_for(tenant.restaurant_slug).read_restaurant_location(client))
+    client = Client(tenant)
+    return Response(pos.read_restaurant_location(client))
 
 
 @api_view(['GET'])
@@ -45,8 +46,8 @@ def coupon(request, session_id):
                 return Response({'detail': 'Agrega tus platos antes de aplicar el cupón.'}, status=400)
             try:
                 result = benefits.quote(session, diner, code)
-            except OdooError as exc:
-                return Response({'detail': str(exc)}, status=400)
+            except (DatabaseError, Problem) as exc:
+                return Response({'detail': exc.body['message'] if isinstance(exc, Problem) else str(exc)}, status=400)
             diner.coupon_code = result['codigo']
         else:
             diner.coupon_code = ''

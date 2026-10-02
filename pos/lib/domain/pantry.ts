@@ -1,6 +1,3 @@
-// Reglas puras del inventario del kit (12 – Inventory). Los niveles, estados y raciones los calcula el addon
-// projectapp_pantry en Odoo (pantry_level, pantry_status, servings_available): aquí solo se les da formato,
-// se agrupan para el panel de filtros y se filtran las listas. Nada se inventa ni se recalcula.
 
 export type PantryCategory = 'produce' | 'meat' | 'seafood' | 'dairy' | 'dry'
 export type StockLevel = 'empty' | 'low' | 'medium' | 'high'
@@ -44,17 +41,14 @@ export const dishServings = (d: Pick<Dish, 'hasRecipe' | 'servings'>): number | 
 
 const qtyFormat = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 4 })
 export const formatQty = (qty: number): string => qtyFormat.format(qty)
-// "Stock: 1,5 kg" del kit: cantidad en español y la unidad tal como la nombra Odoo, con su etiqueta del kit si la tiene.
 export const formatStock = (qty: number, uomName: string): string => `${formatQty(qty)} ${unitLabel(uomName)}`
 
-// Unidades del kit ("Unit Measurement") → nombre en uom.uom. Manojo, Diente y Rebanada no vienen con Odoo.
 export const KIT_UNITS = [
   { key: 'bunch', uom: 'Manojo' }, { key: 'clove', uom: 'Diente' }, { key: 'gram', uom: 'g' },
   { key: 'kilogram', uom: 'kg' }, { key: 'liter', uom: 'L' }, { key: 'milliliter', uom: 'ml' }, { key: 'pieces', uom: 'Units' }, { key: 'slice', uom: 'Rebanada' },
 ] as const
 export type KitUnitKey = (typeof KIT_UNITS)[number]['key']
 export const kitUnitKey = (uomName: string): KitUnitKey | null => KIT_UNITS.find((u) => u.uom === uomName)?.key ?? null
-// "Units" es el nombre inglés de Odoo para la unidad suelta; el resto se muestra tal cual (kg, g, Manojo…).
 export const unitLabel = (uomName: string): string => (uomName === 'Units' ? 'Unidades' : uomName)
 
 const matches = (name: string, query: string) => name.toLocaleLowerCase('es').includes(query.trim().toLocaleLowerCase('es'))

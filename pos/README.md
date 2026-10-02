@@ -1,7 +1,7 @@
 # pos — POS del operador
 
-App Next.js para mesero, cajero y administrador. Habla con Odoo por su API externa JSON-RPC a
-través del proxy same-origin `/odoo/*`; **nunca usa la interfaz de Odoo**.
+App Next.js para mesero, cajero y administrador. Usa el sistema propio de `experience/`
+(Django y PostgreSQL), por el proxy del mismo origen `/experience/*` y la cookie de sesión propia.
 Diseño: el kit CloudPos (`docs/diseno/pos-kit/`, Plan I). Las pantallas 1a y 1b de
 `docs/diseno/waiter-pantallas.dc.html` son la referencia anterior a la oleada I.1.
 
@@ -9,19 +9,18 @@ Diseño: el kit CloudPos (`docs/diseno/pos-kit/`, Plan I). Las pantallas 1a y 1b
 
     export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh" && nvm use   # Node 24.20.0
     npm install
-    cp .env.local.example .env.local                                # ODOO_ORIGIN, NEXT_PUBLIC_ODOO_DB
+    cp .env.local.example .env.local                                # EXPERIENCE_ORIGIN, NEXT_PUBLIC_DEFAULT_ORG
     npm run dev -- --hostname 192.168.56.10 --port 3000
 
-Odoo debe estar arriba: `docker compose -p odoo-spike -f ../odoo/compose/docker-compose.yml up -d`.
+El sistema propio debe estar disponible en `EXPERIENCE_ORIGIN`.
 El navegador corre en la máquina anfitriona: entrar por `http://192.168.56.10:3000`.
 
-## Tests — nunca la suite completa
+## Pruebas
 
 | Capa | Comando | Contra qué |
 |---|---|---|
 | Unitarios (Jest, jsdom) | `npm test -- <ruta>` | mocks; dominio y stores |
-| Contrato (Jest, node) | `npm run test:contract -- <ruta>` | **Odoo real**; falla si Odoo no responde |
-| E2E (Playwright) | `npx playwright test <spec>` | Next + Odoo real; deja pedidos pagados en la base de referencia |
+| E2E (Playwright) | `npx playwright test <spec>` | Next + sistema propio; usa datos de prueba |
 
 Cada test: ≤50 líneas, ≤7 asserts, sin condicionales, y un comentario
 `// Falla si …` que nombre el bug que atrapa. Los E2E llevan `@flow:` y
@@ -58,35 +57,21 @@ test invalida la caché al terminar por
 
 ## Inventario del kit (12 – Inventory, `/inventario`)
 
-Sobre los módulos estándar de Odoo, sin addon propio: ingrediente = `product.template` almacenable y no
-vendible (`sale_ok = false`, `is_storable = true`, `available_in_pos = false`) con categoría hija de
-`product.category` "Ingredientes"; receta = `mrp.bom` tipo kit (`phantom`) del plato; proveedor =
-`product.supplierinfo`; umbrales Bajo / Medio / Alto = `stock.warehouse.orderpoint` (mín y máx; sin punto
-de pedido: Bajo ≤ 5, Medio ≤ 20); solicitud = `purchase.order` en borrador (Odoo no envía correo hasta que
-alguien pulse "Enviar por correo" en la orden). Reglas puras en `lib/domain/pantry.ts`, Odoo en
-`lib/services/pantry.ts`, textos en `lib/i18n/messages/modules/pantry.json`.
+El catálogo y las recetas pertenecen a la organización; existencias, movimientos, solicitudes y agotados se
+consultan por restaurante. Los clientes están en `lib/services/core/catalog.ts` e `inventory.ts`, y los adaptadores
+de las pantallas en `lib/services/pantry.ts` y `restaurantInventory.ts`.
 
-Datos demo del kit (idempotente; volver a correrlo deja el stock en los valores demo):
+## Mesas
 
-    node scripts/seed-pantry.cjs        # ODOO_URL, ODOO_DB, ODOO_USER, ODOO_PASSWORD opcionales
-
-Crea las categorías de ingrediente, las unidades Manojo / Diente / Rebanada, 2 proveedores, 8 ingredientes
-con stock y punto de pedido, y la receta de 6 platos demo (hamburguesas, arepa, bowl, carbonara, tacos).
-Los ingredientes no tienen foto (no hay imágenes de ingredientes en `assets/demo/imagenes/`).
-## Mesas (kit 6 – Table, oleada I.2)
-
-`/salon` pinta el plano real de `restaurant.table` (`position_h/v`, `width`, `height`, `seats`) con las tres
-plantillas del kit (`lib/domain/tablesKit.ts`). Lo que Odoo no guarda viaja así, hasta que el addon lo tenga:
-tipo de piso como sufijo del nombre (`Piso 4 · Exterior`), rotación intercambiando ancho y alto, nombre de mesa
-reducido a `table_number` (de "Mesa A12" se guarda 12). "Reservada" aparece en la leyenda pero no hay reservas
-hasta el módulo de reservas. Mesas no cobra: el cobro es de la caja y se hace desde Pedidos, en `/pago/<orderId>`.
+`/salon` muestra los pisos, mesas, zonas y planos del sistema propio. Las imágenes se sirven con la organización
+incluida en la URL. El cobro se hace desde Pedidos o el salón, en `/pago/<orderId>`.
 
 ## Alcance actual
 
 A: salón y pedidos; B: KDS; C: backoffice y ROI; E: cobro, caja y roles;
 G: configuración de marca; H: galería, personalización y vista previa de 30 plantillas.
 El catálogo y los ajustes de plantillas viven en `experience/`; el POS los administra
-mediante `/waiter/admin/menu_settings`, autorizado por Odoo. Los secretos permanecen en
+mediante `/experience/api/pos/v1/admin/menu_settings`, con la sesión propia. Los secretos permanecen en
 el servidor. El comensal usa la app independiente `diner/`.
 
 El pago móvil de H es demo. El cobro real, incluidos pedidos del comensal con descuento,

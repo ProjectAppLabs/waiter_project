@@ -1,5 +1,7 @@
 'use client'
 
+import { imageUrl } from '@/lib/services/pantry'
+
 import { useTranslations } from 'next-intl'
 import type { ReactNode } from 'react'
 
@@ -37,7 +39,7 @@ export function SummaryStep({ info, tableNumber, lines, totals, busy, error, onC
                   <div className="p-3 flex items-start gap-3">
                     <span className="w-[80px] h-[60px] rounded-sm bg-muted overflow-hidden grid place-items-center text-dim shrink-0">
                       {line.hasImage
-                        ? <img src={`/odoo/web/image/product.template/${line.templateId}/image_512`} alt={t('photo', { name: line.name })} className="w-full h-full object-cover" />
+                        ? <img src={imageUrl(line.templateId)} alt={t('photo', { name: line.name })} className="w-full h-full object-cover" />
                         : <Icon name="photo" size={20} />}
                     </span>
                     <div className="min-w-0">

@@ -28,7 +28,7 @@ it('countdown formats hours, minutes and seconds', () => {
 })
 
 // Falla si la pestaña Tarjeta toma el método QR o si QR aparece sin un método con ese nombre.
-it('maps kit tabs to Odoo payment methods by type and name', () => {
+it('maps kit tabs to el servidor payment methods by type and name', () => {
   expect(methodFor('cash', methods)?.id).toBe(1)
   expect(methodFor('card', methods)?.id).toBe(2)
   expect(methodFor('qr', methods)?.id).toBe(7)
@@ -43,6 +43,7 @@ it('points discount is capped by the due amount', () => {
   expect(pointsDiscount(100, { copPerPoint: 0 }, 1000)).toBe(0)
 })
 
+// Falla si el canje promete más puntos de los disponibles o acepta fracciones.
 it('redeems whole points and never promises more than the server can reserve', () => {
   expect(pointsDiscount(100.9, { copPerPoint: 10 }, 5000)).toBe(1000)
   expect(pointsDiscount(200, { copPerPoint: 10 }, 1999)).toBe(1990)

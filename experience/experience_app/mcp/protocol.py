@@ -9,8 +9,8 @@ import logging
 
 from tenancy.http import Problem
 
-from experience_app.adapters.odoo.client import OdooUnavailable
-from experience_app.adapters.registry.client import RegistryUnavailable, TenantNotFound
+from django.db import OperationalError
+from experience_app.adapters.core.context import RestaurantNotFound
 from experience_app.diseno import plantillas
 from experience_app.mcp.models import McpKey
 from experience_app.mcp.tools import TOOLS, TOOLS_BY_NAME, ToolError
@@ -51,9 +51,9 @@ def call_tool(key: McpKey, params: dict) -> dict:
         return {'content': _text(exc.body['message']), 'isError': True}
     except ToolError as exc:
         return {'content': _text(str(exc)), 'isError': True}
-    except TenantNotFound:
-        return {'content': _text('El restaurante de esta clave ya no existe en el registro.'), 'isError': True}
-    except (RegistryUnavailable, OdooUnavailable):
+    except RestaurantNotFound:
+        return {'content': _text('El restaurante de esta clave ya no existe en el sistema propio.'), 'isError': True}
+    except OperationalError:
         return {'content': _text('El restaurante no responde en este momento. Inténtalo de nuevo en un minuto.'), 'isError': True}
     return {'content': _text(data), 'structuredContent': data, 'isError': False}
 

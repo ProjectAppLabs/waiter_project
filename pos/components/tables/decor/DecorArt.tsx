@@ -83,7 +83,6 @@ function art(asset: DecorAsset, w: number, h: number): ReactNode {
     case 'stool':
       return <><circle cx={w / 2} cy={h / 2} r={m / 2 - 1} fill={BLUE} {...line} /><circle cx={w / 2} cy={h / 2} r={m * 0.28} fill="#8f9de3" /></>
     case 'register': {
-      // Escritorio de caja con portátil y la silla del cajero, como en el plano de ejemplo de Odoo.
       const desk = h * 0.55
       return <>
         <rect x={0} y={0} width={w} height={desk} rx={6} fill={WOOD} {...line} />
