@@ -72,7 +72,7 @@ export function OrganizationsView() {
                 <td className="px-4 py-3 text-right tabular">{money(o.monthly_price)}</td>
                 <td className="px-4 py-3 text-right tabular">{o.restaurants_count ?? 0} / {o.max_restaurants}</td>
                 <td className="px-4 py-3"><StatusPill tone={STATUS[o.status].tone}>{STATUS[o.status].label}</StatusPill>{o.status === 'trial' && o.trial_ends && <div className="text-[13px] text-dim">hasta {o.trial_ends}</div>}</td>
-                <td className="px-4 py-3 text-soft">{o.created_at.slice(0, 10)}</td>
+                <td className="px-4 py-3 text-soft">{new Date(o.created_at).toLocaleDateString('es-CO', { dateStyle: 'medium' })}</td>
                 <td className="px-4 py-3"><div className="flex justify-end gap-2">
                   <Button size="compact" onClick={() => router.push(`/plataforma/clientes/${o.slug}`)}>Ver</Button>
                   <RowMenu label={`Más acciones de ${o.name}`} items={[

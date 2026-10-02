@@ -57,7 +57,7 @@ export function OrganizationSheet({ slug, justCreated = false }: { slug: string;
           <dl className="grid grid-cols-2 gap-3">
             {item('Dirección', <a href={orgUrl(o.slug)} target="_blank" rel="noreferrer" className="text-primary">{orgUrl(o.slug).replace(/^https?:\/\//, '')}</a>)}
             {item('Plan', PLANS.find(([v]) => v === o.plan)?.[1] ?? o.plan)}{item('Precio mensual', money(o.monthly_price))}
-            {item('Restaurantes', `${restaurants.length} de ${o.max_restaurants}`)}{item('En prueba hasta', o.trial_ends)}{item('Alta', o.created_at.slice(0, 10))}
+            {item('Restaurantes', `${restaurants.length} de ${o.max_restaurants}`)}{item('En prueba hasta', o.trial_ends)}{item('Alta', new Date(o.created_at).toLocaleDateString('es-CO', { dateStyle: 'medium' }))}
           </dl></section>
         <section className="rounded-lg border border-border p-5"><h2 className="text-[17px] font-semibold mb-3">Facturación</h2>
           <dl className="grid grid-cols-2 gap-3">{item('Razón social', o.legal_name)}{item('NIT', o.tax_id)}{item('Correo', o.billing_email)}{item('Contacto', o.billing_contact)}</dl></section>

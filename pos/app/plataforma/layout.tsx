@@ -21,7 +21,8 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
   const pathname = usePathname()
   const { user, hydrated, hydrate, logout } = usePlatformStore()
   const onLogin = pathname.startsWith('/plataforma/login')
-  useEffect(() => { void hydrate() }, [hydrate])
+  // La página de inicio hidrata por su cuenta: el armazón no repite la pregunta al servidor.
+  useEffect(() => { if (!onLogin) void hydrate() }, [hydrate, onLogin])
   useEffect(() => { if (hydrated && !user && !onLogin) router.replace('/plataforma/login') }, [hydrated, user, onLogin, router])
 
   if (onLogin) return <>{children}</>

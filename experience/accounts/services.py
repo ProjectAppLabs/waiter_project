@@ -86,7 +86,8 @@ def invitation(user, reset=False):
                         '<p>Sirve una sola vez y vence en 48 horas. Si vence, en la pantalla de entrada pulsa '
                         '«¿Olvidaste tu contraseña?».</p>')
             body += '<p>— Equipo ProjectApp</p>'
-            mail = EmailMultiAlternatives(subject, strip_tags(body), settings.EMAIL_FROM, [user.email])
+            # La versión en texto plano conserva un salto por párrafo: strip_tags a secas pegaba todas las frases.
+            mail = EmailMultiAlternatives(subject, strip_tags(body.replace('</p>', '</p>\n')).strip(), settings.EMAIL_FROM, [user.email])
             mail.attach_alternative(body, 'text/html')
             if not mail.send(using='waiter'):
                 raise RuntimeError('No se pudo enviar el correo.')

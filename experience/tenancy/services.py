@@ -49,6 +49,9 @@ def create_organization(actor, data):
     data = payload(data, (*ORG_FIELDS, 'slug', 'owner'), ('name', 'slug', 'owner'))
     owner_data = payload(data.pop('owner'), ('name', 'email', 'username'), ('name', 'email'))
     organization = assign_values(Organization(), data)
+    # Con fecha de prueba nace en prueba; sin ella, activa (lo que promete el asistente de la consola).
+    organization.status = 'trial' if organization.trial_ends else 'active'
+    organization.save(update_fields=['status'])
     for key in owner_data:
         require(isinstance(owner_data[key], str) and bool(owner_data[key].strip()), 'Completa los datos del dueño.', 'invalid_data', 400)
         owner_data[key] = owner_data[key].strip()
@@ -74,7 +77,9 @@ def set_suspension(actor, organization, suspended, reason=''):
     require(actor.role == 'admin')
     require(isinstance(reason, str), 'Indica el motivo de suspensión.', 'invalid_data', 400)
     organization = Organization.objects.select_for_update().get(pk=organization.pk)
-    organization.status = 'suspended' if suspended else 'active'
+    # Al reactivar vuelve a prueba si su fecha de prueba sigue vigente; si no, activa.
+    still_trial = organization.trial_ends is not None and organization.trial_ends >= timezone.localdate()
+    organization.status = 'suspended' if suspended else 'trial' if still_trial else 'active'
     organization.suspended_at = timezone.now() if suspended else None
     organization.suspended_reason = reason if suspended else ''
     organization.save(update_fields=['status', 'suspended_at', 'suspended_reason'])
