@@ -255,6 +255,184 @@ solicitudes y agotados de sus restaurantes; `waiter`/`cashier` leen. Los ids son
 - **Caché del menú:** `GET /catalog` responde con `ETag` por organización y restaurante; cambia con cualquier escritura.
 - **Siembra al crear la organización** (ampliar T0): unidades, impuestos INC/IVA, un supplier vacío no; categorías no.
 
+## Contrato T2 · Salón, pedidos y caja
+
+Lo que hoy usan Mesas, Pedidos, el asistente de pedido, la ronda, el cobro, Cocina, Operación, Historial, Ventas, la
+caja, Inicio y Cuadres (inventario del 2026-10-02 sobre `pos/lib/services/{orders,ordersKit,orderCreate,kitchen,tables,
+floorPlan,cashRegister,sales,ops,paymentKit,insights,business,settings,bus,notifications}.ts` y los métodos
+`waiter_*` de `odoo/addons/projectapp_{ops,kitchen,bus,notify,pantry}`). Mismas reglas comunes que T0 y T1; rutas bajo
+`/api/pos/v1`, sin barra final, con `X-Waiter-Org` y la cookie `waiter_sid`. Los importes son decimales de dos cifras
+en COP y viajan como números; las horas son ISO 8601 UTC puestas **siempre por el servidor**. Los ids son enteros.
+
+**Quién hace qué (política de roles, `Organization.role_policy`):** la política es la de
+`pos/lib/domain/permissions.ts` (`DEFAULT_ROLE_POLICY`: vistas `dashboard | tables | orders | reservations | history |
+inventory | kitchen | sales | customers | billing` y acciones `create_orders | charge_orders | serve_orders |
+edit_inventory`). `admin` y `owner` tienen todo. El servidor aplica la política en cada ruta (tabla abajo); una ruta sin
+permiso responde `403 forbidden`. Un `waiter` o `cashier` solo opera el restaurante de su cuenta; `admin`, los suyos;
+`owner`, todos (`restaurant_for`). Las lecturas de salón, pedidos y cocina las puede hacer cualquier rol con sesión.
+
+### Modelos (`tables`)
+
+- **`Floor`**: `restaurant`, `name` (1–100), `sequence`, `active`, `plan` (JSON: `walls`, `zones`, `decor`, `images`,
+  `background_size`), `background` (FileField WebP, opcional), `revision` (entero, +1 por guardado), `zone_staff`
+  (JSON `{zone_id: [account_id]}`: el reparto habitual de meseros por zona). `images` del plan guardan el archivo como
+  `{id, x, y, width, height, file}`; el POS las pide por `GET /floors/{id}/images/{image_id}`.
+- **`Table`**: `floor`, `number` (1–9999, único por piso), `seats` (1–100), `x`, `y`, `width`, `height` (múltiplos de
+  20, mínimo 20), `shape` (`square` | `round`), `color` (hex o vacío), `zone_id` (texto, vacío = sin zona), `active`,
+  `call` (`none` | `ordering` | `assist` | `bill`), `call_at`, `token` (el código del QR del comensal; 32 caracteres
+  aleatorios; único). Las mesas de un piso se derivan del plano al guardarlo: se emparejan por `id` (las que traen id)
+  o se crean (`id: null`); las que no vienen se retiran (`removed`) o, si tienen pedidos pagados, se archivan.
+
+### Modelos (`sales`)
+
+- **`PaymentMethod`**: `organization`, `name`, `type` (`cash` | `bank` | `pay_later`), `active`, `restaurants`
+  (M2M; vacío = todos. El efectivo de cada sede es propio: la siembra crea «Efectivo» por restaurante al crearlo y
+  «Datáfono» y «QR» de tipo `bank` compartidos).
+- **`RestaurantSettings`** (1:1 con `Restaurant`, se crea con él): `alert_late_minutes` (18), `alert_bill_minutes` (10),
+  `roi_hour_cost` (20000), `roi_minutes_per_order` (11), `roi_baseline_hours_per_100` (18.4), `roi_monthly_cost`
+  (2740000), `roi_start_date` (null), `kitchen_prepay_roles` (JSON lista de roles que deben cobrar antes de cocina;
+  vacía por omisión). Se copian al crear un restaurante «como otro».
+- **`Organization`** (ampliar): `role_policy` (JSON, por omisión `DEFAULT_ROLE_POLICY`), `cash_tolerance` ya existe.
+- **`CashShift`** (turno de caja): `restaurant`, `state` (`open` | `closed`), `opened_by`, `opened_at`, `opening_cash`,
+  `opening_notes`, `closed_by`, `closed_at`, `expected_cash`, `counted_cash`, `difference` (= contado − esperado),
+  `closing_notes`, `zone_staff` (JSON `{floor_id: {zone_id: [account_id]}}` del turno; vacío = el habitual del piso).
+  **Un solo turno abierto por restaurante** (restricción única parcial y bloqueo del restaurante al abrir).
+- **`CashMove`**: `shift`, `kind` (`in` | `out`), `amount` (> 0), `reason` (1–200), `account`, `created_at`.
+- **`Order`**: `organization`, `restaurant`, `shift`, `uuid` (del cliente; único por organización: idempotencia del
+  alta), `service` (`dine_in` | `takeout` | `delivery`), `prefix` (`DI` | `TA` | `DE`), `tracking` (secuencia del día
+  por restaurante y prefijo, con bloqueo del restaurante), `number` (texto `DI-007`), `table` (obligatoria en `dine_in`,
+  null en los demás), `guests`, `baby_chair`, `customer_name`, `delivery_address`, `delivery_phone`, `note`, `origin`
+  (`waiter` | `diner` | `ai`), `channel` (`pos` | `menu` | `whatsapp`), `state` (`draft` | `paid` | `cancelled`),
+  `billing` (bool: «esperando pago», compartido entre tablets) y `billing_at`, `created_by`, `created_at`, `paid_at`,
+  `paid_by`, `subtotal`, `tax`, `tip`, `total` (= suma de líneas con impuestos + propina), `paid` (suma de pagos),
+  `change`. **Los totales los calcula el servidor** en cada escritura; el cliente nunca los manda.
+- **`OrderLine`**: `order`, `uuid` (único por pedido), `product`, `name` (copia), `qty` (> 0, hasta 999), `unit_price`
+  (copia del precio que rige en la sede, con impuestos incluidos, más `price_extra` de las opciones), `taxes` (JSON
+  `[{id, name, amount, included}]` copiado al crear), `options` (JSON `[{group, name, price_extra}]`), `parent`
+  (FK a la línea del combo, null si no es componente), `discount_pct` (0–100), `note` (≤ 500), `course` (null = sin
+  enviar), `ready_at`, `served_at`, `cancelled`, `subtotal` (sin impuestos), `total` (con impuestos).
+- **`Course`** (curso de cocina): `order`, `index` (1, 2, 3…), `fired_at`, `preparation_at`, `ready_at`, `served_at`.
+- **`Payment`**: `order`, `method`, `amount` (> 0), `received` (efectivo entregado, opcional), `reference` (voucher,
+  ≤ 60), `request_key` (16–80, único por organización: un reintento devuelve el mismo pago), `account`, `created_at`.
+- **`SalesEvent`** (app `realtime`): `organization`, `restaurant`, `kind` (`orders` | `kitchen` | `tables` | `cash` |
+  `notify`), `created_at`. Lo escribe toda escritura relevante; lo sirve el SSE y se borra lo de más de un día.
+
+### Reglas
+
+- **Caja.** `POST /shifts` exige que no haya otro abierto en el restaurante (`409 shift_open`). Las entradas y salidas
+  cambian el efectivo esperado: `expected_cash = opening_cash + pagos en efectivo − cambio + entradas − salidas`.
+  **Cerrar:** `409 open_orders` si hay pedidos en borrador en el turno (la regla pasa del POS al servidor);
+  `400 note_required` si `counted_cash ≠ expected_cash` y no hay `closing_notes` («Escribe el motivo para cerrar: el
+  dueño lo verá en los cuadres de caja.»). Nunca se impide cerrar por la diferencia, solo sin explicarla. Al cerrar, si
+  `|difference| > Organization.cash_tolerance`, se crea un aviso `cash` para el dueño y los encargados de la sede («Caja
+  de Poblado cerró con un faltante de $ 12.000 (Laura Encargada): «nota»», nota recortada a 160). El dueño fija la
+  tolerancia (`PUT /settings/cash`). «Forzar cierre» desaparece: no hay descuadre contable que forzar.
+- **Pedidos.** Crear exige turno abierto en el restaurante (`409 shift_closed`) y `create_orders`. `dine_in` exige mesa
+  activa del restaurante; una mesa con pedido en borrador acepta otro pedido (varias cuentas por mesa), pero **mover**
+  un pedido a una mesa con pedido abierto da `409 table_busy`. Las líneas copian nombre, precio (el que rige en la
+  sede: `RestaurantPrice` o el base, con impuestos incluidos) e impuestos del momento. Un producto archivado, fuera de
+  la carta, agotado en la sede (`RestaurantUnavailable`) o sin porciones se rechaza (`400 unavailable` con el nombre).
+  Un combo llega como línea padre con `children` (componentes a precio 0); un plato con opciones trae `options` y el
+  servidor suma `price_extra`. `discount_pct` solo lo mandan `diner` y `ai` (descuento de primera compra, T3).
+- **Cocina a dos manos.** `POST /orders/{id}/fire` toma las líneas sin curso y no canceladas, crea un `Course` con el
+  siguiente `index` y `fired_at`, y publica `kitchen`. **Prepago:** si el pedido no está pagado y el rol de quien lo
+  manda está en `kitchen_prepay_roles` → `409 prepay_required` («Tu rol debe cobrar antes de enviar a cocina»); al
+  **pagar** se disparan solas las líneas pendientes. `start` pone `preparation_at` si no lo tenía; `ready` (curso) pone
+  `ready_at` en el curso y en sus líneas sin cancelar y arranca el curso si hacía falta; `ready` (líneas) marca plato a
+  plato y cierra el curso cuando no queda nada pendiente; `serve` (líneas o curso) **solo entrega lo listo**
+  (`400 not_ready`) y cierra el curso cuando todo está servido o cancelado. Cada plato listo crea un aviso `kitchen`
+  («Plato · Mesa 4», acción `serve`, `order_id`) para los meseros del restaurante (y de la zona de la mesa, si el piso
+  tiene reparto) y los encargados. Editar o cancelar líneas (`DELETE /orders/{id}/lines`) está prohibido si el pedido no
+  está en borrador, tiene pagos, o la línea ya empezó, está lista o servida (`409 not_editable`); los cursos que quedan
+  vacíos se borran y un pedido sin líneas se cancela.
+- **Cobro.** `charge_orders`. Un pago suma a `paid`; con `received` en efectivo, `change = received − amount` del
+  último pago en efectivo; `PUT /orders/{id}/tip` fija la propina (≥ 0) antes de completar. `POST /orders/{id}/pay`
+  exige `paid ≥ total` (`400 unpaid`), pasa a `paid`, pone `paid_at`/`paid_by`, dispara las líneas sin curso (prepago),
+  apaga la llamada de la mesa si no queda otra cuenta abierta en ella, quita `billing`, y **descuenta el inventario**:
+  un `StockMove kind=sale` por ingrediente de las recetas (y de los componentes de combos) con `request_key`
+  `order:<id>:ingredient:<id>` (idempotente), sin dejar existencias negativas (si no alcanza, descuenta hasta 0 y lo
+  anota en `reason`). `pending` del inventario (T1) = requerimientos de las líneas no canceladas de los pedidos en
+  borrador del restaurante; `free = stock − pending` y las porciones se calculan con `free`.
+- **Mesas.** `PUT /tables/{id}/call` exige `serve_orders`; la hora la pone el servidor; `none` la limpia. El plano:
+  `PUT /floors/{id}/plan` exige `admin`, **caja cerrada** en el restaurante (`409 shift_open`), `revision` igual a la
+  guardada (`409 stale_plan`), nombre de 1 a 100, hasta 500 elementos, zonas con id único y color hexadecimal, mesas con
+  número único (1–9999), asientos 1–100, separadas 16 px entre sí y de las paredes, y **no retira mesas con pedidos en
+  borrador** (`409 table_in_use`). `DELETE /floors/{id}`: caja cerrada, debe quedar al menos un piso activo, sin
+  pedidos en borrador; con historial de ventas se archiva (`{result: 'archived'}`), si no se borra (`removed`).
+  Reservas que apartan mesas llegan en T3: `reserved_at` sale `null` por ahora.
+- **Reparto por zonas.** `GET /floors/{id}/zone-staff?shift_id=` devuelve el del turno si existe (`source: 'shift'`) o
+  el habitual (`source: 'plan'`). Escribir el habitual es de `admin`; el del turno exige turno abierto.
+- **Tiempo real (SSE).** `GET /events?restaurant_id=&after=<id>` responde `text/event-stream` con un evento por
+  escritura (`id: <SalesEvent.id>`, `event: orders|kitchen|tables|cash|notify`, `data: {}`), un latido `: ping` cada 15 s
+  y cierre a los 5 minutos (el cliente reconecta con `after`). La vista sondea la tabla cada segundo; sin datos, nada.
+- **Informes del turno y del periodo.** Ventas = pedidos `paid` por `paid_at` en la zona horaria de la organización,
+  **con impuestos y sin propina**; `autonomous` = pedidos con `origin` ≠ `waiter`. `by_method` suma `Payment.amount`
+  por método; `by_waiter` por `created_by`; `top_products` por producto (sin componentes de combo).
+
+### API
+
+| Método y ruta | Quién | Cuerpo → Respuesta |
+|---|---|---|
+| `GET /floors?restaurant_id=&all=1` | sesión | `{"floors": [{id, name, sequence, active, revision, has_background, table_count, tables: [{id, number, seats, x, y, width, height, shape, color, zone_id, active, call, call_at, token, reserved_at: null}]}]}`; sin `all` solo activos |
+| `POST /floors` | `admin` | `{restaurant_id, name}` → `{"floor": {...}}` (201) |
+| `PATCH /floors/{id}` | `admin` | `{name?, active?, sequence?}` → `{"floor"}`; desactivar exige otro piso activo (`409 last_floor`) |
+| `DELETE /floors/{id}` | `admin` | → `{"result": "removed" \| "archived"}`; `409 shift_open`, `409 table_in_use`, `409 last_floor` |
+| `GET /floors/{id}/plan` | sesión | `FloorDocument`: `{id, name, revision, tables: [{id, key, number, seats, zone, x, y, width, height}], walls, zones, decor, images: [{id, x, y, width, height}], background: bool, background_size}` |
+| `PUT /floors/{id}/plan` | `admin` | el `FloorDocument` (con `images[].data` y `background` en base64 cuando son nuevas) → el documento guardado con `revision + 1`; `409 stale_plan`, `409 shift_open`, `409 table_in_use`, `400 invalid_plan` con el detalle |
+| `GET /floors/{id}/background` · `GET /floors/{id}/images/{image_id}` | público con `?org=` | WebP con caché como las fotos |
+| `GET /floors/{id}/zone-staff?shift_id=` | sesión | `{"assignments": {zone_id: [account_id]}, "source": "plan" \| "shift", "people": [{id, name, role}]}` |
+| `PUT /floors/{id}/zone-staff` | `admin` | `{assignments}` → igual (habitual) |
+| `PUT /shifts/{id}/zones` | `admin` | `{floor_id, assignments \| null}` → igual (`null` vuelve al habitual); `409 shift_closed` |
+| `GET /tables/calls?restaurant_id=` | sesión | `{"calls": [{table_id, table_number, kind, since}]}` |
+| `PUT /tables/{id}/call` | `serve_orders` | `{kind}` → `{"table": {...}}` |
+| `GET /shifts/open?restaurant_id=` | sesión | `{"shift": {id, restaurant_id, state, opened_at, opened_by: {id, name}, opening_cash, opening_notes} \| null}` |
+| `POST /shifts` | `cashier`, `admin` | `{restaurant_id, opening_cash, notes}` → `{"shift"}` (201); `409 shift_open` |
+| `GET /shifts?restaurant_id=&limit=12` | `sales` | `{"shifts": [{id, state, opened_at, closed_at, opened_by, closed_by, total, orders}]}` |
+| `GET /shifts/{id}/closing` | `sales` | `{orders_count, orders_total, opening_cash, cash_payments, cash_moves: [{kind, amount, reason}], expected_cash, other_methods: [{id, name, amount, count}], draft_orders, opening_notes}` |
+| `POST /shifts/{id}/moves` | `sales` | `{kind: "in" \| "out", amount, reason}` → `{"move", "expected_cash"}` |
+| `POST /shifts/{id}/close` | `cashier`, `admin` | `{counted_cash, notes}` → `{"shift": {..., expected_cash, counted_cash, difference, closing_notes, over_tolerance}}`; `409 open_orders`, `400 note_required` |
+| `GET /shifts/closings?from=&to=&restaurant_ids=&only_differences=1` | `admin` (los suyos), `owner` | `{"closings": [{shift_id, restaurant_id, restaurant_name, closed_at, closed_by: {id, name}, expected, counted, difference, notes, over_tolerance}], "tolerance"}` |
+| `PUT /settings/cash` | `owner` | `{tolerance}` → `{tolerance}` |
+| `GET /payment-methods?restaurant_id=` | sesión | `{"methods": [{id, name, type}]}` |
+| `POST /payment-methods` · `PATCH /payment-methods/{id}` · `DELETE /payment-methods/{id}` | `owner` | `{name, type, restaurant_ids?}`; borrar uno con pagos lo desactiva |
+| `GET /orders?restaurant_id=&state=open\|paid&from=&to=&limit=200` | sesión | `{"orders": [Order]}` con `Order = {id, uuid, number, tracking, service, state, origin, channel, table_id, table_number, guests, baby_chair, customer_name, delivery_address, delivery_phone, note, billing, created_at, paid_at, waiter: {id, name}, subtotal, tax, tip, total, paid, change, lines: [{id, uuid, product_id, name, qty, unit_price, subtotal, total, note, options, parent_id, discount_pct, course_id, ready_at, served_at, cancelled}], courses: [{id, index, fired_at, preparation_at, ready_at, served_at}], payments: [{id, method_id, method, amount, received, reference, created_at}]}`; `open` = borradores del turno abierto |
+| `GET /orders/{id}` | sesión | `{"order": Order}` |
+| `POST /orders` | `create_orders` | `{restaurant_id, uuid, service, table_id?, guests?, baby_chair?, customer_name?, delivery_address?, delivery_phone?, note?, lines: [{uuid, product_id, qty, note?, options?, children?: [{uuid, product_id, qty}]}], fire: bool}` → `{"order"}` (201; `uuid` repetido devuelve el existente); `409 shift_closed`, `400 unavailable`, `409 prepay_required` |
+| `POST /orders/{id}/lines` | `create_orders` | `{lines: [...], fire: bool}` → `{"order"}` (una ronda = un curso nuevo si `fire`) |
+| `DELETE /orders/{id}/lines` | `create_orders` | `{line_ids}` → `{"order"}`; `409 not_editable` |
+| `POST /orders/{id}/fire` | `create_orders` | → `{"order", "course_id" \| null}`; `409 prepay_required` |
+| `PATCH /orders/{id}` | `create_orders` (`billing`: también `serve_orders`) | `{table_id?, note?, guests?, billing?, customer_name?}` → `{"order"}`; `409 table_busy` |
+| `POST /orders/{id}/payments` | `charge_orders` | `{method_id, amount, received?, reference?, request_key}` → `{"order"}`; `400 overpaid` si supera el total |
+| `PUT /orders/{id}/tip` | `charge_orders` | `{amount}` → `{"order"}` |
+| `POST /orders/{id}/pay` | `charge_orders` | → `{"order"}`; `400 unpaid` |
+| `POST /orders/{id}/cancel` | `admin` | `{reason}` → `{"order"}`; solo borradores sin pagos |
+| `GET /kitchen/tickets?restaurant_id=` | `kitchen` | `{"tickets": [{id (curso), order_id, number, table_number, service, waiter, note, fired_at, preparation_at, ready_at, lines: [{id, name, qty, note, station, ready_at, served_at}]}], "completed": [{fired_at, ready_at}]}` (cursos disparados y no servidos; `completed` = los listos del turno, para el tiempo medio) |
+| `POST /courses/{id}/start` · `POST /courses/{id}/ready` | `kitchen` | → `{"course"}` |
+| `POST /courses/{id}/serve` | `serve_orders` | → `{"course"}`; `400 not_ready` |
+| `POST /lines/ready` | `kitchen` | `{line_ids}` → `{"lines"}` |
+| `POST /lines/serve` | `serve_orders` | `{line_ids}` → `{"lines"}`; `400 not_ready` |
+| `GET /sales/summary?restaurant_id=&shift_id=\|from=&to=` | `sales` | `{total, orders, autonomous, by_method: [{method, amount}], by_waiter: [{waiter, amount, orders}], top_products: [{product, qty, amount}]}` |
+| `GET /sales/orders?restaurant_id=&shift_id=\|from=&to=&limit=200` | `sales`, `history` | `{"orders": [Order]}` pagados, con líneas y pagos |
+| `GET /sales/insights?restaurant_id=` | `dashboard` | `SalesHistory` como `pos/lib/domain/insights.ts`: `{today, window_days: 28, history_days: 84, daily: [{date, total, orders}], hourly: [{hour, total, orders}], products: [{product_id, name, qty, amount, prev_qty}]}` |
+| `GET /settings?restaurant_id=` | sesión | `{restaurant: {alert_late_minutes, alert_bill_minutes, roi_hour_cost, roi_minutes_per_order, roi_baseline_hours_per_100, roi_monthly_cost, roi_start_date, kitchen_prepay_roles}, role_policy, can_charge, can_edit_inventory}` |
+| `PATCH /settings?restaurant_id=` | `admin` (umbrales y ROI), `owner` (`kitchen_prepay_roles`) | campos → igual |
+| `PUT /settings/roles` | `owner` | `role_policy` → `{role_policy}`; `400 invalid_policy` (tres roles, al menos una vista, `create_orders`/`charge_orders` exigen `tables` u `orders`, `serve_orders` exige `tables`) |
+| `GET /events?restaurant_id=&after=` | sesión | SSE |
+
+### Pruebas que deben existir (`# Falla si …`)
+
+Turno único por restaurante; esperado con pagos, cambio, entradas y salidas; cerrar con borradores; cerrar con
+diferencia sin nota y con nota; aviso de caja solo si supera la tolerancia; cuadres por sede para el encargado y todas
+para el dueño. Alta de pedido con precio de la sede, impuestos copiados, totales del servidor, numeración DI/TA/DE por
+día y sede, `uuid` repetido, mesa obligatoria en `dine_in`, producto agotado o fuera de carta, combo y opciones.
+Prepago por rol y disparo al pagar. Cursos: fire, start, ready por curso y por línea, serve solo lo listo, editar o
+cancelar prohibido tras empezar, pedido sin líneas se cancela. Pagos: idempotencia por `request_key`, sobrepago,
+propina, cambio, pay con saldo, inventario descontado una sola vez y `pending`/`free`. Mesas: llamadas, mover a mesa
+ocupada, plano con caja abierta, revisión vieja, mesa con pedido no se retira, borrar piso con historial archiva.
+Reparto por zonas habitual y del turno. Informes: con impuestos y sin propina, por método, por mesero, top products
+sin componentes, insights por día local. Política de roles inválida. SSE: una escritura genera su evento y `after`
+filtra. Aislamiento entre organizaciones y permisos por rol en cada ruta.
+
 ## Estado
 
 - 2026-10-01: decisión tomada y plan escrito.
