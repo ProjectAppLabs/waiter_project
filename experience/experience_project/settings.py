@@ -34,6 +34,10 @@ INSTALLED_APPS = [
     'notifications',
     'catalog',
     'inventory',
+    'sales',
+    'tables',
+    'kitchen',
+    'realtime',
 ]
 
 MIDDLEWARE = [

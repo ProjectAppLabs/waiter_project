@@ -93,13 +93,19 @@ def set_suspension(actor, organization, suspended, reason=''):
 
 
 @transaction.atomic
-def create_restaurant(account, data):
+def create_restaurant(account, data, *, source_restaurant=None):
     require(account.role == 'owner')
     organization = Organization.objects.select_for_update().get(pk=account.organization_id)
     require(organization.restaurants.count() < organization.max_restaurants,
             'Alcanzaste el límite de restaurantes de tu plan.', 'restaurant_limit', 409)
     data = payload(data, ('name', 'slug', 'street', 'city', 'phone'), ('name', 'slug'))
-    return assign_values(Restaurant(organization=organization), data)
+    restaurant = assign_values(Restaurant(organization=organization), data)
+    if source_restaurant is not None:
+        from catalog.services import restaurant_for
+        from sales.services import seed_restaurant
+        source = restaurant_for(account, source_restaurant.pk)
+        seed_restaurant(restaurant, source=source)
+    return restaurant
 
 
 def login_platform(data):

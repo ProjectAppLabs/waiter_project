@@ -68,9 +68,14 @@ def manager(account):
 
 
 @contextmanager
-def writing(org):
+def writing(org, *, operational=False):
     """El UPDATE adquiere también el bloqueo de escritura en SQLite antes de leer saldos."""
     with transaction.atomic():
+        if operational:
+            from tenancy.models import Organization
+            Organization.objects.filter(pk=org.pk).update(cash_tolerance=F('cash_tolerance'))
+            yield
+            return
         changed = CatalogRevision.objects.filter(organization=org).update(version=F('version') + 1)
         if not changed:
             CatalogRevision.objects.create(organization=org, version=1)

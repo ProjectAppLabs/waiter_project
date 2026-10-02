@@ -28,3 +28,6 @@ pycparser==3.0
 
 # Conversión de fotos del catálogo.
 Pillow==12.1.1
+
+# PostgreSQL de desarrollo y producción del sistema propio (plan T2).
+psycopg[binary]==3.2.9

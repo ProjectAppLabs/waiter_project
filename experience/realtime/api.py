@@ -1,0 +1,65 @@
+"""SSE síncrono: runserver reserva un hilo por conexión, hasta cinco minutos."""
+
+import time
+
+from django.conf import settings
+from django.db import close_old_connections
+from django.http import StreamingHttpResponse
+from rest_framework.renderers import BaseRenderer, JSONRenderer
+
+from catalog.api import PosView
+from catalog.services import restaurant_for, valid
+
+from .models import SalesEvent
+
+
+def stream(organization_id, restaurant_id, after, iterations=None):
+    started = time.monotonic()
+    heartbeat = started
+    iteration = 0
+    while time.monotonic() - started < 300 and (iterations is None or iteration < iterations):
+        if iterations is None:
+            close_old_connections()
+        events = list(
+            SalesEvent.objects.filter(
+                organization_id=organization_id, restaurant_id=restaurant_id, id__gt=after
+            ).order_by("id")[:500]
+        )
+        for item in events:
+            yield f"id: {item.pk}\nevent: {item.kind}\ndata: {{}}\n\n"
+            after = item.pk
+        now = time.monotonic()
+        if now - heartbeat >= 15:
+            yield ": ping\n\n"
+            heartbeat = now
+        iteration += 1
+        if iterations is None:
+            time.sleep(1)
+
+
+class EventStreamRenderer(BaseRenderer):
+    """`EventSource` pide `Accept: text/event-stream`; sin este renderer DRF respondía 406 antes de llegar a la vista."""
+
+    media_type = "text/event-stream"
+    format = "sse"
+
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        # Solo los errores pasan por aquí (el flujo sale como StreamingHttpResponse): van como JSON.
+        return JSONRenderer().render(data, "application/json", renderer_context)
+
+
+class EventsView(PosView):
+    renderer_classes = (EventStreamRenderer, JSONRenderer)
+
+    def get(self, request):
+        restaurant = restaurant_for(self.account, request.query_params.get("restaurant_id"))
+        after = request.query_params.get("after", "0")
+        valid(after.isdecimal() and len(after) <= 19)
+        response = StreamingHttpResponse(
+            stream(self.org.pk, restaurant.pk, int(after), getattr(settings, "SALES_SSE_TEST_ITERATIONS", None)),
+            content_type="text/event-stream",
+        )
+        response["Cache-Control"] = "no-cache"
+        response["X-Accel-Buffering"] = "no"
+        response["Vary"] = "Cookie, X-Waiter-Org"
+        return response

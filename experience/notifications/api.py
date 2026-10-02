@@ -16,7 +16,7 @@ class NotificationsView(ContractView):
         require(1 <= limit <= 500, 'El límite debe estar entre 1 y 500.', 'invalid_data', 400)
         fields = ('id', 'restaurant_id', 'recipient_id', 'kind', 'title', 'body', 'res_model', 'res_id',
                   'action', 'action_done', 'read', 'created_at')
-        return Response({'notifications': [model_dict(row, fields) for row in rows[:limit]]})
+        return Response({'notifications': [{**model_dict(row, fields), **({'order_id': row.res_id} if row.kind == 'kitchen' and row.res_model == 'sales.Order' else {})} for row in rows[:limit]]})
 
     def post(self, request, pk=None):
         rows = visible_notifications(pos_session(request).account)

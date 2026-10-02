@@ -414,7 +414,7 @@ permiso responde `403 forbidden`. Un `waiter` o `cashier` solo opera el restaura
 | `GET /sales/summary?restaurant_id=&shift_id=\|from=&to=` | `sales` | `{total, orders, autonomous, by_method: [{method, amount}], by_waiter: [{waiter, amount, orders}], top_products: [{product, qty, amount}]}` |
 | `GET /sales/orders?restaurant_id=&shift_id=\|from=&to=&limit=200` | `sales`, `history` | `{"orders": [Order]}` pagados, con líneas y pagos |
 | `GET /sales/insights?restaurant_id=` | `dashboard` | `SalesHistory` como `pos/lib/domain/insights.ts`: `{today, window_days: 28, history_days: 84, daily: [{date, total, orders}], hourly: [{hour, total, orders}], products: [{product_id, name, qty, amount, prev_qty}]}` |
-| `GET /settings?restaurant_id=` | sesión | `{restaurant: {alert_late_minutes, alert_bill_minutes, roi_hour_cost, roi_minutes_per_order, roi_baseline_hours_per_100, roi_monthly_cost, roi_start_date, kitchen_prepay_roles}, role_policy, can_charge, can_edit_inventory}` |
+| `GET /settings?restaurant_id=` | sesión | `{restaurant: {alert_late_minutes, alert_bill_minutes, roi_hour_cost, roi_minutes_per_order, roi_baseline_hours_per_100, roi_monthly_cost, roi_start_date, kitchen_prepay_roles}, role_policy, can_charge, can_edit_inventory, cash_tolerance}` |
 | `PATCH /settings?restaurant_id=` | `admin` (umbrales y ROI), `owner` (`kitchen_prepay_roles`) | campos → igual |
 | `PUT /settings/roles` | `owner` | `role_policy` → `{role_policy}`; `400 invalid_policy` (tres roles, al menos una vista, `create_orders`/`charge_orders` exigen `tables` u `orders`, `serve_orders` exige `tables`) |
 | `GET /events?restaurant_id=&after=` | sesión | SSE |
@@ -471,6 +471,31 @@ filtra. Aislamiento entre organizaciones y permisos por rol en cada ruta.
     cabeceras; el inventario devuelve la unidad como `{id, name}`; las solicitudes responden `{request, created}`;
     reutilizar un `request_key` para otro movimiento da `409 request_key_conflict`; cambiar la unidad de un
     ingrediente por otra compatible convierte existencias, umbrales y costo.
-  - **Pendiente:** la carta del POS en el sistema propio trae pisos, mesas, métodos de pago y ajustes por omisión
-    hasta T2 (el botón «Abrir caja» aún no hace nada allí); «Entrar al POS» desde la consola sigue oculto; las
-    fotos de proveedor no existen en el sistema propio.
+  - Las fotos de proveedor no existen en el sistema propio.
+- **T2 hecha** (2026-10-02), misma rama.
+  - Backend (Codex, `gpt-6-astra`): apps `tables`, `sales`, `kitchen` y `realtime` con el contrato T2: pisos y plano con
+    revisión, mesas y llamadas, reparto por zonas, turnos de caja (uno por sede, esperado con pagos, cambio, entradas y
+    salidas; cierre con nota obligatoria si hay diferencia y aviso al superar la tolerancia), pedidos con numeración
+    DI/TA/DE por día y sede, totales en el servidor, cursos de cocina a dos manos, prepago por rol, pagos idempotentes,
+    inventario descontado al cobrar y `pending`/`free`, informes del turno y del periodo, política de roles de la
+    organización y SSE. Django: 1302 pruebas (397 nuevas).
+  - POS (Claude): clientes `core/{sales,tables,kitchen,realtime}.ts`, el puente `core/salesBridge.ts` y la bifurcación
+    con `onCore()` de `session`, `cashRegister`, `orders`, `ordersKit`, `orderCreate`, `kitchen`, `tables`, `floorPlan`,
+    `sales`, `ops`, `paymentKit`, `insights`, `business`, `settings`, `rolePermissions`, `bus` (SSE) y
+    `notifications`. La carta trae el salón, los métodos de pago y los ajustes reales. Las horas del servidor (Odoo sin
+    zona, sistema propio en ISO) se leen con `lib/domain/time.ts`. `tsc` y 608 pruebas.
+  - **PostgreSQL en desarrollo:** contenedor `waiter-db` (postgres:16, `127.0.0.1:5433`, base `waiter_core`); los datos
+    de desarrollo pasaron de SQLite con `dumpdata`/`loaddata`; `.env.example` lo documenta. Las pruebas siguen en SQLite.
+  - **Recorrido en Chromium** (`frisby-74312.localhost:3000`, dueña): el plano del Salón con tres mesas, «Entrar al
+    POS» desde la consola, abrir caja con $ 200.000, un pedido en la mesa 1 con nota a cocina, Pedidos lo lista «En
+    progreso», Cocina lo recibe en su estación con cronómetro, «Iniciar preparación» y «Listo todo», el salón lo ve
+    «Listo para servir» y lo entrega, cobro en efectivo con cambio, Historial y Ventas lo muestran, el cierre bloquea
+    «Cerrar caja» sin nota cuando hay diferencia y cierra con ella, y la consola la ve en Cuadres con esperado, contado,
+    diferencia y nota. Burger House sigue en Odoo sin cambios.
+  - **Decisiones tomadas al integrar:** la vista SSE acepta `Accept: text/event-stream` (DRF respondía 406); `GET
+    /settings` devuelve también `cash_tolerance`; el mesero de una comanda viaja como `{id, name}`; cancelar un pedido
+    solo vale antes de que cocina empiece (lo empezado se cobra); el cambio sale del `received` del pago en efectivo.
+  - **Pendiente:** en desarrollo el modal de pago a veces se queda en «Cargando pedido…» al entrar por la URL
+    (recargar lo resuelve; por investigar, posiblemente el doble montaje de React en modo estricto); «Forzar cierre» no
+    existe en el sistema propio; las reservas que apartan mesas, los puntos del cobro y Resumen/Rentabilidad llegan con
+    T3 y T4; el menú del comensal sigue en Odoo hasta T5.

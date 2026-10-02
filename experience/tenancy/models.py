@@ -1,5 +1,6 @@
 """Organizaciones y acceso independiente del personal de ProjectApp."""
 import uuid
+from sales.policy import default_role_policy
 
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
@@ -37,6 +38,7 @@ class Organization(models.Model):
     status = models.CharField(max_length=12, choices=[(s, s) for s in ('trial', 'active', 'suspended')], default='trial')
     trial_ends = models.DateField(null=True, blank=True)
     max_restaurants = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)])
+    role_policy = models.JSONField(default=default_role_policy)
     cash_tolerance = models.DecimalField(max_digits=14, decimal_places=2, default=0, validators=[MinValueValidator(0)])
     timezone = models.CharField(max_length=64, default='America/Bogota', validators=[validate_timezone])
     brand_color = models.CharField(max_length=7, default='#C1873A', validators=[RegexValidator(r'^#[0-9a-fA-F]{6}$')])

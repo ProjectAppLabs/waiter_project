@@ -33,6 +33,16 @@ class CatalogData:
         self.prices = {(r.restaurant_id, r.product_id): r.price for r in RestaurantPrice.objects.filter(restaurant__in=restaurants)}
         self.unavailable = set(RestaurantUnavailable.objects.filter(restaurant__in=restaurants).values_list('restaurant_id', 'product_id'))
         self._requirements = {}
+        self.pending = defaultdict(Decimal)
+        from sales.models import OrderLine
+        pending_lines = list(OrderLine.objects.filter(
+            order__restaurant__in=restaurants, order__state='draft', cancelled=False
+        ).values_list('id', 'parent_id', 'order__restaurant_id', 'product_id', 'qty'))
+        parents = {parent for _, parent, _, _, _ in pending_lines if parent is not None}
+        for line_id, _, rid, pk, qty in pending_lines:
+            if line_id not in parents:
+                for ingredient, per_serving in self.requirements(pk).items():
+                    self.pending[(rid, ingredient)] += per_serving * qty
 
     def requirements(self, pk, path=frozenset()):
         if pk in self._requirements:
@@ -59,8 +69,8 @@ class CatalogData:
             stock = self.stocks.get((rid, ingredient_id))
             qty = stock.qty if stock else Decimal(0)
             rows.append({'ingredient_id': ingredient_id, 'name': self.products[ingredient_id].name,
-                         'per_serving': float(per_serving), 'stock': float(qty), 'pending': 0, 'free': float(qty),
-                         'servings': max(0, math.floor(qty / per_serving + Decimal('0.000000001')))})
+                         'per_serving': float(per_serving), 'stock': float(qty), 'pending': float(self.pending[(rid, ingredient_id)]), 'free': float(qty - self.pending[(rid, ingredient_id)]),
+                         'servings': max(0, math.floor((qty - self.pending[(rid, ingredient_id)]) / per_serving + Decimal('0.000000001')))})
         return rows
 
     def servings(self, pk, rid):

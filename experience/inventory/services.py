@@ -27,7 +27,10 @@ def move_dict(move, unit=None):
 
 def detail(product, restaurant):
     stock = Stock.objects.filter(restaurant=restaurant, ingredient=product).first()
-    return {'stock': float(stock.qty) if stock else 0, 'pending': 0, 'cost': float(product.cost),
+    from catalog.reading import CatalogData
+    data = CatalogData(product.organization, [restaurant])
+    pending = data.pending[(restaurant.pk, product.pk)]
+    return {'stock': float(stock.qty) if stock else 0, 'pending': float(pending), 'cost': float(product.cost),
             'min': float(stock.min) if stock else 5, 'max': float(stock.max) if stock else 20,
             'unit': product.unit.name, 'history': [move_dict(m, product.unit) for m in StockMove.objects.filter(
                 restaurant=restaurant, ingredient=product).select_related('account', 'unit').order_by('-created_at', '-id')[:100]]}
@@ -164,3 +167,21 @@ def mark_request(account, pk, raw):
             purchase.state = state
             purchase.save(update_fields=['state'])
         return {'request': request_dict(requests_for([restaurant]).get(pk=pk))}
+
+
+def apply_sale(account, product, order, qty):
+    """Descuenta una receta una sola vez; conserva el faltante en el motivo del movimiento."""
+    key = f'order:{order.pk}:ingredient:{product.pk}'
+    if StockMove.objects.filter(organization=account.organization, request_key=key).exists():
+        return
+    stock, _ = Stock.objects.get_or_create(restaurant=order.restaurant, ingredient=product)
+    stock = Stock.objects.select_for_update().get(pk=stock.pk)
+    delta = min(stock.qty, qty)
+    reason = f'Venta {order.number}'
+    if delta < qty:
+        reason += f'; faltaron {qty-delta} {product.unit.name}; existencias limitadas a cero'
+    stock.qty -= delta
+    stock.save()
+    StockMove.objects.create(organization=account.organization, restaurant=order.restaurant, ingredient=product,
+        kind='sale', qty=-delta, reason=reason, request_key=key, account=account, unit=product.unit,
+        requested_qty=qty, stock_after=stock.qty)
