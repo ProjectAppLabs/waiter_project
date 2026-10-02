@@ -1,3 +1,5 @@
+import { onCore } from '@/lib/domain/backend'
+import { adminCall } from '@/lib/services/core/admin'
 import { EXPERIENCE_PROXY } from '@/lib/services/menuTemplates'
 import { jsonRpc } from '@/lib/services/odoo'
 
@@ -9,9 +11,9 @@ export interface DecorationLimits { peso: number; lado: number; cantidad: number
 export interface MenuDecorationList { decoraciones: MenuDecoration[]; fabrica: FactoryDecoration[]; limites: DecorationLimits; experienceUrl: string }
 
 const PATH = '/waiter/admin/menu_decorations'
-export const listMenuDecorations = () => jsonRpc<MenuDecorationList>(PATH, { action: 'list' })
-export const addMenuDecoration = (nombre: string, imagen: string) => jsonRpc<MenuDecoration>(PATH, { action: 'add', nombre, imagen })
-export const removeMenuDecoration = (decoracionId: string) => jsonRpc<{ eliminada: string }>(PATH, { action: 'remove', decoracion_id: decoracionId })
+export const listMenuDecorations = () => (onCore() ? adminCall<MenuDecorationList>('menu_decorations', { action: 'list' }) : jsonRpc<MenuDecorationList>(PATH, { action: 'list' }))
+export const addMenuDecoration = (nombre: string, imagen: string) => (onCore() ? adminCall<MenuDecoration>('menu_decorations', { action: 'add', nombre, imagen }) : jsonRpc<MenuDecoration>(PATH, { action: 'add', nombre, imagen }))
+export const removeMenuDecoration = (decoracionId: string) => (onCore() ? adminCall<{ eliminada: string }>('menu_decorations', { action: 'remove', decoracion_id: decoracionId }) : jsonRpc<{ eliminada: string }>(PATH, { action: 'remove', decoracion_id: decoracionId }))
 
 export const DECORATION_TYPES = ['image/png', 'image/webp']
 // La imagen que sirve experience, por el proxy del POS: `archivo` llega relativa al origen de experience.

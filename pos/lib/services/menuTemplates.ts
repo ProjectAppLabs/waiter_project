@@ -1,3 +1,5 @@
+import { onCore } from '@/lib/domain/backend'
+import { adminCall } from '@/lib/services/core/admin'
 import { jsonRpc } from '@/lib/services/odoo'
 
 // Plantilla del menú (Plan H, Contrato 5). El catálogo es público y vive en experience (módulo 3); la elección
@@ -70,6 +72,7 @@ export function gateway(action: 'set', payload: MenuSettings): Promise<ResolvedT
 export function gateway(action: 'preview', payload: MenuSettings): Promise<MenuDraft>
 export function gateway(action: 'verify', payload: { borrador: string }): Promise<MenuVerification>
 export function gateway(action: 'get' | 'set' | 'preview' | 'verify', payload: Partial<MenuSettings> = {}): Promise<MenuSettingsContext | ResolvedTemplate | MenuDraft | MenuVerification> {
+  if (onCore()) return adminCall<MenuSettingsContext | ResolvedTemplate | MenuDraft | MenuVerification>('menu_settings', { action, ...payload })
   return jsonRpc<MenuSettingsContext | ResolvedTemplate | MenuDraft | MenuVerification>(GATEWAY_PATH, { action, ...payload })
 }
 
