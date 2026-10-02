@@ -854,7 +854,7 @@ Rutas de la plataforma bajo `/api/platform/v1` con la cookie `waiter_platform_si
     preferencias de avisos propias. Las pantallas Reservas y Mesas cargan sin errores.
   - **Decisiones al integrar:** los banners se guardan enviando la lista completa como cuerpo; `PUT /benefits` no lleva
     `restaurant_id`; las preferencias viajan como `{prefs}`; el anticipo público devuelve `amount_in_cents`.
-- **Pendiente de T2:** en desarrollo el modal de pago a veces se queda en «Cargando pedido…» al entrar por la URL
+- **Revisado (T3):** el modal de pago carga en cinco entradas seguidas por la URL. La causa probable del «Cargando pedido…» visto en T2 es el límite de seis conexiones por dominio de HTTP/1.1 con varias conexiones de eventos en vivo abiertas en desarrollo; en producción el proxy sirve HTTP/2 y no aplica. Antes: al entrar por la URL
     (recargar lo resuelve; por investigar, posiblemente el doble montaje de React en modo estricto); «Forzar cierre» no
     existe en el sistema propio; las reservas que apartan mesas, los puntos del cobro y Resumen/Rentabilidad llegan con
     T3 y T4; el menú del comensal sigue en Odoo hasta T5.
