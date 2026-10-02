@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<odoo>
-    <record id="waiter_restaurant_notification" model="ir.rule">
-        <field name="name">Waiter · Aislamiento de notification</field>
-        <field name="model_id" ref="model_waiter_notification"/>
-        <field name="domain_force">[(1, '=', 1)] if user.has_group('projectapp_ops.group_waiter_owner') or user.has_group('base.group_system') else [('config_id', 'in', user.waiter_config_ids.ids)]</field>
-    </record>
-</odoo>
