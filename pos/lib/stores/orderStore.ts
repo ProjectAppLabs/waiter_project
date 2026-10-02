@@ -113,7 +113,7 @@ export const useOrderStore = create<OrderState>((set, get) => {
       set({ busy: true, error: null })
       try {
         if (plan.tip > 0 && ctx.tipProductId) await addTip(orderId, ctx.tipProductId, plan.tip)
-        for (const p of plan.payments) await payOrder(orderId, p.methodId, p.amount)
+        for (const p of plan.payments) await payOrder(orderId, p.methodId, p.amount, p.received, p.reference)
         const ch = change(plan.payments)
         if (ch > 0) await setChange(orderId, ch)
         const closed = await closeOrder(orderId)

@@ -28,7 +28,7 @@ it('el resumen compara cada restaurante con su periodo anterior', async () => {
   const poblado = await screen.findByRole('row', { name: /Poblado/ })
   expect(poblado).toHaveTextContent('$ 1.200')
   expect(poblado).toHaveTextContent('↑ 20 %')
-  expect(screen.getByRole('row', { name: /Laureles/ })).toHaveTextContent('sin periodo anterior')
+  expect(screen.getByRole('row', { name: /Laureles/ })).toHaveTextContent('sin comparación')
   expect(within(screen.getByLabelText('Total de la organización')).getByText('$ 1.700')).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Hoy' }))
   await waitFor(() => expect(orgSummary).toHaveBeenLastCalledWith(expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), expect.any(String)))

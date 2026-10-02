@@ -39,6 +39,9 @@ MAPPING = [
 
 
 def handle(exc, context):
+    from tenancy.http import Problem
+    if isinstance(exc, Problem):
+        return Response(exc.body, status=exc.status)
     for kind, status, message in MAPPING:
         if isinstance(exc, kind):
             return Response({'detail': message}, status=status)

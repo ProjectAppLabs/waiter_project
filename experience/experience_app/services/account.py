@@ -4,6 +4,7 @@ El proveedor de códigos aún no está integrado. En demo, seis dígitos ASCII v
 la cuenta pendiente solicitada por esta cookie, durante diez minutos y una sola vez.
 Nunca se recuperan cuentas existentes por correo. En producción se rechaza el flujo.
 """
+from experience_app.adapters.backend import backend_for, client_for
 import re
 
 from django.conf import settings
@@ -117,7 +118,7 @@ def history(account: DinerAccount) -> list[dict]:
     El estado sale de la sesión (pagada por el salón o no), sin ir a Odoo por cada pedido viejo.
     """
     orders = (Order.objects.filter(Q(lines__account=account) | Q(lines__account__isnull=True, session__diners__account=account), state__in=(Order.SENT, Order.CHECKOUT))
-              .filter(session__restaurant_slug=account.organization_slug).distinct().select_related('session').order_by('-created_at'))
+              .filter(session__restaurant_slug=account.organization_slug).distinct().select_related('session').prefetch_related('lines').order_by('-created_at'))
     orders = list(orders)
     groups = {}
     for order in orders:
@@ -125,13 +126,17 @@ def history(account: DinerAccount) -> list[dict]:
             groups.setdefault((order.session.restaurant_slug, order.session.venue_slug), []).append(order)
     for (restaurant, venue), pending in groups.items():
         try:
-            client = OdooClient(resolve(restaurant, venue).odoo)
+            client = client_for(resolve(restaurant, venue), OdooClient)
             states = client.call_kw('pos.order', 'read', [[o.odoo_order_id for o in pending], ['state']])
             paid = {row['id'] for row in states if row['state'] in PAID_STATES}
+            statuses = {row['id']: row for row in states}
             for order in pending:
                 if order.requires_payment and order.odoo_order_id in paid:
                     from experience_app.services.orders import status_view
-                    order._diner_status = status_view(order)['estado']
+                    row = statuses[order.odoo_order_id]
+                    from experience_app.adapters.odoo.pos import OrderStatus
+                    remote = OrderStatus(row['state'], row['kitchen']) if 'kitchen' in row else None
+                    order._diner_status = status_view(order, remote_status=remote)['estado']
                 elif order.odoo_order_id in paid and not order.requires_payment:
                     close_paid(order.session)
         except (OdooError, RegistryUnavailable, TenantNotFound):

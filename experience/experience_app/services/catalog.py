@@ -1,4 +1,5 @@
 """La carta y las fotos por sede, desde caché. Odoo no está en el camino caliente del comensal."""
+from experience_app.adapters.backend import backend_for, client_for
 from collections.abc import Callable
 from urllib.parse import urlsplit, urlunsplit
 
@@ -32,9 +33,9 @@ def get_catalog(tenant: Tenant) -> pos.Catalog:
     cached = cache.get(_key(tenant))
     if cached is not None:
         return cached
-    client = OdooClient(tenant.odoo)
-    session_id = pos.catalog_session(client, tenant.odoo.pos_config_id)
-    catalog = pos.load_catalog(client, session_id)
+    client = client_for(tenant, OdooClient)
+    session_id = backend_for(tenant.restaurant_slug).catalog_session(client, tenant.config_id)
+    catalog = backend_for(tenant.restaurant_slug).load_catalog(client, session_id)
     cache.set(_key(tenant), catalog, settings.MENU_CACHE_SECONDS)
     return catalog
 
@@ -56,7 +57,7 @@ def get_photo(tenant: Tenant, product: pos.Product, size: str = DEFAULT_PHOTO_SI
     El None también se cachea: una carta que aún dice "tiene foto" no manda a Odoo a cada comensal.
     """
     return cache.get_or_set(_photo_key(tenant, product, size),
-                            lambda: pos.fetch_product_image(OdooClient(tenant.odoo), product.template_id, size),
+                            lambda: backend_for(tenant.restaurant_slug).fetch_product_image(client_for(tenant, OdooClient), product.template_id, size),
                             PHOTO_CACHE_SECONDS)
 
 
@@ -66,7 +67,7 @@ def get_gallery_photo(tenant: Tenant, product: pos.Product, photo_id: int) -> tu
     if photo is None:
         return None
     key = f"gallery:{tenant.restaurant_slug}/{tenant.venue_slug}/{product.template_id}/{photo_id}/{photo['version']}"
-    return cache.get_or_set(key, lambda: pos.fetch_gallery_image(OdooClient(tenant.odoo), product.template_id, photo_id),
+    return cache.get_or_set(key, lambda: backend_for(tenant.restaurant_slug).fetch_gallery_image(client_for(tenant, OdooClient), product.template_id, photo_id),
                             PHOTO_CACHE_SECONDS)
 
 

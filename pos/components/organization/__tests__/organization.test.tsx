@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
-import { OrgContext } from '../OrgContext'
+import { anyConfigId, OrgContext } from '../OrgContext'
 import { RestaurantsView } from '../RestaurantsView'
 import { TeamView } from '../TeamView'
 import { messages } from '@/lib/i18n/messages'
@@ -8,6 +8,7 @@ import { slugify, validSlug } from '@/lib/domain/slug'
 import { restaurantRule, validAssignment } from '@/lib/domain/restaurant'
 import { createRestaurant, type Restaurant } from '@/lib/services/restaurants'
 import { suggestUsername, validUsername } from '@/lib/domain/slug'
+import { groupPeople } from '@/lib/domain/team'
 import { deactivatePerson, invitePerson, listPeople, resendInvite, updatePerson, type Person } from '@/lib/services/team'
 import { useAuthStore } from '@/lib/stores/authStore'
 
@@ -94,16 +95,21 @@ it('da de alta a una persona con usuario sugerido, un restaurante y su turno', a
 it('edita, reenvía la invitación y desactiva', async () => {
   jest.mocked(listPeople).mockResolvedValue([P({}), P({ id: 8, name: 'Laura', role: 'admin', configIds: [1, 2], shift: null, username: 'laura', email: 'laura@x.co', status: 'pending', userId: 21 }), P({ id: 1, name: 'Dueña', role: 'owner', configIds: [], userId: 1, username: 'admin' })])
   org(<TeamView />)
-  const list = await screen.findByRole('list', { name: 'Personas' })
-  const [sofia, laura, owner] = Array.from(list.children) as HTMLElement[]
+  // Plan R: el equipo es una tabla (persona fija a la izquierda) para que los nombres no se corten.
+  await screen.findByRole('table', { name: 'Personas' })
+  const [sofia, laura, owner] = ['Sofía Mesera', 'Laura', 'Dueña'].map((name) => screen.getByRole('row', { name: new RegExp(`^${name}`) }))
   expect(sofia).toHaveTextContent('Activa')
   expect(sofia).toHaveTextContent('2:00 p. m. – 10:00 p. m.')
   expect(laura).toHaveTextContent('Invitación pendiente')
   expect(laura).toHaveTextContent('Poblado · Laureles')
-  expect(owner).toHaveTextContent('Todos los restaurantes')
-  expect(within(owner).queryByRole('button', { name: 'Desactivar' })).toBeNull()
+  expect(owner).toHaveTextContent('Todos')
+  // Las acciones secundarias van en el menú «⋯»; nadie se desactiva a sí mismo.
+  fireEvent.click(within(owner).getByRole('button', { name: 'Más acciones de Dueña' }))
+  expect(screen.queryByRole('menuitem', { name: 'Desactivar' })).toBeNull()
+  fireEvent.keyDown(document, { key: 'Escape' })
 
-  fireEvent.click(within(laura).getByRole('button', { name: 'Reenviar invitación' }))
+  fireEvent.click(within(laura).getByRole('button', { name: 'Más acciones de Laura' }))
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Reenviar invitación' }))
   await waitFor(() => expect(resendInvite).toHaveBeenCalledWith(8))
 
   fireEvent.click(within(sofia).getByRole('button', { name: 'Editar' }))
@@ -113,8 +119,48 @@ it('edita, reenvía la invitación y desactiva', async () => {
   fireEvent.click(within(dialog).getByRole('button', { name: 'Guardar' }))
   await waitFor(() => expect(updatePerson).toHaveBeenCalledWith(7, { name: 'Sofía Mesera', email: 'sofia@x.co', role: 'waiter', configIds: [1], shiftStart: 14, shiftEnd: 23 }))
 
-  fireEvent.click(within(sofia).getByRole('button', { name: 'Desactivar' }))
+  fireEvent.click(within(screen.getByRole('row', { name: /^Sofía Mesera/ })).getByRole('button', { name: 'Más acciones de Sofía Mesera' }))
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Desactivar' }))
   expect(deactivatePerson).not.toHaveBeenCalled()
   fireEvent.click(within(screen.getByRole('dialog', { name: '¿Desactivar a Sofía Mesera?' })).getByRole('button', { name: 'Desactivar' }))
   await waitFor(() => expect(deactivatePerson).toHaveBeenCalledWith(7))
+})
+
+// Falla si alguien sale en dos grupos, si el dueño o el encargado de varios restaurantes quedan en uno de ellos, o si el
+// orden dentro del grupo no pone primero al encargado (plan R: el equipo por restaurante).
+it('agrupa el equipo por restaurante sin repetir a nadie', () => {
+  const people = [P({ id: 1, name: 'Zoe', role: 'waiter', configIds: [2] }), P({ id: 2, name: 'Ana', role: 'admin', configIds: [2] }), P({ id: 3, name: 'Dueña', role: 'owner', configIds: [] }),
+    P({ id: 4, name: 'Laura', role: 'admin', configIds: [1, 2] }), P({ id: 5, name: 'Nadie', role: 'cashier', configIds: [] })]
+  const groups = groupPeople(people, [{ id: 1, name: 'Poblado' }, { id: 2, name: 'Laureles' }])
+  expect(groups.map((g) => [g.title, g.people.map((p) => p.name)])).toEqual([
+    ['Toda la organización', ['Dueña']], ['Varios restaurantes', ['Laura']], ['Laureles', ['Ana', 'Zoe']], ['Sin restaurante', ['Nadie']],
+  ])
+  expect(groups.flatMap((g) => g.people).length).toBe(people.length)
+})
+
+// Falla si con muchas personas los grupos salen abiertos (la lista sería interminable), si no se pueden abrir, o si
+// buscar no abre el grupo donde está la persona.
+it('con muchas personas los grupos empiezan cerrados y la búsqueda los abre', async () => {
+  const many = Array.from({ length: 30 }, (_, i) => P({ id: 100 + i, name: `Mesero ${i + 1}`, username: `mesero.${i + 1}`, configIds: [i % 2 ? 1 : 2] }))
+  jest.mocked(listPeople).mockResolvedValue(many)
+  org(<TeamView />)
+  const poblado = await screen.findByRole('button', { name: /Poblado/, expanded: false })
+  expect(poblado).toHaveTextContent('15')
+  expect(screen.queryByRole('row', { name: /^Mesero 2\b/ })).toBeNull()
+  fireEvent.click(poblado)
+  expect(screen.getByRole('row', { name: /^Mesero 2\b/ })).toBeInTheDocument()
+  fireEvent.change(screen.getByLabelText('Buscar persona'), { target: { value: 'mesero.7' } })
+  expect(screen.getByRole('row', { name: /^Mesero 7\b/ })).toBeInTheDocument()
+  expect(screen.queryByRole('row', { name: /^Mesero 8\b/ })).toBeNull()
+})
+
+// Falla si los ajustes de la organización (promociones, permisos, empresa) se guardan por un restaurante distinto del
+// que va en cada petición: Odoo respondía «La operación pertenece a otro restaurante».
+it('los ajustes de la organización usan el restaurante en uso', () => {
+  const list = [R(1, 'Poblado'), R(2, 'Laureles')]
+  expect(anyConfigId(list, 1)).toBe(1)
+  expect(anyConfigId(list, 2)).toBe(2)
+  expect(anyConfigId(list, 99)).toBe(1)
+  expect(anyConfigId(list, null)).toBe(1)
+  expect(anyConfigId([], null)).toBeNull()
 })

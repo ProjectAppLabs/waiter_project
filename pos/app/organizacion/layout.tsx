@@ -8,7 +8,9 @@ import { AuroraBackground } from '@/components/kit/Aurora'
 import { BrandMark } from '@/components/kit/BrandMark'
 import { Icon, type KitIcon } from '@/components/kit/Icon'
 import { OrgContext } from '@/components/organization/OrgContext'
+import { SubscriptionNotice } from '@/components/organization/SubscriptionNotice'
 import { Button } from '@/components/ui/Button'
+import { onCore } from '@/lib/domain/backend'
 import { isOwner } from '@/lib/domain/roles'
 import { listRestaurants, type Restaurant } from '@/lib/services/restaurants'
 import { getCompany } from '@/lib/services/settings'
@@ -25,6 +27,10 @@ const GROUPS: [string, [string, string, KitIcon][]][] = [
   ['Organización', [['/organizacion/restaurantes', 'Restaurantes', 'store'], ['/organizacion/catalogo', 'Catálogo', 'bag'], ['/organizacion/equipo', 'Equipo', 'users'],
     ['/organizacion/integraciones', 'Integraciones IA', 'sparkles']]],
 ]
+
+// Plan T: con T4 todas las secciones de la consola viven en el sistema propio. El filtro queda por si una sección nueva
+// llega antes a Odoo que al sistema propio.
+const CORE_READY = new Set(GROUPS.flatMap(([, links]) => links.map(([href]) => href)))
 
 export default function OrganizationLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -61,7 +67,7 @@ export default function OrganizationLayout({ children }: { children: React.React
               <span className="text-[12px] font-bold uppercase tracking-widest text-primary">Organización</span>
               <p className="mt-1 text-[18px] font-semibold truncate">{companyName || 'Tu organización'}</p>
             </div>
-            {GROUPS.map(([group, links]) => (
+            {GROUPS.map(([group, links]) => [group, onCore() ? links.filter(([href]) => CORE_READY.has(href)) : links] as const).filter(([, links]) => links.length).map(([group, links]) => (
               <div key={group} className="flex flex-col gap-1 pb-3">
                 <span className="px-3 pt-2 pb-1 text-[12px] font-semibold uppercase tracking-wider text-dim">{group}</span>
                 {links.map(([href, label, icon]) => (
@@ -78,7 +84,9 @@ export default function OrganizationLayout({ children }: { children: React.React
             </div>
           </nav>
           {/* relative: lo absoluto de adentro (textos sr-only) se recorta aquí y no estira la página. */}
-          <div className="relative flex-1 min-w-0 m-4 rounded-lg border border-border overflow-y-auto p-7">{children}</div>
+          {/* Sin relleno abajo: la barra horizontal de las tablas (ScrollTable) se pega al borde de lo visible, no 28 px antes con
+              una franja transparente debajo. El mismo espacio va al final del contenido. */}
+          <div className="relative flex-1 min-w-0 m-4 rounded-lg border border-border overflow-y-auto px-7 pt-7">{onCore() && <SubscriptionNotice />}{children}<div aria-hidden className="h-7" /></div>
         </div>
       </main>
     </OrgContext.Provider>

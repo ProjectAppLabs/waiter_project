@@ -1,4 +1,5 @@
 """Puente interno de WhatsApp al motor operativo. Sin mensajes externos ni llamadas a IA."""
+from experience_app.adapters.backend import backend_for, client_for
 from datetime import timedelta
 
 from django.db import IntegrityError, transaction
@@ -22,8 +23,8 @@ def create(restaurant, venue, data):
     if existing:
         return _same_request(existing, data), False
     tenant = resolve(restaurant, venue)
-    quote = OdooClient(tenant.odoo).call_kw('pos.order', 'waiter_whatsapp_quote',
-                                          [tenant.odoo.pos_config_id, data['lineas']])
+    quote = client_for(tenant, OdooClient).call_kw('pos.order', 'waiter_whatsapp_quote',
+                                          [tenant.config_id, data['lineas']])
     try:
         with transaction.atomic():
             order = ChannelOrder.objects.create(**lookup, customer=data['cliente'], lines=data['lineas'],
@@ -47,8 +48,8 @@ def confirm(order, quote):
     tenant = resolve(order.restaurant_slug, order.venue_slug)
     # Una sola transacción RPC crea pedido + comanda. El UUID remoto sobrevive a timeouts,
     # reinicios y pagos posteriores; Odoo comprueba caducidad solo si todavía no existe.
-    result = OdooClient(tenant.odoo).call_kw('pos.order', 'waiter_whatsapp_confirm', [
-        tenant.odoo.pos_config_id, str(order.id), order.lines, order.customer, quote,
+    result = client_for(tenant, OdooClient).call_kw('pos.order', 'waiter_whatsapp_confirm', [
+        tenant.config_id, str(order.id), order.lines, order.customer, quote,
         order.expires_at.strftime('%Y-%m-%d %H:%M:%S'),
     ])
     order.result = result
@@ -60,7 +61,7 @@ def status(order):
     if order.result is None:
         return 'borrador'
     tenant = resolve(order.restaurant_slug, order.venue_slug)
-    remote = pos.read_order_status(OdooClient(tenant.odoo), order.result['id'])
+    remote = backend_for(tenant.restaurant_slug).read_order_status(client_for(tenant, OdooClient), order.result['id'])
     if remote.state in {'paid', 'done', 'invoiced'}:
         return 'pagado'
     if remote.state == 'cancel':

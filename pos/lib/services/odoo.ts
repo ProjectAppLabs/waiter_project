@@ -1,5 +1,6 @@
 'use client'
 
+import { onCore } from '@/lib/domain/backend'
 import axios from 'axios'
 import { useAuthStore } from '@/lib/stores/authStore'
 
@@ -46,8 +47,9 @@ export function callKw<T>(
 
 // El restaurante en uso (plan O): el de la caja abierta o, sin caja, el del dispositivo. null si no se sabe (una sede).
 export function currentConfigId(): number | null {
-  const { session, restaurant } = useAuthStore.getState()
-  return session?.configId ?? restaurant?.id ?? null
+  const { session, restaurant, restaurants } = useAuthStore.getState()
+  // Plan T: en el sistema propio todavía no se elige restaurante en el dispositivo (T2); vale el primero de la organización.
+  return session?.configId ?? restaurant?.id ?? (onCore() ? restaurants?.[0]?.id ?? null : null)
 }
 // Añade el filtro del restaurante en uso a un dominio de Odoo; sin restaurante conocido, lo deja igual.
 export function inRestaurant(domain: unknown[], field = 'config_id'): unknown[] {

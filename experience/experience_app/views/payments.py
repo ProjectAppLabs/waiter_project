@@ -1,8 +1,7 @@
-"""Pago maquetado (Plan H): la forma final del endpoint sin pasarela detrás.
+"""Pago simulado de desarrollo.
 
-POST /api/v1/sesiones/<id>/pago/simulado/ {metodo, reparto?} → {estado: "aprobado", referencia, demo: true}. No toca Odoo
-ni cambia la sesión: el POS sigue cobrando en la mesa. Cuando llegue la pasarela (Wompi, Mercado Pago o PayU), este
-endpoint se reemplaza por el adaptador real en experience_app/payments/ y la respuesta pierde `demo`.
+El camino de Odoo conserva la demostración sin cobro. El sistema propio registra el pago de la cuenta completa,
+lo concilia con ventas y dispara cocina, inventario y puntos. Solo está disponible con la demo habilitada.
 """
 import logging
 import uuid
@@ -31,7 +30,11 @@ def simulated(request, session_id):
         return Response({'detail': f"Método de pago inválido; usa {', '.join(METHODS)}"}, status=400)
     if settings.IS_PRODUCTION or not settings.DINER_DEMO_ENABLED:
         return Response({'detail': 'El pago demo no está disponible'}, status=503)
-    order = session.orders.filter(state=Order.SENT).first()
+    from experience_app.adapters.backend import backend_for, client_for
+    from experience_app.adapters.registry.client import resolve
+    internal = hasattr(backend_for(session.restaurant_slug), 'Client')
+    tenant = resolve(session.restaurant_slug, session.venue_slug, session.table_token) if internal else None
+    order = session.orders.filter(state__in=(Order.SENT, Order.CHECKOUT) if internal else (Order.SENT,)).first()
     if order is None or session.lines.filter(status=CartLine.OPEN).exists():
         return Response({'detail': 'Confirma el pedido antes de pagar'}, status=409)
     scope = request.data.get('reparto', 'all')
@@ -41,7 +44,14 @@ def simulated(request, session_id):
     amount = float(order.total or 0) if scope == 'all' else summary['mio'] if scope == 'mine' else summary['porParte']
     if amount <= 0:
         return Response({'detail': 'No hay un monto confirmado para pagar'}, status=409)
+    if internal and scope != 'all':
+        return Response({'error': 'payment_scope', 'message': 'El pago del menú cubre la cuenta completa.'}, status=400)
     reference = f'DEMO-{uuid.uuid4().hex[:8].upper()}'
-    # El registro es la única huella del pago simulado: sirve para la demo y para depurar, nunca para conciliar.
+    if internal:
+        reference = 'DEMO-' + str(order.id)
+        backend_for(tenant.restaurant_slug).gateway_paid(client_for(tenant), order.odoo_order_id, round(amount * 100), reference)
+        from experience_app.services.orders import status_view
+        status_view(order)
+    # El registro identifica la simulación; la rama interna ya dejó además su pago idempotente en ventas.
     log.info('pago simulado %s: sesión %s, comensal %s, %s por %.2f (sin cobro real)', reference, session.id, diner.id, method, amount)
     return Response({'estado': 'aprobado', 'referencia': reference, 'demo': True, 'metodo': method, 'monto': amount, 'reparto': scope})

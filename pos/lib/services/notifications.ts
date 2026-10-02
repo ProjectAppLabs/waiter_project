@@ -1,3 +1,7 @@
+import * as coreInventory from '@/lib/services/core/inventory'
+import { currentRestaurantId } from '@/lib/services/core/catalogBridge'
+import { onCore } from '@/lib/domain/backend'
+import * as core from '@/lib/services/core/pos'
 import type { Notification, NotificationKind } from '@/lib/domain/notifications'
 import { callKw } from '@/lib/services/odoo'
 
@@ -17,11 +21,13 @@ interface RawNotification {
 // Latido: solo el aviso más nuevo. Es lo que se pregunta cada pocos segundos —doscientos bytes— para
 // saber si hay algo; la lista entera (50 filas, ~8 KB) se pide solo cuando la respuesta cambia.
 export async function peekNotification(uid: number | null = null): Promise<{ id: number; kind: NotificationKind } | null> {
+  if (onCore()) { void uid; const [n] = await core.listNotifications(1); return n ? { id: Number(n.id), kind: n.kind } : null }
   const [row] = await callKw<{ id: number; kind: NotificationKind }[]>(MODEL, 'search_read', [mine(uid), ['kind']], { limit: 1, order: 'id desc' })
   return row ? { id: row.id, kind: row.kind } : null
 }
 
 export async function listNotifications(uid: number | null = null): Promise<Notification[]> {
+  if (onCore()) { void uid; return (await core.listNotifications(LIMIT)).map((n) => ({ id: Number(n.id), kind: n.kind, title: n.title, body: n.body, resModel: null, resId: null, action: n.action, actionDone: n.action_done, read: n.read, at: n.created_at })) }
   const rows = await callKw<RawNotification[]>(MODEL, 'search_read', [mine(uid), FIELDS], { limit: LIMIT, order: 'create_date desc, id desc' })
   return rows.map((r) => ({
     id: r.id, kind: r.kind, title: r.title, body: r.body || '', resModel: r.res_model || null, resId: r.res_id || null,
@@ -29,13 +35,15 @@ export async function listNotifications(uid: number | null = null): Promise<Noti
   }))
 }
 
-export const markAllRead = (): Promise<number> => callKw<number>(MODEL, 'waiter_mark_all_read', [])
-export const markRead = (ids: number[]): Promise<true> => callKw<true>(MODEL, 'waiter_mark_read', [ids])
+export const markAllRead = (): Promise<number> => (onCore() ? core.readAllNotifications().then(() => 0) : callKw<number>(MODEL, 'waiter_mark_all_read', []))
+export const markRead = (ids: number[]): Promise<true> => (onCore() ? Promise.all(ids.map((id) => core.readNotification(String(id)))).then(() => true as const) : callKw<true>(MODEL, 'waiter_mark_read', [ids]))
 
 export interface IngredientRequest { purchaseId: number; name: string; partnerName: string; qty: number }
 
 // "Solicitar ingredientes": el servidor crea la orden de compra en borrador y marca `action_done`.
 export async function requestIngredient(productId: number, qty?: number): Promise<IngredientRequest> {
+  // En el sistema propio se pide desde el inventario de la sede, con la cantidad por omisión del servidor.
+  if (onCore()) { void qty; const r = currentRestaurantId(); if (r === null) throw new Error('Elige un restaurante.'); const req = await coreInventory.requestIngredient(r, productId); const line = req.lines.find((l) => l.ingredient_id === productId); return { purchaseId: req.id, name: `Solicitud ${req.id}`, partnerName: req.supplier_name, qty: line?.qty ?? 0 } }
   const raw = await callKw<{ purchase_id: number; name: string; partner_name: string; product_qty: number }>(
     MODEL, 'waiter_request_ingredient', [productId, qty ?? null])
   return { purchaseId: raw.purchase_id, name: raw.name, partnerName: raw.partner_name, qty: raw.product_qty }

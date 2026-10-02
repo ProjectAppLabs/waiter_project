@@ -89,7 +89,7 @@ export function Receipt({ data, onClose }: { data: ReceiptData; onClose: () => v
         {/* El IVA no se suma: ya va dentro de los precios de arriba. Se declara para que el cliente lo vea. */}
         {data.tax > 0 && (
           <div className={`${ROW} text-[12px] tabular-nums`}>
-            <span>{vatRate ? t('taxIncludedAt', { rate: vatRate }) : t('taxIncluded')}</span><span>{formatCop(data.tax)}</span>
+            <span>{vatRate ? t('taxIncludedAt', { rate: vatRate, name: vatRate === 8 ? 'INC' : 'IVA' }) : t('taxIncluded')}</span><span>{formatCop(data.tax)}</span>
           </div>
         )}
 

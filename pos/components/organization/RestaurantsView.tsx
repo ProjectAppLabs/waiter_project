@@ -41,6 +41,7 @@ export function RestaurantsView() {
               <div className="rounded-md bg-muted p-3"><dt className="text-soft">Ventas de hoy</dt><dd className="text-[18px] font-semibold tabular">$ {formatCop(r.salesToday)}</dd></div>
               <div className="rounded-md bg-muted p-3"><dt className="text-soft">Pedidos de hoy</dt><dd className="text-[18px] font-semibold tabular">{r.ordersToday}</dd></div>
             </dl>
+            {/* Plan T: el POS del sistema propio llega con T2 (salón, pedidos y caja). */}
             <Button onClick={() => void enter(r.id, r.name)}>Entrar al POS<Icon name="arrowRight" size={18} /></Button>
           </li>
         ))}

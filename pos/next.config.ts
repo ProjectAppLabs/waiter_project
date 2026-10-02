@@ -16,7 +16,8 @@ const nextConfig: NextConfig = {
   // El servidor de desarrollo se abre desde la IP de la red local (y el POS mete al comensal en un iframe) y, en WSL2 con
   // red en espejo, desde Windows por localhost a través del puente (scripts/verificador/puente.js): sin esto Next
   // responde 403 a sus propios chunks cuando el origen no coincide con el que escucha.
-  allowedDevOrigins: [process.env.WAITER_HOST || '192.168.56.10', 'localhost', '127.0.0.1'],
+  // Plan T: cada organización entra por su subdominio (`frisby.localhost:3000`).
+  allowedDevOrigins: [process.env.WAITER_HOST || '192.168.56.10', 'localhost', '*.localhost', '127.0.0.1'],
   devIndicators: false,
   images: { unoptimized: true },
   async rewrites() {

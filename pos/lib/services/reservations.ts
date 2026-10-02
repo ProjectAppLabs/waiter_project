@@ -1,3 +1,6 @@
+import { onCore } from '@/lib/domain/backend'
+import * as coreRes from '@/lib/services/core/reservations'
+import { currentRestaurantId } from '@/lib/services/core/catalogBridge'
 import type { DepositState, ReservationCard, ReservationState, Slot, TimelineTable } from '@/lib/domain/reservations'
 import { callKw } from '@/lib/services/odoo'
 
@@ -45,6 +48,7 @@ const detail = (r: RawDetail): ReservationDetail => ({
 })
 
 export async function getTimeline(configId: number, date: string, floorId?: number | null): Promise<Timeline> {
+  if (onCore()) { const raw = await coreRes.timeline<RawTimeline>(configId, date, floorId); return { date: raw.date, slots: raw.slots, floors: raw.floors, tables: raw.tables.map((t) => ({ id: t.id, tableNumber: t.table_number, name: t.name, seats: t.seats, floorId: t.floor_id, reservations: t.reservations.map(card) })) } }
   const raw = await callKw<RawTimeline>(MODEL, 'waiter_timeline', [configId, date, floorId ?? false])
   return {
     date: raw.date, slots: raw.slots, floors: raw.floors,
@@ -52,17 +56,19 @@ export async function getTimeline(configId: number, date: string, floorId?: numb
   }
 }
 
-export const getSlots = (configId: number, date: string): Promise<Slot[]> => callKw<Slot[]>(MODEL, 'waiter_slots', [configId, date])
+export const getSlots = (configId: number, date: string): Promise<Slot[]> => (onCore() ? coreRes.slots<Slot[]>(configId, date) : callKw<Slot[]>(MODEL, 'waiter_slots', [configId, date]))
 
 // `excludeId`: la reserva que se está editando; sus propias mesas no le cuentan como ocupadas.
 export async function getAvailableTables(configId: number, date: string, timeStart: number, people: number, prepMinutes: string = '30', excludeId: number | null = null): Promise<AvailableTable[]> {
-  const raw = await callKw<(RawTable & { status: AvailableTable['status']; available: boolean; reserved_at: string | false })[]>(
+  type Row = RawTable & { status: AvailableTable['status']; available: boolean; reserved_at: string | false }
+  const raw = onCore() ? await coreRes.tables<Row[]>(configId, date, timeStart, people, prepMinutes, excludeId) : await callKw<Row[]>(
     MODEL, 'waiter_available_tables', [configId, date, timeStart, people, false, true, prepMinutes, excludeId ?? false])
   return raw.map((t) => ({ id: t.id, tableNumber: t.table_number, name: t.name, seats: t.seats, floorId: t.floor_id, floorName: t.floor_name, shape: t.shape, status: t.status, available: t.available, reservedAt: t.reserved_at }))
 }
 
 // Cambia las mesas de una reserva confirmada; la primera queda como principal y el pre-pedido la sigue.
 export async function setReservationTables(id: number, tableIds: number[]): Promise<ReservationDetail> {
+  if (onCore()) return detail(await coreRes.setTables<RawDetail>(id, tableIds))
   return detail(await callKw<RawDetail>(MODEL, 'waiter_set_tables', [[id], tableIds]))
 }
 
@@ -73,17 +79,24 @@ export async function createReservation(input: NewReservation, lines: PreorderLi
     date: input.date, time_start: input.timeStart, table_ids: input.tableIds, config_id: input.configId,
     prep_minutes: input.prepMinutes, deposit_amount: input.depositAmount,
   }
-  const raw = await callKw<RawDetail>(MODEL, 'waiter_create', [vals, lines.map((l) => ({ product_id: l.productId, qty: l.qty, note: l.note ?? '' }))])
+  const preorder = lines.map((l) => ({ product_id: l.productId, qty: l.qty, note: l.note ?? '' }))
+  if (onCore()) {
+    const { config_id, ...rest } = vals
+    return detail(await coreRes.create<RawDetail>({ ...rest, restaurant_id: config_id, customer_email: input.customerEmail, customer_phone: input.customerPhone, notes: input.notes, lines: preorder }))
+  }
+  const raw = await callKw<RawDetail>(MODEL, 'waiter_create', [vals, preorder])
   return detail(raw)
 }
 
 export async function getReservation(id: number): Promise<ReservationDetail | null> {
+  if (onCore()) { try { return detail(await coreRes.get<RawDetail>(id)) } catch { return null } }
   const raw = await callKw<RawDetail[]>(MODEL, 'waiter_detail', [[id]])
   return raw[0] ? detail(raw[0]) : null
 }
 
 /** Reservas activas de una mesa, para el modal "Lista de reservas" del plano. */
 export async function listByTable(tableId: number): Promise<ReservationCard[]> {
+  if (onCore()) return (await coreRes.byTable<RawDetail>(tableId)).map(card)
   const ids = await callKw<{ id: number }[]>(MODEL, 'search_read', [[['table_ids', 'in', [tableId]], ['state', 'in', ['confirmed', 'seated']]], ['id']], { order: 'date, time_start' })
   if (ids.length === 0) return []
   const raw = await callKw<RawDetail[]>(MODEL, 'waiter_detail', [ids.map((r) => r.id)])
@@ -91,13 +104,21 @@ export async function listByTable(tableId: number): Promise<ReservationCard[]> {
 }
 
 /** Cambia o quita (0) el costo de una reserva cuyo anticipo aún no se ha pagado. */
-export const setDeposit = async (id: number, amount: number): Promise<ReservationDetail> => detail(await callKw<RawDetail>(MODEL, 'waiter_set_deposit', [[id], amount]))
+export const setDeposit = async (id: number, amount: number): Promise<ReservationDetail> => detail(onCore() ? await coreRes.setDeposit<RawDetail>(id, amount) : await callKw<RawDetail>(MODEL, 'waiter_set_deposit', [[id], amount]))
 /** El cliente pagó por fuera del enlace (efectivo, transferencia): se registra a mano. */
-export const markDepositPaid = async (id: number, reference?: string): Promise<ReservationDetail> => detail(await callKw<RawDetail>(MODEL, 'waiter_mark_deposit_paid', [[id], reference ?? false]))
+export const markDepositPaid = async (id: number, reference?: string): Promise<ReservationDetail> => detail(onCore() ? await coreRes.depositPaid<RawDetail>(id, reference ?? '') : await callKw<RawDetail>(MODEL, 'waiter_mark_deposit_paid', [[id], reference ?? false]))
 
 const ACTIONS = { seated: 'action_seated', no_show: 'action_no_show', cancelled: 'action_cancel' } as const
-export const setReservationState = (id: number, state: keyof typeof ACTIONS): Promise<boolean> => callKw<boolean>(MODEL, ACTIONS[state], [[id]])
+const CORE_ACTIONS = { seated: 'seat', no_show: 'no-show', cancelled: 'cancel' } as const
+export const setReservationState = (id: number, state: keyof typeof ACTIONS): Promise<boolean> => (onCore() ? coreRes.transition(id, CORE_ACTIONS[state]).then(() => true) : callKw<boolean>(MODEL, ACTIONS[state], [[id]]))
 
 /** Próxima reserva por mesa del día: la usa el plano para pintar "Reservada · 17:00". */
-export const reservedAtByTable = (date: string): Promise<Record<string, { label: string } | false>> =>
-  callKw<Record<string, { label: string } | false>>('restaurant.table', 'waiter_reserved_at', [[], date])
+export async function reservedAtByTable(date: string): Promise<Record<string, { label: string } | false>> {
+  // En el sistema propio, la próxima reserva de cada mesa sale de la línea de tiempo del día.
+  if (onCore()) {
+    const r = currentRestaurantId(); if (r === null) return {}
+    const raw = await coreRes.timeline<RawTimeline>(r, date)
+    return Object.fromEntries(raw.tables.map((t) => { const next = t.reservations.find((x) => x.state === 'confirmed'); return [String(t.id), next ? { label: next.label } : false] }))
+  }
+  return callKw<Record<string, { label: string } | false>>('restaurant.table', 'waiter_reserved_at', [[], date])
+}

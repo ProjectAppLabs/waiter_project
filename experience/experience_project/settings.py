@@ -29,6 +29,19 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'experience_app',
+    'tenancy',
+    'accounts',
+    'notifications',
+    'catalog',
+    'inventory',
+    'sales',
+    'tables',
+    'kitchen',
+    'realtime',
+    'loyalty',
+    'reports',
+    'billing',
+    'reservations',
 ]
 
 MIDDLEWARE = [
@@ -49,6 +62,9 @@ REST_FRAMEWORK = {
     'UNAUTHENTICATED_USER': None,
     'EXCEPTION_HANDLER': 'experience_app.utils.errors.handle',
 }
+
+# Un logo de 2 MB ocupa hasta 2,67 MB en el cuerpo JSON base64.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 3_000_000
 
 ROOT_URLCONF = 'experience_project.urls'
 WSGI_APPLICATION = 'experience_project.wsgi.application'
@@ -132,3 +148,27 @@ AGENT_DAILY_LIMIT = int(os.getenv('AGENT_DAILY_LIMIT', '200'))
 PAYMENTS_FERNET_KEY = os.getenv('PAYMENTS_FERNET_KEY', '')
 PAYMENTS_LIVE_ENABLED = os.getenv('PAYMENTS_LIVE_ENABLED', 'false').lower() == 'true'
 PAYMENTS_PUBLIC_URL = os.getenv('PAYMENTS_PUBLIC_URL', '').rstrip('/')
+
+# Plan T0: correo independiente del comensal, configurable por entorno.
+POS_URL = os.getenv('POS_URL', 'http://localhost:3000').rstrip('/')
+PLATFORM_URL = os.getenv('PLATFORM_URL', 'http://localhost:3000').rstrip('/')
+EMAIL_FROM = os.getenv('EMAIL_FROM', 'team@projectapp.co')
+WAITER_EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.filebased.EmailBackend')
+WAITER_EMAIL_FILE_PATH = BASE_DIR / 'mail'
+MAILERS['waiter'] = {
+    'BACKEND': WAITER_EMAIL_BACKEND,
+    'OPTIONS': (
+        {'file_path': WAITER_EMAIL_FILE_PATH} if WAITER_EMAIL_BACKEND == 'django.core.mail.backends.filebased.EmailBackend'
+        else dict(MAILERS['default']['OPTIONS']) if WAITER_EMAIL_BACKEND == 'django.core.mail.backends.smtp.EmailBackend'
+        else {}
+    ),
+}
+# La cabecera del inquilino debe pasar el preflight del navegador.
+from corsheaders.defaults import default_headers
+CORS_ALLOW_HEADERS = (*default_headers, 'x-waiter-org')
+
+# Fotos propias del catálogo T1.
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# Organizaciones que conservan el motor anterior hasta la migración T6.
+ODOO_ORGS = os.getenv('ODOO_ORGS', 'burger-house')

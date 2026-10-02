@@ -1,0 +1,81 @@
+# Waiter en producción, una sola máquina (plan T, contrato M). Un subdominio por organización:
+#   <org>.waiter.projectapp.co        POS y consola del dueño
+#   plataforma.waiter.projectapp.co    consola de ProjectApp
+#   menu.waiter.projectapp.co          menú del comensal (/<org>/<sede>/t/<token>)
+#   api.waiter.projectapp.co           MCP del diseño y webhooks de pagos
+# Lo arranca deploy/README.md («Primer despliegue»). Variables en deploy/.env.prod (copia de .env.prod.example).
+name: waiter
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: waiter_core
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes: [db:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d waiter_core"], interval: 10s, retries: 10 }
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+
+  experience:
+    build: { context: ../experience, dockerfile: ../deploy/experience.Dockerfile }
+    restart: unless-stopped
+    env_file: .env.prod
+    environment:
+      DJANGO_ENV: production
+      DJANGO_DB_ENGINE: django.db.backends.postgresql
+      DJANGO_DB_NAME: waiter_core
+      DB_HOST: db
+      DB_PORT: "5432"
+      DJANGO_CACHE_URL: redis://redis:6379/1
+      # Tras el corte de T6 ninguna organización usa Odoo.
+      ODOO_ORGS: ""
+    volumes: [media:/app/media, mail:/app/mail]
+    depends_on: { db: { condition: service_healthy }, redis: { condition: service_started } }
+
+  # Tareas programadas: cobro de la suscripción, mora, existencias bajas y limpieza de eventos (deploy/crontab).
+  cron:
+    build: { context: ../experience, dockerfile: ../deploy/experience.Dockerfile }
+    restart: unless-stopped
+    env_file: .env.prod
+    environment:
+      DJANGO_ENV: production
+      DJANGO_DB_ENGINE: django.db.backends.postgresql
+      DJANGO_DB_NAME: waiter_core
+      DB_HOST: db
+      DB_PORT: "5432"
+      DJANGO_CACHE_URL: redis://redis:6379/1
+    command: ["supercronic", "/app/deploy/crontab"]
+    volumes: [media:/app/media, ./crontab:/app/deploy/crontab:ro]
+    depends_on: { db: { condition: service_healthy } }
+
+  pos:
+    build:
+      context: ../pos
+      dockerfile: ../deploy/next.Dockerfile
+      args: { EXPERIENCE_ORIGIN: "http://experience:8000", NEXT_PUBLIC_ODOO_ORGS: "" }
+    restart: unless-stopped
+    depends_on: [experience]
+
+  diner:
+    build:
+      context: ../diner
+      dockerfile: ../deploy/next.Dockerfile
+      args: { EXPERIENCE_ORIGIN: "http://experience:8000" }
+    restart: unless-stopped
+    depends_on: [experience]
+
+  caddy:
+    build: { context: ., dockerfile: caddy.Dockerfile, args: { DNS_PROVIDER: "${DNS_PROVIDER:-cloudflare}" } }
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    env_file: .env.prod
+    volumes: [./Caddyfile:/etc/caddy/Caddyfile:ro, caddy_data:/data, caddy_config:/config]
+    depends_on: [pos, diner, experience]
+
+volumes: { db: {}, media: {}, mail: {}, caddy_data: {}, caddy_config: {} }

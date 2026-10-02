@@ -1,3 +1,7 @@
+import * as sales from '@/lib/services/core/sales'
+import { onCore } from '@/lib/domain/backend'
+import { toRestaurant } from '@/lib/services/core/bridge'
+import * as core from '@/lib/services/core/pos'
 import { callKw } from '@/lib/services/odoo'
 import { OdooError } from '@/lib/services/errors'
 
@@ -7,6 +11,12 @@ export interface Restaurant { id: number; name: string; slug: string; street: st
 
 // Con un addon anterior al plan O el método no existe: se leen los puntos de venta visibles, que es lo que había.
 export async function listRestaurants(): Promise<Restaurant[]> {
+  if (onCore()) {
+    const rows = (await core.listRestaurants()).map(toRestaurant)
+    // Plan T2: la tarjeta dice si la caja está abierta; una consulta por sede (son pocas).
+    const open = await Promise.all(rows.map((r) => sales.openShift(r.id).catch(() => null)))
+    return rows.map((r, i) => ({ ...r, open: open[i] !== null }))
+  }
   try {
     return await callKw<Restaurant[]>('pos.config', 'waiter_restaurants', [])
   } catch (e) {
@@ -18,5 +28,7 @@ export async function listRestaurants(): Promise<Restaurant[]> {
 
 // Solo el dueño: crea el punto de venta con su almacén, su efectivo y un piso, y copia los ajustes de `copyFromId`.
 export function createRestaurant(name: string, slug: string, copyFromId: number | null): Promise<{ id: number; slug: string }> {
+  // Plan T: en el sistema propio el restaurante nace con lo básico; copiar ajustes de otro llega con T2 (caja y pagos).
+  if (onCore()) return core.createRestaurant({ name, slug }).then((r) => ({ id: Number(r.id), slug: r.slug }))
   return callKw<{ id: number; slug: string }>('pos.config', 'waiter_create_restaurant', [name, slug, copyFromId ?? false])
 }

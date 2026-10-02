@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 import { ChangeTableModal } from '@/components/tables/ChangeTableModal'
 import { FloorEditor } from '@/components/tables/FloorEditor'
 import type { FloorDocument } from '@/lib/domain/floorPlan'
-import { deleteFloor, readPlan } from '@/lib/services/floorPlan'
+import { deleteFloor, readPlan, floorBackgroundUrl } from '@/lib/services/floorPlan'
 import { FloorSwitcher, SelectedTableBar, TableLegend } from '@/components/tables/FloorHeader'
 import { ServiceSidebar } from '@/components/tables/ServiceSidebar'
 import { useKitOrders } from '@/lib/hooks/useKitOrders'
@@ -200,7 +200,7 @@ export default function SalonPage() {
 
   if (!catalog) return <FloorSkeleton />
   if (editing) return <FloorEditor initial={editing} configId={catalog.settings.configId}
-    background={editing.id && catalog.floors.find(f => f.id === editing.id)?.hasBackground ? `/odoo/web/image/restaurant.floor/${editing.id}/floor_background_image?unique=${editing.revision}` : null}
+    background={editing.id && catalog.floors.find(f => f.id === editing.id)?.hasBackground ? floorBackgroundUrl(editing.id, editing.revision) : null}
     onCancel={() => setEditing(null)} onSaved={async (saved) => { await reload(); setFloor(saved.id!); setEditing(null); toast({ title: 'Plano guardado' }) }} />
   // Cobrar puede ser solo de caja: lo decide el restaurante en Configuración.
   // Un pedido en mesa nace de una mesa elegida a propósito: sin selección se pide antes de abrir el asistente.

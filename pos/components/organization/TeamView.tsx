@@ -3,15 +3,21 @@
 import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
+import { Chip } from '@/components/kit/Chip'
 import { Icon } from '@/components/kit/Icon'
 import { Modal } from '@/components/kit/Modal'
 import { StatusPill } from '@/components/kit/StatusPill'
 import { useOrg } from '@/components/organization/OrgContext'
 import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { RowMenu } from '@/components/ui/RowMenu'
+import { ScrollTable } from '@/components/ui/ScrollTable'
+import { SortTh, TableSearch } from '@/components/ui/SortTh'
+import { filterRows, nextSort, sortRows, type Sorters, type TableSort } from '@/lib/hooks/useTableView'
 import { Select, TextInput } from '@/components/ui/Field'
 import { hoursToTime, shiftLabel, timeToHours } from '@/lib/domain/employees'
 import { restaurantRule, validAssignment } from '@/lib/domain/restaurant'
+import { COLLAPSE_FROM, groupPeople } from '@/lib/domain/team'
 import type { AccountRole } from '@/lib/domain/roles'
 import { suggestUsername, validUsername } from '@/lib/domain/slug'
 import { deactivatePerson, invitePerson, listPeople, resendInvite, updatePerson, type Person, type PersonValues } from '@/lib/services/team'
@@ -49,7 +55,7 @@ export function TeamView() {
   }
 
   return (
-    <section className="max-w-4xl flex flex-col gap-6">
+    <section className="max-w-5xl flex flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div><h1 className="text-[26px] font-bold">Equipo</h1>
           <p className="mt-1 text-soft">Cada persona entra con su usuario o su correo. Meseros y cajeros trabajan en un solo restaurante y solo durante su turno.</p></div>
@@ -57,33 +63,92 @@ export function TeamView() {
       </div>
       {error && <p role="alert" className="text-danger">{error}</p>}
       {notice && <p role="status" className="text-success-ink">{notice}</p>}
-      <ul aria-label="Personas" className="flex flex-col gap-2">
-        {people === null ? <li className="text-soft">Cargando…</li> : people.map((p) => (
-          <li key={p.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-border p-4">
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold truncate">{p.name}{p.username && <span className="ml-2 font-mono text-[13px] text-soft">{p.username}</span>}</p>
-              <p className="text-[13px] text-soft truncate">
-                {p.role ? roles(p.role) : 'Sin rol'} · {restaurantRule(p.role) === 'all' ? 'Todos los restaurantes' : names(p.configIds) || 'Sin restaurante'}
-                {(p.role === 'waiter' || p.role === 'cashier') && ` · ${shiftLabel(p.shift, 'Sin turno: entra a cualquier hora')}`}
-              </p>
-            </div>
-            <StatusPill tone={STATUS[p.status].tone}>{STATUS[p.status].label}</StatusPill>
-            <div className="flex flex-wrap gap-2">
-              <Button size="compact" onClick={() => setEditing(p)} disabled={p.status === 'no_account'}>Editar</Button>
-              <Button size="compact" disabled={p.status === 'no_account' || !p.email}
-                onClick={() => void act(() => resendInvite(p.id), p.status === 'pending' ? `Invitación reenviada a ${p.email}.` : `Enviamos a ${p.email} un código para restablecer la contraseña.`)}>
-                {p.status === 'pending' ? 'Reenviar invitación' : 'Restablecer contraseña'}</Button>
-              {p.userId !== myUid && <Button size="compact" variant="ghost" disabled={p.status === 'no_account'} onClick={() => setLeaving(p)}>Desactivar</Button>}
-            </div>
-          </li>
-        ))}
-      </ul>
+      <PeopleTable people={people} roles={roles} names={names} myUid={myUid} onEdit={setEditing} onLeave={setLeaving}
+        onResend={(p) => void act(() => resendInvite(p.id), p.status === 'pending' ? `Invitación reenviada a ${p.email}.` : `Enviamos a ${p.email} un código para restablecer la contraseña.`)} />
       {editing && <PersonModal person={editing === 'new' ? null : editing} onClose={() => setEditing(null)}
         onSaved={(message) => { setEditing(null); setNotice(message); setError(''); reload() }} />}
       <ConfirmDialog open={!!leaving} title={`¿Desactivar a ${leaving?.name}?`} destructive confirmLabel="Desactivar" cancelLabel="Cancelar"
         body="No podrá volver a entrar. Su historial (pedidos, cobros y turnos) se conserva con su nombre."
         onCancel={() => setLeaving(null)} onConfirm={() => { const p = leaving; setLeaving(null); if (p) void act(() => deactivatePerson(p.id), `${p.name} quedó desactivada.`) }} />
     </section>
+  )
+}
+
+type RoleFilter = 'all' | 'admin' | 'cashier' | 'waiter' | 'pending'
+const ROLE_FILTERS: [RoleFilter, string][] = [['all', 'Todos'], ['admin', 'Encargados'], ['cashier', 'Cajeros'], ['waiter', 'Meseros'], ['pending', 'Invitación pendiente']]
+
+// Plan R: el equipo en una tabla agrupada por restaurante, pensada para muchas personas: buscador, filtros por rol con su
+// conteo, grupos que se pliegan (cerrados de entrada desde COLLAPSE_FROM personas; se abren solos al buscar o filtrar) y
+// las acciones de cada fila en «Editar» más un menú «⋯» para que la tabla no crezca a lo ancho.
+function PeopleTable({ people, roles, names, myUid, onEdit, onLeave, onResend }: {
+  people: Person[] | null; roles: (r: AccountRole) => string; names: (ids: number[]) => string; myUid: number | null
+  onEdit: (p: Person) => void; onLeave: (p: Person) => void; onResend: (p: Person) => void
+}) {
+  const { restaurants } = useOrg()
+  const [query, setQuery] = useState('')
+  const [filter, setFilter] = useState<RoleFilter>('all')
+  const [toggled, setToggled] = useState<Record<string, boolean>>({})
+  const [sort, setSort] = useState<TableSort | null>(null)
+  if (people === null) return <p className="text-soft">Cargando…</p>
+  const q = query.trim()
+  const passes = (p: Person, f: RoleFilter) => f === 'all' || (f === 'pending' ? p.status === 'pending' : p.role === f)
+  const shown = filterRows(people.filter((p) => passes(p, filter)), q, (p) => `${p.name} ${p.username ?? ''} ${p.email ?? ''}`)
+  // Al tocar una cabecera se ordena dentro de cada grupo (el restaurante sigue mandando); sin orden, encargado primero.
+  const sorters: Sorters<Person> = {
+    name: (p) => p.name, role: (p) => (p.role ? roles(p.role) : null), restaurants: (p) => names(p.configIds),
+    shift: (p) => p.shift?.from ?? null, status: (p) => STATUS[p.status].label,
+  }
+  const groups = groupPeople(shown, restaurants).map((g) => ({ ...g, people: sortRows(g.people, sort, sorters) }))
+  // Abierto por omisión si son pocos o si se está buscando o filtrando; el dueño puede abrir o cerrar cada grupo.
+  const openByDefault = people.length < COLLAPSE_FROM || !!q || filter !== 'all'
+  const isOpen = (key: string) => toggled[key] ?? openByDefault
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <TableSearch value={query} onChange={setQuery} placeholder="Buscar persona" className="w-72 max-w-full" />
+        {ROLE_FILTERS.map(([f, label]) => <Chip key={f} label={label} count={people.filter((p) => passes(p, f)).length} active={filter === f} onClick={() => setFilter(f)} />)}
+      </div>
+      {groups.length === 0 ? <p className="text-soft">Nadie coincide con la búsqueda.</p> : (
+        <ScrollTable label="el equipo">
+          <table aria-label="Personas" className="data-table text-[15px]">
+            <thead><tr className="text-left text-soft border-b border-border">
+              {([['name', 'Persona'], ['role', 'Rol'], ['restaurants', 'Restaurantes'], ['shift', 'Turno'], ['status', 'Estado']] as const)
+                .map(([k, h]) => <SortTh key={k} label={h} sortKey={k} sort={sort} onSort={(key) => setSort((s) => nextSort(s, key))} />)}<th /></tr></thead>
+            {groups.map((g) => (
+              <tbody key={g.key}>
+                <tr className="border-y border-border">
+                  {/* La fila del grupo ocupa todo el ancho: no puede quedarse fija como la primera columna, así que lo fijo es
+                      su título (si no, al desplazar de lado quedaba una franja vacía). */}
+                  <th colSpan={6} className="group-row p-0 text-left">
+                    <button type="button" aria-expanded={isOpen(g.key)} onClick={() => setToggled((t) => ({ ...t, [g.key]: !isOpen(g.key) }))}
+                      className="sticky left-0 h-11 px-4 inline-flex items-center gap-2 text-[14px] font-semibold text-ink">
+                      <Icon name={isOpen(g.key) ? 'chevronDown' : 'chevronRight'} size={18} />{g.title}
+                      <span className="ml-1 px-2 rounded-md bg-surface text-soft text-[13px] tabular">{g.people.length}</span>
+                    </button>
+                  </th>
+                </tr>
+                {isOpen(g.key) && g.people.map((p) => (
+                  <tr key={p.id} className="border-b border-border last:border-0">
+                    <td className="px-4 py-2.5"><div className="font-semibold">{p.name}</div>{p.username && <div className="font-mono text-[13px] text-soft">{p.username}</div>}</td>
+                    <td className="px-4 py-2.5">{p.role ? roles(p.role) : 'Sin rol'}</td>
+                    <td className="px-4 py-2.5">{restaurantRule(p.role) === 'all' ? 'Todos' : names(p.configIds) || 'Sin restaurante'}</td>
+                    <td className="px-4 py-2.5 text-soft">{p.role === 'waiter' || p.role === 'cashier' ? shiftLabel(p.shift, 'Sin turno') : 'Sin restricción'}</td>
+                    <td className="px-4 py-2.5"><StatusPill tone={STATUS[p.status].tone}>{STATUS[p.status].label}</StatusPill></td>
+                    <td className="px-4 py-2.5"><div className="flex justify-end gap-2">
+                      <Button size="compact" onClick={() => onEdit(p)} disabled={p.status === 'no_account'}>Editar</Button>
+                      <RowMenu label={`Más acciones de ${p.name}`} items={[
+                        { label: p.status === 'pending' ? 'Reenviar invitación' : 'Restablecer contraseña', onSelect: () => onResend(p), disabled: p.status === 'no_account' || !p.email },
+                        ...(p.userId !== myUid ? [{ label: 'Desactivar', onSelect: () => onLeave(p), disabled: p.status === 'no_account', danger: true }] : []),
+                      ]} />
+                    </div></td>
+                  </tr>
+                ))}
+              </tbody>
+            ))}
+          </table>
+        </ScrollTable>
+      )}
+    </div>
   )
 }
 

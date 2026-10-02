@@ -1,3 +1,11 @@
+import { currentOrg } from '@/lib/domain/tenant'
+import * as coreBusiness from '@/lib/services/core/business'
+import * as coreCatalog from '@/lib/services/core/catalog'
+import * as sales from '@/lib/services/core/sales'
+import * as coreTables from '@/lib/services/core/tables'
+import { currentRestaurantId } from '@/lib/services/core/catalogBridge'
+import { onCore } from '@/lib/domain/backend'
+import * as core from '@/lib/services/core/pos'
 import { callKw, inRestaurant } from '@/lib/services/odoo'
 import type { AccountRole, Role } from '@/lib/domain/roles'
 import type { Settings } from '@/lib/types'
@@ -13,11 +21,14 @@ interface RawFloor { id: number; name: string; table_ids: number[] }
 interface RawTable { id: number; table_number: number; seats: number; active: boolean; floor_id: [number, string] }
 
 export async function getCompany(): Promise<CompanyInfo> {
+  // Plan T4: en el sistema propio la empresa es la organización, con sus datos de emisor.
+  if (onCore()) { const c = await coreBusiness.company(); return { id: 0, name: c.legal_name || c.name, vat: c.tax_id ? `${c.tax_id}${c.tax_id_dv ? '-' + c.tax_id_dv : ''}` : '', phone: c.phone, email: c.email, street: c.address, city: c.city, waiter_latitude: '', waiter_longitude: '' } }
   const [c] = await callKw<RawCompany[]>('res.company', 'search_read', [[], ['name', 'vat', 'phone', 'email', 'street', 'city', 'waiter_latitude', 'waiter_longitude']], { limit: 1 })
   return { id: c.id, name: c.name, vat: c.vat || '', phone: c.phone || '', email: c.email || '', street: c.street || '', city: c.city || '', waiter_latitude: c.waiter_latitude || '', waiter_longitude: c.waiter_longitude || '' }
 }
 
 export async function saveCompany(c: CompanyInfo): Promise<void> {
+  if (onCore()) { const [nit, dv] = c.vat.split('-'); await coreBusiness.saveCompany({ legal_name: c.name, tax_id: (nit ?? '').replace(/\D/g, ''), tax_id_dv: (dv ?? '').replace(/\D/g, ''), phone: c.phone, email: c.email, address: c.street, city: c.city }); return }
   await callKw('res.company', 'write', [[c.id], { name: c.name, vat: c.vat || false, phone: c.phone || false, email: c.email || false, street: c.street || false, city: c.city || false, waiter_latitude: c.waiter_latitude?.trim() || false, waiter_longitude: c.waiter_longitude?.trim() || false }])
 }
 
@@ -31,6 +42,7 @@ const BRAND_FIELDS = ['brand_color', 'brand_font', 'brand_radius', 'brand_taglin
 
 // bin_size: Odoo devuelve el tamaño del binario en vez del base64; solo hace falta saber si hay logo.
 export async function getBrand(): Promise<BrandInfo> {
+  if (onCore()) { const b = await coreBusiness.brand(); return { companyId: 0, color: b.color, font: b.font, radius: (b.radius || '') as BrandRadius, tagline: b.tagline, greeting: b.greeting, waiterName: b.waiter_name, welcome: b.welcome, hasLogo: b.has_logo } }
   const [c] = await callKw<RawBrand[]>('res.company', 'search_read', [[], BRAND_FIELDS], { limit: 1, context: { bin_size: true } })
   return {
     companyId: c.id, color: c.brand_color || '', font: c.brand_font || '', radius: c.brand_radius || '', tagline: c.brand_tagline || '',
@@ -39,6 +51,14 @@ export async function getBrand(): Promise<BrandInfo> {
 }
 
 export async function getBrandLogo(companyId: number): Promise<string | null> {
+  if (onCore()) {
+    void companyId
+    const response = await fetch(`/experience/api/pos/v1/brand/logo?org=${currentOrg()}`)
+    if (!response.ok) return null
+    const bytes = new Uint8Array(await response.arrayBuffer()); let binary = ''
+    for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+    return btoa(binary)
+  }
   const [c] = await callKw<{ id: number; brand_logo: string | false }[]>('res.company', 'read', [[companyId], ['brand_logo']])
   return c?.brand_logo || null
 }
@@ -55,6 +75,7 @@ export async function saveBrand(b: BrandInfo, logo?: LogoChange): Promise<void> 
     brand_greeting: text(b.greeting), brand_waiter_name: text(b.waiterName), brand_welcome: text(b.welcome),
   }
   if (logo) values.brand_logo = 'remove' in logo ? false : logo.base64
+  if (onCore()) { await coreBusiness.saveBrand({ color: values.brand_color || '', font: values.brand_font || '', radius: values.brand_radius || '', tagline: values.brand_tagline || '', greeting: values.brand_greeting || '', waiter_name: values.brand_waiter_name || '', welcome: values.brand_welcome || '', ...(logo && { logo: 'remove' in logo ? null : logo.base64 }) }); return }
   await callKw('res.company', 'write_brand', [values])
 }
 
@@ -62,14 +83,17 @@ export async function saveBrand(b: BrandInfo, logo?: LogoChange): Promise<void> 
 // Por write_brand, como saveBrand: `res.company.write` exige un permiso (base.group_erp_manager) que el administrador del
 // POS no tiene, así que con su usuario fallaba. write_brand escribe en la compañía de quien llama.
 export async function saveBrandGreeting(greeting: string): Promise<void> {
+  if (onCore()) { await coreBusiness.saveBrand({ greeting: greeting.trim() }); return }
   await callKw('res.company', 'write_brand', [{ brand_greeting: greeting.trim() || false }])
 }
 
 export async function saveBrandLogo(logo: LogoChange): Promise<void> {
+  if (onCore()) { await coreBusiness.saveBrand({ logo: 'remove' in logo ? null : logo.base64 }); return }
   await callKw('res.company', 'write_brand', [{ brand_logo: 'remove' in logo ? false : logo.base64 }])
 }
 
 export async function listFloors(): Promise<FloorInfo[]> {
+  if (onCore()) { const r = currentRestaurantId(); if (r === null) throw new Error('Elige un restaurante.'); return (await coreTables.listFloors(r, true)).map((f) => ({ id: f.id, name: f.name, tables: f.tables.map((t) => ({ id: t.id, number: t.number, seats: t.seats, active: t.active })) })) }
   const [floors, tables] = await Promise.all([
     callKw<RawFloor[]>('restaurant.floor', 'search_read', [[], ['name', 'table_ids']], { order: 'sequence asc, id asc' }),
     callKw<RawTable[]>('restaurant.table', 'search_read', [[['active', 'in', [true, false]]], ['table_number', 'seats', 'active', 'floor_id']], { order: 'table_number asc' }),
@@ -78,12 +102,23 @@ export async function listFloors(): Promise<FloorInfo[]> {
 }
 
 export async function saveFloor(id: number | null, name: string, configId: number): Promise<number> {
+  if (onCore()) { if (id === null) return (await coreTables.createFloor(configId, name)).id; await coreTables.patchFloor(id, { name }); return id }
   if (id === null) return callKw<number>('restaurant.floor', 'create', [{ name, pos_config_ids: [[4, configId]] }])
   await callKw('restaurant.floor', 'write', [[id], { name }])
   return id
 }
 
 export async function saveTable(id: number | null, floorId: number, t: { number: number; seats: number; active: boolean }): Promise<number> {
+  if (onCore()) {
+    // Sin editor de plano a mano: la mesa entra o cambia dentro del plano del piso.
+    const plan = await coreTables.readPlan(floorId)
+    const tables = plan.tables.filter((x) => x.id !== id || t.active)
+    const found = tables.find((x) => x.id === id)
+    if (found) { found.number = t.number; found.seats = t.seats }
+    else if (id === null && t.active) tables.push({ id: null, key: `n${Date.now()}`, number: t.number, seats: t.seats, zone: '', x: 20 + (t.number % 5) * 120, y: 20 + Math.floor(t.number / 5) * 120, width: 100, height: 100 })
+    const saved = await coreTables.savePlan(floorId, { ...plan, tables, background: true })
+    return id ?? saved.tables.find((x) => x.number === t.number)?.id ?? 0
+  }
   const values = { table_number: t.number, seats: t.seats, active: t.active, floor_id: floorId }
   if (id === null) return callKw<number>('restaurant.table', 'create', [{ ...values, position_h: 20 + (t.number % 5) * 120, position_v: 20 + Math.floor(t.number / 5) * 120 }])
   await callKw('restaurant.table', 'write', [[id], values])
@@ -91,11 +126,13 @@ export async function saveTable(id: number | null, floorId: number, t: { number:
 }
 
 export async function listPaymentMethods(): Promise<PaymentMethodInfo[]> {
+  if (onCore()) { const r = currentRestaurantId(); if (r === null) throw new Error('Elige un restaurante.'); return (await sales.listMethods(r)).map((m) => ({ id: m.id, name: m.name, type: m.type })) }
   // Los métodos del restaurante en uso (el efectivo es propio de cada uno).
   return callKw<PaymentMethodInfo[]>('pos.payment.method', 'search_read', [inRestaurant([], 'config_ids'), ['name', 'type']], { order: 'sequence asc, id asc' })
 }
 
 export async function listTaxes(): Promise<TaxInfo[]> {
+  if (onCore()) return (await coreCatalog.listTaxes()).taxes.map((t) => ({ id: t.id, name: t.name, amount: t.amount }))
   return callKw<TaxInfo[]>('account.tax', 'search_read', [[['type_tax_use', '=', 'sale']], ['name', 'amount']], { order: 'amount desc' })
 }
 
@@ -126,6 +163,7 @@ export async function setUserRole(id: number, role: Role): Promise<void> {
 }
 
 export async function saveSettings(s: Settings): Promise<void> {
+  if (onCore()) { await sales.patchSettings(s.configId, { alert_late_minutes: s.alertLateMinutes, alert_bill_minutes: s.alertBillMinutes, roi_hour_cost: s.roiHourCost, roi_minutes_per_order: s.roiMinutesPerOrder, roi_baseline_hours_per_100: s.roiBaselineHoursPer100, roi_monthly_cost: s.roiMonthlyCost, roi_start_date: s.roiStartDate || null }); return }
   await callKw('pos.config', 'write', [[s.configId], {
     waiter_can_charge: s.waiterCanCharge, waiter_can_edit_inventory: s.waiterCanEditInventory, alert_late_minutes: s.alertLateMinutes, alert_bill_minutes: s.alertBillMinutes, roi_hour_cost: s.roiHourCost, roi_minutes_per_order: s.roiMinutesPerOrder,
     roi_baseline_hours_per_100: s.roiBaselineHoursPer100, roi_monthly_cost: s.roiMonthlyCost, roi_start_date: s.roiStartDate || false,

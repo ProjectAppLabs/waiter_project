@@ -7,3 +7,5 @@ logs/*.log
 .coverage
 .pytest_cache/
 .ruff_cache/
+mail/
+media/

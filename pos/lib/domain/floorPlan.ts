@@ -9,9 +9,9 @@ export const WALL_COLOR = '#475569'
 export interface Zone extends PlanRect { id: string; name: string; color: string }
 // Imagen de referencia adicional. Guardada es un adjunto del piso en Odoo (`attachmentId`); recién subida trae `data`
 // (base64) hasta que se guarde el plano. La primera imagen del piso sigue viviendo en `background` + `backgroundSize`.
-export interface PlanImage extends PlanRect { id: string; attachmentId?: number; data?: string }
+export interface PlanImage extends PlanRect { id: string; attachmentId?: number; data?: string; src?: string }
 export const MAX_EXTRA_IMAGES = 8
-export const planImageSrc = (image: PlanImage): string => image.data ? `data:${image.data.startsWith('/9j/') ? 'image/jpeg' : 'image/png'};base64,${image.data}` : `/odoo/web/image/${image.attachmentId}`
+export const planImageSrc = (image: PlanImage): string => image.src ? image.src : image.data ? `data:${image.data.startsWith('/9j/') ? 'image/jpeg' : 'image/png'};base64,${image.data}` : `/odoo/web/image/${image.attachmentId}`
 // `decor`: piezas de la galería (cocina, baños, escaleras…); opcional porque los planos anteriores no la traen.
 export interface FloorDocument { decor?: Decor[]; images?: PlanImage[]; background?: string | null; backgroundSize?: { x?: number; y?: number; width: number; height: number } | null; id: number | null; name: string; revision: number; tables: PlanTable[]; walls: Wall[]; zones: Zone[] }
 // La imagen de referencia acompaña, no compite: misma opacidad en el editor y en el salón.

@@ -13,6 +13,7 @@ import { homePath } from '@/lib/domain/navigation'
 import { effectiveRole, isOwner } from '@/lib/domain/roles'
 import { readLogoutReason, rememberLogoutReason, type GuardReason } from '@/lib/domain/sessionGuard'
 import { activate, requestCode } from '@/lib/services/activation'
+import { CoreError } from '@/lib/services/core/http'
 import { OdooError } from '@/lib/services/errors'
 import { ShiftDeniedError, useAuthStore } from '@/lib/stores/authStore'
 import { useStored } from '@/lib/hooks/useStored'
@@ -29,6 +30,8 @@ const GENERIC_DENIED = /^(access denied|acceso denegado)\.?$/i
 // se dice como es: darlo por «contraseña incorrecta» manda a buscar donde no es.
 export function loginError(error: unknown, tl: (key: string) => string): string {
   if (error instanceof ShiftDeniedError) return error.message
+  // Plan T: el sistema propio responde con código y mensaje; la credencial mala se dice como siempre.
+  if (error instanceof CoreError) return error.code === 'invalid_credentials' ? tl('failed') : error.code === 'unreachable' ? tl('unreachable') : error.message
   if (error instanceof OdooError) {
     if (error.odooType === 'odoo.exceptions.AccessDenied') return !error.message || GENERIC_DENIED.test(error.message.trim()) ? tl('failed') : error.message
     return error.message || tl('failed')

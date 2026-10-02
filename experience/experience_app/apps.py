@@ -13,4 +13,6 @@ class Experience_appConfig(AppConfig):
     name = 'experience_app'
 
     def ready(self):
+        from experience_app.adapters.core.signals import connect
+        connect()
         post_migrate.connect(seed_templates_after_migrate, sender=self, dispatch_uid='experience_app.seed_templates')

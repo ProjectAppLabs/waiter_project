@@ -1,5 +1,6 @@
 'use client'
 
+import { serverDate } from '@/lib/domain/time'
 import { useTranslations } from 'next-intl'
 import { useEffect, useMemo, useState } from 'react'
 
@@ -25,8 +26,8 @@ import { useCatalogStore } from '@/lib/stores/catalogStore'
 interface Data { key: string; summary: SalesSummary; sales: SaleRow[]; methods: MethodTotal[]; waiters: WaiterTotal[]; top: ProductTotal[] }
 const todayIso = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
 const dayLabel = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })
-const time = (at: string | null) => !at ? '—' : new Date(at.replace(' ', 'T') + 'Z').toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false })
-const day = (at: string | null) => !at ? null : new Date(at.replace(' ', 'T') + 'Z').toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })
+const time = (at: string | null) => !at ? '—' : serverDate(at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false })
+const day = (at: string | null) => !at ? null : serverDate(at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })
 
 // Ventas con la estructura del Dashboard del kit (KPIs con icono, tarjetas) y la caja arriba. Se filtra por periodo —hoy,
 // ayer, esta semana, este mes, el mes pasado o un rango— o por turno, que es el filtro para cuadrar la caja. El detalle

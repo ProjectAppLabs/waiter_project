@@ -806,8 +806,8 @@
         "vat": "NIT",
         "columnItem": "Descripción",
         "columnAmount": "Valor",
-        "taxIncluded": "IVA incluido",
-        "taxIncludedAt": "IVA incluido ({rate}%)",
+        "taxIncluded": "Impuestos incluidos",
+        "taxIncludedAt": "{name} incluido ({rate}%)",
         "consumption": "Consumo"
       }
     },

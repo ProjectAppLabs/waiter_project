@@ -8,7 +8,7 @@ import { FloorZones } from '@/components/tables/FloorZones'
 import type { FloorDocument } from '@/lib/domain/floorPlan'
 import type { TableView } from '@/lib/domain/tableState'
 import { parseFloorName, remainingByTemplate } from '@/lib/domain/tablesKit'
-import { readPlan } from '@/lib/services/floorPlan'
+import { readPlan, floorBackgroundUrl } from '@/lib/services/floorPlan'
 import type { TableReservation } from '@/lib/services/tables'
 import type { Floor } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -53,7 +53,7 @@ export function FloorPane({ floor, configId, views, reserved, selectedId, onSele
         </aside>
         <div className="relative flex-1 min-w-0 min-h-0 flex flex-col">
           <FloorPlan plan={current} zoneStaff={zoneStaff} visibleIds={visibleIds} views={views} selectedId={selectedId} onSelect={onSelect} onOpenTable={onOpenTable} pickFree={pickFree} codeFor={codeFor} reserved={reserved}
-            background={floor.hasBackground ? `/odoo/web/image/restaurant.floor/${floor.id}/floor_background_image?unique=${current?.revision ?? 0}` : null} />
+            background={floor.hasBackground ? floorBackgroundUrl(floor.id, current?.revision ?? 0) : null} />
           {children}
         </div>
       </div>

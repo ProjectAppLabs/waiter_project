@@ -7,6 +7,8 @@ notificaciones (sin id) se aceptan sin respuesta.
 import json
 import logging
 
+from tenancy.http import Problem
+
 from experience_app.adapters.odoo.client import OdooUnavailable
 from experience_app.adapters.registry.client import RegistryUnavailable, TenantNotFound
 from experience_app.diseno import plantillas
@@ -45,6 +47,8 @@ def call_tool(key: McpKey, params: dict) -> dict:
     try:
         with plantillas.for_venue(key.restaurant_slug, key.venue_slug):
             data = tool['handler'](key, args)
+    except Problem as exc:
+        return {'content': _text(exc.body['message']), 'isError': True}
     except ToolError as exc:
         return {'content': _text(str(exc)), 'isError': True}
     except TenantNotFound:

@@ -6,6 +6,7 @@ import { effectiveRole } from '@/lib/domain/roles'
 import { zoneNoticeTargets } from '@/lib/services/floorPlan'
 import { play, setStation, type SoundId } from '@/lib/audio/sounds'
 import type { NotificationKind } from '@/lib/domain/notifications'
+import type { ToastTone } from '@/lib/stores/toastStore'
 import { getNotifyPrefs, type NotifyPrefs } from '@/lib/services/employees'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useBusStore } from '@/lib/stores/busStore'
@@ -17,6 +18,8 @@ import { toast } from '@/lib/stores/toastStore'
 // en el acto, así que el sonido y la pantalla llegan juntos sin doblar el tráfico pesado.
 const POLL_MS = 5_000
 const POLL_WITH_BUS_MS = 60_000
+// Un intento de entrada fuera de turno o una caja que no cuadra no son buenas noticias: no llevan el ✓ verde.
+const TONE: Record<NotificationKind, ToastTone> = { kitchen: 'success', inventory: 'info', system: 'info', access: 'danger', cash: 'danger' }
 const SOUND: Record<NotificationKind, SoundId> = { kitchen: 'listo', inventory: 'demora', system: 'tap', access: 'demora', cash: 'demora' }
 const POPUP: Record<NotificationKind, keyof NotifyPrefs> = { kitchen: 'kitchen_popup', inventory: 'inventory_popup', system: 'system_popup', access: 'system_popup', cash: 'system_popup' }
 const SOUND_PREF: Record<NotificationKind, keyof NotifyPrefs> = { kitchen: 'kitchen_sound', inventory: 'inventory_sound', system: 'system_sound', access: 'system_sound', cash: 'system_sound' }
@@ -64,7 +67,7 @@ export function useNotificationAlerts() {
       if (!notices.length) return
       const p = prefs.current, kind = notices[0].kind
       if (!p || p[SOUND_PREF[kind]]) play(SOUND[kind])
-      notices.filter((n) => !p || p[POPUP[n.kind]]).slice(0, 3).forEach((n) => toast({ title: n.title, body: n.body }))
+      notices.filter((n) => !p || p[POPUP[n.kind]]).slice(0, 3).forEach((n) => toast({ title: n.title, body: n.body, tone: TONE[n.kind] }))
     }
     const ids = fresh.filter(n => n.resModel === 'pos.order' && n.resId).map(n => n.resId!)
     if (employee && effectiveRole(user.role, employee.role) === 'waiter' && ids.length) {

@@ -4,10 +4,12 @@ Un TableSession tiene UN pedido en Odoo; cada confirmación agrega líneas y dis
 una comanda nueva con lo que aún no fue a cocina. El uuid del Order es el uuid del
 pos.order: Odoo actualiza en vez de duplicar, así que reintentar es seguro.
 """
+from experience_app.adapters.backend import backend_for, client_for
 import uuid
 from decimal import Decimal
 
 from django.db import IntegrityError, transaction
+from tenancy.http import Problem
 from django.utils import timezone
 
 from experience_app.adapters.odoo import pos
@@ -100,10 +102,13 @@ def _confirm(session: TableSession, diner: Diner | None = None, takeaway: bool |
     tenant = resolve(session.restaurant_slug, session.venue_slug, session.table_token)
     if diner is not None and diner.account_id:
         rewards.sync(tenant, diner.account)
-    client = OdooClient(tenant.odoo)
+    client = client_for(tenant, OdooClient)
+    if tenant.restaurant_id is not None:
+        prepay = True
+        backend_for(tenant.restaurant_slug).ensure_open_session(client, tenant.config_id)
     # También se verifica al pagar sin líneas nuevas: el POS puede haber cobrado entretanto.
     if order is not None and order.state in (Order.SENT, Order.CHECKOUT) and order.odoo_order_id:
-        status = pos.read_order_status(client, order.odoo_order_id)
+        status = backend_for(tenant.restaurant_slug).read_order_status(client, order.odoo_order_id)
         if status.state in PAID_STATES:
             if order.requires_payment and status.kitchen != 'served':
                 raise PaymentConflict('Este pedido ya está pagado. Puedes seguir su preparación desde el estado del pedido.')
@@ -121,19 +126,19 @@ def _confirm(session: TableSession, diner: Diner | None = None, takeaway: bool |
         rewards.reserve(tenant, diner, new_lines, order)
     all_lines = list(session.lines.filter(status=CartLine.CONFIRMED).order_by('created_at')) + new_lines
     try:
-        pos_session_id = pos.ensure_open_session(client, tenant.odoo.pos_config_id)
-        odoo_order = pos.create_order(client, pos_session_id=pos_session_id, table_id=session.odoo_table_id, order_uuid=str(order.id),
+        pos_session_id = backend_for(tenant.restaurant_slug).ensure_open_session(client, tenant.config_id)
+        odoo_order = backend_for(tenant.restaurant_slug).create_order(client, pos_session_id=pos_session_id, table_id=session.odoo_table_id, order_uuid=str(order.id),
                                       guests=max(1, session.diners.count()), lines=_to_odoo_lines(order, all_lines),
                                       date_order=timezone.now().strftime('%Y-%m-%d %H:%M:%S'), requires_payment=order.requires_payment)
         if not order.requires_payment:
-            pos.fire_course(client, odoo_order.id)
-    except OdooError as exc:
-        order.state, order.attempts, order.last_error = Order.FAILED, order.attempts + 1, str(exc)
+            backend_for(tenant.restaurant_slug).fire_course(client, odoo_order.id)
+    except (OdooError, Problem) as exc:
+        order.state, order.attempts, order.last_error = Order.FAILED, order.attempts + 1, exc.body['message'] if isinstance(exc, Problem) else str(exc)
         order.save(update_fields=['state', 'attempts', 'last_error'])
         raise
     if session.odoo_table_id is not None:
         try:
-            pos.set_table_call(client, session.odoo_table_id, 'none')
+            backend_for(tenant.restaurant_slug).set_table_call(client, session.odoo_table_id, 'none')
         except OdooError:
             pass  # La comanda ya llegó; un fallo al limpiar la llamada no invalida la confirmación.
     with transaction.atomic():
@@ -153,7 +158,7 @@ def _confirm(session: TableSession, diner: Diner | None = None, takeaway: bool |
     return order, True
 
 
-def status_view(order: Order) -> dict:
+def status_view(order: Order, *, remote_status=None) -> dict:
     saved = sum((line.discount_amount for line in order.lines.all()), 0)
     pct = max((line.discount for line in order.lines.all()), default=0)
     base = {'id': str(order.id), 'sesion': str(order.session_id), 'total': float(order.total or 0), 'impuestos': float(order.tax or 0), 'intentos': order.attempts,
@@ -161,11 +166,13 @@ def status_view(order: Order) -> dict:
     if order.state not in (Order.SENT, Order.CHECKOUT):
         return {**base, 'estado': 'fallido', 'detalle': order.last_error}
     session = order.session
-    tenant = resolve(session.restaurant_slug, session.venue_slug, session.table_token)
-    status = pos.read_order_status(OdooClient(tenant.odoo), order.odoo_order_id)
+    status = remote_status
+    if status is None:
+        tenant = resolve(session.restaurant_slug, session.venue_slug, session.table_token)
+        status = backend_for(tenant.restaurant_slug).read_order_status(client_for(tenant, OdooClient), order.odoo_order_id)
     if order.requires_payment:
         if status.state not in PAID_STATES:
-            # Only authenticated, authorized staff can release an unpaid menu order in Odoo.
+            # En Odoo el personal autorizado puede liberar el pedido; el sistema propio exige el pago.
             return {**base, 'estado': 'pendiente_pago' if status.kitchen == 'none' else STATUS_BY_KITCHEN[status.kitchen]}
         Order.objects.filter(id=order.id, state=Order.CHECKOUT).update(state=Order.SENT, sent_at=timezone.now())
         DinerAccount.objects.filter(discount_order=order, discount_used_at=None).update(discount_used_at=timezone.now())

@@ -5,19 +5,23 @@ import { useEffect, useState } from 'react'
 import { PeriodPicker } from '@/components/business/PeriodPicker'
 import { Icon } from '@/components/kit/Icon'
 import { Button } from '@/components/ui/Button'
+import { ScrollTable } from '@/components/ui/ScrollTable'
+import { SortTh, TableSearch } from '@/components/ui/SortTh'
 import { change, downloadCsv, presetSpan, toCsv, type DateSpan } from '@/lib/domain/business'
 import { formatCop } from '@/lib/domain/money'
-import { orgSummary, type OrgSummary, type SummaryFigures } from '@/lib/services/business'
+import { orgSummary, type OrgSummary, type SummaryFigures, type SummaryRow } from '@/lib/services/business'
+import { useTableView, type Sorters } from '@/lib/hooks/useTableView'
 import { cn } from '@/lib/utils'
 
-const money = (v: number) => `$ ${formatCop(Math.round(v))}`
+// «$» y el valor unidos con espacio duro: nunca quedan en líneas distintas.
+const money = (v: number) => `$\u00a0${formatCop(Math.round(v))}`
 const METRICS: [keyof SummaryFigures, string, (v: number) => string][] = [
   ['sales', 'Ventas', money], ['orders', 'Pedidos', (v) => String(v)], ['ticket', 'Ticket promedio', money], ['guests', 'Comensales', (v) => String(v)], ['tips', 'Propinas', money],
 ]
 
 function Delta({ current, previous }: { current: number; previous: number }) {
   const pct = change(current, previous)
-  if (pct === null) return <span className="text-[13px] text-dim">sin periodo anterior</span>
+  if (pct === null) return <span className="text-[13px] text-dim whitespace-nowrap">sin comparación</span>
   const up = pct >= 0
   return <span className={cn('text-[13px] font-semibold tabular', up ? 'text-success-ink' : 'text-danger-ink')}>{up ? '↑' : '↓'} {Math.abs(pct).toFixed(0)} %</span>
 }
@@ -35,6 +39,9 @@ export function SummaryView() {
     return () => { alive = false }
   }, [span, key])
   const summary = data?.key === key ? data.value : null
+  // Ordenar por cualquier columna (quién vende más, quién tiene el ticket más alto) y buscar un restaurante.
+  const sorters = Object.fromEntries([['name', (r: SummaryRow) => r.name], ...METRICS.map(([k]) => [k, (r: SummaryRow) => r[k]])]) as Sorters<SummaryRow>
+  const table = useTableView(summary?.restaurants ?? [], sorters, (r) => r.name)
   const exportCsv = () => {
     if (!summary) return
     const header = ['Restaurante', ...METRICS.flatMap(([, label]) => [label, `${label} (anterior)`])]
@@ -51,22 +58,24 @@ export function SummaryView() {
       <PeriodPicker onChange={setSpan} />
       {error && <p role="alert" className="text-danger">{error}</p>}
       {!summary ? !error && <p role="status" className="text-soft">Sumando ventas…</p> : <>
-        <dl aria-label="Total de la organización" className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        {/* Tantas tarjetas por fila como quepan con al menos 11 rem: a cinco fijas se apretaban en pantallas angostas. */}
+        <dl aria-label="Total de la organización" className="grid grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-3">
           {METRICS.map(([k, label, fmt]) => (
             <div key={k} className="rounded-lg border border-border p-4 flex flex-col gap-1">
               <dt className="text-[14px] text-soft">{label}</dt>
-              <dd className="text-[24px] font-semibold tabular">{fmt(summary.total[k])}</dd>
+              <dd className="text-[24px] font-semibold tabular whitespace-nowrap">{fmt(summary.total[k])}</dd>
               <dd><Delta current={summary.total[k]} previous={summary.total.previous[k]} /></dd>
             </div>
           ))}
         </dl>
         <p className="text-[13px] text-dim">Comparado con {summary.previousFrom} a {summary.previousTo}.</p>
-        <div className="overflow-x-auto rounded-lg border border-border">
-          <table className="w-full text-[15px]">
-            <thead><tr className="text-left text-soft border-b border-border"><th className="px-4 py-3 font-semibold">Restaurante</th>
-              {METRICS.map(([k, label]) => <th key={k} className="px-4 py-3 font-semibold text-right">{label}</th>)}</tr></thead>
+        {summary.restaurants.length > 6 && <TableSearch value={table.query} onChange={table.setQuery} placeholder="Buscar restaurante" className="w-72" />}
+        <ScrollTable label="el resumen">
+          <table className="data-table text-[15px]">
+            <thead><tr className="text-left text-soft border-b border-border"><SortTh label="Restaurante" sortKey="name" sort={table.sort} onSort={table.toggle} />
+              {METRICS.map(([k, label]) => <SortTh key={k} label={label} sortKey={k} sort={table.sort} onSort={table.toggle} align="right" />)}</tr></thead>
             <tbody>
-              {summary.restaurants.map((r) => (
+              {table.view.map((r) => (
                 <tr key={r.configId} className="border-b border-border last:border-0">
                   <th scope="row" className="px-4 py-3 text-left font-semibold">{r.name}</th>
                   {METRICS.map(([k, , fmt]) => <td key={k} className="px-4 py-3 text-right tabular"><div>{fmt(r[k])}</div><Delta current={r[k]} previous={r.previous[k]} /></td>)}
@@ -74,7 +83,7 @@ export function SummaryView() {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollTable>
       </>}
     </section>
   )

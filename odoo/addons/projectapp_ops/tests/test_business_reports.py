@@ -1,5 +1,5 @@
 """Q2 y Q3: cifras, periodos y aislamiento de informes del negocio."""
-from odoo.exceptions import AccessError, ValidationError
+from odoo.exceptions import UserError, AccessError, ValidationError
 from odoo.tests import tagged
 
 from .common_business import BusinessCase
@@ -152,3 +152,23 @@ class TestCashClosings(BusinessCase):
         from odoo.service.model import call_kw
         self.assertEqual(call_kw(self.env['res.company'].with_user(self.owner), 'waiter_cash_settings', [], {'tolerance': 1500})['tolerance'], 1500)
         self.assertEqual(call_kw(self.env['res.company'].with_user(self.manager), 'waiter_cash_settings', [], {})['tolerance'], 1500)
+
+    def test_difference_needs_a_note_to_close(self):
+        # Falla si una caja que no cuadra se cierra sin explicar por qué (por el POS o por el asistente de Odoo), si se
+        # impide cerrar por la diferencia en sí, o si una caja que cuadra exige nota.
+        session = self._session(self.first)
+        session.cash_register_balance_end_real = session.cash_register_balance_end - 12000
+        session.closing_notes = '   '
+        result = session.with_user(self.manager).close_session_from_ui()
+        self.assertFalse(result['successful'])
+        self.assertIn('falta $ 12.000', result['message'])
+        self.assertNotEqual(session.state, 'closed')
+        with self.assertRaisesRegex(UserError, 'nota'):
+            session.with_user(self.manager).action_pos_session_closing_control()
+        session.closing_notes = 'Se pagó un domicilio en efectivo sin registrarlo'
+        self.assertTrue(session.with_user(self.manager).close_session_from_ui()['successful'])
+        self.assertEqual(session.state, 'closed')
+        balanced = self._session(self.second)
+        balanced.cash_register_balance_end_real = balanced.cash_register_balance_end
+        balanced.closing_notes = ''
+        self.assertTrue(balanced.with_user(self.other_manager).close_session_from_ui()['successful'])

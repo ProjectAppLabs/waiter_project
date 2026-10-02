@@ -17,8 +17,13 @@ class Tenant:
     table_token: str | None
     table_number: int | None
     odoo_table_id: int | None
-    odoo: OdooCredentials
+    odoo: OdooCredentials | None
     brand: dict = field(default_factory=dict)
+    restaurant_id: int | None = None
+
+    @property
+    def config_id(self):
+        return self.restaurant_id if self.restaurant_id is not None else self.odoo.pos_config_id
 
 
     @property
@@ -56,6 +61,10 @@ def _to_tenant(body: dict) -> Tenant:
 
 
 def resolve(restaurant: str, venue: str, token: str | None = None) -> Tenant:
+    from experience_app.adapters.backend import backend_for
+    backend = backend_for(restaurant)
+    if hasattr(backend, 'resolve'):
+        return backend.resolve(restaurant, venue, token)
     if not venue:
         venues = list_restaurants(restaurant)
         if not venues:
@@ -82,6 +91,10 @@ def resolve(restaurant: str, venue: str, token: str | None = None) -> Tenant:
 
 def list_restaurants(organization: str) -> list[dict]:
     """Lee el índice interno de la organización; nunca lo publica con credenciales."""
+    from experience_app.adapters.backend import backend_for
+    backend = backend_for(organization)
+    if hasattr(backend, 'list_restaurants'):
+        return backend.list_restaurants(organization)
     try:
         response = requests.get(
             settings.REGISTRY_URL + f'/internal/v1/organizaciones/{organization}/restaurantes/',

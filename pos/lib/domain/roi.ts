@@ -1,3 +1,4 @@
+import { serverTime } from '@/lib/domain/time'
 import type { PaidOrder } from '@/lib/services/roi'
 import type { Settings } from '@/lib/types'
 
@@ -33,7 +34,7 @@ export function toOdooDate(d: Date): string {
 }
 
 export function inRange(o: PaidOrder, r: Range): boolean {
-  const t = Date.parse(o.paidAt.replace(' ', 'T') + 'Z')
+  const t = serverTime(o.paidAt)
   return t >= r.start.getTime() && t < r.end.getTime()
 }
 

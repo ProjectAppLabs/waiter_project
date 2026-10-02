@@ -12,7 +12,11 @@ COOKIE_MAX_AGE = 12 * 3600
 
 
 def diner_for(request, session: TableSession) -> Diner:
-    return get_object_or_404(Diner.objects.select_related('account'), key=request.COOKIES.get(COOKIE, ''), session=session)
+    diner = get_object_or_404(Diner.objects.select_related('account'), key=request.COOKIES.get(COOKIE, ''), session=session)
+    from experience_app.adapters.backend import backend_for
+    if hasattr(backend_for(session.restaurant_slug), 'Client'):
+        resolve(session.restaurant_slug, session.venue_slug, session.table_token)
+    return diner
 
 
 def discount_percent(session: TableSession) -> float:

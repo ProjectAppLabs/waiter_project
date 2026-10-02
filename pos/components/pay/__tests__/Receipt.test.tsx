@@ -81,10 +81,16 @@ it('separates the tip from the consumption when there is one', async () => {
 })
 
 // Falla si el papel inventa un porcentaje cuando la carta mezcla tarifas (IVA 19 % con INC 8 %, exentos):
-// entonces no hay una sola tarifa que declarar y debe decir "IVA incluido" a secas.
+// entonces no hay una sola tarifa que declarar y debe decir "Impuestos incluidos" a secas (ni IVA ni INC).
 it('does not invent a rate when the bill mixes tax rates', async () => {
   const mezclado: ReceiptData = { ...data, tax: 500, subtotal: 3665 }
   render(<NextIntlClientProvider locale="es" messages={messages}><Receipt data={mezclado} onClose={jest.fn()} /></NextIntlClientProvider>)
-  expect(await screen.findByText('IVA incluido')).toBeInTheDocument()
-  expect(screen.queryByText(/IVA incluido \(/)).not.toBeInTheDocument()
+  expect(await screen.findByText('Impuestos incluidos')).toBeInTheDocument()
+  expect(screen.queryByText(/incluido \(/)).not.toBeInTheDocument()
+})
+
+// Falla si un restaurante con INC 8 % imprime «IVA»: el papel debe nombrar el impuesto que de verdad lleva la carta (T4).
+it('names INC when the rate is 8 %', async () => {
+  render(<NextIntlClientProvider locale="es" messages={messages}><Receipt data={{ ...data, lines: [{ ...data.lines[0], qty: 1, unitPrice: 10800, total: 10800 }], total: 10800, tax: 800, tip: 0, subtotal: 10000 }} onClose={jest.fn()} /></NextIntlClientProvider>)
+  expect(await screen.findByText('INC incluido (8%)')).toBeInTheDocument()
 })

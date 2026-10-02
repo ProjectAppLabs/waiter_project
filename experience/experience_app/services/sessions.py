@@ -1,4 +1,5 @@
 """Sesión de mesa, comensales y carrito con atribución por persona."""
+from experience_app.adapters.backend import backend_for, client_for
 from decimal import Decimal
 
 from django.utils import timezone
@@ -28,9 +29,9 @@ def _settled_in_odoo(session: TableSession, tenant: Tenant) -> bool:
         return False
     try:
         if order.requires_payment:
-            status = pos.read_order_status(OdooClient(tenant.odoo), order.odoo_order_id)
+            status = backend_for(tenant.restaurant_slug).read_order_status(client_for(tenant, OdooClient), order.odoo_order_id)
             return status.state in PAID_STATES and status.kitchen == 'served'
-        return pos.read_order_state(OdooClient(tenant.odoo), order.odoo_order_id) in PAID_STATES
+        return backend_for(tenant.restaurant_slug).read_order_state(client_for(tenant, OdooClient), order.odoo_order_id) in PAID_STATES
     except OdooError:
         return False  # sin Odoo no se cierra nada: la sesión sigue hasta poder verificar
 
@@ -121,7 +122,7 @@ def table_call(tenant: Tenant, session: TableSession, kind: str) -> bool:
     if session.odoo_table_id is None:
         return False
     try:
-        pos.set_table_call(OdooClient(tenant.odoo), session.odoo_table_id, kind)
+        backend_for(tenant.restaurant_slug).set_table_call(client_for(tenant, OdooClient), session.odoo_table_id, kind)
         return True
     except OdooError:
         return False

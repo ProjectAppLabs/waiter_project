@@ -1,3 +1,4 @@
+import { serverTime } from '@/lib/domain/time'
 import type { OpenOrder } from '@/lib/services/orders'
 import type { TableCall } from '@/lib/services/tables'
 import type { KitchenPhase } from '@/lib/domain/kitchen'
@@ -59,7 +60,7 @@ export function countByState(views: TableView[]): Record<TableState, number> {
 
 // date_order de Odoo viene en UTC sin zona ("2026-09-04 23:16:43").
 export function elapsedMinutes(startedAt: string, now: number): number {
-  const t = Date.parse(startedAt.replace(' ', 'T') + 'Z')
+  const t = serverTime(startedAt)
   return Math.max(0, Math.floor((now - t) / 60_000))
 }
 

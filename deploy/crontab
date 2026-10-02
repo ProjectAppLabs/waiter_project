@@ -1,0 +1,9 @@
+# Tareas programadas de Waiter (supercronic, hora del servidor en UTC).
+# El día 1 a las 06:00 (01:00 en Bogotá): cuentas de cobro del mes.
+0 6 1 * * cd /app && python manage.py generate_subscription_charges
+# Cada día a las 13:00 (08:00 en Bogotá): mora, avisos al dueño y suspensión automática.
+0 13 * * * cd /app && python manage.py enforce_subscriptions
+# Cada cinco minutos: avisos de existencias bajas.
+*/5 * * * * cd /app && python manage.py notify_low_stock
+# Cada hora: eventos del tiempo real de más de un día.
+0 * * * * cd /app && python manage.py purge_sales_events

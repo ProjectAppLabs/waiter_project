@@ -23,16 +23,17 @@ export function CategoryPanel({ categories, productCount, onSave, onClose }: Cat
     <Modal open onClose={onClose} title={t('title')} size="wide">
       <div className="p-6 flex flex-col gap-3">
         {rows.map((key) => {
-          const d = drafts[key]
           const isNew = key === 'new'
           const original = isNew ? null : categories.find((c) => String(c.id) === key)
+          // Una categoría recién creada llega con la lista antes de tener borrador: se muestra tal cual.
+          const d = drafts[key] ?? { name: original?.name ?? '', station: original?.station ?? '' }
           const dirty = isNew ? d.name.trim() !== '' : d.name !== original?.name || d.station !== (original?.station ?? '')
           return (
             <section key={key} aria-label={isNew ? t('new') : (original?.name ?? d.name)} className="rounded-md border border-border p-4 grid grid-cols-[48px_1fr_1fr_auto] gap-4 items-end">
               <span className="w-12 h-12 rounded-md bg-primary-soft text-primary grid place-items-center"><Icon name={isNew ? 'plus' : 'tag'} size={22} /></span>
               <TextInput label={isNew ? t('new') : t('name')} value={d.name} onChange={(e) => edit(key, { name: e.target.value })} hint={isNew ? undefined : t('products', { n: productCount(Number(key)) })} />
               <TextInput label={t('station')} hint={t('stationHint')} value={d.station} onChange={(e) => edit(key, { station: e.target.value })} />
-              <Button variant={dirty ? 'primary' : 'secondary'} disabled={!d.name.trim() || !dirty} onClick={() => onSave(isNew ? null : Number(key), { name: d.name.trim(), station: d.station.trim() || null })} className="mb-6">{t('save')}</Button>
+              <Button variant={dirty ? 'primary' : 'secondary'} disabled={!d.name.trim() || !dirty} onClick={async () => { await onSave(isNew ? null : Number(key), { name: d.name.trim(), station: d.station.trim() || null }); if (isNew) edit('new', { name: '', station: '' }) }} className="mb-6">{t('save')}</Button>
             </section>
           )
         })}

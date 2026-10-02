@@ -1,4 +1,5 @@
 """Local preview using the tenant's POS catalog; never confirms or sends messages."""
+from experience_app.adapters.backend import backend_for, client_for
 import json
 
 from django.core.management.base import BaseCommand, CommandError
@@ -19,13 +20,13 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         tenant = resolve(options['restaurante'], options['sede'])
-        client = OdooClient(tenant.odoo)
+        client = client_for(tenant, OdooClient)
         try:
             sessions = client.call_kw('pos.session', 'search_read', [
-                [['config_id', '=', tenant.odoo.pos_config_id], ['state', '=', 'opened']], ['id']], {'limit': 1})
+                [['config_id', '=', tenant.config_id], ['state', '=', 'opened']], ['id']], {'limit': 1})
             if not sessions:
                 raise CommandError('Abre la caja para consultar el catálogo operativo.')
-            catalog = pos.load_catalog(client, sessions[0]['id'])
+            catalog = backend_for(tenant.restaurant_slug).load_catalog(client, sessions[0]['id'])
             products = [{'id': p.id, 'nombre': p.name, 'agotado': p.sold_out,
                          'descripcion': p.description, 'ingredientes': p.attributes.get('ingredientes', [])}
                         for p in catalog.products]

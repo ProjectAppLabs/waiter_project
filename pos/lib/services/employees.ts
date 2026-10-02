@@ -1,3 +1,5 @@
+import { onCore } from '@/lib/domain/backend'
+import * as coreLoyalty from '@/lib/services/core/loyalty'
 import { toShift, type Shift } from '@/lib/domain/employees'
 import type { AccountRole } from '@/lib/domain/roles'
 import { callKw } from '@/lib/services/odoo'
@@ -77,9 +79,9 @@ export type NotifyPrefs = Record<NotifyKey, boolean>
 export type NotifyKey = 'kitchen_popup' | 'kitchen_sound' | 'inventory_popup' | 'inventory_sound' | 'system_popup' | 'system_sound'
 export const NOTIFY_KEYS: NotifyKey[] = ['kitchen_popup', 'kitchen_sound', 'inventory_popup', 'inventory_sound', 'system_popup', 'system_sound']
 
-export const getNotifyPrefs = (uid: number): Promise<NotifyPrefs> => callKw<NotifyPrefs>('res.users', 'get_waiter_notify', [[uid]])
+export const getNotifyPrefs = (uid: number): Promise<NotifyPrefs> => (onCore() ? coreLoyalty.notifyPrefs<NotifyPrefs>() : callKw<NotifyPrefs>('res.users', 'get_waiter_notify', [[uid]]))
 export const setNotifyPrefs = (uid: number, prefs: Partial<NotifyPrefs>): Promise<NotifyPrefs> =>
-  callKw<NotifyPrefs>('res.users', 'set_waiter_notify', [[uid], prefs])
+  onCore() ? coreLoyalty.saveNotifyPrefs<NotifyPrefs>(prefs) : callKw<NotifyPrefs>('res.users', 'set_waiter_notify', [[uid], prefs])
 
 // Plan P: identidad del turno sin PIN. Tras entrar con su usuario o correo y su contraseña, el servidor toma el empleado
 // de esa cuenta, comprueba su horario, abre la asistencia y emite el token de siempre (con el que se firman las acciones).

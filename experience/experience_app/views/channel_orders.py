@@ -1,4 +1,5 @@
 """API exclusiva para el backend del canal; nunca entregar la clave interna al navegador o al modelo."""
+from experience_app.adapters.backend import backend_for, client_for
 from functools import wraps
 
 from django.shortcuts import get_object_or_404
@@ -49,6 +50,8 @@ def internal_endpoint(fn):
         if not key_is_valid(request):
             return Response(INVALID_KEY, status=401)
         try:
+            if hasattr(backend_for(kwargs.get('restaurant', '')), 'Client'):
+                resolve(kwargs['restaurant'], kwargs['venue'])
             return fn(request, *args, **kwargs)
         except OdooUnavailable:
             return Response({'detail': 'El POS no responde. Conserva la referencia y reintenta.'}, status=503)
@@ -63,12 +66,12 @@ def internal_endpoint(fn):
 @internal_endpoint
 def menu(request, restaurant, venue):
     tenant = resolve(restaurant, venue)
-    client = OdooClient(tenant.odoo)
+    client = client_for(tenant, OdooClient)
     sessions = client.call_kw('pos.session', 'search_read', [
-        [['config_id', '=', tenant.odoo.pos_config_id], ['state', '=', 'opened']], ['id']], {'limit': 1})
+        [['config_id', '=', tenant.config_id], ['state', '=', 'opened']], ['id']], {'limit': 1})
     if not sessions:
         return Response({'detail': 'Abre la caja del POS para recibir pedidos de WhatsApp.'}, status=409)
-    catalog = pos.load_catalog(client, sessions[0]['id'])
+    catalog = backend_for(tenant.restaurant_slug).load_catalog(client, sessions[0]['id'])
     return Response({'productos': [{'id': p.id, 'nombre': p.name, 'precio_orientativo': p.final_price,
                                    'agotado': p.sold_out, 'descripcion': p.description,
                                    'ingredientes': p.attributes.get('ingredientes', [])} for p in catalog.products],

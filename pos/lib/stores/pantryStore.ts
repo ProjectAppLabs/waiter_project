@@ -43,8 +43,9 @@ export const usePantryStore = create<PantryState>((set) => ({
       set({ loading: false, error: e instanceof Error ? e.message : String(e) })
     }
   },
+  // También categorías y proveedores: la consola los crea desde sus propios editores y los asistentes deben verlos.
   refresh: async () => {
-    const [dishes, ingredients, requests] = await Promise.all([listDishes(), listIngredients(), listRequests()])
-    set({ dishes, ingredients, requests })
+    const [dishes, ingredients, requests, posCategories, suppliers] = await Promise.all([listDishes(), listIngredients(), listRequests(), listCategories(), listSuppliers()])
+    set({ dishes, ingredients, requests, posCategories, suppliers })
   },
 }))

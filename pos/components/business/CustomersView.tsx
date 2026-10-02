@@ -56,18 +56,19 @@ export function CustomersView() {
       </>}>
         {FILTERS.map((f) => <Chip key={f} label={t(`filters.${f}`)} count={customers.filter((c) => pass(c, f)).length} active={filter === f} onClick={() => setFilter(f)} />)}
       </PageHeader>
-      <div className="flex-1 min-h-0 flex gap-4 px-5 pb-5">
-        <Card className="flex-1 min-w-0">
+      {/* Por debajo de 1280 px la lista y la ficha van una sobre otra: lado a lado la lista quedaba apretada y cortaba datos. */}
+      <div className="flex-1 min-h-0 flex flex-col xl:flex-row gap-4 px-5 pb-5 overflow-y-auto xl:overflow-visible">
+        <Card className="xl:flex-1 min-w-0 shrink-0 xl:shrink">
           <div className="h-full overflow-y-auto p-3 flex flex-col gap-3">
             {visible.length === 0 && <KitEmptyState icon="users" title={t('empty')} body={t('emptyBody')} />}
             {visible.map((c) => (
               <button key={c.id} type="button" onClick={() => setSelected(c.id)} aria-pressed={selected === c.id}
                 className={cn('rounded-md border bg-surface text-left overflow-hidden hover:border-primary/60', selected === c.id ? 'border-primary' : 'border-border')}>
-                <div className="h-10 px-4 flex items-center justify-between bg-muted text-[13px]"><span className="font-semibold text-ink">{c.name}</span><span className="text-soft tabular">{c.vat || t('cols.doc') + ': —'}</span></div>
-                <div className="px-4 py-3 grid grid-cols-3 divide-x divide-border text-[15px]">
+                <div className="min-h-10 px-4 py-2 flex flex-wrap items-center justify-between gap-x-4 bg-muted text-[13px]"><span className="font-semibold text-ink">{c.name}</span><span className="text-soft tabular whitespace-nowrap">{c.vat || t('cols.doc') + ': —'}</span></div>
+                <div className="px-4 py-3 grid grid-cols-[repeat(3,max-content)] gap-x-6 divide-x divide-border text-[15px] whitespace-nowrap">
                   <div><p className="text-[13px] text-soft">{t('cols.phone')}</p><p className="font-semibold text-ink">{c.phone || '—'}</p></div>
-                  <div className="pl-4"><p className="text-[13px] text-soft">{t('cols.orders')}</p><p className="font-semibold text-ink tabular">{c.orders}</p></div>
-                  <div className="pl-4"><p className="text-[13px] text-soft">{t('cols.invoiced')}</p><p className="font-semibold text-ink tabular">$ {formatCop(c.invoiced)}</p></div>
+                  <div className="pl-6"><p className="text-[13px] text-soft">{t('cols.orders')}</p><p className="font-semibold text-ink tabular">{c.orders}</p></div>
+                  <div className="pl-6"><p className="text-[13px] text-soft">{t('cols.invoiced')}</p><p className="font-semibold text-ink tabular">$&nbsp;{formatCop(c.invoiced)}</p></div>
                 </div>
               </button>
             ))}

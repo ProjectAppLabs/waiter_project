@@ -25,7 +25,7 @@ class TestCashNotifications(BusinessCase):
         self.assertEqual(set(notifications.user_id.ids), set(self.first._waiter_management_recipients().ids))
         self.assertEqual(notifications.config_id, self.first)
         self.assertEqual(set(notifications.mapped('body')), {
-            'Caja de %s cerró con un faltante de $ 12.000 (%s)' % (self.first.name, self.manager.name),
+            'Caja de %s cerró con un faltante de $ 12.000 (%s): «Conteo Q»' % (self.first.name, self.manager.name),
         })
         session._waiter_notify_cash_difference()
         self.assertEqual(self._notifications(session), notifications)

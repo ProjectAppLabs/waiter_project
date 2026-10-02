@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="es"><meta charset="utf-8"><title>{{ document.number }}</title>
+<style>body{font-family:sans-serif;max-width:850px;margin:32px auto;color:#111}table{width:100%;border-collapse:collapse}td,th{padding:8px;text-align:left;border-bottom:1px solid #ccc}.codigo{overflow-wrap:anywhere}@media print{body{margin:0}}</style>
+<body><h1>Documento de venta {{ document.number }}</h1>
+<p>SIMULADO · Sin transmisión ni validación DIAN.</p>
+<h2>{{ document.company_data.legal_name|default:document.company_data.name }}</h2>
+<p>NIT {{ document.company_data.tax_id }}-{{ document.company_data.tax_id_dv }}<br>{{ document.company_data.address }} · {{ document.company_data.city }}</p>
+<p>Comprador: {{ document.buyer_data.name }} · {{ document.buyer_data.vat }}</p>
+<p>Fecha: {{ document.issued_at|date:"c" }} · Estado: {% if document.state == 'issued' %}Emitido{% elif document.state == 'rejected' %}Rechazado{% elif document.state == 'contingency' %}En contingencia{% else %}Pendiente{% endif %}</p>
+<p>Resolución {{ document.resolution_data.prefix }} · {{ document.resolution_data.number_from }}–{{ document.resolution_data.number_to }}<br>Vigencia: {{ document.resolution_data.valid_from }}–{{ document.resolution_data.valid_to }}</p>
+<table><thead><tr><th>Descripción</th><th>Cantidad</th><th>Base</th><th>Impuesto</th><th>Total</th></tr></thead><tbody>
+{% for line in document.lines %}<tr><td>{{ line.name }}</td><td>{{ line.qty }}</td><td>{{ line.base }}</td><td>{{ line.tax }}</td><td>{{ line.total }}</td></tr>{% endfor %}
+</tbody></table><p>Base: {{ document.subtotal }} COP</p>
+{% for tax in document.taxes %}<p>{{ tax.name }} ({{ tax.rate }} %): {{ tax.amount }} COP</p>{% endfor %}
+<p>{{ document.tip_label }}: {{ document.tip }} COP (sin impuestos)</p><strong>Total: {{ document.total }} COP</strong>
+<p class="codigo">CUFE/CUDE simulado: {{ document.cufe }}</p>{% if qr_image %}<img src="{{ qr_image }}" alt="Código QR del documento simulado" width="294" height="294">{% endif %}<p class="codigo">Contenido QR: {{ document.qr }}</p>
+{% for error in document.errors %}<p>{{ error }}</p>{% endfor %}</body></html>

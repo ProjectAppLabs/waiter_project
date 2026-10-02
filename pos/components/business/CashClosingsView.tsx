@@ -7,13 +7,15 @@ import { Chip } from '@/components/kit/Chip'
 import { Icon } from '@/components/kit/Icon'
 import { StatusPill } from '@/components/kit/StatusPill'
 import { Button } from '@/components/ui/Button'
+import { ScrollTable } from '@/components/ui/ScrollTable'
+import { SortTh, TableSearch } from '@/components/ui/SortTh'
 import { TextInput } from '@/components/ui/Field'
 import { downloadCsv, presetSpan, toCsv, type DateSpan } from '@/lib/domain/business'
 import { formatCop } from '@/lib/domain/money'
 import { cashClosings, cashSettings, type CashClosing } from '@/lib/services/business'
-import { cn } from '@/lib/utils'
+import { useTableView, type Sorters } from '@/lib/hooks/useTableView'
 
-const money = (v: number) => `${v < 0 ? '− ' : ''}$ ${formatCop(Math.round(Math.abs(v)))}`
+const money = (v: number) => `${v < 0 ? '−\u00a0' : ''}$\u00a0${formatCop(Math.round(Math.abs(v)))}`
 const when = (iso: string) => new Date(iso).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })
 
 // Plan Q3: cada cierre de caja con quién la cerró, lo esperado, lo contado y la diferencia. El dueño ve todos sus
@@ -36,6 +38,11 @@ export function CashClosingsView({ restaurants, canSetTolerance }: { restaurants
   }, [key])
   useEffect(() => { void cashSettings().then((s) => { setTolerance(s.tolerance); setDraft(String(s.tolerance)) }).catch(() => undefined) }, [])
   const rows = data?.key === key ? data.rows : null
+  // Ordenar por cualquier columna (la diferencia más grande, quién cerró) y buscar por restaurante, persona o nota.
+  const table = useTableView(rows ?? [], {
+    restaurant: (r) => r.configName, closedAt: (r) => r.closedAt, closedBy: (r) => r.closedBy?.name, expected: (r) => r.expected,
+    counted: (r) => r.counted, difference: (r) => r.difference, notes: (r) => r.notes,
+  } as Sorters<CashClosing>, (r) => `${r.configName} ${r.name} ${r.closedBy?.name ?? ''} ${r.notes}`)
   const saveTolerance = async () => {
     setError(''); setNotice('')
     try { const s = await cashSettings(Math.max(0, Number(draft))); setTolerance(s.tolerance); setNotice('Tolerancia guardada.'); setData(null) }
@@ -66,12 +73,14 @@ export function CashClosingsView({ restaurants, canSetTolerance }: { restaurants
       {error && <p role="alert" className="text-danger">{error}</p>}
       {notice && <p role="status" className="text-success-ink">{notice}</p>}
       {!rows ? !error && <p role="status" className="text-soft">Leyendo los cierres…</p>
-        : rows.length === 0 ? <p className="text-soft">No hay cierres de caja en este periodo.</p> : (
-          <div className="overflow-x-auto rounded-lg border border-border">
-            <table className="w-full text-[15px]">
+        : rows.length === 0 ? <p className="text-soft">No hay cierres de caja en este periodo.</p> : (<>
+          <TableSearch value={table.query} onChange={table.setQuery} placeholder="Buscar por restaurante, persona o nota" className="w-80 max-w-full" />
+          <ScrollTable label="los cuadres">
+            <table className="data-table text-[15px]">
               <thead><tr className="text-left text-soft border-b border-border">
-                {['Restaurante', 'Cierre', 'Cerró', 'Esperado', 'Contado', 'Diferencia', 'Nota'].map((h, i) => <th key={h} className={cn('px-4 py-3 font-semibold', i >= 3 && i <= 5 && 'text-right')}>{h}</th>)}</tr></thead>
-              <tbody>{rows.map((r) => (
+                {([['restaurant', 'Restaurante'], ['closedAt', 'Cierre'], ['closedBy', 'Cerró'], ['expected', 'Esperado'], ['counted', 'Contado'], ['difference', 'Diferencia'], ['notes', 'Nota']] as const)
+                  .map(([k, h], i) => <SortTh key={k} label={h} sortKey={k} sort={table.sort} onSort={table.toggle} align={i >= 3 && i <= 5 ? 'right' : 'left'} />)}</tr></thead>
+              <tbody>{table.view.map((r) => (
                 <tr key={r.sessionId} className="border-b border-border last:border-0">
                   <td className="px-4 py-3 font-semibold">{r.configName}</td>
                   <td className="px-4 py-3"><div>{when(r.closedAt)}</div><div className="text-[13px] text-dim">{r.name}</div></td>
@@ -80,10 +89,11 @@ export function CashClosingsView({ restaurants, canSetTolerance }: { restaurants
                   <td className="px-4 py-3 text-right tabular">{money(r.counted)}</td>
                   <td className="px-4 py-3 text-right tabular">{r.difference === 0 ? <span className="text-soft">Cuadra</span>
                     : <StatusPill tone={r.overTolerance ? 'danger' : 'progress'}>{money(r.difference)}</StatusPill>}</td>
-                  <td className="px-4 py-3 text-[14px] text-soft max-w-[28ch]">{r.notes || '—'}</td>
+                  <td className="cell-wrap px-4 py-3 text-[14px] text-soft">{r.notes || '—'}</td>
                 </tr>))}</tbody>
             </table>
-          </div>)}
+            {table.view.length === 0 && <p className="p-6 text-center text-soft">Ningún cierre coincide con la búsqueda.</p>}
+          </ScrollTable></>)}
     </section>
   )
 }

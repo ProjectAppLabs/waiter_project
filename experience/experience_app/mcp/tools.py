@@ -4,6 +4,7 @@ Toda herramienta recibe la clave ya autenticada y trabaja sobre SU sede. Las que
 las mismas reglas que el POS y dejan un cambio pendiente (McpPendingChange) con su vista previa. Solo
 `confirmar_cambio`, con el token que devolvió la preparación, lo aplica. Así la IA propone y una persona decide.
 """
+from experience_app.adapters.backend import backend_for, client_for
 import uuid
 from copy import deepcopy
 from datetime import timedelta
@@ -41,13 +42,13 @@ def _tenant(key: McpKey) -> Tenant:
 
 def _odoo(tenant: Tenant, model: str, method: str, args: list, kwargs: dict | None = None):
     try:
-        return OdooClient(tenant.odoo).call_kw(model, method, args, kwargs)
+        return client_for(tenant, OdooClient).call_kw(model, method, args, kwargs)
     except OdooError as exc:
         raise ToolError(f'Odoo rechazó la operación: {exc}') from exc
 
 
 def _banners(tenant: Tenant) -> list[dict]:
-    return _odoo(tenant, 'pos.config', 'waiter_banner_settings', [[tenant.odoo.pos_config_id]]).get('banners', [])
+    return _odoo(tenant, 'pos.config', 'waiter_banner_settings', [[tenant.config_id]]).get('banners', [])
 
 
 def _pending(key: McpKey, kind: str, payload: dict) -> str:
@@ -312,7 +313,7 @@ def preparar_banners(key: McpKey, args: dict) -> dict:
             row['image'] = ''
         rows.append(row)
     # Odoo valida con las mismas reglas del POS (textos, destino en el catálogo, imagen) sin guardar.
-    clean = _odoo(tenant, 'pos.config', 'waiter_banner_settings_integration', [[tenant.odoo.pos_config_id], rows],
+    clean = _odoo(tenant, 'pos.config', 'waiter_banner_settings_integration', [[tenant.config_id], rows],
                   {'dry_run': True, 'actor': f'MCP {key.prefix}'})['banners']
     preview = [{'titulo': b['title'], 'diseno': b['layout'], 'destino': b['target'], 'visible': b['active'],
                 'con_imagen': bool(b.get('image'))} for b in clean]
@@ -356,7 +357,7 @@ def confirmar_cambio(key: McpKey, args: dict) -> dict:
             brand.invalidate(key.restaurant_slug, key.venue_slug)
         templates.invalidate(key.restaurant_slug, key.venue_slug)
     elif change.kind == 'banners':
-        _odoo(tenant, 'pos.config', 'waiter_banner_settings_integration', [[tenant.odoo.pos_config_id], change.payload['banners']],
+        _odoo(tenant, 'pos.config', 'waiter_banner_settings_integration', [[tenant.config_id], change.payload['banners']],
               {'dry_run': False, 'actor': f'MCP {key.prefix}'})
     else:
         raise ToolError('Este cambio no se puede confirmar por MCP.')

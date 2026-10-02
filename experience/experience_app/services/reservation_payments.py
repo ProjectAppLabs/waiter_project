@@ -1,6 +1,7 @@
 """Anticipo de una reserva pagado por enlace. Misma maquinaria que la cuenta de una visita (intento durable, verificación
 remota, conciliación idempotente), pero sin sesión de comensal: quien tiene el enlace tiene un token secreto de la reserva,
 y la reserva —con su monto— vive en Odoo. El navegador nunca decide cuánto se cobra."""
+from experience_app.adapters.backend import backend_for, client_for
 import re
 
 from django.conf import settings
@@ -29,7 +30,7 @@ def reservation(restaurant, venue, token):
     """Lo que Odoo deja ver de la reserva a quien tiene el enlace, o 404. Sin correo, teléfono ni notas."""
     if not TOKEN.match(token or ''):
         raise NotFound('No encontramos esta reserva.')
-    found = OdooClient(resolve(restaurant, venue).odoo).call_kw('waiter.reservation', 'waiter_deposit_public', [token])
+    found = client_for(resolve(restaurant, venue), OdooClient).call_kw('waiter.reservation', 'waiter_deposit_public', [token])
     if not found:
         raise NotFound('No encontramos esta reserva.')
     return found

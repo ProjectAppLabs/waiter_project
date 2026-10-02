@@ -98,18 +98,30 @@ class ProductTemplate(models.Model):
 
     def _pantry_requirements(self):
         result = super()._pantry_requirements()
+        combos = self.filtered('waiter_combo_bom_id')
+        if not combos:
+            return result
+        # Carga un nivel completo cada vez; la expansión posterior no consulta una receta por componente.
+        pending = combos
+        boms, visited = {}, set()
+        while pending:
+            found = pending._pantry_boms()
+            boms.update(found)
+            visited.update(pending.ids)
+            batch = self.env['mrp.bom'].browse([bom.id for bom in found.values() if bom])
+            pending = batch.bom_line_ids.product_id.product_tmpl_id.filtered(lambda t: t.id not in visited)
         # Un kit de platos debe reservar sus ingredientes, no existencias ficticias de platos terminados.
         def expand(product, qty, path):
             template = product.product_tmpl_id
             if template.id in path: raise UserError('La receta contiene una referencia circular.')
-            bom = template._pantry_boms().get(template.id)
+            bom = boms.get(template.id)
             if not bom: return {product.id:qty} if product.is_storable else {}
             totals = defaultdict(float)
             for line in bom.bom_line_ids:
                 amount=line.product_uom_id._compute_quantity(line.product_qty,line.product_id.uom_id,round=False)/(bom.product_qty or 1)
                 for pid,value in expand(line.product_id,qty*amount,path|{template.id}).items(): totals[pid]+=value
             return totals
-        for product in self.filtered('waiter_combo_bom_id'):
+        for product in combos:
             result[product.id]=dict(expand(product.product_variant_id,1,set()))
         return result
 

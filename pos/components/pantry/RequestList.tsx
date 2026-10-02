@@ -1,5 +1,6 @@
 'use client'
 
+import { serverDate } from '@/lib/domain/time'
 import { useTranslations } from 'next-intl'
 
 import { Icon } from '@/components/kit/Icon'
@@ -14,7 +15,7 @@ const TONE: Record<string, PillTone> = { draft: 'progress', sent: 'info', 'to ap
 const STATES = ['draft', 'sent', 'to approve', 'purchase', 'done', 'cancel']
 const dateFormat = new Intl.DateTimeFormat('es-CO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 // Odoo devuelve fechas UTC sin zona ("2026-09-06 14:03:11"): se leen como UTC y se muestran en la hora local.
-export const formatDate = (s: string) => dateFormat.format(new Date(s.replace(' ', 'T') + 'Z'))
+export const formatDate = (s: string) => dateFormat.format(serverDate(s))
 
 // Pestaña "Request List" (el kit no trae captura): sigue la fila de Ingredientes con PROVEEDOR · FECHA · ESTADO.
 // El estado y su etiqueta vienen de `waiter_request_list()`, que los toma de la orden de compra de Odoo.

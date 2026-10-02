@@ -2,7 +2,7 @@
 import math
 
 from odoo import api, fields, models
-from odoo.exceptions import AccessError, ValidationError
+from odoo.exceptions import UserError, AccessError, ValidationError
 
 from .business_reports import report_configs, report_period
 from .owner_permissions import require_owner
@@ -54,6 +54,32 @@ class PosSession(models.Model):
             raise AccessError('La persona del cierre se registra al validar la caja.')
         return super().write(vals)
 
+    def _waiter_missing_difference_note(self):
+        """Si la caja no cuadra (faltante o sobrante), quien cierra debe explicar por qué: el dueño lee esa nota en los
+        cuadres. No se impide cerrar por la diferencia (el cajero no puede poner el dinero que falta), solo sin explicarla."""
+        self.ensure_one()
+        if not self.cash_journal_id or self.currency_id.is_zero(self._waiter_counted_difference()):
+            return False
+        return not (self.closing_notes or '').strip()
+
+    def _waiter_counted_difference(self):
+        # Contado menos esperado. `cash_register_difference` de Odoo solo se calcula cuando la sesión ya pasó a
+        # «closing_control»: antes vale 0 y la caja que no cuadra parecía cuadrar.
+        return self.cash_register_balance_end_real - self.cash_register_balance_end
+
+    def _waiter_difference_note_message(self):
+        difference = self._waiter_counted_difference()
+        kind = 'falta' if difference < 0 else 'sobra'
+        amount = format(abs(difference), ',.0f').replace(',', '.')
+        return 'En la caja %s $ %s: escribe en la nota del cierre por qué, para cerrar.' % (kind, amount)
+
+    def close_session_from_ui(self, bank_payment_method_diff_pairs=None):
+        # Sobrescribe pos.session.close_session_from_ui (Odoo 19): el POS recibe el motivo como respuesta, no como error.
+        self.ensure_one()
+        if self.state != 'closed' and self._waiter_missing_difference_note():
+            return {'successful': False, 'message': self._waiter_difference_note_message(), 'redirect': False}
+        return super().close_session_from_ui(bank_payment_method_diff_pairs)
+
     def _validate_session(self, balancing_account=False, amount_to_balance=0, bank_payment_method_diffs=None):
         """Sobrescribe pos.session._validate_session de Odoo 19, después de su cierre contable.
 
@@ -66,6 +92,9 @@ class PosSession(models.Model):
         self.env.cr.execute('SELECT id FROM pos_session WHERE id = %s FOR UPDATE', [self.id])
         self.invalidate_recordset()
         was_closed = self.state == 'closed'
+        # Cualquier otra vía de cierre (el asistente de Odoo, «Forzar cierre») tampoco cierra sin explicar la diferencia.
+        if not was_closed and self._waiter_missing_difference_note():
+            raise UserError(self._waiter_difference_note_message())
         actor = self.env.uid
         # La validación necesita leer sus asientos; las nuevas reglas los ocultan al encargado.
         # Esta elevación privada ocurre tras validar el acceso a la sesión y conserva al actor.

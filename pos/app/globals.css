@@ -152,3 +152,25 @@ body { background: var(--color-canvas); color: var(--color-ink); font-family: va
 }
 @media (prefers-reduced-motion: reduce) { .skeleton::after { animation: none; display: none; } }
 }
+
+/* Tablas de datos (consola y vistas del negocio): cada celda en una línea, para que «$» y su valor no se separen ni se
+   corten. Si la tabla no cabe, el contenedor (overflow-x-auto) hace scroll horizontal y la primera columna se queda fija:
+   al desplazarse se sigue viendo a qué restaurante, plato o persona corresponde la fila. Necesita fondo opaco para que lo
+   que pasa por debajo no se lea a través. `.cell-wrap` deja partir los textos largos (notas, descripciones). */
+.data-table { width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; }
+.data-table :is(th, td) { white-space: nowrap; }
+.data-table :is(th, td).cell-wrap { white-space: normal; min-width: 14rem; max-width: 26rem; }
+.data-table :is(th, td):first-child { position: sticky; left: 0; z-index: 1; background-color: var(--kit-surface); box-shadow: inset -1px 0 0 var(--kit-border); }
+.data-table thead :is(th, td) { background-color: var(--kit-surface); }
+/* La esquina (cabecera de la primera columna) queda sobre todo: fija arriba y a la izquierda a la vez. */
+.data-table thead :is(th, td):first-child { z-index: 3; }
+/* Barra de desplazamiento de las tablas (ScrollTable): abajo, pegada al borde inferior de la pantalla mientras la tabla se
+   ve; con fondo para que las filas no se lean a través y siempre visible (en Windows y macOS las barras finas se ocultan).
+   La barra propia de la tabla se oculta (.no-x-scrollbar): queda una sola, y la tabla sigue moviéndose con el trackpad. */
+.no-x-scrollbar { scrollbar-width: none; }
+.no-x-scrollbar::-webkit-scrollbar { height: 0; }
+.scroll-rail { background-color: color-mix(in srgb, var(--kit-surface) 92%, transparent); scrollbar-width: auto; scrollbar-color: var(--kit-border) transparent; }
+.scroll-rail::-webkit-scrollbar { height: 12px; }
+.scroll-rail::-webkit-scrollbar-thumb { background-color: var(--kit-border); border-radius: 6px; }
+/* Fila de grupo de una tabla (p. ej. un restaurante en Equipo): banda gris a todo el ancho, sin quedarse fija ella misma. */
+.data-table :is(th, td).group-row { position: static; background-color: var(--kit-muted); box-shadow: none; }
