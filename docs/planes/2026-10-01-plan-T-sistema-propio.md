@@ -910,6 +910,15 @@ Rutas de la plataforma bajo `/api/platform/v1` con la cookie `waiter_platform_si
   - **Decisiones al integrar:** cocina muestra solo las comandas del turno abierto (como la sesión de Odoo; si no, los
     cursos migrados aparecían como demorados); el fondo del plano se pide al sistema propio; sin organizaciones en Odoo,
     una tableta sin organización usa el sistema propio.
+  - **Conciliación final** (`manage.py reconcile_odoo`, solo lectura, registro por registro por el `LegacyMap`): 22
+    dominios contra el Odoo real, **todo coincide** — 63 productos (nombre, tipo, precio, costo, carta, categorías,
+    impuestos), 48 precios por sede, 3 recetas con sus cantidades, 16 existencias por bodega, 30 mesas, 7 personas, 19
+    clientes, 2 tarjetas con sus puntos, 10 pedidos (total, impuesto, sede) y la suma de ventas ($ 97.716), los pagos
+    netos de cambio, 9 cuadres (apertura, esperado, contado, nota), la galería y 49 fotos principales, 10 categorías con
+    estación, 9 impuestos de venta, 2 proveedores, 4 métodos de pago, el cupón, 4 acciones con premio, los ajustes y
+    supuestos del ROI de las 2 sedes y los 9 avisos sin leer. Única diferencia, intencional: el turno 18–23 de Mateo
+    para la guía de QA. En Odoo, Laureles no tenía existencias en su bodega (todo estaba en la de Poblado) y así quedó.
+    Odoo volvió a quedar detenido.
   - **Retirada lista para revisar:** la rama `chore/02102026-retirar-odoo` (commit `8b41fe9`, subida, sin fusionar) borra
     `odoo/`, `registry/`, `scripts/odoo-test.sh`, las pruebas de contrato del POS contra Odoo y el reenvío `/odoo`, y
     deja `scripts/dev.sh` y el recorrido del comensal sin Odoo; `tsc` y las 613 pruebas del POS pasan. Quedan para un
