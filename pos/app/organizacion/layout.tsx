@@ -27,9 +27,9 @@ const GROUPS: [string, [string, string, KitIcon][]][] = [
     ['/organizacion/integraciones', 'Integraciones IA', 'sparkles']]],
 ]
 
-// Plan T: mientras dura la migración, una organización del sistema propio solo ve las secciones que ya viven allí; el
-// resto llega fase a fase (T1 catálogo, T2 ventas y caja, T3 clientes y promociones, T4 informes y contabilidad).
-const CORE_READY = new Set(['/organizacion/restaurantes', '/organizacion/equipo', '/organizacion/catalogo', '/organizacion/ventas', '/organizacion/cuadres'])
+// Plan T: con T4 todas las secciones de la consola viven en el sistema propio. El filtro queda por si una sección nueva
+// llega antes a Odoo que al sistema propio.
+const CORE_READY = new Set(GROUPS.flatMap(([, links]) => links.map(([href]) => href)))
 
 export default function OrganizationLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
