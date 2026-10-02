@@ -1,6 +1,6 @@
 # Guía QA Waiter — 6. Dueño (consola de la organización)
 
-**Aplica a:** rol Dueño. **Organizaciones:** Burger House (`admin`) para toda la consola; Frisby (`maria.lopez`) para Restaurantes, Equipo, Catálogo e Inventario en el sistema propio.
+**Aplica a:** rol Dueño. **Organizaciones:** Burger House (`admin`) y Frisby (`maria.lopez`, sistema propio), con todos los casos. En Frisby, Facturación emite con un proveedor simulado (D-14) y el recibo dice «INC incluido» o «IVA incluido» según la tarifa.
 **Fecha de actualización:** 2 de octubre de 2026
 
 ## 1. Qué vamos a comprobar
@@ -17,21 +17,21 @@ Que el dueño gobierna su organización desde la consola: sus restaurantes, su e
 
 | Caso | Qué va a comprobar | Quién participa | Dónde |
 |---|---|---|---|
-| D-01 | Restaurantes: lista, nuevo restaurante y límite del plan | Dueño | Burger House y Frisby |
+| D-01 | Restaurantes: lista, nuevo restaurante y límite del plan | Dueño | Ambas |
 | D-02 | Equipo: invitar, editar, reenviar, restablecer y desactivar | Dueño | Burger House y Frisby |
 | D-03 | Matriz «Qué puede hacer cada rol» | Dueño, mesero y cajero | Burger House |
-| D-04 | Catálogo: nuevo ingrediente con proveedor y existencias | Dueño | Frisby (y Burger House) |
-| D-05 | Catálogo: categoría, nuevo plato y receta con costo | Dueño | Frisby (y Burger House) |
-| D-06 | Catálogo: costo del ingrediente y filtros Sin receta / Sin costo | Dueño | Frisby (y Burger House) |
-| D-07 | Precios por restaurante y agotado por sede | Dueño | Frisby (y Burger House) |
-| D-08 | Cuadres de caja: tolerancia, filtros, nota y aviso | Dueño | Burger House |
-| D-09 | Resumen y Ventas por sede | Dueño | Burger House |
-| D-10 | Rentabilidad y enlace a platos sin costo | Dueño | Burger House |
-| D-11 | Clientes | Dueño | Burger House |
-| D-12 | Promociones: cupones, puntos, acciones y banners | Dueño y comensal | Burger House |
-| D-13 | Pagos: «Cobrar antes de enviar a cocina» por rol | Dueño y mesero | Burger House |
-| D-14 | Empresa e impuestos, Facturación, Retorno | Dueño | Burger House |
-| D-15 | Diseño del menú e integraciones IA | Dueño | Burger House |
+| D-04 | Catálogo: nuevo ingrediente con proveedor y existencias | Dueño | Ambas |
+| D-05 | Catálogo: categoría, nuevo plato y receta con costo | Dueño | Ambas |
+| D-06 | Catálogo: costo del ingrediente y filtros Sin receta / Sin costo | Dueño | Ambas |
+| D-07 | Precios por restaurante y agotado por sede | Dueño | Ambas |
+| D-08 | Cuadres de caja: tolerancia, filtros, nota y aviso | Dueño | Ambas |
+| D-09 | Resumen y Ventas por sede | Dueño | Ambas |
+| D-10 | Rentabilidad y enlace a platos sin costo | Dueño | Ambas |
+| D-11 | Clientes | Dueño | Ambas |
+| D-12 | Promociones: cupones, puntos, acciones y banners | Dueño y comensal | Ambas |
+| D-13 | Pagos: «Cobrar antes de enviar a cocina» por rol | Dueño y mesero | Ambas |
+| D-14 | Empresa e impuestos, Facturación, Retorno | Dueño | Ambas |
+| D-15 | Diseño del menú e integraciones IA | Dueño | Ambas |
 
 ## 4. Paso a paso
 
@@ -147,6 +147,8 @@ Que el dueño gobierna su organización desde la consola: sus restaurantes, su e
 3. Retorno de inversión: cambie los «Supuestos del cálculo» y vea el resultado por restaurante.
 
 **Resultado esperado:** los datos legales guardan y se muestran al recargar; Facturación lista por sede (la factura electrónica real está fuera de alcance); el ROI recalcula con los supuestos nuevos.
+
+En Frisby, además: en Facturación pulse «Revisar» en una venta pagada; con los datos del emisor completos la revisión sale lista; al facturar se emite el documento `SETP-…` con su CUFE simulado, repetir no crea otro, el detalle muestra la propina aparte (no gravada) y el documento abre como página imprimible. Con un comprador cuyo NIT termina en `000` el proveedor simulado rechaza el documento y lo dice.
 
 ### D-15 — Diseño del menú e integraciones IA
 

@@ -1,6 +1,6 @@
 # Guía QA Waiter — 5. Encargado
 
-**Aplica a:** rol Encargado (administrador de uno o varios restaurantes). **Organizaciones:** Burger House para todo; en Frisby (sistema propio) valen E-01 a E-05, E-07 a E-12 salvo lo de reservas (E-06, T3), rentabilidad (T4) y «Forzar cierre», cuando la dueña le haya creado una cuenta.
+**Aplica a:** rol Encargado (administrador de uno o varios restaurantes). **Organizaciones:** Burger House y Frisby (sistema propio), con todos los casos salvo «Forzar cierre», que no existe en Frisby. En Frisby las reservas con pre-pedido exigen la caja abierta, como en Burger House.
 **Fecha de actualización:** 2 de octubre de 2026
 
 ## 1. Qué vamos a comprobar
