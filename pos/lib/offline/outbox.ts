@@ -5,6 +5,7 @@ import { create } from 'zustand'
 import { currentOrg } from '@/lib/domain/tenant'
 import { uuid } from '@/lib/domain/uuid'
 import { CoreError } from '@/lib/services/core/http'
+import { useEmergencyOrders } from '@/lib/offline/emergency'
 import * as sales from '@/lib/services/core/sales'
 
 // Plan U2: la cola de salida del modo sin conexión. Cada operación que no pudo llegar al servidor se guarda en orden,
@@ -19,11 +20,15 @@ export type OutboxEntry = Base & (
   | { kind: 'fire'; order: OrderRef }
   // `amount: 'balance'`: lo que falte por pagar según el servidor al sincronizar (el total sin conexión es una cuenta
   // del equipo; el del servidor manda).
-  | { kind: 'payment'; order: OrderRef; methodId: number; amount: number | 'balance'; received: number | null; reference: string; requestKey: string }
-  | { kind: 'pay'; order: OrderRef }
+  // `expected` y `cash`: lo que el equipo calculó y si fue efectivo, para el arqueo provisional (plan V).
+  | { kind: 'payment'; order: OrderRef; methodId: number; amount: number | 'balance'; received: number | null; reference: string; requestKey: string; expected?: number; cash?: boolean }
+  | { kind: 'pay'; order: OrderRef; paidAt?: string }
+  | { kind: 'cash_move'; shiftId: number; type: 'in' | 'out'; amount: number; reason: string }
 )
 type NewEntry = OutboxEntry extends infer E ? E extends OutboxEntry ? Omit<E, 'id' | 'at'> : never : never
 export interface FailedEntry { entry: OutboxEntry; error: string }
+// Plan V: cuando el servidor dice que la sesión venció, la cola espera a que alguien vuelva a entrar.
+const sessionExpired = (e: unknown) => e instanceof CoreError && (e.status === 401 || e.code === 'unauthenticated')
 
 const key = () => `waiter.outbox:${currentOrg() ?? '-'}`
 interface Saved { entries: OutboxEntry[]; failed: FailedEntry[]; ids: Record<string, number> }
@@ -42,6 +47,8 @@ const unreachable = (e: unknown) => e instanceof CoreError && e.code === 'unreac
 
 interface OutboxState extends Saved {
   syncing: boolean
+  needsLogin: boolean
+  resumeAfterLogin: () => void
   loaded: boolean
   hydrate: () => void
   enqueue: (entry: NewEntry) => OutboxEntry
@@ -65,6 +72,7 @@ export const useOutboxStore = create<OutboxState>((set, get) => {
       case 'create_order': {
         const order = await sales.createOrder(entry.body)
         set((s) => ({ ids: { ...s.ids, [entry.uuid]: order.id } }))
+        useEmergencyOrders.getState().update(entry.uuid, { serverId: order.id, serverNumber: order.number })
         return
       }
       case 'add_lines': await sales.addLines(resolve(entry.order), entry.lines, entry.fire); return
@@ -80,11 +88,13 @@ export const useOutboxStore = create<OutboxState>((set, get) => {
         await sales.addPayment(id, { method_id: entry.methodId, amount, request_key: entry.requestKey, ...(entry.received !== null && { received: entry.received }), ...(entry.reference && { reference: entry.reference }) })
         return
       }
-      case 'pay': await sales.payOrder(resolve(entry.order)); return
+      case 'pay': await sales.payOrder(resolve(entry.order), entry.paidAt); return
+      case 'cash_move': await sales.cashMove(entry.shiftId, entry.type, entry.amount, entry.reason); return
     }
   }
   return {
-    entries: [], failed: [], ids: {}, syncing: false, loaded: false,
+    entries: [], failed: [], ids: {}, syncing: false, needsLogin: false, loaded: false,
+    resumeAfterLogin: () => { if (get().needsLogin) { set({ needsLogin: false }); void get().sync() } },
     hydrate: () => { if (!get().loaded) set({ ...load(), loaded: true }) },
     enqueue: (input) => {
       get().hydrate()
@@ -95,20 +105,21 @@ export const useOutboxStore = create<OutboxState>((set, get) => {
     },
     sync: async () => {
       get().hydrate()
-      if (get().syncing || get().entries.length === 0) return
+      if (get().syncing || get().needsLogin || get().entries.length === 0) return
       set({ syncing: true })
       // Pedidos cuya creación falló: lo que dependa de ellos falla con ellos, sin intentarlo.
       const broken = new Set<string>()
       try {
         while (get().entries.length > 0) {
           const entry = get().entries[0]
-          const ref = entry.kind === 'create_order' ? entry.uuid : refOf(entry.order)
+          const ref = entry.kind === 'create_order' ? entry.uuid : entry.kind === 'cash_move' ? `caja-${entry.shiftId}` : refOf(entry.order)
           try {
             if (broken.has(ref)) throw new CoreError(409, 'depends_on_failed', 'No se envió porque falló una operación anterior de este pedido.')
             await run(entry)
             set((s) => ({ entries: s.entries.slice(1) }))
           } catch (e) {
             if (unreachable(e)) break
+            if (sessionExpired(e)) { set({ needsLogin: true }); break }
             broken.add(ref)
             const error = e instanceof Error ? e.message : String(e)
             set((s) => ({ entries: s.entries.slice(1), failed: [...s.failed, { entry, error }] }))

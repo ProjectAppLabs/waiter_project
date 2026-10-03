@@ -115,6 +115,21 @@ def period(org, start=None, end=None):
         valid(False, "Indica fechas válidas YYYY-MM-DD.")
 
 
+def happened_at(value, shift):
+    """La hora en que ocurrió algo hecho sin conexión (plan V), ajustada al turno: nunca antes de abrir la caja ni
+    después de ahora. Sin hora, ahora. Un reloj mal puesto en el equipo no hace perder la venta."""
+    now = timezone.now()
+    if value in (None, ""):
+        return now
+    valid(isinstance(value, str), "Indica una fecha válida.")
+    try:
+        moment = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        valid(False, "Indica una fecha válida.")
+    valid(timezone.is_aware(moment), "La fecha debe llevar zona horaria.")
+    return min(max(moment, shift.opened_at), now)
+
+
 def get_order(account, pk, lock=False):
     qs = Order.objects.select_for_update() if lock else Order.objects
     order = qs.filter(pk=pk, organization=account.organization).first()
@@ -308,6 +323,7 @@ def create_order(account, raw, *, allow_empty=False, restaurant=None):
             "note",
             "lines",
             "fire",
+            "created_at",
         ),
         ("restaurant_id", "uuid", "service", "lines", "fire"),
     )
@@ -331,7 +347,7 @@ def create_order(account, raw, *, allow_empty=False, restaurant=None):
         valid(data["service"] in ("dine_in", "takeout", "delivery"))
         valid(type(data["fire"]) is bool and type(data.get("baby_chair", False)) is bool)
         prefix = {"dine_in": "DI", "takeout": "TA", "delivery": "DE"}[data["service"]]
-        created_at = timezone.now()
+        created_at = happened_at(data.get("created_at"), shift)
         day = created_at.astimezone(ZoneInfo(org.timezone)).date().isoformat()
         start, end = period(org, day, day)
         tracking = (
@@ -422,12 +438,12 @@ def add_payment(order, account, raw):
     event(order.restaurant, "orders", "cash")
 
 
-def pay(order, account):
+def pay(order, account, at=None):
     if order.state == "paid":
         return
     require(order.state == "draft", "El pedido ya terminó.", "not_editable", 409)
     require(order.paid >= order.total, "Falta pagar el saldo del pedido.", "unpaid", 400)
-    order.state, order.paid_at, order.paid_by = "paid", timezone.now(), account
+    order.state, order.paid_at, order.paid_by = "paid", happened_at(at, order.shift), account
     order.billing, order.billing_at = False, None
     order.save()
     fire(order, account)

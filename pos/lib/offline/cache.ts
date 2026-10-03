@@ -4,7 +4,7 @@ import { currentOrg } from '@/lib/domain/tenant'
 // mesas, los métodos de pago, la caja abierta, los pedidos abiertos). Se guarda en el navegador por organización y se
 // usa solo si el servidor no responde.
 const CACHED = [/^menu\b/, /^products\b/, /^taxes\b/, /^floors\b/, /^tables\b/, /^payment-methods\b/, /^settings\b/, /^restaurants\/\d+\/settings\b/,
-  /^shifts\/open\b/, /^orders\?/, /^orders\/\d+$/, /^auth\/me$/, /^org$/, /^kitchen\/tickets\b/, /^me\/notify-prefs$/]
+  /^shifts\/open\b/, /^shifts\/\d+\/closing$/, /^orders\?/, /^orders\/\d+$/, /^auth\/me$/, /^org$/, /^kitchen\/tickets\b/, /^me\/notify-prefs$/]
 // Una respuesta enorme no cabe en el almacenamiento del navegador ni vale la pena guardarla.
 const MAX_BYTES = 750_000
 const key = (path: string) => `waiter.cache:${currentOrg() ?? '-'}:${path}`

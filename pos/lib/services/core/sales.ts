@@ -23,6 +23,8 @@ export interface LineInput { uuid: string; product_id: number; qty: number; note
 export interface OrderInput {
   restaurant_id: number; uuid: string; service: Service; table_id?: number | null; guests?: number; baby_chair?: boolean; customer_name?: string
   delivery_address?: string; delivery_phone?: string; note?: string; lines: LineInput[]; fire: boolean
+  // La hora real de un pedido creado sin conexión (plan V).
+  created_at?: string
 }
 export interface CoreShift {
   id: number; restaurant_id: number; state: 'open' | 'closed'; opened_at: string; opened_by: CorePerson | null; opening_cash: number; opening_notes: string
@@ -87,7 +89,8 @@ export const patchOrder = (id: number, patch: { table_id?: number; note?: string
 export const addPayment = (id: number, body: { method_id: number; amount: number; received?: number; reference?: string; request_key: string }) =>
   coreFetch<{ order: CoreOrder }>(`orders/${id}/payments`, { method: 'POST', body }).then((r) => r.order)
 export const setTip = (id: number, amount: number) => coreFetch<{ order: CoreOrder }>(`orders/${id}/tip`, { method: 'PUT', body: { amount } }).then((r) => r.order)
-export const payOrder = (id: number) => coreFetch<{ order: CoreOrder }>(`orders/${id}/pay`, { method: 'POST' }).then((r) => r.order)
+// `paidAt`: la hora real de un cobro hecho sin conexión (plan V); el servidor la ajusta al turno.
+export const payOrder = (id: number, paidAt?: string) => coreFetch<{ order: CoreOrder }>(`orders/${id}/pay`, { method: 'POST', ...(paidAt && { body: { paid_at: paidAt } }) }).then((r) => r.order)
 export const cancelOrder = (id: number, reason: string) => coreFetch<{ order: CoreOrder }>(`orders/${id}/cancel`, { method: 'POST', body: { reason } }).then((r) => r.order)
 
 // Informes

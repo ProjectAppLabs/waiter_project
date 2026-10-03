@@ -15,6 +15,7 @@ import { OfflinePayment } from '@/components/offline/OfflinePayment'
 import { readPrintSettings } from '@/lib/print/settings'
 import { PaymentModal } from '@/components/payment/PaymentModal'
 import { cartTotals, displayReference, stepsFor, type OptionGroup, type OrderType } from '@/lib/domain/orderWizard'
+import { emergencyNow, operatesInEmergency } from '@/lib/offline/emergency'
 import { roleCan } from '@/lib/domain/permissions'
 import { can, effectiveRole, type Role } from '@/lib/domain/roles'
 import { useOrderLocations } from '@/lib/hooks/useOrderLocations'
@@ -87,11 +88,13 @@ export function OrderWizard({ presetTableId, returnTo = '/pedidos', withoutTable
     if (!session || !catalog || (withoutTable && (!chosenType || w.info.type === 'dineIn'))) return
     const auth = useAuthStore.getState()
     const role = effectiveRole(auth.user?.role, auth.employee?.role)
-    if (!auth.employee || !roleCan(role, 'create_orders', catalog.settings.rolePermissions)) {
+    // Plan V: en emergencia la caja toma pedidos aunque la política no se lo dé al cajero; los meseros no.
+    const emergency = emergencyNow()
+    if (!auth.employee || (emergency ? !operatesInEmergency(role) : !roleCan(role, 'create_orders', catalog.settings.rolePermissions))) {
       useOrderWizardStore.setState({ error: 'Tu rol no tiene permiso para crear pedidos.' })
       return
     }
-    const mayCharge = roleCan(role, 'charge_orders', catalog.settings.rolePermissions)
+    const mayCharge = (emergency && operatesInEmergency(role)) || roleCan(role, 'charge_orders', catalog.settings.rolePermissions)
     const created = await w.createOrder(session.id, { babyChair: t('babyChairNote'), delivery: (address, phone) => t('deliveryNote', { address, phone }) })
     if (!created) return
     if (w.info.type === 'dineIn') {

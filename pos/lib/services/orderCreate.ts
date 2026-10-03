@@ -1,4 +1,6 @@
 import { type CartLine, type KitOrderPayload } from '@/lib/domain/orderWizard'
+import { tablePlace } from '@/lib/offline/comanda'
+import { useEmergencyOrders } from '@/lib/offline/emergency'
 import { useOutboxStore } from '@/lib/offline/outbox'
 import { currentRestaurantId } from '@/lib/services/core/catalogBridge'
 import { CoreError } from '@/lib/services/core/http'
@@ -21,16 +23,25 @@ export async function kitOrderInput(payload: KitOrderPayload, lines: CartLine[])
   }
 }
 
-let provisional = 0
-// Sin conexión, con `offline` (los totales que calcula el carrito), el pedido queda en la cola de salida y se devuelve
-// con un id provisional. Sin `offline`, el error sube como siempre.
+// Sin conexión, con `offline` (los totales que calcula el carrito), el pedido queda en la cola de salida y en los
+// pedidos de emergencia del equipo (plan V): número provisional E-nn, id negativo, hora real. Sin `offline`, el error
+// sube como siempre.
 export async function createKitOrder(payload: KitOrderPayload, lines: CartLine[], offline?: { total: number; tax: number; label: string }): Promise<CreatedOrder> {
   const input = await kitOrderInput(payload, lines)
   try {
     return toCreatedOrder(await sales.createOrder(input))
   } catch (e) {
     if (!offline || !(e instanceof CoreError && e.code === 'unreachable')) throw e
-    useOutboxStore.getState().enqueue({ kind: 'create_order', uuid: payload.uuid, body: input, label: offline.label })
-    return { id: -(++provisional), reference: '', trackingNumber: '', total: offline.total, tax: offline.tax, offline: true }
+    const place = tablePlace(payload.tableId)
+    const order = useEmergencyOrders.getState().register({
+      uuid: payload.uuid, type: input.service, tableId: payload.tableId || null, tableNumber: place.kind === 'table' ? place.number : null,
+      customer: payload.name, total: offline.total, tax: offline.tax,
+      lines: lines.map((l) => ({ uuid: l.uuid, productId: l.productId, name: l.name, qty: l.qty, note: l.note, options: l.options.map((o) => o.name),
+        unitPrice: l.unitPrice + l.options.reduce((sum, o) => sum + o.priceExtra, 0), total: (l.unitPrice + l.options.reduce((sum, o) => sum + o.priceExtra, 0)) * l.qty })),
+    })
+    // La nota lleva el número provisional: así, ya en el servidor, el pedido se reconoce en Historial.
+    const body = { ...input, created_at: order.createdAt, note: [`Emergencia ${order.number}`, input.note].filter(Boolean).join(' · ') }
+    useOutboxStore.getState().enqueue({ kind: 'create_order', uuid: payload.uuid, body, label: `${order.number} ${offline.label}`.trim() })
+    return { id: order.localId, reference: order.number, trackingNumber: order.number, total: offline.total, tax: offline.tax, offline: true }
   }
 }

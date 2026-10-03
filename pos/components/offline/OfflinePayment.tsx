@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { Modal } from '@/components/kit/Modal'
 import { Button } from '@/components/ui/Button'
 import { formatCop } from '@/lib/domain/money'
+import { useEmergencyOrders } from '@/lib/offline/emergency'
 import { newRequestKey, useOutboxStore, type OrderRef } from '@/lib/offline/outbox'
 import { useCatalogStore } from '@/lib/stores/catalogStore'
 import { cn } from '@/lib/utils'
@@ -26,8 +27,10 @@ export function OfflinePayment({ order, total, label, onClose, onPaid }: { order
   function confirm() {
     if (!method || !ready) return
     const outbox = useOutboxStore.getState()
-    outbox.enqueue({ kind: 'payment', order, methodId: method.id, amount: 'balance', received: kind === 'cash' ? given : null, reference: kind === 'card' ? reference.trim() : '', requestKey: newRequestKey(), label })
-    outbox.enqueue({ kind: 'pay', order, label })
+    outbox.enqueue({ kind: 'payment', order, methodId: method.id, amount: 'balance', received: kind === 'cash' ? given : null, reference: kind === 'card' ? reference.trim() : '', requestKey: newRequestKey(), label, expected: total, cash: kind === 'cash' })
+    // La hora real del cobro: si la red vuelve mañana, la venta queda en el día en que ocurrió (plan V).
+    outbox.enqueue({ kind: 'pay', order, label, paidAt: new Date().toISOString() })
+    if ('uuid' in order) useEmergencyOrders.getState().update(order.uuid, { paid: true })
     onPaid()
   }
   return (

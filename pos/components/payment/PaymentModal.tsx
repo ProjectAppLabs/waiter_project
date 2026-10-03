@@ -18,6 +18,7 @@ import { amountOf, CARD_TIMEOUT_MS, methodFor, PAY_KINDS, pointsDiscount, points
 import { manualTerminal, type TerminalResult } from '@/lib/payments/terminal'
 import { loadLoyaltyProgram, lookupMember, readPayableOrder, redeemPoints, type LoyaltyProgram, type Member, type PayableOrder } from '@/lib/services/paymentKit'
 import { OfflinePayment } from '@/components/offline/OfflinePayment'
+import { useEmergencyOrders } from '@/lib/offline/emergency'
 import { useNetworkStore } from '@/lib/offline/network'
 import { useCatalogStore } from '@/lib/stores/catalogStore'
 import { useOrderStore } from '@/lib/stores/orderStore'
@@ -143,6 +144,13 @@ export function PaymentModal({ orderId, onClose, onPaid }: { orderId: number; on
 
   // El documento va montado junto al aviso: la hoja de impresión solo deja visible `.receipt`, así que sin
   // esto "Imprimir" sacaba una hoja en blanco desde Pedidos.
+  // Plan V: un pedido de emergencia (id negativo) se cobra con lo que el equipo sabe de él.
+  if (orderId < 0) {
+    const local = useEmergencyOrders.getState().byLocalId(orderId)
+    if (!local) return null
+    return <OfflinePayment order={{ uuid: local.uuid }} total={local.total} label={local.number} onClose={onClose}
+      onPaid={() => onPaid({ total: local.total, methodName: '', received: 0, change: 0 })} />
+  }
   // Plan U2: sin conexión solo se cobra en efectivo o con datáfono manual, y el pago se envía al volver la red.
   if (!online && order && !done) {
     return <OfflinePayment order={{ id: orderId }} total={Math.max(0, order.total - order.paid)} label={order.trackingNumber} onClose={onClose}

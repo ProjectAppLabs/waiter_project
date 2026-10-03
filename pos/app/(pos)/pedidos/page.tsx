@@ -22,6 +22,7 @@ import { useIdentity } from '@/lib/hooks/useIdentity'
 import { useOrderLocations } from '@/lib/hooks/useOrderLocations'
 import { useKitOrders } from '@/lib/hooks/useKitOrders'
 import { useCatalogStore } from '@/lib/stores/catalogStore'
+import { operatesInEmergency, useEmergency } from '@/lib/offline/emergency'
 import { roleCan } from '@/lib/domain/permissions'
 
 const FILTERS: OrdersFilter[] = ['all', 'pending_send', 'in_progress', 'ready', 'served', 'waiting_payment']
@@ -33,7 +34,9 @@ export default function PedidosPage() {
   const { role } = useIdentity()
   // Cobrar puede ser solo de caja: lo decide el restaurante en Configuración.
   const mayCharge = can.charge(role, catalog?.settings.waiterCanCharge ?? false, catalog?.settings.rolePermissions)
-  const mayCreate = roleCan(role, 'create_orders', catalog?.settings.rolePermissions)
+  // Plan V: en emergencia solo la caja toma pedidos.
+  const emergency = useEmergency().active
+  const mayCreate = emergency ? operatesInEmergency(role) : roleCan(role, 'create_orders', catalog?.settings.rolePermissions)
   const { orders, loaded, statusOf } = useKitOrders()
   const locations = useOrderLocations(orders)
   const [query, setQuery] = useState('')

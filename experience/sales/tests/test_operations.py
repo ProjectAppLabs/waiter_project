@@ -516,3 +516,27 @@ def test_kitchen_ticket_carries_the_chosen_options(setup):
     order(s, lines=[line(s, options=chosen)], fire=True)
     ticket = call(s["client"], "get", f"kitchen/tickets?restaurant_id={s['r1'].pk}")["tickets"][0]
     assert ticket["lines"][0]["options"] == ["Doble", "Tocineta"]
+
+
+def test_offline_times_are_kept_and_clamped_to_the_shift(setup):
+    # Falla si un pedido o un cobro hecho sin conexión queda con la hora en que se sincronizó (una venta de anoche
+    # aparecería hoy), o si un reloj del equipo mal puesto hace rechazar la venta en vez de ajustarla al turno.
+    from datetime import timedelta
+    from django.utils import timezone
+    s = setup
+    open_shift(s)
+    shift = CashShift.objects.get(restaurant=s["r1"], state="open")
+    CashShift.objects.filter(pk=shift.pk).update(opened_at=timezone.now() - timedelta(hours=5))
+    shift.refresh_from_db()
+    real = (timezone.now() - timedelta(hours=2)).isoformat()
+    o = order(s, lines=[line(s)], created_at=real)
+    assert Order.objects.get(pk=o["id"]).created_at.isoformat() == real
+    payment(s, o)
+    call(s["client"], "post", f"orders/{o['id']}/pay", {"paid_at": real})
+    assert Order.objects.get(pk=o["id"]).paid_at.isoformat() == real
+    early = order(s, lines=[line(s)], created_at=(shift.opened_at - timedelta(days=1)).isoformat())
+    assert Order.objects.get(pk=early["id"]).created_at == shift.opened_at
+    future = order(s, lines=[line(s)], created_at=(timezone.now() + timedelta(days=1)).isoformat())
+    assert Order.objects.get(pk=future["id"]).created_at <= timezone.now()
+    bad = call(s["client"], "post", "orders", {"restaurant_id": s["r1"].pk, "uuid": "8c1f6f1e-6b7a-4a4f-9d6e-1a2b3c4d5e6f", "service": "takeout", "lines": [line(s)], "fire": False, "created_at": "ayer"}, status=400)
+    assert bad["error"] == "invalid_data"

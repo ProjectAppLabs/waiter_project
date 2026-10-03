@@ -26,6 +26,7 @@ import { PickTablePrompt } from '@/components/tables/PickTablePrompt'
 import { ReservationDetailModal } from '@/components/tables/ReservationDetailModal'
 import { ReservationListModal } from '@/components/tables/ReservationListModal'
 import { TableDetailModal } from '@/components/tables/TableDetailModal'
+import { operatesInEmergency, useEmergency } from '@/lib/offline/emergency'
 import { roleCan } from '@/lib/domain/permissions'
 import { can } from '@/lib/domain/roles'
 import { deriveTableViews } from '@/lib/domain/tableState'
@@ -57,6 +58,7 @@ function AskedForTable({ onAsk }: { onAsk: () => void }) {
 // Pantalla "Mesas" del kit CloudPos (6 – Table): plano real por piso, leyenda, barra de mesa seleccionada,
 // detalle de mesa, cambio de mesa y ajustes de pisos con el editor del plano.
 export default function SalonPage() {
+  const emergency = useEmergency().active
   const t = useTranslations('tables')
   const router = useRouter()
   // Los pisos son configuración del local: un mesero no los activa ni los edita.
@@ -200,7 +202,8 @@ export default function SalonPage() {
     onCancel={() => setEditing(null)} onSaved={async (saved) => { await reload(); setFloor(saved.id!); setEditing(null); toast({ title: 'Plano guardado' }) }} />
   // Cobrar puede ser solo de caja: lo decide el restaurante en Configuración.
   // Un pedido en mesa nace de una mesa elegida a propósito: sin selección se pide antes de abrir el asistente.
-  const mayCreate = roleCan(role, 'create_orders', catalog.settings.rolePermissions)
+  // Plan V: en emergencia solo la caja toma pedidos.
+  const mayCreate = emergency ? operatesInEmergency(role) : roleCan(role, 'create_orders', catalog.settings.rolePermissions)
   const mayServe = roleCan(role, 'serve_orders', catalog.settings.rolePermissions)
   const newOrderHref = selected ? selected.orderId ? `/salon/${selected.orderId}/agregar` : `/salon/nuevo?mesa=${selected.table.id}` : null
   return (
