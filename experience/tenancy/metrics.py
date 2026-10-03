@@ -34,7 +34,7 @@ def metrics(params, slug=None):
     paid = Order.objects.filter(organization_id__in=ids, state='paid').filter(selection)
     sales = indexed(paid, sales=Sum(F('total') - F('tip')), orders=Count('pk'))
     activity = indexed(Order.objects.filter(organization_id__in=ids), last_order_at=Max('created_at'))
-    restaurants = indexed(Restaurant.objects.filter(organization_id__in=ids), count=Count('pk'))
+    restaurants = indexed(Restaurant.objects.filter(organization_id__in=ids), count=Count('pk'), active=Count('pk', filter=Q(active=True)))
     accounts = indexed(Account.objects.filter(organization_id__in=ids),
                        active=Count('pk', filter=Q(active=True)), last_login_at=Max('last_login'))
     debts = indexed(SubscriptionCharge.objects.filter(organization_id__in=ids, state__in=OPEN_STATES).filter(overdue_selection), amount=Sum('amount'))
@@ -53,7 +53,7 @@ def metrics(params, slug=None):
         rows.append(row)
         totals[org.status] += 1
         if org.status == 'active' or (org.status == 'trial' and org.trial_ends and org.trial_ends >= local_today(org)):
-            totals['mrr'] += org.monthly_price
+            totals['mrr'] += org.monthly_price * restaurants.get(org.pk, {}).get('active', 0)
         for field in ('sales', 'orders', 'restaurants'):
             totals[field] += row[field]
     result = {'totals': totals, 'organizations': rows}

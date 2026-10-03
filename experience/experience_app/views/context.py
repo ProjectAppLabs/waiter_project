@@ -29,6 +29,10 @@ def _photo_url(restaurant, venue):
 @api_view(['GET'])
 def entry(request, restaurant, venue, token=None):
     tenant = resolve(restaurant, venue, token)
+    from tenancy.models import Restaurant
+    from tenancy.modules import active_modules
+    local = Restaurant.objects.select_related('organization').filter(organization__slug=restaurant, slug=venue).first()
+    modulos = [k for k in active_modules(local.organization, local) if k in ('menu_comensal', 'pagos_en_linea', 'fidelizacion', 'asistente_menu')] if local else []
     menu = catalog.menu_view(catalog.get_catalog(tenant), photo_url=_photo_url(restaurant, venue))
     scores = ratings.for_menu(restaurant, venue)
     for category in menu['categorias']:
@@ -36,4 +40,4 @@ def entry(request, restaurant, venue, token=None):
             if product['id'] in scores:
                 product['valoracion'] = scores[product['id']]
     from experience_app.services.banners import for_menu
-    return Response({'contexto': _context(tenant), 'carta': menu, 'banners': for_menu(tenant, menu)})
+    return Response({'modulos': modulos, 'contexto': _context(tenant), 'carta': menu, 'banners': for_menu(tenant, menu)})

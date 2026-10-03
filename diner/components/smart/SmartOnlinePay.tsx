@@ -1,4 +1,5 @@
 'use client'
+import { dinerHas } from '@/lib/domain/modules'
 import {useMemo} from 'react'
 import {useDinerStore} from '@/lib/stores/dinerStore'
 import {finishPaymentTest,createPayment,paymentContext,readPayment} from '@/lib/services/payments'
@@ -19,6 +20,8 @@ export function SmartOnlinePay(){
    load:async()=>{const s=await ensureSession();if(!s)throw new Error('No se pudo abrir la sesión.');return paymentContext(s.id)},
    create:data=>createPayment(session!.id,data),read:id=>readPayment(session!.id,id),finishTest:id=>finishPaymentTest(session!.id,id),
  }),[session,ensureSession])
+ // Plan W: sin el módulo de pagos en línea, se paga con el mesero (como cuando el restaurante no tiene pasarela).
+ if(!dinerHas(useDinerStore.getState().entry,'pagos_en_linea'))return <><Title title="Pagar mi cuenta" back="pedido"/><p className="sm-note" role="status">{TEXTS.unavailable}</p><button className="sm-primary" onClick={async()=>{const id=await confirm();if(id)go('la-cuenta')}}>Pagar con el mesero</button></>
  return <><Title title="Pagar mi cuenta" back="pedido"/><OnlinePayPanel adapter={adapter} texts={TEXTS} disabled={Boolean(preview)}
   resultActions={payment=><>{payment.reconciled&&payment.order_id&&<button className="sm-primary" onClick={()=>go('estado',payment.order_id)}>Seguir mi pedido</button>}<button className="sm-text-button" onClick={()=>go('carta')}>Volver al menú</button></>}
   formActions={busy=><button type="button" className="sm-text-button" disabled={busy} onClick={async()=>{const id=await confirm();if(id)go('la-cuenta')}}>Pagar con el mesero</button>}/></>

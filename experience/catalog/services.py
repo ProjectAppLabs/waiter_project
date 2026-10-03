@@ -56,6 +56,10 @@ def restaurant_for(account, pk):
     identifier(pk)
     obj = restaurants_for(account).filter(pk=pk, active=True).first()
     require(obj, 'No encontramos este restaurante.', 'not_found', 404)
+    account._module_restaurant = obj
+    if getattr(account, '_required_module', None):
+        from tenancy.modules import require_module
+        require_module(account.organization, account._required_module, obj)
     return obj
 
 

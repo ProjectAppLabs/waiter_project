@@ -26,6 +26,7 @@ Que el comensal abre la carta desde el QR de su mesa, entiende cada plato, arma 
 | Co-07 | Cupón en el pedido | Comensal |
 | Co-08 | Cuenta, favoritos, historial, opiniones y recompensas | Comensal |
 | Co-09 | Plato agotado en esta sede y restaurante suspendido | Comensal y encargado |
+| Co-10 | El menú sigue los módulos del restaurante | Comensal y ProjectApp |
 
 ## 4. Paso a paso
 
@@ -95,6 +96,20 @@ Que el comensal abre la carta desde el QR de su mesa, entiende cada plato, arma 
 
 **Resultado esperado:** el plato no se puede pedir en Poblado y sí en Laureles; con la organización suspendida el menú dice «Este restaurante no está disponible» y no acepta pedidos.
 
+### Co-10 — El menú sigue los módulos del restaurante
+
+**Preparación:** desde la plataforma (P-11), apague en Poblado el **Asistente en el menú**, luego **Pagos en línea** y
+luego **Fidelización**, uno a la vez.
+
+1. Abra el menú de Poblado por el QR de una mesa después de cada cambio.
+2. Busque el botón del mesero (chat), el pago en línea al pagar y la cuenta (perfil, favoritos, recompensas, mis
+   pedidos).
+
+**Resultado esperado:** sin el asistente no aparece el chat. Sin pagos en línea, al pagar dice que el restaurante aún
+no recibe pagos en línea y ofrece «Pagar con el mesero». Sin fidelización no se ven el perfil, los favoritos ni las
+recompensas, y entrar por la dirección a esas pantallas dice que la función no está disponible. El resto del menú y
+el pedido funcionan igual.
+
 ## 5. Registro de resultados
 
 | Caso | Resultado | Observaciones | Evidencia |
@@ -108,3 +123,4 @@ Que el comensal abre la carta desde el QR de su mesa, entiende cada plato, arma 
 | Co-07 | | | |
 | Co-08 | | | |
 | Co-09 | | | |
+| Co-10 | | | |

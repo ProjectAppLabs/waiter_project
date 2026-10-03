@@ -53,9 +53,14 @@ export type ChargeMethod = 'transferencia' | 'nequi' | 'efectivo' | 'otro'
 export interface Charge {
   id: number; organization: { slug: string; name: string } | string; period: string; amount: number; due_date: string; state: ChargeState
   paid_at: string | null; method: ChargeMethod | '' | null; reference: string; notes: string; recorded_by?: { name: string } | null; created_at: string
+  // Plan W: mensualidad por local y uso, línea por línea.
+  lines?: ChargeLine[]
 }
+export interface ChargeLine { concept: string; module: string; unit: string; quantity: number; unit_price: number; total: number }
 export interface ChargesSummary { pending: number; overdue: number; paid_this_month: number }
-export interface BillingRules { billing_day: number; grace_days: number; suspend_after_days: number; reminder_days: number }
+export interface BillingRules { billing_day: number; grace_days: number; suspend_after_days: number; reminder_days: number
+  // Plan W: precio por unidad de uso, «módulo.unidad» (p. ej. «asistente_menu.mensaje_ia»).
+  unit_prices?: Record<string, number> }
 
 const qs = (p: Record<string, string | undefined>) => Object.entries(p).filter(([, v]) => v).map(([k, v]) => `${k}=${encodeURIComponent(v as string)}`).join('&')
 export const platformMetrics = (from: string, to: string) => platform<PlatformMetrics>(`metrics?${qs({ from, to })}`)
@@ -67,3 +72,20 @@ export const voidCharge = (id: number, notes: string) => platform<{ charge: Char
 export const billingRules = () => platform<BillingRules>('settings/billing')
 export const saveBillingRules = (patch: Partial<BillingRules>) => platform<BillingRules>('settings/billing', { method: 'PATCH', body: patch })
 export const chargeOrg = (c: Charge) => (typeof c.organization === 'string' ? { slug: c.organization, name: c.organization } : c.organization)
+
+// Plan W: módulos de una organización (contrato en docs/planes/2026-10-03-plan-W-modularizacion.md).
+export type ModuleSource = 'plan' | 'organization' | 'restaurant'
+export interface ModuleState { key: string; active: boolean; source: ModuleSource; starts: string | null; ends: string | null; limits: Record<string, number> | null; price: number | null; notes: string }
+export interface CatalogModule { key: string; name: string; depends: string[]; units: string[]; required: boolean; available: boolean }
+export interface OrganizationModules {
+  plan: string; plans: { key: string; name: string }[]; catalog: CatalogModule[]
+  organization: ModuleState[]; restaurants: { id: number; name: string; modules: ModuleState[] }[]
+}
+export type ModuleChange = { plan: string } | { key: string; active: boolean; restaurant_id: number | null; ends?: string | null; limits?: Record<string, number> | null; price?: number | null; notes?: string }
+  | { key: string; restaurant_id: number | null; clear: true }
+export const organizationModules = (slug: string) => platform<OrganizationModules>(`organizations/${slug}/modules`)
+export const changeOrganizationModules = (slug: string, change: ModuleChange) => platform<OrganizationModules>(`organizations/${slug}/modules`, { method: 'PATCH', body: change })
+
+export interface UsageRow { module: string; module_name: string; unit: string; unit_name: string; quantity: number; restaurant_id: number | null; restaurant_name: string | null }
+export interface OrganizationUsage { period: string; rows: UsageRow[]; totals: { module: string; unit: string; quantity: number }[] }
+export const organizationUsage = (slug: string, period: string) => platform<OrganizationUsage>(`organizations/${slug}/usage?${qs({ period })}`)

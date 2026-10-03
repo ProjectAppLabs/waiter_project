@@ -1,6 +1,6 @@
 from django.urls import path, re_path
 
-from .api import AuthView, OrganizationsView, TeamView, MetricsView, ChargesView, BillingSettingsView
+from .api import AuthView, OrganizationsView, TeamView, MetricsView, ChargesView, BillingSettingsView, UsageView, ModulesView
 from .http import NotFoundView
 
 urlpatterns = [path(f'auth/{action}', AuthView.as_view(action=action, http_method_names=['get', 'head', 'options'] if action == 'me' else ['post', 'options']))
@@ -15,6 +15,8 @@ urlpatterns += [path(f'organizations/<slug:slug>/{action}', OrganizationsView.as
 urlpatterns += [path(f'team/<int:pk>/{action}', TeamView.as_view(action=action, http_method_names=['post', 'options']))
                 for action in ('deactivate', 'resend_invite')]
 urlpatterns += [
+    path('organizations/<slug:slug>/modules', ModulesView.as_view(http_method_names=['get', 'head', 'patch', 'options'])),
+    path('organizations/<slug:slug>/usage', UsageView.as_view(http_method_names=['get', 'head', 'options'])),
     path('metrics', MetricsView.as_view(http_method_names=['get', 'head', 'options'])),
     path('organizations/<slug:slug>/metrics', MetricsView.as_view(http_method_names=['get', 'head', 'options'])),
     path('charges', ChargesView.as_view(http_method_names=['get', 'head', 'options'])),

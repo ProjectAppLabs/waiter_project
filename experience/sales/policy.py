@@ -25,12 +25,36 @@ def default_role_policy():
     }
 
 
+VIEW_MODULES = {key: 'nucleo' for key in VIEWS} | {
+    'tables': 'salon', 'kitchen': 'cocina', 'inventory': 'inventario',
+    'billing': 'facturacion', 'customers': 'fidelizacion', 'reservations': 'reservas',
+}
+ACTION_MODULES = {key: 'nucleo' for key in ACTIONS} | {'edit_inventory': 'inventario', 'serve_orders': 'salon'}
+
+
+def module_restaurant(account):
+    if hasattr(account, '_module_restaurant'):
+        return account._module_restaurant
+    if account.role in ('waiter', 'cashier'):
+        return account.restaurants.first()
+    return None
+
+
 def can(account, permission):
+    from tenancy.modules import is_active
+    module = VIEW_MODULES.get(permission, ACTION_MODULES.get(permission, 'nucleo'))
+    if not is_active(account.organization, module, module_restaurant(account)):
+        return False
     policy = account.organization.role_policy.get(account.role, {})
     return account.role in ("owner", "admin") or permission in policy.get("views", []) + policy.get("actions", [])
 
 
 def permit(account, *permissions):
+    from tenancy.modules import is_active, require_module
+    if not any(is_active(account.organization, VIEW_MODULES.get(p, ACTION_MODULES.get(p, 'nucleo')),
+                         module_restaurant(account)) for p in permissions):
+        require_module(account.organization, VIEW_MODULES.get(permissions[0], ACTION_MODULES.get(permissions[0], 'nucleo')),
+                       module_restaurant(account))
     require(any(can(account, p) for p in permissions))
 
 

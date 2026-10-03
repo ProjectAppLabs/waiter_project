@@ -54,7 +54,9 @@ export interface CoreRestaurantSettings {
   alert_late_minutes: number; alert_bill_minutes: number; roi_hour_cost: number; roi_minutes_per_order: number; roi_baseline_hours_per_100: number
   roi_monthly_cost: number; roi_start_date: string | null; kitchen_prepay_roles: string[]
 }
-export interface CoreSettings { restaurant: CoreRestaurantSettings; role_policy: Record<string, { views: string[]; actions: string[] }>; can_charge: boolean; can_edit_inventory: boolean; cash_tolerance?: number }
+export interface CoreSettings { restaurant: CoreRestaurantSettings; role_policy: Record<string, { views: string[]; actions: string[] }>; can_charge: boolean; can_edit_inventory: boolean; cash_tolerance?: number
+  // Plan W: módulos activos del local.
+  modules?: string[] }
 
 const q = (params: Record<string, string | number | null | undefined>) =>
   Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '').map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&')

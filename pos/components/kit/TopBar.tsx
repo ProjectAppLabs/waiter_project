@@ -13,6 +13,7 @@ import { homePath } from '@/lib/domain/navigation'
 import type { Role } from '@/lib/domain/roles'
 import { useIdentity } from '@/lib/hooks/useIdentity'
 import { useAuthStore } from '@/lib/stores/authStore'
+import { useCatalogStore } from '@/lib/stores/catalogStore'
 import { useNotificationStore } from '@/lib/stores/notificationStore'
 import { cn, initials } from '@/lib/utils'
 
@@ -45,8 +46,9 @@ export function TopBar({ active, role, policy, userName, unread, activeSubtab, o
   const restaurants = useAuthStore((s) => s.restaurants)
   // Con varios restaurantes, en cuál se está (en pantallas medianas va junto al rol; en grandes, en su propia etiqueta).
   const place = (restaurants?.length ?? 0) > 1 ? restaurant?.name ?? null : null
-  const tabs = tabsFor(role, policy).filter((tab) => !administrationOnly || !['orders', 'kitchen'].includes(tab))
-  const subtabs = adminSubtabsFor(role, policy)
+  const modules = useCatalogStore((s) => s.catalog?.settings.modules)
+  const tabs = tabsFor(role, policy, modules).filter((tab) => !administrationOnly || !['orders', 'kitchen'].includes(tab))
+  const subtabs = adminSubtabsFor(role, policy, modules)
   return (
     <header className="kit-topbar shrink-0">
       <div className="h-topbar px-5 flex items-center gap-4">

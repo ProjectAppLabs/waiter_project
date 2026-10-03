@@ -77,6 +77,11 @@ def validate_plan(plan, products):
     return plan
 
 
+class ModelPlan(dict):
+    """Plan público con medición interna que no se serializa al comensal."""
+    usage = None
+
+
 def propose(message, products, *, history=None):
     """Products must come from the server's tenant-scoped catalog, never the customer."""
     if not settings.OPENAI_API_KEY or not settings.WA_AGENT_MODEL:
@@ -118,6 +123,8 @@ def propose(message, products, *, history=None):
                    for part in item.get('content', [])]
         if len(content) != 1 or content[0].get('type') != 'output_text':
             raise ValueError('Respuesta rechazada o inválida.')
-        return validate_plan(json.loads(content[0]['text']), catalog)
+        plan = ModelPlan(validate_plan(json.loads(content[0]['text']), catalog))
+        plan.usage = payload.get('usage') or {}
+        return plan
     except (requests.RequestException, ValueError, TypeError, KeyError, AttributeError):
         raise AgentUnavailable('No se pudo obtener una propuesta válida. Requiere atención humana.') from None

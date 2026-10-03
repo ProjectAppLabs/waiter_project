@@ -53,6 +53,8 @@ class OrdersView(PosView):
                     s.editable(order)
                     order.customer = reference(Customer, self.org, value, active=True) if value is not None else None
                 elif key == "table_id":
+                    from tenancy.modules import require_module
+                    require_module(self.org, "salon", order.restaurant)
                     s.editable(order)
                     valid(order.service == "dine_in")
                     table = s.table_for(order, value)

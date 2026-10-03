@@ -64,6 +64,16 @@ def send(chat, message_id, message, load_products):
         products = load_products()
         plan = waiter_agent.propose(message, products, history=[
             {'cliente': t['mensaje'], 'asistente': t['respuesta'], 'seleccion': t['lineas'], 'opciones': t.get('opciones', [])} for t in chat.history[-6:]])
+        if chat.channel == 'menu':
+            from tenancy.usage import record_location_usage
+            from django.db import transaction
+            tokens = getattr(plan, 'usage', None) or {}
+            detail = {'input_tokens': tokens.get('input_tokens', 0), 'output_tokens': tokens.get('output_tokens', 0)}
+            with transaction.atomic():
+                record_location_usage(chat.restaurant, chat.venue, 'asistente_menu', 'mensaje_ia',
+                                      key=f'asistente_menu:{message_id}:mensaje', detail=detail)
+                record_location_usage(chat.restaurant, chat.venue, 'asistente_menu', 'tokens_ia',
+                                      sum(detail.values()), key=f'asistente_menu:{message_id}:tokens', detail=detail)
         if plan['accion'] == 'agregar' and not explicit_add(message):
             plan = {**plan, 'accion': 'cotizar', 'respuesta': 'Puedes añadir estos platos con sus botones o pedirme explícitamente que los añada.'}
         # Render names from catalog; do not turn model output into HTML or claims of payment/order creation.

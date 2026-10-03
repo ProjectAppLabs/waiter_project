@@ -41,7 +41,7 @@ def test_metrics_local_dates_activity_and_detail():
     client = platform_client(platform_user())
     with patch('django.utils.timezone.now', return_value=datetime(2026, 10, 2, 12, tzinfo=tz.utc)):
         result = client.get('/api/platform/v1/metrics?from=2026-10-01&to=2026-10-01').json()
-    assert result['totals'] == dict(organizations=2, active=2, trial=0, suspended=0, mrr=300, sales=300, orders=2, restaurants=3)
+    assert result['totals'] == dict(organizations=2, active=2, trial=0, suspended=0, mrr=400, sales=300, orders=2, restaurants=3)
     row = result['organizations'][0]
     assert row['sales'] == 300 and row['orders'] == 2 and row['ticket'] == 150
     assert row['accounts_active'] == 1 and row['overdue_amount'] == 77
@@ -56,8 +56,8 @@ def test_metrics_local_dates_activity_and_detail():
 # Falla si MRR incluye suspendidos, pruebas sin fecha o caducadas en su zona horaria.
 def test_mrr_and_empty_metrics():
     assert metrics({})['totals']['mrr'] == 0
-    organization('activa', status='active', monthly_price=10)
-    organization('prueba', status='trial', monthly_price=20, trial_ends=date(2026, 10, 1))
+    restaurant(organization('activa', status='active', monthly_price=10))
+    restaurant(organization('prueba', status='trial', monthly_price=20, trial_ends=date(2026, 10, 1)))
     organization('vencida', status='trial', monthly_price=30, trial_ends=date(2026, 9, 30))
     organization('suspendida', status='suspended', monthly_price=40)
     organization('sin-fecha', status='trial', monthly_price=50)

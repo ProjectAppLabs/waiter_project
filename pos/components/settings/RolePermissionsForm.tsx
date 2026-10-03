@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
+import { ACTION_MODULE, hasModule, VIEW_MODULE } from '@/lib/domain/modules'
 import { DEFAULT_ROLE_POLICY, ROLE_ACTIONS, ROLE_VIEWS, type RolePolicy } from '@/lib/domain/permissions'
+import { useAuthStore } from '@/lib/stores/authStore'
 
 // Plan Q: Clientes y Facturación ya no son pantallas del POS (son de la consola del dueño): no se ofrecen por rol.
 const POS_VIEWS = ROLE_VIEWS.filter((view) => view !== 'customers' && view !== 'billing')
@@ -19,6 +21,10 @@ const peopleLabel = (n: number) => n === 1 ? '1 persona' : `${n} personas`
 // `counts`: personas del equipo con cada rol (se ve bajo el nombre de la columna).
 export function RolePermissionsForm({ configId, initial, counts }: { configId: number; initial?: RolePolicy; counts?: Partial<Record<string, number>> }) {
   const [policy, setPolicy] = useState<RolePolicy>(() => structuredClone(initial ?? DEFAULT_ROLE_POLICY))
+  // Plan W: no se ofrecen vistas ni acciones de módulos apagados en este local.
+  const modules = useAuthStore((st) => st.restaurantModules?.[configId] ?? st.modules)
+  const views = POS_VIEWS.filter((view) => hasModule(modules, VIEW_MODULE[view]))
+  const actions = ROLE_ACTIONS.filter((action) => hasModule(modules, ACTION_MODULE[action]))
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [saved, setSaved] = useState(false)
   async function save() {
     setBusy(true); setError(''); setSaved(false)
@@ -39,7 +45,7 @@ export function RolePermissionsForm({ configId, initial, counts }: { configId: n
       <div className="grid grid-cols-[1fr_110px_110px] gap-2 px-4 py-3 bg-muted text-sm font-semibold"><span>Permiso</span>{ROLES.map(([key, label]) => <span key={key} className="flex flex-col items-center text-center">{label}{counts && <small className="text-xs font-normal text-soft">{peopleLabel(counts[key] ?? 0)}</small>}</span>)}</div>
       {(['views', 'actions'] as const).map((kind) => <div key={kind}>
         <h4 className="px-4 py-2 border-t border-border bg-surface/40 text-xs font-semibold text-soft">{kind === 'views' ? 'Vistas disponibles' : 'Acciones permitidas'}</h4>
-        {(kind === 'views' ? POS_VIEWS : ROLE_ACTIONS).map((permission) => <div key={permission} className="grid grid-cols-[1fr_110px_110px] items-center gap-2 px-4 py-2 border-t border-border text-sm">
+        {(kind === 'views' ? views : actions).map((permission) => <div key={permission} className="grid grid-cols-[1fr_110px_110px] items-center gap-2 px-4 py-2 border-t border-border text-sm">
           <span>{LABELS[permission]}</span>{ROLES.map(([role, label]) => <label key={role} className="min-h-11 flex items-center justify-center cursor-pointer"><span className="sr-only">{label}: {LABELS[permission]}</span>
             <input type="checkbox" className="w-5 h-5 accent-primary" checked={(policy[role][kind] as readonly string[]).includes(permission)} onChange={(e) => {
               const checked = e.target.checked

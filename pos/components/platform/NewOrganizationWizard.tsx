@@ -13,7 +13,8 @@ import { createOrganization, type OrganizationInput } from '@/lib/services/core/
 import { orgUrl } from './OrganizationsView'
 
 const STEPS = ['Organización', 'Dueño', 'Plan']
-export const PLANS: [string, string][] = [['basico', 'Básico'], ['pro', 'Pro'], ['grupo', 'Grupo']]
+// Plan W: plantillas de módulos. `inicial` está reservada hasta que el dueño la defina.
+export const PLANS: [string, string][] = [['completo', 'Completo']]
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 // Plan T0: dar de alta a un cliente. Tres pasos (la organización y sus datos legales, el dueño, el plan) y al confirmar el
@@ -25,7 +26,7 @@ export function NewOrganizationWizard() {
   const [name, setName] = useState(''), [slug, setSlug] = useState(''), [slugTouched, setSlugTouched] = useState(false)
   const [legalName, setLegalName] = useState(''), [taxId, setTaxId] = useState(''), [billingEmail, setBillingEmail] = useState(''), [billingContact, setBillingContact] = useState('')
   const [ownerName, setOwnerName] = useState(''), [ownerEmail, setOwnerEmail] = useState(''), [ownerUser, setOwnerUser] = useState(''), [userTouched, setUserTouched] = useState(false)
-  const [plan, setPlan] = useState('basico'), [price, setPrice] = useState('450000'), [maxRestaurants, setMaxRestaurants] = useState('1'), [trialEnds, setTrialEnds] = useState('')
+  const [plan, setPlan] = useState('completo'), [price, setPrice] = useState('150000'), [maxRestaurants, setMaxRestaurants] = useState('1'), [trialEnds, setTrialEnds] = useState('')
   const [busy, setBusy] = useState(false), [error, setError] = useState('')
   const reserved = (RESERVED_SUBDOMAINS as readonly string[]).includes(slug)
   const stepOk = [
@@ -72,14 +73,14 @@ export function NewOrganizationWizard() {
         {step === 2 && <>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select label="Plan" value={plan} onChange={(e) => setPlan(e.target.value)}>{PLANS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</Select>
-            <TextInput label="Precio mensual (COP)" type="number" min={0} step={1000} required value={price} onChange={(e) => setPrice(e.target.value)} />
+            <TextInput label="Precio por local al mes (COP)" type="number" min={0} step={1000} required value={price} onChange={(e) => setPrice(e.target.value)} />
             <TextInput label="Límite de restaurantes" type="number" min={1} step={1} required value={maxRestaurants} onChange={(e) => setMaxRestaurants(e.target.value)} hint="El dueño no podrá crear más que estos." />
             <TextInput label="En prueba hasta (opcional)" type="date" value={trialEnds} onChange={(e) => setTrialEnds(e.target.value)} hint="Sin fecha, la cuenta nace activa." />
           </div>
           <div className="rounded-lg border border-border p-4 text-[15px] flex flex-col gap-1">
             <p><strong>{name}</strong> · {orgUrl(slug)}</p><p className="text-soft">{legalName} · NIT {taxId} · {billingEmail}</p>
             <p className="text-soft">Dueño: {ownerName} ({ownerUser}, {ownerEmail})</p>
-            <p className="text-soft">{PLANS.find(([v]) => v === plan)?.[1]} · ${Number(price).toLocaleString('es-CO')} al mes · hasta {maxRestaurants} {Number(maxRestaurants) === 1 ? 'restaurante' : 'restaurantes'}{trialEnds && ` · en prueba hasta ${trialEnds}`}</p>
+            <p className="text-soft">{PLANS.find(([v]) => v === plan)?.[1]} · ${Number(price).toLocaleString('es-CO')} por local al mes · hasta {maxRestaurants} {Number(maxRestaurants) === 1 ? 'restaurante' : 'restaurantes'}{trialEnds && ` · en prueba hasta ${trialEnds}`}</p>
           </div>
         </>}
         {error && <p role="alert" className="text-danger">{error}</p>}

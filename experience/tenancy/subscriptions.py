@@ -19,7 +19,7 @@ from .models import Organization, PlatformSettings, SubscriptionCharge
 from .services import audit, set_suspension
 
 logger = logging.getLogger(__name__)
-RULE_FIELDS = ('billing_day', 'grace_days', 'suspend_after_days', 'reminder_days')
+RULE_FIELDS = ('billing_day', 'grace_days', 'suspend_after_days', 'reminder_days', 'unit_prices')
 OPEN_STATES = ('pending', 'overdue')
 
 
@@ -49,18 +49,20 @@ def due_date(period, rules):
 
 
 def eligible(org, today):
-    return org.monthly_price > 0 and not (org.status == 'trial' and org.trial_ends and org.trial_ends >= today)
+    return not (org.status == 'trial' and org.trial_ends and org.trial_ends >= today)
 
 
 def charge_dict(charge):
     row = model_dict(charge, ('id', 'period', 'amount', 'due_date', 'state', 'paid_at', 'method', 'reference', 'notes', 'created_at'))
     row['organization'] = {'slug': charge.organization.slug, 'name': charge.organization.name}
+    from .pricing import charge_lines
+    row['lines'] = charge_lines(charge)
     row['recorded_by'] = {'name': charge.recorded_by.name} if charge.recorded_by else None
     return row
 
 
 def charges_query():
-    return SubscriptionCharge.objects.select_related('organization', 'recorded_by').order_by('-period', '-id')
+    return SubscriptionCharge.objects.select_related('organization', 'recorded_by').prefetch_related('lines').order_by('-period', '-id')
 
 
 def charges_response(qs):
@@ -80,20 +82,21 @@ def create_charge(actor, org, data):
     parse_period(data['period'])
     org = Organization.objects.select_for_update().get(pk=org.pk)
     existing = charges_query().filter(organization=org, period=data['period']).first()
-    # La cuenta siempre copia el precio contratado; se admite el campo del cliente solo si coincide.
+    from .pricing import consumption
+    estimate = None if existing else consumption(org, data['period'], billing=True)
+    # El importe enviado debe coincidir con la suma calculada por el servidor.
     if 'amount' in data:
         try:
             amount = Decimal(str(data['amount']))
         except (InvalidOperation, ValueError):
             amount = Decimal('NaN')
-        expected = existing.amount if existing else org.monthly_price
+        expected = existing.amount if existing else estimate['estimated_total']
         require(type(data['amount']) in (int, float) and amount.is_finite() and amount == expected,
                 'El importe debe coincidir con la cuenta existente o con el precio mensual contratado.', 'invalid_data', 400)
     if existing:
         return existing, False
-    require(eligible(org, local_today(org)), 'La organización está en prueba vigente o no tiene precio de suscripción.', 'charge_not_applicable', 409)
-    charge = SubscriptionCharge.objects.create(organization=org, period=data['period'], amount=org.monthly_price,
-                                               due_date=due_date(data['period'], billing_settings()))
+    require(eligible(org, local_today(org)) and estimate['estimated_total'] > 0, 'La organización está en prueba vigente o no tiene precio de suscripción.', 'charge_not_applicable', 409)
+    charge = charge_from_estimate(org, estimate, billing_settings())
     audit(actor, org, 'subscription.created', {'charge_id': charge.pk, 'period': charge.period, 'amount': str(charge.amount)})
     return charge, True
 
@@ -110,8 +113,10 @@ def generate_charges(period=None):
         today = local_today(org)
         key = period or today.strftime('%Y-%m')
         if eligible(org, today) and (org.pk, key) not in existing:
-            charges.append(SubscriptionCharge(organization=org, period=key, amount=org.monthly_price, due_date=due_date(key, rules)))
-    SubscriptionCharge.objects.bulk_create(charges)
+            from .pricing import consumption
+            estimate = consumption(org, key, billing=True)
+            if estimate['estimated_total'] > 0:
+                charges.append(charge_from_estimate(org, estimate, rules))
     from .models import PlatformAudit
     PlatformAudit.objects.bulk_create([PlatformAudit(organization=c.organization, action='subscription.created',
         detail={'charge_id': c.pk, 'period': c.period, 'amount': str(c.amount)}) for c in charges])
@@ -168,6 +173,19 @@ def update_rules(actor, data):
     billing_settings()
     rules = PlatformSettings.objects.select_for_update().get(pk=1)
     for field, value in data.items():
+        if field == 'unit_prices':
+            from .modules import MODULES
+            valid_units = {f'{key}.{unit}' for key, module in MODULES.items() for unit in module['units']}
+            require(isinstance(value, dict) and set(value) <= valid_units, 'Indica precios de unidades del catálogo.', 'invalid_data', 400)
+            for price in value.values():
+                try:
+                    amount = Decimal(str(price))
+                    valid = type(price) in (int, float) and amount.is_finite() and 0 <= amount < Decimal('1000000000000') and amount == amount.quantize(Decimal('.01'))
+                except (InvalidOperation, ValueError):
+                    valid = False
+                require(valid, 'Los precios deben ser no negativos y tener hasta dos decimales.', 'invalid_data', 400)
+            rules.unit_prices = {**rules.unit_prices, **value}
+            continue
         require(type(value) is int and 0 <= value <= 32767, 'Los ajustes deben ser enteros no negativos.', 'invalid_data', 400)
         setattr(rules, field, value)
     save_valid(rules)
@@ -231,3 +249,11 @@ def subscription_response(org):
             'overdue': sum((c.amount for c in overdue), Decimal(0)),
             'suspend_on': suspension.isoformat() if suspension else None,
             'days_until_suspension': max(0, (suspension - today).days) if suspension else None}
+
+
+def charge_from_estimate(org, estimate, rules):
+    from .models import SubscriptionChargeLine
+    charge = SubscriptionCharge.objects.create(organization=org, period=estimate['period'],
+        amount=estimate['estimated_total'], due_date=due_date(estimate['period'], rules))
+    SubscriptionChargeLine.objects.bulk_create([SubscriptionChargeLine(charge=charge, **line) for line in estimate['lines']])
+    return charge

@@ -129,7 +129,7 @@ export const toRolePolicy = (p: CoreSettings['role_policy'] | undefined): RolePo
 export const toSettings = (s: CoreSettings, restaurantId: number, restaurantName: string): Settings => ({
   rolePermissions: toRolePolicy(s.role_policy), configId: restaurantId, configName: restaurantName, waiterCanCharge: s.can_charge, waiterCanEditInventory: s.can_edit_inventory,
   alertLateMinutes: s.restaurant.alert_late_minutes, alertBillMinutes: s.restaurant.alert_bill_minutes, roiHourCost: s.restaurant.roi_hour_cost, roiMinutesPerOrder: s.restaurant.roi_minutes_per_order,
-  roiBaselineHoursPer100: s.restaurant.roi_baseline_hours_per_100, roiMonthlyCost: s.restaurant.roi_monthly_cost, roiStartDate: s.restaurant.roi_start_date, tipProductId: null,
+  roiBaselineHoursPer100: s.restaurant.roi_baseline_hours_per_100, roiMonthlyCost: s.restaurant.roi_monthly_cost, roiStartDate: s.restaurant.roi_start_date, tipProductId: null, modules: s.modules ?? null,
 })
 export const salonOf = (floors: CoreFloor[], methods: CoreMethod[]): Pick<Catalog, 'floors' | 'tables' | 'paymentMethods'> => ({ floors: toFloors(floors), tables: toTables(floors), paymentMethods: toPaymentMethods(methods) })
 

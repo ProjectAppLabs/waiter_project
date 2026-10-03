@@ -20,6 +20,7 @@ jest.mock('@/lib/services/core/platform', () => ({
   reactivateOrganization: jest.fn().mockResolvedValue({}), resendOwnerInvite: jest.fn().mockResolvedValue({ ok: true, sent: true }),
   listPlatformTeam: jest.fn(), invitePlatformUser: jest.fn(), deactivatePlatformUser: jest.fn(), resendPlatformInvite: jest.fn(),
   platformLogin: jest.fn(), platformLogout: jest.fn(), platformMe: jest.fn(),
+  organizationModules: jest.fn(() => new Promise(() => undefined)), organizationUsage: jest.fn(() => new Promise(() => undefined)), changeOrganizationModules: jest.fn(),
 }))
 
 const org = (over: Partial<Organization> = {}): Organization => ({
@@ -69,13 +70,13 @@ it('da de alta un cliente en tres pasos', async () => {
   expect(screen.getByLabelText('Usuario')).toHaveValue('maria.lopez')
   fireEvent.change(screen.getByLabelText('Correo del dueño'), { target: { value: 'maria@frisby.co' } })
   fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }))
-  fireEvent.change(screen.getByLabelText('Precio mensual (COP)'), { target: { value: '450000' } })
+  fireEvent.change(screen.getByLabelText('Precio por local al mes (COP)'), { target: { value: '450000' } })
   fireEvent.change(screen.getByLabelText('Límite de restaurantes'), { target: { value: '2' } })
   fireEvent.change(screen.getByLabelText('En prueba hasta (opcional)'), { target: { value: '2026-11-01' } })
   fireEvent.click(screen.getByRole('button', { name: 'Crear cliente e invitar al dueño' }))
   await waitFor(() => expect(createOrganization).toHaveBeenCalledWith({
     name: 'Frisby Antioquia', slug: 'frisby', legal_name: 'Frisby SA', tax_id: '860.000.000-1', billing_email: 'pagos@frisby.co', billing_contact: '',
-    plan: 'basico', monthly_price: 450000, max_restaurants: 2, trial_ends: '2026-11-01', timezone: 'America/Bogota', owner: { name: 'María López', email: 'maria@frisby.co', username: 'maria.lopez' },
+    plan: 'completo', monthly_price: 450000, max_restaurants: 2, trial_ends: '2026-11-01', timezone: 'America/Bogota', owner: { name: 'María López', email: 'maria@frisby.co', username: 'maria.lopez' },
   }))
   expect(replace).toHaveBeenCalledWith('/plataforma/clientes/frisby?nuevo=1')
 })

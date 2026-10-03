@@ -72,7 +72,9 @@ export function ChargesView() {
                 <tr key={c.id} className="border-b border-border last:border-0">
                   <td className="px-4 py-3"><Link href={`/plataforma/clientes/${org.slug}`} className="font-semibold hover:text-primary">{org.name}</Link></td>
                   <td className="px-4 py-3 tabular">{c.period}</td>
-                  <td className="px-4 py-3 text-right tabular">{money(c.amount)}</td>
+                  <td className="px-4 py-3 text-right tabular"><div>{money(c.amount)}</div>
+                    {/* Plan W: el detalle de la cuenta, línea por línea (mensualidad por local y uso). */}
+                    {(c.lines?.length ?? 0) > 0 && <ul aria-label={`Detalle ${c.period}`} className="mt-1 text-[12px] text-dim text-right">{c.lines!.map((l, i) => <li key={i}>{l.concept}: {l.quantity} × {money(l.unit_price)}</li>)}</ul>}</td>
                   <td className="px-4 py-3 tabular">{c.due_date}</td>
                   <td className="px-4 py-3"><StatusPill tone={CHARGE_STATE[c.state].tone}>{CHARGE_STATE[c.state].label}</StatusPill></td>
                   <td className="px-4 py-3 text-soft">{c.paid_at ? <>{new Date(c.paid_at).toLocaleDateString('es-CO', { dateStyle: 'medium' })}<div className="text-[13px] text-dim">{c.method} {c.reference && `· ${c.reference}`}</div></> : '—'}</td>
@@ -115,12 +117,18 @@ function PayModal({ charge, onClose, onPaid }: { charge: Charge; onClose: () => 
   )
 }
 
+const UNIT_PRICES: [string, string, string][] = [
+  ['asistente_menu.mensaje_ia', 'Asistente en el menú, por mensaje ($)', 'Cada respuesta del asistente del menú. En 0 no se cobra.'],
+  ['asistente_whatsapp.pedido_asistente', 'Asistente de WhatsApp, por pedido ($)', 'Cada pedido cerrado por el asistente de WhatsApp.'],
+]
+
 function BillingRulesForm() {
   const [rules, setRules] = useState<BillingRules | null>(null)
   const [error, setError] = useState(''), [notice, setNotice] = useState('')
   useEffect(() => { billingRules().then(setRules).catch(() => setError('No se pudieron leer las reglas de cobro.')) }, [])
   if (!rules) return error ? <p role="alert" className="text-danger">{error}</p> : null
-  const field = (key: keyof BillingRules, label: string, hint: string) => (
+  type NumericRule = Exclude<keyof BillingRules, 'unit_prices'>
+  const field = (key: NumericRule, label: string, hint: string) => (
     <TextInput label={label} hint={hint} type="number" min={0} value={rules[key]} onChange={(e) => setRules({ ...rules, [key]: Number(e.target.value) })} />)
   return (
     <section aria-label="Reglas de cobro" className="rounded-lg border border-border p-5 flex flex-col gap-4">
@@ -130,6 +138,13 @@ function BillingRulesForm() {
         {field('grace_days', 'Días de plazo', 'Días después del día de cobro para pagar.')}
         {field('suspend_after_days', 'Suspender tras', 'Días de mora antes de suspender al cliente.')}
         {field('reminder_days', 'Recordar antes', 'Días antes del vencimiento para avisar al dueño.')}
+      </div>
+      {/* Plan W: lo que se cobra por uso, por unidad. En cero no se cobra (no sale línea en la cuenta). */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {UNIT_PRICES.map(([key, label, hint]) => (
+          <TextInput key={key} label={label} hint={hint} type="number" min={0} value={rules.unit_prices?.[key] ?? 0}
+            onChange={(e) => setRules({ ...rules, unit_prices: { ...rules.unit_prices, [key]: Number(e.target.value) } })} />
+        ))}
       </div>
       <div className="flex items-center gap-3"><Button onClick={() => { setError(''); setNotice(''); void saveBillingRules(rules).then((r) => { setRules(r); setNotice('Reglas guardadas.') }).catch((e: unknown) => setError(e instanceof Error ? e.message : 'No se pudieron guardar.')) }}>Guardar reglas</Button>
         {notice && <span role="status" className="text-success-ink">{notice}</span>}{error && <span role="alert" className="text-danger">{error}</span>}</div>

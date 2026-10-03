@@ -39,6 +39,12 @@ def endpoint(request, raw_key: str | None = None):
     from tenancy.models import Organization
     if Organization.objects.filter(slug=key.restaurant_slug, status='suspended').exists():
         return JsonResponse({'error': 'restaurant_unavailable', 'message': 'Este restaurante no está disponible'}, status=404)
+    from experience_app.module_access import require_location
+    from tenancy.http import Problem
+    try:
+        require_location(key.restaurant_slug, key.venue_slug, 'menu_comensal')
+    except Problem as exc:
+        return JsonResponse(exc.body, status=exc.status)
     if len(request.body) > MAX_BODY:
         return JsonResponse(protocol._error(None, protocol.INVALID_REQUEST, 'Mensaje demasiado grande.'), status=413)
     try:
