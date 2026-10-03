@@ -1,4 +1,4 @@
-import { USERS, api, expect, signIn, test } from './helpers/waiter'
+import { USERS, api, expect, signIn, signInPlatform, test } from './helpers/waiter'
 
 async function platform<T>(page: import('@playwright/test').Page, path: string, init: { method?: string; data?: unknown } = {}): Promise<T> {
   return page.evaluate(async ([path, init]) => {
@@ -15,8 +15,7 @@ const pedidos = (c: Credits) => c.balances.find((b) => b.unit === 'pedido_asiste
 // si el saldo sube antes de registrar el pago, o si no sube al registrarlo (plan X).
 test('el dueño recarga y el saldo llega al registrar el pago', async ({ page, browser }) => {
   const admin = await (await browser.newContext()).newPage()
-  await signIn(admin, USERS.platform)
-  await admin.waitForURL(/\/plataforma$/)
+  await signInPlatform(admin)
   // Burger House con el plan Inicial de WhatsApp, para que tenga paquetes de recarga.
   const org = (await platform<{ organization: { pricing?: Record<string, unknown> } }>(admin, 'organizations/burger-house')).organization
   await platform(admin, 'organizations/burger-house', { method: 'PATCH', data: { pricing: { ...(org.pricing ?? { mode: 'personalizado' }), whatsapp_plan: 'inicial' } } })

@@ -1,2 +1,5 @@
 # Capturas locales para cotejar con el kit
 kit-compare/
+
+# Plan Y3: secreto de doble factor de la cuenta de ProjectApp de las pruebas
+e2e/.estado/

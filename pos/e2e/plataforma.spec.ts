@@ -1,9 +1,8 @@
-import { USERS, expect, signIn, test } from './helpers/waiter'
+import { USERS, expect, signIn, signInPlatform, test } from './helpers/waiter'
 
 // Falla si la persona de ProjectApp no entra por el inicio único, o si la consola no lista sus clientes o si Métricas y Cobros no cargan (planes T0 y M).
 test('ProjectApp ve clientes, métricas y cobros', async ({ page }) => {
-  await signIn(page, USERS.platform)
-  await page.waitForURL(/\/plataforma$/)
+  await signInPlatform(page)
   const clients = page.getByRole('table', { name: 'Clientes' })
   await expect(clients).toContainText('Burger House')
   await page.getByRole('link', { name: 'Métricas' }).click()
@@ -24,8 +23,7 @@ test('la dirección vieja de ProjectApp lleva al inicio único', async ({ page }
 // Falla si la lista de precios estándar no carga con el precio por local, el plan Inicial de WhatsApp y sus paquetes
 // de recarga, o si la ficha del cliente no muestra sus precios (plan X).
 test('Precios y precios del cliente', async ({ page }) => {
-  await signIn(page, USERS.platform)
-  await page.waitForURL(/\/plataforma$/)
+  await signInPlatform(page)
   await page.getByRole('link', { name: 'Precios' }).click()
   await expect(page.getByLabel('Precio por local al mes ($)')).toHaveValue(/\d+/)
   await expect(page.getByRole('region', { name: 'Planes del asistente de WhatsApp' }).getByLabel('Nombre del plan').first()).toHaveValue('Inicial')

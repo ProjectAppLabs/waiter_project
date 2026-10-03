@@ -1,4 +1,9 @@
+import { execFileSync } from 'node:child_process'
+import { join } from 'node:path'
+
 import { chromium, expect, test as base, type Browser, type Page } from '@playwright/test'
+
+import { nextCode, saveSecret, savedSecret } from './totp'
 
 // Pruebas de punta a punta sobre el sistema propio (plan T): Burger House migrado y la consola de ProjectApp. Los datos
 // que cada prueba necesita se preparan por la API del POS desde el propio navegador (cookie y organización de la
@@ -38,6 +43,37 @@ export async function signIn(page: Page, user: { login: string; password: string
     await expect(submit).toBeEnabled({ timeout: 1_000 })
   }).toPass({ timeout: 60_000 })
   await submit.click()
+}
+
+// Plan Y3: la persona de ProjectApp entra con doble factor. La primera vez lo activa desde Seguridad (la consola no deja
+// abrir otra cosa) y guarda el secreto; después escribe el código de la app. Si el servidor tiene un doble factor cuyo
+// secreto no está guardado (base nueva u otra máquina), se le quita desde Django para volver a activarlo.
+export async function signInPlatform(page: Page) {
+  await signIn(page, USERS.platform)
+  const step = page.getByRole('heading', { name: 'Código de verificación' })
+  await expect(step.or(page.getByRole('navigation', { name: 'Consola de ProjectApp' }))).toBeVisible({ timeout: 30_000 })
+  if (await step.isVisible()) {
+    if (!savedSecret()) {
+      execFileSync(join(__dirname, '..', '..', '..', 'experience', 'venv', 'bin', 'python'), ['manage.py', 'shell', '-c',
+        "from tenancy.models import PlatformUser; PlatformUser.objects.filter(username='ana.projectapp').update(two_factor=False, totp_secret='', totp_pending='', recovery_hashes=[])"],
+      { cwd: join(__dirname, '..', '..', '..', 'experience') })
+      return signInPlatform(page)
+    }
+    await page.getByLabel('Código de verificación').fill(await nextCode())
+    await page.getByRole('button', { name: 'Verificar y entrar' }).click()
+  }
+  await expect(page.getByRole('navigation', { name: 'Consola de ProjectApp' })).toBeVisible()
+  if (page.url().endsWith('/plataforma/seguridad') && await page.getByRole('button', { name: 'Activar doble factor' }).isVisible()) {
+    await page.getByRole('button', { name: 'Activar doble factor' }).click()
+    const secret = (await page.locator('code').first().textContent())?.trim() ?? ''
+    saveSecret(secret)
+    await page.getByLabel('Código de la app').fill(await nextCode())
+    await page.getByRole('button', { name: 'Activar', exact: true }).click()
+    await expect(page.getByRole('region', { name: 'Códigos de respaldo' })).toBeVisible()
+    await page.getByRole('button', { name: 'Ya los guardé' }).click()
+    await page.goto('/plataforma')
+  }
+  await page.waitForURL(/\/plataforma$/)
 }
 
 // Llamada a la API del POS con la sesión del navegador.
