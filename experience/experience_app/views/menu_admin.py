@@ -33,6 +33,8 @@ class MenuAdminView(ContractView):
         if data.get('config_id') is not None and data.get('restaurant_id') is not None:
             valid(data['config_id'] == data['restaurant_id'])
         restaurant = restaurant_for(account, rid)
+        from tenancy.modules import require_module
+        require_module(account.organization, 'pagos_en_linea' if self.section == 'payment_gateways' else 'menu_comensal', restaurant)
         org, venue = account.organization.slug, restaurant.slug
         tenant = resolve(org, venue)
         action = data.get('action', 'get' if self.section in ('menu_settings', 'payment_gateways') else 'list')

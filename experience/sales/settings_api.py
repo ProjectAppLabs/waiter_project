@@ -18,7 +18,10 @@ SETTINGS = "alert_late_minutes alert_bill_minutes roi_hour_cost roi_minutes_per_
 
 
 def settings_dict(account, restaurant):
+    from tenancy.modules import active_modules
+    account._module_restaurant = restaurant
     return {
+        "modules": active_modules(account.organization, restaurant),
         "restaurant": fields(restaurant.settings, SETTINGS),
         "role_policy": account.organization.role_policy,
         "can_charge": can(account, "charge_orders"),

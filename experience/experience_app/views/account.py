@@ -8,6 +8,7 @@ POST /api/v1/cuenta/salir/      desliga la cuenta de esta cookie
 import uuid
 
 from django.shortcuts import get_object_or_404
+from django.db import transaction
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
@@ -28,6 +29,7 @@ def _diner(request) -> Diner:
 
 
 @api_view(['POST'])
+@transaction.atomic
 def register(request):
     diner = _diner(request)
     try:
@@ -36,6 +38,9 @@ def register(request):
         return Response({'detail': 'El registro demo no está disponible'}, status=503)
     except accounts.InvalidRegistration as exc:
         return Response({'detail': str(exc)}, status=400)
+    from tenancy.usage import record_location_usage
+    record_location_usage(diner.session.restaurant_slug, diner.session.venue_slug, 'fidelizacion', 'codigo_verificacion',
+                          key=f'codigo:{account.pk}:{account.created_at.isoformat()}')
     # codigoDemo: no se envió ningún código; el comensal puede escribir cualquiera de seis dígitos (ver services/account.py).
     return Response({'id': str(account.id), 'codigoDemo': True}, status=201)
 

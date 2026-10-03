@@ -171,6 +171,10 @@ def transmit(document):
         if result.xml:
             document.xml.save(f"{document.organization_id}/{document.pk}.xml", ContentFile(result.xml), save=False)
     document.save()
+    if document.state == 'issued':
+        from tenancy.usage import record_usage
+        record_usage(document.organization, document.restaurant, 'facturacion', 'documento',
+                     key=f'facturacion:{document.pk}', detail={'type': document.kind})
     if (
         document.state == "issued"
         and settings_for(document.organization).send_email

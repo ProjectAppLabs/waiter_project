@@ -82,3 +82,31 @@ urlpatterns = [
     path('internal/v1/<slug:restaurant>/<slug:venue>/menu/', templates.venue_settings, name='venue-menu-settings'),
     path('api/v1/<slug:organization>/', organization.entry, name='organization-entry'),
 ]
+
+# Las conciliaciones y consultas de pagos ya iniciados conservan su acceso.
+from experience_app.module_access import module_view
+
+_module_views = {
+    'menu_comensal': [context.entry, sessions.cart, sessions.add_line, sessions.line, sessions.add_bundle,
+                     orders.confirm, orders.detail, orders.feedback, benefits.location, design.decorations,
+                     design.decoration, design.preview, design.internal_decorations, design.internal_decoration,
+                     design.prepare, design.verify, templates.venue_settings, internal.invalidate_menu,
+                     mcp.internal_keys, mcp.internal_revoke],
+    'salon': [sessions.call_waiter, sessions.request_bill],
+    'pagos_en_linea': [payment_gateways.configuration, payment_gateways.payments,
+                      payment_gateways.reservation_payments_view, payments.simulated],
+    'fidelizacion': [account.register, account.verify, account.profile, account.favorites,
+                    account.password_login, account.change_password, password_reset.request_reset,
+                    password_reset.reset, benefits.rewards, benefits.coupon],
+    'asistente_menu': [agent_chat.messages, agent_chat.add_to_cart],
+}
+for _pattern in urlpatterns:
+    for _module, _views in _module_views.items():
+        if _pattern.callback in _views:
+            _pattern.callback = module_view(_pattern.callback, _module)
+            break
+
+# Un nuevo anticipo necesita también el módulo de reservas; la conciliación queda fuera.
+for _pattern in urlpatterns:
+    if getattr(_pattern.callback, '__wrapped__', None) == payment_gateways.reservation_payments_view:
+        _pattern.callback = module_view(_pattern.callback, 'reservas')

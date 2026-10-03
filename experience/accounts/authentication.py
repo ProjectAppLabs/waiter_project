@@ -31,6 +31,7 @@ def pos_session(request):
         session = None
     if not session:
         raise Problem('unauthenticated', 'Inicia sesión para continuar.', 401)
+    session.account._module_restaurant = session.restaurant
     return session
 
 

@@ -23,6 +23,7 @@ BASE = '/api/platform/v1/'
 @pytest.fixture
 def billing():
     org = organization(status='active', monthly_price=450000)
+    restaurant(org)
     owner = account(org)
     admin = platform_user()
     return org, owner, admin, platform_client(admin)
@@ -40,6 +41,7 @@ def test_generate_monthly_snapshot_and_exclusions(billing):
     organization('gratis', status='active')
     organization('prueba', status='trial', monthly_price=30, trial_ends=date(2026, 10, 31))
     expired = organization('vencida', status='trial', monthly_price=20, trial_ends=date(2026, 9, 30))
+    restaurant(expired)
     with patch('django.utils.timezone.now', return_value=datetime(2026, 10, 1, 12, tzinfo=tz.utc)):
         out = StringIO()
         call_command('generate_subscription_charges', stdout=out)
@@ -60,7 +62,8 @@ def test_generate_monthly_snapshot_and_exclusions(billing):
 def test_settings_singleton_validation_and_february(billing):
     org, owner, admin, client = billing
     path = BASE + 'settings/billing'
-    assert client.get(path).json() == dict(billing_day=5, grace_days=10, suspend_after_days=15, reminder_days=3)
+    assert client.get(path).json() == dict(billing_day=5, grace_days=10, suspend_after_days=15, reminder_days=3,
+                                         unit_prices={'asistente_menu.mensaje_ia': 0, 'asistente_whatsapp.pedido_asistente': 500})
     for invalid in ({'billing_day': 0}, {'billing_day': 32}, {'grace_days': -1}, {'grace_days': True}, {'reminder_days': 1.2}, {'otro': 1}):
         assert client.patch(path, invalid, format='json').status_code == 400
     assert client.patch(path, {'billing_day': 31, 'grace_days': 2}, format='json').status_code == 200
@@ -198,7 +201,7 @@ def test_charge_filters_and_summary(billing):
 @pytest.mark.parametrize('role', ['owner', 'admin', 'cashier', 'waiter'])
 def test_owner_subscription(billing, role):
     org, owner, admin, client = billing
-    venue = restaurant(org)
+    venue = org.restaurants.get()
     person = account(org, role, username='persona', restaurants=[venue] if role != 'owner' else [])
     for month in range(1, 9):
         charge(org, period=f'2026-{month:02}', due_date=date(2026, 10, 15))
@@ -256,6 +259,7 @@ def test_rules_apply_only_to_new_charges(billing):
 def test_cron_organization_timezone(billing):
     org, owner, admin, client = billing
     east = organization('tokio', timezone='Asia/Tokyo', status='active', monthly_price=100)
+    restaurant(east)
     with patch('django.utils.timezone.now', return_value=datetime(2026, 11, 1, 3, tzinfo=tz.utc)):
         generate_charges()
     assert SubscriptionCharge.objects.get(organization=org).period == '2026-10'

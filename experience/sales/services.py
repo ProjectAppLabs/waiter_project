@@ -71,6 +71,7 @@ def seed_restaurant(restaurant, source=None):
         defaults = {
             f.name: getattr(source.settings, f.name)
             for f in RestaurantSettings._meta.fields
+            if not f.generated
             if f.name not in ("id", "restaurant")
         }
     if source:

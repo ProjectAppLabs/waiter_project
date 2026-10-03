@@ -1,11 +1,11 @@
-"""Generación mensual idempotente; ejecutar el día 1."""
+"""Generación mensual idempotente: el periodo explícito permite cobrar el consumo al cierre."""
 from django.core.management.base import BaseCommand, CommandError
 from tenancy.http import Problem
 from tenancy.subscriptions import generate_charges
 
 
 class Command(BaseCommand):
-    help = 'Genera las cuentas de suscripción del mes, sin duplicarlas.'
+    help = 'Genera mensualidad por local y consumo registrado. Para liquidar uso completo, indica un periodo cerrado con --period.'
 
     def add_arguments(self, parser):
         parser.add_argument('--period', help='Periodo YYYY-MM; por omisión, el mes local de cada organización.')

@@ -180,6 +180,8 @@ class ImageView(ContractView):
         org = resolve_organization(request)
         floor = Floor.objects.filter(pk=pk, restaurant__organization=org, active=True).first()
         require(floor, "No encontramos el piso.", "not_found", 404)
+        from tenancy.modules import require_module
+        require_module(org, "salon", floor.restaurant)
         name = (
             next((i["file"] for i in floor.plan.get("images", []) if i["id"] == image_id), "")
             if image_id

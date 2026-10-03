@@ -33,7 +33,11 @@ def query_number(request, key, default=None, whole=False):
 class ReservationView(PosView):
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
-        permit(self.account, "reservations")
+        if getattr(self, 'action', '') == 'deposit-paid':
+            policy = self.org.role_policy.get(self.account.role, {})
+            require(self.account.role in ('owner', 'admin') or 'reservations' in policy.get('views', []))
+        else:
+            permit(self.account, "reservations")
 
     def row(self, pk, lock=False):
         row = (
@@ -148,6 +152,11 @@ class ScheduleView(ReservationView):
 class PublicDepositView(ContractView):
     def get(self, request, token):
         org = resolve_organization(request)
+        from tenancy.modules import require_module
+        from .models import Reservation
+        row = Reservation.objects.filter(organization=org, pay_token=token).first()
+        if row:
+            require_module(org, 'reservas', row.restaurant)
         result = s.public_deposit(org, token)
         require(result, "No encontramos la reserva.", "not_found", 404)
         response = Response(result)

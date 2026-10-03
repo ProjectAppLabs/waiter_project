@@ -171,6 +171,8 @@ class BannersView(PosView):
 class BannerImageView(ContractView):
     def get(self, request, pk):
         org = resolve_organization(request)
+        from tenancy.modules import require_module
+        require_module(org, "fidelizacion")
         row = reference(Banner, org, pk)
         require(row.image and default_storage.exists(row.image.name), "No encontramos la imagen.", "not_found", 404)
         response = FileResponse(default_storage.open(row.image.name, "rb"), content_type="image/webp")

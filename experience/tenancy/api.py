@@ -163,3 +163,32 @@ class SubscriptionView(ContractView):
         person = pos_session(request).account
         require(person.role == 'owner')
         return Response(subscription_response(person.organization))
+
+
+class UsageView(OrganizationsView):
+    def get(self, request, slug):
+        from .usage import usage_summary
+        platform_session(request)
+        return Response(usage_summary(self.organization(slug), request.query_params.get('period')))
+
+
+class ModulesView(OrganizationsView):
+    def get(self, request, slug):
+        from .modules import modules_response
+        platform_session(request)
+        return Response(modules_response(self.organization(slug)))
+
+    def patch(self, request, slug):
+        from .modules import change_modules
+        actor = platform_session(request).user
+        require(actor.role == 'admin')
+        return Response(change_modules(actor, self.organization(slug), request.data))
+
+
+class ConsumptionView(ContractView):
+    def get(self, request):
+        from accounts.authentication import pos_session
+        from .pricing import consumption
+        person = pos_session(request).account
+        require(person.role == 'owner')
+        return Response(consumption(person.organization, request.query_params.get('period')))

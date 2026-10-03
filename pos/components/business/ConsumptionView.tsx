@@ -25,7 +25,7 @@ export function ConsumptionView() {
     <section className="flex flex-col gap-5 max-w-4xl">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div><h1 className="text-[26px] font-bold">Consumo</h1>
-          <p className="mt-1 text-soft">Lo que llevas este mes: la mensualidad por cada local activo y lo que se cobra por uso. La cuenta se emite al cierre del mes.</p></div>
+          <p className="mt-1 text-soft">Lo que llevas este mes: la mensualidad por cada local activo y lo que se cobra por uso. La mensualidad se cobra por adelantado; el uso de este mes llega en la cuenta del mes siguiente.</p></div>
         <div className="w-48"><TextInput label="Mes" type="month" value={period} onChange={(e) => setPeriod(e.target.value || thisMonth())} /></div>
       </div>
       {error && <p role="alert" className="text-danger">{error}</p>}

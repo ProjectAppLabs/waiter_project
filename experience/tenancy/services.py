@@ -37,6 +37,11 @@ def assign_values(obj, data):
             require(abs(value) <= (90 if key == 'latitude' else 180), 'Las coordenadas no son válidas.', 'invalid_data', 400)
         if key == 'access_margin_minutes':
             require(type(value) is int and value >= 0, 'El margen de acceso debe ser un entero no negativo.', 'invalid_data', 400)
+        if key == 'plan':
+            require(value != 'inicial', 'El plan inicial está reservado; usa el plan completo.', 'invalid_data', 400)
+        if key == 'plan' and value not in ('completo', 'inicial'):
+            # Compatibilidad con clientes anteriores que enviaban planes de texto libre.
+            value = 'completo'
         setattr(obj, key, value)
     return save_valid(obj)
 
@@ -72,6 +77,11 @@ def create_organization(actor, data):
 def update_organization(actor, organization, data):
     organization = Organization.objects.select_for_update().get(pk=organization.pk)
     data = payload(data, ORG_FIELDS)
+    if isinstance(data.get('plan'), str) and data['plan'] not in ('completo', 'inicial'):
+        data['plan'] = 'completo'
+    if 'plan' in data and data['plan'] in ('completo', 'inicial') and data['plan'] != organization.plan:
+        from .modules import change_modules
+        change_modules(actor, organization, {'plan': data['plan']})
     assign_values(organization, data)
     audit(actor, organization, 'organization.updated', {'fields': sorted(data)})
     return organization
@@ -102,6 +112,9 @@ def set_suspension(actor, organization, suspended, reason=''):
 def create_restaurant(account, data, *, source_restaurant=None):
     require(account.role == 'owner')
     organization = Organization.objects.select_for_update().get(pk=account.organization_id)
+    from .modules import require_module
+    if organization.restaurants.exists():
+        require_module(organization, 'multisucursal')
     require(organization.restaurants.count() < organization.max_restaurants,
             'Alcanzaste el límite de restaurantes de tu plan.', 'restaurant_limit', 409)
     data = payload(data, ('name', 'slug', 'street', 'city', 'phone'), ('name', 'slug'))

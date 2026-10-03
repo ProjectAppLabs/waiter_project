@@ -172,7 +172,7 @@ def scenario(s, method, route):
     if method == 'post' and route == 'payment-methods':
         target, body = True, {'name': 'Banco A', 'type': 'bank', 'restaurant_ids': [rid]}
     # Rutas sin selección de un recurso: los datos y las escrituras pertenecen siempre a la sesión A.
-    implicit = {'subscription', 'org', 'restaurants', 'team', 'notifications', 'notifications/read_all',
+    implicit = {'consumption', 'subscription', 'org', 'restaurants', 'team', 'notifications', 'notifications/read_all',
         'products', 'categories', 'taxes', 'taxes/regime', 'units', 'suppliers', 'catalog/overview', 'catalog/restaurants',
         'payment-methods', 'settings/cash', 'settings/roles', 'customers', 'customers/id-types', 'loyalty/program',
         'benefits', 'banners', 'me/notify-prefs', 'reports/summary', 'company', 'brand', 'brand/logo',

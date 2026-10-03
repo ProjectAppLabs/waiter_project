@@ -30,6 +30,8 @@ class PosView(ContractView):
         super().initial(request, *args, **kwargs)
         self.account = pos_session(request).account
         self.org = self.account.organization
+        from tenancy.module_access import check_pos_view
+        check_pos_view(self, request, kwargs)
 
     def product(self, pk, **filters):
         return s.reference(Product, self.org, pk, **filters)

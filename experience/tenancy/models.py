@@ -5,6 +5,11 @@ from sales.policy import default_role_policy
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
 from django.db.models.functions import Lower
+from django.utils import timezone
+
+from .fields import ExactCharField, only_when
+from .modules import MODULE_CHOICES, PLAN_CHOICES
+from .pricing import default_unit_prices
 
 from .validators import validate_restaurant_slug, validate_slug, validate_timezone, validate_username
 
@@ -42,7 +47,7 @@ class Organization(models.Model):
     brand_version = models.PositiveBigIntegerField(default=0)
     billing_email = models.EmailField(blank=True, default='')
     billing_contact = models.CharField(max_length=120, blank=True, default='')
-    plan = models.CharField(max_length=40, default='basico')
+    plan = models.CharField(max_length=40, default='completo', choices=PLAN_CHOICES)
     monthly_price = models.DecimalField(max_digits=14, decimal_places=2, default=0, validators=[MinValueValidator(0)])
     status = models.CharField(max_length=12, choices=[(s, s) for s in ('trial', 'active', 'suspended')], default='trial')
     trial_ends = models.DateField(null=True, blank=True)
@@ -110,7 +115,7 @@ class PlatformAudit(models.Model):
         'organization.created', 'organization.updated', 'organization.suspended', 'organization.reactivated',
         'organization.invite_resent', 'platform_user.invited', 'platform_user.deactivated',
         'subscription.created', 'subscription.paid', 'subscription.void', 'subscription.overdue',
-        'subscription.reminder', 'billing_settings.updated',
+        'subscription.reminder', 'billing_settings.updated', 'module_change',
     )])
     detail = models.JSONField(default=dict)
     at = models.DateTimeField(auto_now_add=True)
@@ -140,6 +145,7 @@ class LegacyMap(models.Model):
 class PlatformSettings(models.Model):
     """Una sola configuración de cobro para ProjectApp."""
     id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
+    unit_prices = models.JSONField(default=default_unit_prices)
     billing_day = models.PositiveSmallIntegerField(default=5, validators=[MinValueValidator(1), MaxValueValidator(31)])
     grace_days = models.PositiveSmallIntegerField(default=10)
     suspend_after_days = models.PositiveSmallIntegerField(default=15)
@@ -169,3 +175,54 @@ class SubscriptionCharge(models.Model):
         constraints = [models.UniqueConstraint(fields=['organization', 'period'], name='subscription_org_period_unique'),
                        models.CheckConstraint(condition=models.Q(amount__gte=0), name='subscription_amount_nonnegative')]
         indexes = [models.Index(fields=['state', 'due_date'])]
+
+
+class OrganizationModule(models.Model):
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='module_overrides')
+    restaurant = models.ForeignKey(Restaurant, null=True, blank=True, on_delete=models.CASCADE)
+    key = models.CharField(max_length=32, choices=MODULE_CHOICES)
+    active = models.BooleanField(default=True)
+    starts = models.DateTimeField(default=timezone.now)
+    ends = models.DateTimeField(null=True, blank=True)
+    limits = models.JSONField(default=dict, blank=True)
+    price = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True, validators=[MinValueValidator(0)])
+    notes = models.TextField(blank=True, default='')
+    actor = models.ForeignKey(PlatformUser, null=True, blank=True, on_delete=models.SET_NULL)
+    updated_at = models.DateTimeField(auto_now=True)
+    organization_scope = only_when(models.Q(restaurant__isnull=True), 'organization', models.UUIDField())
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['organization', 'restaurant', 'key'], name='modulo_local_unico'),
+                       models.UniqueConstraint(fields=['organization_scope', 'key'], name='modulo_organizacion_unico')]
+
+
+class UsageRecord(models.Model):
+    organization = models.ForeignKey(Organization, on_delete=models.PROTECT, related_name='usage_records')
+    restaurant = models.ForeignKey(Restaurant, null=True, blank=True, on_delete=models.PROTECT)
+    module = models.CharField(max_length=32, choices=MODULE_CHOICES)
+    unit = models.CharField(max_length=40)
+    quantity = models.DecimalField(max_digits=20, decimal_places=6, validators=[MinValueValidator(0)])
+    period = models.CharField(max_length=7)
+    key = ExactCharField(max_length=200)
+    detail = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['organization', 'key'], name='uso_clave_organizacion_unica'),
+                       models.CheckConstraint(condition=models.Q(quantity__gte=0), name='uso_cantidad_no_negativa')]
+        indexes = [models.Index(fields=['organization', 'period'], name='uso_organizacion_periodo')]
+
+
+class SubscriptionChargeLine(models.Model):
+    charge = models.ForeignKey(SubscriptionCharge, on_delete=models.CASCADE, related_name='lines')
+    concept = models.CharField(max_length=250)
+    module = models.CharField(max_length=32, choices=MODULE_CHOICES)
+    unit = models.CharField(max_length=40)
+    quantity = models.DecimalField(max_digits=20, decimal_places=6, validators=[MinValueValidator(0)])
+    unit_price = models.DecimalField(max_digits=14, decimal_places=2, validators=[MinValueValidator(0)])
+    total = models.DecimalField(max_digits=14, decimal_places=2, validators=[MinValueValidator(0)])
+
+    class Meta:
+        ordering = ['id']
+        constraints = [models.CheckConstraint(condition=models.Q(total__gt=0, quantity__gt=0, unit_price__gt=0),
+                                               name='linea_cobro_valores_positivos')]

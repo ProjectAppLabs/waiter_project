@@ -36,6 +36,8 @@ def cart_of(session: TableSession, diner: Diner) -> dict:
 def open_session(request):
     data = request.data
     tenant = resolve(data.get('restaurante', ''), data.get('sede', ''), data.get('token') or None)
+    from experience_app.module_access import require_location
+    require_location(tenant.restaurant_slug, tenant.venue_slug, 'menu_comensal')
     session, diner = sessions.open_session(tenant, request.COOKIES.get(COOKIE))
     if tenant.table_token and not session.orders.exists():
         sessions.table_call(tenant, session, 'ordering')
