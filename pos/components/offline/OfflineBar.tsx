@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
 
@@ -15,6 +16,7 @@ import { useAuthStore } from '@/lib/stores/authStore'
 import { cn } from '@/lib/utils'
 
 const PROBE_MS = 8_000
+const OFFLINE_ROUTES = ['/pedidos', '/pedidos/nuevo', '/salon', '/salon/nuevo', '/emergencia', '/historial', '/ventas']
 const clock = (ms: number) => { const s = Math.ceil(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` }
 
 // Plan U2 y V: mientras no hay conexión, prueba el servidor cada pocos segundos; al volver, envía la cola de salida.
@@ -25,6 +27,9 @@ export function useOfflineSync() {
   const pending = useOutboxStore((s) => s.entries.length)
   const sync = useOutboxStore((s) => s.sync)
   const accountId = useAuthStore((s) => s.user?.uid ?? null)
+  const router = useRouter()
+  // Con red, deja listas las pantallas de la caja para abrirlas sin red (en producción las guarda el service worker).
+  useEffect(() => { if (online) for (const path of OFFLINE_ROUTES) router.prefetch?.(path) }, [online, router])
   useEffect(() => {
     useOutboxStore.getState().hydrate()
     useEmergencyOrders.getState().hydrate()

@@ -193,7 +193,8 @@
     "proceed": "Ir a pagar",
     "cancelled": "Líneas canceladas",
     "sendPending": "Enviar pendientes a cocina",
-    "cancelledBody": "Cocina todavía no había iniciado su preparación."
+    "cancelledBody": "Cocina todavía no había iniciado su preparación.",
+    "emergency": "Gestionar en Pedidos de emergencia"
   },
   "addRound": {
     "title": "Agregar del menú",
@@ -223,5 +224,11 @@
     "increase": "Más",
     "notFound": "No se encontró el pedido."
   },
-  "lineState": { "unsent": "Sin enviar a cocina", "waiting": "Pendiente de preparación", "in_progress": "Cocina", "ready": "Listo", "served": "Servido" }
+  "lineState": {
+    "unsent": "Sin enviar a cocina",
+    "waiting": "Pendiente de preparación",
+    "in_progress": "Cocina",
+    "ready": "Listo",
+    "served": "Servido"
+  }
 }

@@ -4,7 +4,9 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useEffect, useMemo, useState } from 'react'
 
+import { AddRoundScreen } from '@/components/orders/AddRoundScreen'
 import { PrintableReceipt } from '@/components/pay/PrintableReceipt'
+import { PaymentModal } from '@/components/payment/PaymentModal'
 import { Icon } from '@/components/kit/Icon'
 import { Button } from '@/components/ui/Button'
 import { PageTitle } from '@/components/ui/PageHeader'
@@ -34,6 +36,9 @@ export default function EmergenciaPage() {
   const entries = useOutboxStore((s) => s.entries)
   const [base, setBase] = useState<number | null>(null)
   const [printing, setPrinting] = useState<ReceiptData | 'count' | null>(null)
+  // Cobrar y agregar ronda se abren aquí mismo: sin red no se puede cargar una dirección con el id de un pedido nuevo.
+  const [charging, setCharging] = useState<number | null>(null)
+  const [adding, setAdding] = useState<number | null>(null)
   useEffect(() => { useEmergencyOrders.getState().hydrate() }, [])
   // El efectivo esperado según el servidor la última vez que respondió (guardado para leerlo sin red).
   useEffect(() => { if (session) void closingData(session.id).then((c) => setBase(c.expectedCash)).catch(() => setBase(null)) }, [session])
@@ -67,8 +72,8 @@ export default function EmergenciaPage() {
                 <span className="text-[13px] font-semibold px-2 h-6 rounded-sm grid place-items-center bg-muted text-ink">{t(o.serverId ? 'synced' : o.paid ? 'paid' : 'open')}</span>
                 <div className="ml-auto flex gap-2">
                   <Button size="compact" onClick={() => setPrinting(precheck(o, company))}><Icon name="printer" size={16} />{t('precheck')}</Button>
-                  {!o.paid && !o.serverId && <Link href={`/pedidos/${o.localId}/agregar`} className="h-9 px-3 rounded-md border border-border text-[14px] font-semibold inline-flex items-center gap-1"><Icon name="plus" size={16} />{t('round')}</Link>}
-                  {!o.paid && !o.serverId && <Link href={`/pago/${o.localId}`} className="h-9 px-3 rounded-md bg-primary text-primary-ink text-[14px] font-semibold inline-flex items-center gap-1"><Icon name="money" size={16} />{t('charge')}</Link>}
+                  {!o.paid && !o.serverId && <Button size="compact" onClick={() => setAdding(o.localId)}><Icon name="plus" size={16} />{t('round')}</Button>}
+                  {!o.paid && !o.serverId && <Button size="compact" variant="primary" onClick={() => setCharging(o.localId)}><Icon name="money" size={16} />{t('charge')}</Button>}
                 </div>
               </li>
             ))}
@@ -86,6 +91,8 @@ export default function EmergenciaPage() {
         {row(t('otherSales'), count.otherSales)}
         <Button className="self-start mt-2" onClick={() => setPrinting('count')}><Icon name="printer" size={18} />{t('printCount')}</Button>
       </section>
+      {charging !== null && <PaymentModal orderId={charging} onClose={() => setCharging(null)} onPaid={() => setCharging(null)} />}
+      {adding !== null && <div className="fixed inset-0 z-40 bg-canvas flex flex-col"><AddRoundScreen orderId={adding} returnTo="/emergencia" onDone={() => setAdding(null)} /></div>}
       {printing && printing !== 'count' && <PrintableReceipt data={printing} />}
       {printing === 'count' && (
         <div aria-hidden className="receipt fixed -left-[9999px] top-0 w-[320px]">
