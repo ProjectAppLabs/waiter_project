@@ -15,7 +15,7 @@ MODULES = {
     'inventario': {'name': 'Inventario', 'depends': ['nucleo'], 'units': {}},
     'facturacion': {'name': 'Facturación electrónica', 'depends': ['nucleo'], 'units': {'documento': 'Documento'}},
     'menu_comensal': {'name': 'Menú del comensal', 'depends': ['nucleo'], 'units': {}},
-    'pagos_en_linea': {'name': 'Pagos en línea', 'depends': ['nucleo'], 'units': {}},
+    'pagos_en_linea': {'name': 'Pagos en línea', 'depends': ['nucleo'], 'depends_any': ['menu_comensal', 'asistente_whatsapp'], 'units': {}},
     'datafono': {'name': 'Datáfono integrado', 'depends': ['nucleo'], 'units': {}},
     'fidelizacion': {'name': 'Fidelización', 'depends': ['menu_comensal'], 'units': {'codigo_verificacion': 'Código de verificación'}},
     'reservas': {'name': 'Reservas', 'depends': ['nucleo'], 'units': {}},
@@ -23,8 +23,8 @@ MODULES = {
     'asistente_whatsapp': {'name': 'Asistente de WhatsApp', 'depends': ['nucleo', 'pagos_en_linea'], 'units': {'pedido_asistente': 'Pedido del asistente', 'conversacion_sin_compra': 'Conversación sin compra', 'mensaje_meta': 'Mensaje de Meta', 'tokens_ia': 'Tokens de entrada y salida'}},
     'multisucursal': {'name': 'Varios locales', 'depends': ['nucleo'], 'units': {}},
 }
-UNAVAILABLE = {'asistente_whatsapp', 'datafono'}
-PLANS = {'completo': [k for k in MODULES if k not in UNAVAILABLE], 'inicial': ['nucleo']}
+UNAVAILABLE = {'datafono'}
+PLANS = {'completo': [k for k in MODULES if k not in {'asistente_whatsapp', 'datafono'}], 'inicial': ['nucleo']}
 PLAN_CHOICES = [('completo', 'Completo'), ('inicial', 'Inicial (reservado)')]
 MODULE_CHOICES = [(key, row['name']) for key, row in MODULES.items()]
 _cache = ContextVar('modulos_peticion', default=None)
@@ -102,6 +102,11 @@ def validate_dependencies(org, *, activating=False):
                 dependents = [MODULES[k]['name'] for k in MODULES if k in active and set(MODULES[k]['depends']) & missing]
                 raise Problem('module_dependency', 'Hay módulos activos que necesitan estas dependencias: ' + ', '.join(MODULES[k]['name'] for k in sorted(missing)) + '.', 409,
                               **({'missing': [MODULES[k]['name'] for k in sorted(missing)]} if activating else {'dependents': dependents}))
+            alternatives = [MODULES[k]['depends_any'] for k in active if MODULES[k].get('depends_any') and not set(MODULES[k]['depends_any']) & active]
+            if alternatives:
+                names = [' o '.join(MODULES[d]['name'] for d in group) for group in alternatives]
+                raise Problem('module_dependency', 'Pagos en línea necesita una de estas opciones: ' + ', '.join(names) + '.', 409, **({'missing': names} if activating else {'dependents': ['Pagos en línea']}))
+
 
 
 @transaction.atomic
@@ -123,19 +128,23 @@ def set_module(actor, org, key, active, restaurant=None, ends=None, limits=None,
         except (InvalidOperation, ValueError):
             raise Problem('invalid_data', 'Indica un precio válido.') from None
     locked = Organization.objects.select_for_update().get(pk=org.pk)
+    from .recurring import settle_expirations, sync_recurring
+    settle_expirations(locked)
+    sync_recurring(locked)
     row, _ = OrganizationModule.objects.update_or_create(organization=locked, restaurant=restaurant, key=key,
         defaults={'active': active, 'starts': timezone.now(), 'ends': ends, 'limits': limits or {}, 'price': price, 'notes': notes, 'actor': actor})
     validate_dependencies(locked, activating=active)
     audit(actor, locked, 'module_change', {'key': key, 'active': active, 'restaurant_id': restaurant.pk if restaurant else None,
                                         'ends': ends.isoformat() if ends else None, 'limits': limits or {}, 'price': str(price) if price is not None else None, 'notes': notes})
     invalidate_cache()
+    sync_recurring(locked)
     return row
 
 
 def modules_response(org):
     return {'plan': org.plan, 'plans': [{'key': key, 'name': name} for key, name in PLAN_CHOICES],
             'catalog': [{'key': key, 'name': row['name'], 'depends': row['depends'], 'units': list(row['units']),
-                         'required': key == 'nucleo', 'available': key not in UNAVAILABLE} for key, row in MODULES.items()],
+                         'depends_any': row.get('depends_any', []), 'required': key == 'nucleo', 'available': key not in UNAVAILABLE} for key, row in MODULES.items()],
             'organization': resolved_modules(org),
             'restaurants': [{'id': r.pk, 'name': r.name, 'modules': resolved_modules(org, r)} for r in org.restaurants.order_by('id')]}
 
@@ -165,6 +174,9 @@ def change_modules(actor, org, data):
         current = OrganizationModule.objects.filter(organization=org, restaurant=local, key=key).first()
         if 'clear' in data:
             require(data['clear'] is True and set(data) <= {'key', 'restaurant_id', 'clear'}, 'No mezcles quitar una excepción con editarla.', 'invalid_data', 400)
+            from .recurring import settle_expirations, sync_recurring
+            settle_expirations(org)
+            sync_recurring(org)
             if current:
                 current.delete()
             validate_dependencies(org)
@@ -181,4 +193,6 @@ def change_modules(actor, org, data):
                 require(values['ends'] is not None, 'Indica una vigencia ISO válida.', 'invalid_data', 400)
             set_module(actor, org, key, data['active'], local, **values)
     invalidate_cache()
+    from .recurring import sync_recurring
+    sync_recurring(org)
     return modules_response(org)

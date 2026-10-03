@@ -60,7 +60,7 @@ def test_pago_aprobado_termina_con_modulos_apagados(setup):
         action='opinion', reference='premio', reward='descuento', percent=10, state='reservado', order=pedido)
     pago = attempt(setup, status='APPROVED')
     local = Restaurant.objects.get(pk=1)
-    for modulo in ('asistente_menu', 'fidelizacion', 'menu_comensal', 'pagos_en_linea'):
+    for modulo in ('asistente_menu', 'fidelizacion', 'pagos_en_linea', 'menu_comensal'):
         set_module(None, local.organization, modulo, False, local)
     with patch('experience_app.adapters.core.pos.Client.call_kw', return_value={'paid': True}) as pos:
         online_payments.reconcile(pago)
@@ -81,3 +81,30 @@ def test_codigo_demo_medido(api_client, two_diners, settings):
     assert respuesta.status_code == 201
     fila = UsageRecord.objects.get(module='fidelizacion')
     assert fila.unit == 'codigo_verificacion' and fila.quantity == 1 and fila.restaurant_id == 1
+
+
+# Falla si sin Salón se abre una sesión de mesa o se impide consultar el menú público.
+def test_sin_salon_se_puede_ver_menu_pero_no_abrir_mesa(api_client, table_tenant, catalog_stub):
+    local = Restaurant.objects.get(pk=1)
+    set_module(None, local.organization, 'salon', False, local)
+    assert api_client.get('/api/v1/burger-house/poblado/').status_code == 200
+    response = api_client.post('/api/v1/sesiones/', {'restaurante': 'burger-house', 'sede': 'poblado', 'token': '8H2KQ7'}, format='json')
+    assert response.status_code == 403 and response.json()['module'] == 'salon'
+
+
+# Falla si una sesión abierta antes de apagar Salón todavía permite confirmar un pedido desde la mesa.
+def test_sesion_de_mesa_existente_respeta_salon(api_client, two_diners):
+    session, ana, _ = two_diners
+    api_client.cookies['waiter_diner'] = ana.key
+    local = Restaurant.objects.get(pk=1)
+    set_module(None, local.organization, 'salon', False, local)
+    response = api_client.post(f'/api/v1/sesiones/{session.pk}/confirmar/', {}, format='json')
+    assert response.status_code == 403 and response.json()['module'] == 'salon'
+
+
+# Falla si apagar Salón impide abrir una sesión para llevar sin token de mesa.
+def test_sesion_para_llevar_sigue_disponible_sin_salon(api_client):
+    local = Restaurant.objects.get(pk=1)
+    set_module(None, local.organization, 'salon', False, local)
+    response = api_client.post('/api/v1/sesiones/', {'restaurante': 'burger-house', 'sede': 'poblado'}, format='json')
+    assert response.status_code == 201, response.data

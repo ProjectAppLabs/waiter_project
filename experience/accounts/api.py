@@ -80,10 +80,12 @@ class RestaurantsView(ContractView):
     def patch(self, request, pk):
         account = pos_session(request).account
         require(account.role in ('owner', 'admin'))
-        restaurant = restaurants_for(account).filter(pk=pk).first()
+        restaurant = account.organization.restaurants.filter(pk=pk).first() if account.role == 'owner' else restaurants_for(account).filter(pk=pk).first()
         require(restaurant, 'No encontramos este restaurante.', 'not_found', 404)
         data = payload(request.data, RESTAURANT_FIELDS)
         with transaction.atomic():
+            from tenancy.models import Organization
+            Organization.objects.select_for_update().get(pk=account.organization_id)
             restaurant = type(restaurant).objects.select_for_update().get(pk=restaurant.pk)
             assign_values(restaurant, data)
             if 'access_margin_minutes' in data:

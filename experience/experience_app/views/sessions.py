@@ -38,6 +38,8 @@ def open_session(request):
     tenant = resolve(data.get('restaurante', ''), data.get('sede', ''), data.get('token') or None)
     from experience_app.module_access import require_location
     require_location(tenant.restaurant_slug, tenant.venue_slug, 'menu_comensal')
+    if tenant.table_token:
+        require_location(tenant.restaurant_slug, tenant.venue_slug, 'salon')
     session, diner = sessions.open_session(tenant, request.COOKIES.get(COOKIE))
     if tenant.table_token and not session.orders.exists():
         sessions.table_call(tenant, session, 'ordering')

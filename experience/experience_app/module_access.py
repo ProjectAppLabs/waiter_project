@@ -34,6 +34,8 @@ def module_view(view, module):
         if org:
             try:
                 require_location(org, venue, module)
+                if session and session.table_token and module == 'menu_comensal' and request.method not in ('GET', 'HEAD', 'OPTIONS'):
+                    require_location(org, venue, 'salon')
             except Problem as exc:
                 return JsonResponse(exc.body, status=exc.status)
         return view(request, *args, **kwargs)

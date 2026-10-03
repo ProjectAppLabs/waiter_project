@@ -140,4 +140,75 @@ disponible lanza `quota_exhausted` (402).
 
 ## Estado
 
-- 2026-10-03: plan escrito. Nada implementado.
+- 2026-10-03: plan escrito.
+
+- **Servidor (Codex), 2026-10-03:** implementado el servidor del plan X en `experience/`.
+  - **Precios y contratos:** `GET/PATCH settings/pricing` con todos los valores iniciales y sincronización de
+    `settings/billing.unit_prices`; alta y edición con `pricing`, `effective_pricing` y `monthly_price` efectivo.
+    Las versiones de la lista empiezan a aplicarse el mes siguiente en la zona horaria del cliente. Las
+    personalizaciones heredan los campos omitidos. La migración conserva el precio por local de cada organización
+    existente en modo `personalizado`, incluidos los precios cero.
+  - **Consumo y recargas:** `tenancy.usage.consume`, integrado también en la medición existente, asigna primero
+    incluido, después recargas por fecha de abono e identificador y finalmente excedente. Bloquea con
+    `402 quota_exhausted` sin dejar consumos ni débitos parciales. La clave exacta de `UsageRecord` y el bloqueo de la
+    organización hacen idempotentes la asignación y sus movimientos. El incluido se reinicia por mes; las recargas
+    no vencen. Se entregan `quotas`, `recharge_packs` y `account_credit` en `consumption`, `POST/GET recharges` para
+    el dueño y `GET/POST organizations/<slug>/credits` para consulta y cortesías auditadas. Las cuentas llevan
+    `kind`; solo pagar una recarga abona saldo y repetir el pago no lo duplica.
+  - **Mensualidades y prorrateo:** se cobran locales, módulos con precio y plan de WhatsApp por adelantado; solo el
+    excedente de uso del mes anterior entra en la cuenta siguiente, al precio guardado cuando se consumió.
+    Los intervalos conservan altas, activaciones, bajas, cambios de precio, cambios del plan y vencimientos de
+    excepciones. Se comparan los días efectivos con el adelanto guardado en la cuenta anterior, admitiendo ajustes
+    negativos. Un neto negativo emite total cero y aumenta el saldo a favor; la próxima mensualidad lo aplica hasta
+    agotarlo. No se reabren cuentas. Los días de prueba gratuita no se facturan por prorrateo.
+  - **Dependencias y acceso:** Pagos admite Menú o WhatsApp, con alternativas legibles en catálogo y errores.
+    Se puede configurar la activación de WhatsApp para preparar el canal, aunque sigue apagado en la plantilla
+    completa y su integración externa continúa pendiente. Abrir una sesión con token de mesa y pedir desde una
+    sesión de mesa existente exige Salón; consultar el menú y abrir una sesión para llevar siguen disponibles.
+    La edición de locales acepta `active`, incluida la reactivación de un local inactivo por su dueño.
+  - **Decisiones donde el plan no fijaba detalle:** el día del cambio pertenece al estado nuevo y los ajustes se
+    redondean a centavos tras sumar los días, con `Decimal`. La mensualidad general de un módulo es por organización;
+    las excepciones con precio local sustituyen su ámbito y, si todos los locales activos tienen precio propio,
+    no se agrega además el precio general. Un cupo local tiene su propia bolsa; el cupo de organización y las
+    recargas se comparten entre locales. El cupo de una excepción sustituye el incluido del plan para esa unidad.
+    Para un consumo que atraviesa varias bolsas, `source` indica la última utilizada; el reintento devuelve la misma
+    asignación. La cuenta de recarga factura un paquete en una línea y su saldo usa la cantidad del paquete guardado.
+    Las recargas pendientes y las cuentas de total cero no suspenden por mora; una mensualidad anulada no produce
+    crédito de prorrateo. El saldo monetario a favor se aplica a mensualidades. Un plan de WhatsApp recién creado
+    puede contratarse inmediatamente; los cambios posteriores de su tarifa estándar esperan al mes siguiente.
+  - **Migración e historia:** el historial de actividad de clientes anteriores comienza al migrar, sin inventar
+    días de actividad anteriores. Se conserva el adelanto identificable por las líneas de locales de la cuenta
+    del mes y se mantienen los importes de cuentas emitidas. Las cuentas históricas sin desglose identificable no
+    se recalculan. El uso anterior queda como excedente con su tarifa anterior guardada; los precios especiales
+    de módulos que W almacenaba sin cobrar empiezan a devengarse desde X.
+  - **Formas de respuesta:** se respetan los nombres y envoltorios acordados. Para las formas que el plan no
+    detallaba, el catálogo agrega `depends_any` (lista de claves alternativas), los locales exponen `active`, y
+    `movements.actor` es `{id, name}` o `null`. El plan seleccionado y personalizado se refleja en la entrada
+    correspondiente de `effective_pricing.whatsapp_plans`, conservando la forma de `settings/pricing` más
+    `whatsapp_plan`. Los campos internos de cálculo no salen en `consumption` del dueño.
+  - **Archivos:** nuevos `tenancy/{price_lists,credits,recurring}.py`, migraciones
+    `0010_precios_recargas_e_intervalos` y `0011_conservar_precios_y_abrir_intervalos`, y pruebas
+    `tenancy/tests/{test_precios_recargas,test_migracion_precios}.py`. Cambiados
+    `tenancy/{models,modules,usage,pricing,subscriptions,services,serialization,api,urls,pos_urls}.py`,
+    `accounts/api.py`, `experience_app/{module_access.py,views/sessions.py}` y las pruebas existentes
+    `tenancy/tests/{test_consumo,test_modulos,test_subscriptions,test_isolation_all_routes}.py` y
+    `experience_app/tests/views/test_modulos.py`.
+  - **Ajustes de pruebas anteriores:** se amplían las igualdades de consumo y precios con los campos nuevos;
+    se apaga Pagos antes de apagar el último canal del que depende; se agregan GET y POST de recargas al inventario
+    exhaustivo de aislamiento. El caso de cliente gratuito ahora lo crea gratuito desde el alta: convertir un
+    cliente con actividad cobrada en gratuito requiere ajustes por los días anteriores. Se conservan las
+    comprobaciones de permisos, aislamiento, finalización de pagos comprometidos y atomicidad.
+  - **Verificación final:** **2059 pruebas aprobadas en 254,32 s**, incluida la regresión de días de prueba.
+    `manage.py check` sin problemas y `manage.py makemigrations --check --dry-run` sin cambios pendientes.
+    Se aplicaron todas las migraciones en una base SQLite vacía y se probó también migrar realmente desde el esquema
+    W con acuerdos, consumo y cuentas anteriores. Se usan columnas generadas con `only_when` para unicidad
+    condicional y `ExactCharField` para la idempotencia; no se introdujeron índices parciales ni cálculos monetarios
+    con `float`. Las comprobaciones se ejecutan con SQLite y `PYTHON_DOTENV_DISABLED=1`, sin MySQL ni Docker.
+    No se hicieron commits, no se levantaron servidores y no se modificaron `.env`, POS, comensal web ni despliegue.
+- **Pantallas (Claude), 2026-10-03:** sección Precios en la consola de ProjectApp; precios Estándar o Personalizados y
+  plan de WhatsApp en el alta y la ficha; saldo de recargas, movimientos y cortesías; cuentas de recarga en Cobros;
+  dependencias «una de» en Módulos. Consola del dueño: incluido, usado, recargas y excedente, pedir recarga, saldo a
+  favor y ajustes de prorrateo.
+- **Verificación de la integración:** 2059 pruebas del servidor sobre MySQL, 649 del POS, 508 del menú y 19 recorridos
+  en el navegador, entre ellos la recarga del dueño (el saldo sube solo al registrar el pago), los módulos por local y
+  la lista de precios con datos reales.

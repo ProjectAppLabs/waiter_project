@@ -80,7 +80,7 @@ export const chargeOrg = (c: Charge) => (typeof c.organization === 'string' ? { 
 // Plan W: módulos de una organización (contrato en docs/planes/2026-10-03-plan-W-modularizacion.md).
 export type ModuleSource = 'plan' | 'organization' | 'restaurant'
 export interface ModuleState { key: string; active: boolean; source: ModuleSource; starts: string | null; ends: string | null; limits: Record<string, number> | null; price: number | null; notes: string }
-export interface CatalogModule { key: string; name: string; depends: string[]; units: string[]; required: boolean; available: boolean }
+export interface CatalogModule { key: string; name: string; depends: string[]; depends_any?: string[]; units: string[]; required: boolean; available: boolean }
 export interface OrganizationModules {
   plan: string; plans: { key: string; name: string }[]; catalog: CatalogModule[]
   organization: ModuleState[]; restaurants: { id: number; name: string; modules: ModuleState[] }[]

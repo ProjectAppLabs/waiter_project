@@ -1,4 +1,6 @@
 """Representaciones públicas de la plataforma y los restaurantes."""
+from decimal import Decimal
+
 from .http import model_dict
 from .services import ORG_FIELDS, RESTAURANT_FIELDS
 
@@ -13,8 +15,15 @@ def owner_dict(organization):
 
 
 def organization_dict(organization):
+    from .price_lists import effective_pricing
+    prices = effective_pricing(organization)
+    pricing = dict(organization.pricing or {'mode': 'personalizado', 'local_monthly': organization.monthly_price})
+    if 'local_monthly' in pricing:
+        pricing['local_monthly'] = Decimal(str(pricing['local_monthly']))
     return {**model_dict(organization, ('id', 'slug', *ORG_FIELDS, 'status', 'suspended_at', 'suspended_reason', 'created_at')),
-            'owner': owner_dict(organization), 'restaurants_count': organization.restaurants.count()}
+            'owner': owner_dict(organization), 'restaurants_count': organization.restaurants.count(),
+            'pricing': pricing,
+            'effective_pricing': prices, 'monthly_price': prices['local_monthly'], 'account_credit': organization.account_credit}
 
 
 def restaurant_dict(restaurant):
