@@ -1,5 +1,6 @@
 'use client'
 
+import { ExportMenu } from '@/components/kit/ExportMenu'
 import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useState } from 'react'
 
@@ -30,6 +31,9 @@ import { useAuthStore } from '@/lib/stores/authStore'
 import { useCatalogStore } from '@/lib/stores/catalogStore'
 import { usePantryStore } from '@/lib/stores/pantryStore'
 import { toast } from '@/lib/stores/toastStore'
+
+// Plan Y1: fechas del periodo de exportes, en la zona del equipo.
+const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toLocaleDateString('en-CA')
 
 type IngredientModal = { kind: 'add' } | { kind: 'edit'; ingredient: Ingredient } | { kind: 'delete'; ingredient: Ingredient } | null
 
@@ -149,7 +153,11 @@ export default function InventarioPage() {
             {s.tab === 'menu' && owner && <span className="ml-4 flex gap-2">
               <Button size="compact" onClick={() => setMenuAdmin({ kind: 'categories' })}>{t('menuAdmin.categories')}</Button>
               <Button size="compact" onClick={() => setMenuAdmin({ kind: 'offMenu' })}>{t('menuAdmin.offMenu')}</Button>
-            </span>}<button className="ml-auto text-sm text-primary" onClick={()=>void s.refresh().catch(e=>toast({title:String(e),tone:'danger'}))}>Actualizar</button></header>
+            </span>}<span className="ml-auto flex items-center gap-3">
+              {/* Plan Y1: existencias de hoy y movimientos de los últimos 30 días, del servidor. */}
+              <ExportMenu options={[{ kind: 'inventario', label: 'Existencias de hoy' }, { kind: 'movimientos', label: 'Movimientos (últimos 30 días)' }]}
+                params={configId === null ? null : { restaurant_id: configId, from: daysAgo(30), to: daysAgo(0) }} />
+              <button className="text-sm text-primary" onClick={()=>void s.refresh().catch(e=>toast({title:String(e),tone:'danger'}))}>Actualizar</button></span></header>
           <div className="flex-1 min-h-0 overflow-auto flex flex-col">
             {s.error && <p role="alert" className="m-4 p-3 rounded-md bg-danger-soft text-danger-ink text-[14px]">{s.error}</p>}
             {s.tab === 'menu' && (dishes.length === 0 && !s.loading

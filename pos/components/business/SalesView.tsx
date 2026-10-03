@@ -1,5 +1,6 @@
 'use client'
 
+import { ExportMenu } from '@/components/kit/ExportMenu'
 import { serverDate } from '@/lib/domain/time'
 import { useTranslations } from 'next-intl'
 import { useEffect, useMemo, useState } from 'react'
@@ -56,6 +57,16 @@ export function SalesView() {
     return validRange(range) ? { kind: 'range', ...range } : null
   }, [period, shiftId, custom])
   const scopeKey = scope ? JSON.stringify(scope) : ''
+  // Plan Y1: el periodo de la pantalla (o el del turno elegido) para exportar ventas y pagos al detalle.
+  const exportParams = useMemo(() => {
+    if (!scope) return null
+    const restaurant_id = catalog?.settings.configId ?? null
+    if (scope.kind === 'range') return { from: scope.from, to: scope.to, restaurant_id }
+    const shift = shifts.find((sh) => sh.id === scope.sessionId)
+    if (!shift) return null
+    const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('en-CA') : todayIso())
+    return { from: day(shift.startAt), to: day(shift.stopAt), restaurant_id }
+  }, [scope, shifts, catalog])
   useEffect(() => {
     if (!scope) return
     let alive = true
@@ -91,7 +102,7 @@ export function SalesView() {
   )
   return (
     <>
-      <PageHeader title={t('title')} />
+      <PageHeader title={t('title')} actions={<ExportMenu options={[{ kind: 'ventas', label: 'Ventas al detalle' }, { kind: 'pagos', label: 'Pagos' }]} params={exportParams} />} />
       {/* Filtro de periodo: fichas para lo habitual, fechas para un rango y el turno para cuadrar la caja. */}
       <div role="group" aria-label={t('period.label')} className="shrink-0 px-5 pb-4 flex flex-wrap items-center gap-2">
         {SALES_PERIODS.map((p) => (
