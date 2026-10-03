@@ -41,7 +41,7 @@ Los documentos de venta salen de un proveedor de factura electrónica **simulado
 | `sofia.mesera` | `waiter-demo-2026` | Mesera de Poblado | `http://localhost:3000/login` |
 | `mateo.mesero` | `waiter-demo-2026` | Mesero de Laureles, con turno (sirve para «fuera de horario») | `http://localhost:3000/login` |
 | `maria.lopez` | `Frisby-2026!` | Dueña de Frisby (sistema propio) | `http://frisby-74312.localhost:3000/login` → `/organizacion` |
-| `ana.projectapp` | `Plataforma-2026` | Administradora de ProjectApp | `http://localhost:3000/plataforma/login` |
+| `ana.projectapp` | `Plataforma-2026` | Administradora de ProjectApp | `http://localhost:3000/login` → consola `/plataforma` |
 
 Otras direcciones:
 

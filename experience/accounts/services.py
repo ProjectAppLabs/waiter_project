@@ -69,7 +69,7 @@ def invitation(user, reset=False):
             user.save(update_fields=['invite_code_hash', 'invite_expires', 'invite_attempts', 'invite_sent_at'])
             platform = isinstance(user, PlatformUser)
             base = settings.PLATFORM_URL if platform else settings.POS_URL
-            link = base + ('/plataforma/login?' if platform else '/login?') + urlencode({'codigo': user.username})
+            link = base + '/login?' + urlencode({'codigo': user.username})
             button = f'<p><a href="{escape(link)}">Poner mi contraseña</a></p>'
             hello = f'<p>Hola {escape(user.name)},</p>'
             identity = f'<p>Tu usuario es <strong>{escape(user.username)}</strong>; también puedes entrar con este correo.</p>'

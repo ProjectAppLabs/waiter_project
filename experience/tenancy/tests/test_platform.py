@@ -1,3 +1,4 @@
+from zoneinfo import ZoneInfo
 from datetime import timedelta
 from io import StringIO
 from unittest.mock import patch
@@ -142,7 +143,7 @@ def test_team_invite_deactivate_and_audit():
     response = client.post(BASE+'/team', {'name': 'Ana Pérez', 'email': 'ana@ejemplo.co', 'role': 'operator'}, format='json')
     assert response.status_code == 201, response.data
     user = PlatformUser.objects.get(username='ana.perez')
-    assert '/plataforma/login?codigo=ana.perez' in mail.outbox[0].alternatives[0].content
+    assert '/login?codigo=ana.perez' in mail.outbox[0].alternatives[0].content
     assert 'password' not in response.data['user'] and 'invite_code_hash' not in response.data['user']
     assert client.post(BASE+f'/team/{user.id}/deactivate').status_code == 200
     user.refresh_from_db()
@@ -208,7 +209,8 @@ def test_platform_deactivation_revokes_cookie():
 
 def test_status_follows_trial_date():
     # Falla si una organización sin fecha de prueba nace en prueba (el asistente promete que nace activa), si con fecha
-    # no nace en prueba, o si al reactivarla no vuelve a prueba mientras su fecha siga vigente.
+    # no nace en prueba, si al reactivarla no vuelve a prueba mientras su fecha siga vigente, o si la prueba depende de
+    # la hora a la que se corra.
     client = platform_client(platform_user())
     active = client.post(BASE+'/organizations', body(), format='json').data['organization']
     assert active['status'] == 'active'
@@ -217,7 +219,10 @@ def test_status_follows_trial_date():
     assert trial['status'] == 'trial'
     client.post(BASE+'/organizations/en-prueba/suspend', {'reason': 'prueba'}, format='json')
     assert client.post(BASE+'/organizations/en-prueba/reactivate', format='json').data['organization']['status'] == 'trial'
-    Organization.objects.filter(slug='en-prueba').update(trial_ends=timezone.localdate() - timedelta(days=1))
+    # «Ayer» en la zona de la organización, como compara el servidor (en UTC ya es mañana desde las 19:00 de Bogotá).
+    org = Organization.objects.get(slug='en-prueba')
+    org_today = timezone.now().astimezone(ZoneInfo(org.timezone)).date()
+    Organization.objects.filter(pk=org.pk).update(trial_ends=org_today - timedelta(days=1))
     client.post(BASE+'/organizations/en-prueba/suspend', {'reason': 'prueba'}, format='json')
     assert client.post(BASE+'/organizations/en-prueba/reactivate', format='json').data['organization']['status'] == 'active'
 
