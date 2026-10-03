@@ -7,9 +7,7 @@ import type { DraftOrder } from '@/lib/domain/order'
 import type { LocalFlags } from '@/lib/domain/tableState'
 import { play } from '@/lib/audio/sounds'
 import { change, type SettlePlan } from '@/lib/domain/payment'
-import { fireUnsentLines } from '@/lib/services/kitchen'
 import { clearTableCall, listTableCalls, type TableCall } from '@/lib/services/tables'
-import { useOpsStore } from '@/lib/stores/opsStore'
 import { addTip, closeOrder, setChange, getShiftSummary, listOpenOrders, payOrder, saveOrder } from '@/lib/services/orders'
 import type { OpenOrder, SavedOrder, ShiftSummary } from '@/lib/services/orders'
 import type { Product } from '@/lib/types'
@@ -30,8 +28,6 @@ interface OrderState {
   orderNote: (note: string) => void
   remove: (lineUuid: string) => void
   save: () => Promise<void>
-  sendToKitchen: () => Promise<void>
-  requestBill: () => Promise<void>
   receipt: ReceiptData | null
   settle: (plan: SettlePlan, ctx: SettleContext) => Promise<boolean>
   closeReceipt: () => void
@@ -76,8 +72,6 @@ export const useOrderStore = create<OrderState>((set, get) => {
       return null
     }
   }
-  const flag = (tableId: number, patch: LocalFlags) =>
-    set((s) => ({ flags: { ...s.flags, [tableId]: { ...s.flags[tableId], ...patch } } }))
 
   return {
     draft: null, saved: null, openOrders: [], calls: [], shift: null, flags: {}, busy: false, error: null, receipt: null,
@@ -88,16 +82,6 @@ export const useOrderStore = create<OrderState>((set, get) => {
     orderNote: (n) => update((d) => setOrderNote(d, n)),
     remove: (u) => update((d) => removeLine(d, u)),
     save: async () => { await persist() },
-    sendToKitchen: async () => {
-      const saved = await persist()
-      if (!saved) return
-      set({ busy: true })
-      try { await fireUnsentLines(saved.id) } catch (e) { set({ error: message(e) }) } finally { set({ busy: false }) }
-    },
-    requestBill: async () => {
-      const saved = await persist()
-      if (saved) { flag(get().draft!.tableId, { billing: true }); useOpsStore.getState().markBilling(get().draft!.tableId, Date.now()) }
-    },
     settle: async (plan, ctx) => {
       let orderId = ctx.existing?.orderId ?? null
       let tableId = ctx.existing?.tableId ?? null

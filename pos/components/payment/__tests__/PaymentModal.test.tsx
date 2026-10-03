@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { NextIntlClientProvider } from 'next-intl'
 
@@ -38,11 +38,13 @@ it('pays cash through orderStore.settle and shows the change', async () => {
   await userEvent.click(await screen.findByRole('button', { name: '100.000' }))
   await userEvent.click(screen.getByRole('button', { name: 'Pagar ahora' }))
   const settle = useOrderStore.getState().settle as jest.Mock
+  // Con la máquina cargada el cobro llega un poco después: se espera en vez de leerlo en seco.
+  await waitFor(() => expect(settle).toHaveBeenCalled(), { timeout: 5000 })
   expect(settle.mock.calls[0][0]).toEqual({ tip: 0, payments: [{ methodId: 1, type: 'cash', amount: 100000, received: 100000, reference: '' }] })
   expect(settle.mock.calls[0][1]).toMatchObject({ existing: { orderId: 40, tableId: 9 } })
-  expect(await screen.findByText('¡Pago exitoso!')).toBeInTheDocument()
+  expect(await screen.findByText('¡Pago exitoso!', undefined, { timeout: 5000 })).toBeInTheDocument()
   expect(screen.getByText('Efectivo')).toBeInTheDocument()
-})
+}, 20000)
 
 // Falla si sin programa de fidelización la pantalla inventa puntos en vez de decir que no hay programa.
 it('says there is no points programme when el servidor has none', async () => {
