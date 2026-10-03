@@ -43,10 +43,11 @@ def test_dependencias_y_auditoria_atomicas():
     assert not OrganizationModule.objects.exists() and not PlatformAudit.objects.exists()
     set_module(None, org, 'fidelizacion', False)
     set_module(None, org, 'asistente_menu', False)
+    set_module(None, org, 'pagos_en_linea', False)
     set_module(None, org, 'menu_comensal', False)
     with pytest.raises(Problem):
         set_module(None, org, 'asistente_menu', True)
-    assert PlatformAudit.objects.filter(action='module_change').count() == 3
+    assert PlatformAudit.objects.filter(action='module_change').count() == 4
 
 
 # Falla si MySQL puede guardar dos excepciones de organización por tener local NULL.
@@ -67,6 +68,7 @@ def test_dependencias_por_local_y_vencimiento():
     with pytest.raises(Problem):
         set_module(None, org, 'menu_comensal', False)
     set_module(None, org, 'asistente_menu', False, local, ends=timezone.now() + timedelta(days=1))
+    set_module(None, org, 'pagos_en_linea', False)
     set_module(None, org, 'menu_comensal', False)
     with pytest.raises(Problem):
         set_module(None, org, 'fidelizacion', False, ends=timezone.now() + timedelta(days=1))
@@ -205,7 +207,7 @@ def test_contrato_errores_dependencias():
     assert resultado.status_code == 409
     assert set(resultado.json()) == {'error', 'message', 'dependents'}
     assert 'Fidelización' in resultado.json()['dependents']
-    for key in ('asistente_menu', 'fidelizacion', 'menu_comensal'):
+    for key in ('asistente_menu', 'fidelizacion', 'pagos_en_linea', 'menu_comensal'):
         assert cliente.patch(ruta, {'key': key, 'active': False}, format='json').status_code == 200
     resultado = cliente.patch(ruta, {'key': 'fidelizacion', 'active': True}, format='json')
     assert resultado.status_code == 409 and resultado.json()['missing'] == ['Menú del comensal']
@@ -219,6 +221,7 @@ def test_quitar_excepcion_valida_dependencias():
     local = restaurant(org)
     set_module(None, org, 'asistente_menu', False)
     set_module(None, org, 'fidelizacion', False)
+    set_module(None, org, 'pagos_en_linea', False)
     set_module(None, org, 'menu_comensal', False)
     set_module(None, org, 'menu_comensal', True, local)
     set_module(None, org, 'asistente_menu', True, local)

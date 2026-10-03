@@ -71,10 +71,10 @@ export function ChargesView() {
               return (
                 <tr key={c.id} className="border-b border-border last:border-0">
                   <td className="px-4 py-3"><Link href={`/plataforma/clientes/${org.slug}`} className="font-semibold hover:text-primary">{org.name}</Link></td>
-                  <td className="px-4 py-3 tabular">{c.period}</td>
+                  <td className="px-4 py-3 tabular">{c.period}{c.kind === 'recarga' && <span className="ml-2 text-[12px] font-semibold text-primary">Recarga</span>}</td>
                   <td className="px-4 py-3 text-right tabular"><div>{money(c.amount)}</div>
                     {/* Plan W: el detalle de la cuenta, línea por línea (mensualidad por local y uso). */}
-                    {(c.lines?.length ?? 0) > 0 && <ul aria-label={`Detalle ${c.period}`} className="mt-1 text-[12px] text-dim text-right">{c.lines!.map((l, i) => <li key={i}>{l.concept}: {l.quantity} × {money(l.unit_price)}</li>)}</ul>}</td>
+                    {(c.lines?.length ?? 0) > 0 && <ul aria-label={`Detalle ${c.period}`} className="mt-1 text-[12px] text-dim text-right">{c.lines!.map((l, i) => <li key={i}>{l.concept}: {l.total < 0 ? `− ${money(-l.total)}` : `${l.quantity} × ${money(l.unit_price)}`}</li>)}</ul>}</td>
                   <td className="px-4 py-3 tabular">{c.due_date}</td>
                   <td className="px-4 py-3"><StatusPill tone={CHARGE_STATE[c.state].tone}>{CHARGE_STATE[c.state].label}</StatusPill></td>
                   <td className="px-4 py-3 text-soft">{c.paid_at ? <>{new Date(c.paid_at).toLocaleDateString('es-CO', { dateStyle: 'medium' })}<div className="text-[13px] text-dim">{c.method} {c.reference && `· ${c.reference}`}</div></> : '—'}</td>

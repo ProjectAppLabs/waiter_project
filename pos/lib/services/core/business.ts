@@ -31,5 +31,12 @@ export const subscription = () => coreFetch<Subscription>('subscription')
 // Plan W5: lo que la organización lleva del mes (contrato en docs/planes/2026-10-03-plan-W-modularizacion.md).
 export interface ConsumptionLine { concept: string; module: string; unit: string; quantity: number; unit_price: number; total: number }
 export interface ConsumptionUsage { module: string; module_name: string; unit: string; unit_name: string; quantity: number; restaurant_id: number | null; restaurant_name: string | null }
-export interface Consumption { period: string; currency: string; locals_active: number; price_per_local: number; lines: ConsumptionLine[]; estimated_total: number; usage: ConsumptionUsage[] }
+export interface ConsumptionQuota { module: string; module_name: string; unit: string; unit_name: string; included: number; used: number; credits: number; overage: number; on_exhausted: 'cobrar' | 'bloquear' }
+export interface RechargePackOffer { key: string; name: string; module: string; unit: string; quantity: number; price: number }
+export interface Consumption { period: string; currency: string; locals_active: number; price_per_local: number; lines: ConsumptionLine[]; estimated_total: number; usage: ConsumptionUsage[]
+  // Plan X: incluido, recargas y excedente por unidad; paquetes que puede comprar; saldo a favor.
+  quotas?: ConsumptionQuota[]; recharge_packs?: RechargePackOffer[]; account_credit?: number }
+export interface Recharge { id: number; pack: string; name: string; quantity: number; price: number; state: 'pending' | 'paid' | 'overdue' | 'void'; created_at: string; paid_at: string | null }
+export const requestRecharge = (pack: string) => coreFetch<{ charge: { id: number; amount: number; state: string } }>('recharges', { method: 'POST', body: { pack } })
+export const listRecharges = () => coreFetch<{ recharges: Recharge[] }>('recharges').then((r) => r.recharges)
 export const consumption = (period?: string) => coreFetch<Consumption>(`consumption${period ? `?period=${period}` : ''}`)

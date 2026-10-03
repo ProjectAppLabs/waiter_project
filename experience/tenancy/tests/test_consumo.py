@@ -106,7 +106,7 @@ def test_contrato_consumo_dueno():
     local = restaurant(org)
     dueño = pos_client(account(org))
     respuesta = dueño.get('/api/pos/v1/consumption').json()
-    assert set(respuesta) == {'period', 'currency', 'locals_active', 'price_per_local', 'lines', 'estimated_total', 'usage'}
+    assert set(respuesta) == {'period', 'currency', 'locals_active', 'price_per_local', 'lines', 'estimated_total', 'usage', 'quotas', 'recharge_packs', 'account_credit'}
     assert respuesta['estimated_total'] == 150000
     assert set(respuesta['lines'][0]) == {'concept', 'module', 'unit', 'quantity', 'unit_price', 'total'}
     encargado = pos_client(account(org, 'admin', 'encargado', restaurants=[local]))

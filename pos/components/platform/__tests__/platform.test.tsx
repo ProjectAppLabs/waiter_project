@@ -20,6 +20,9 @@ jest.mock('@/lib/services/core/platform', () => ({
   reactivateOrganization: jest.fn().mockResolvedValue({}), resendOwnerInvite: jest.fn().mockResolvedValue({ ok: true, sent: true }),
   listPlatformTeam: jest.fn(), invitePlatformUser: jest.fn(), deactivatePlatformUser: jest.fn(), resendPlatformInvite: jest.fn(),
   platformLogin: jest.fn(), platformLogout: jest.fn(), platformMe: jest.fn(),
+  priceBook: jest.fn(async () => ({ local_monthly: 150000, modules: {}, unit_prices: { 'asistente_whatsapp.pedido_asistente': 500 }, on_exhausted: 'cobrar',
+    whatsapp_plans: [{ key: 'inicial', name: 'Inicial', monthly_price: 50000, included: { pedido_asistente: 100 } }], recharge_packs: [] })),
+  organizationCredits: jest.fn(() => new Promise(() => undefined)), grantCredits: jest.fn(),
   organizationModules: jest.fn(() => new Promise(() => undefined)), organizationUsage: jest.fn(() => new Promise(() => undefined)), changeOrganizationModules: jest.fn(),
 }))
 
@@ -70,13 +73,18 @@ it('da de alta un cliente en tres pasos', async () => {
   expect(screen.getByLabelText('Usuario')).toHaveValue('maria.lopez')
   fireEvent.change(screen.getByLabelText('Correo del dueño'), { target: { value: 'maria@frisby.co' } })
   fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }))
+  // Precios personalizados: 450.000 por local y el plan Inicial de WhatsApp.
+  await waitFor(() => expect(screen.getByRole('option', { name: /Inicial/ })).toBeInTheDocument())
+  fireEvent.click(screen.getByRole('radio', { name: /Personalizado/ }))
   fireEvent.change(screen.getByLabelText('Precio por local al mes (COP)'), { target: { value: '450000' } })
+  fireEvent.change(screen.getByLabelText('Plan del asistente de WhatsApp'), { target: { value: 'inicial' } })
   fireEvent.change(screen.getByLabelText('Límite de restaurantes'), { target: { value: '2' } })
   fireEvent.change(screen.getByLabelText('En prueba hasta (opcional)'), { target: { value: '2026-11-01' } })
   fireEvent.click(screen.getByRole('button', { name: 'Crear cliente e invitar al dueño' }))
   await waitFor(() => expect(createOrganization).toHaveBeenCalledWith({
     name: 'Frisby Antioquia', slug: 'frisby', legal_name: 'Frisby SA', tax_id: '860.000.000-1', billing_email: 'pagos@frisby.co', billing_contact: '',
     plan: 'completo', monthly_price: 450000, max_restaurants: 2, trial_ends: '2026-11-01', timezone: 'America/Bogota', owner: { name: 'María López', email: 'maria@frisby.co', username: 'maria.lopez' },
+    pricing: { mode: 'personalizado', local_monthly: 450000, whatsapp_plan: 'inicial', whatsapp: null },
   }))
   expect(replace).toHaveBeenCalledWith('/plataforma/clientes/frisby?nuevo=1')
 })
@@ -90,6 +98,7 @@ it('explica cuando la dirección ya existe', async () => {
   fireEvent.change(screen.getByLabelText('Nombre del dueño'), { target: { value: 'Ana Ruiz' } })
   fireEvent.change(screen.getByLabelText('Correo del dueño'), { target: { value: 'ana@frisby.co' } })
   fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }))
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Crear cliente e invitar al dueño' })).toBeEnabled())
   fireEvent.click(screen.getByRole('button', { name: 'Crear cliente e invitar al dueño' }))
   expect(await screen.findByRole('alert')).toHaveTextContent('Ya existe un cliente con esa dirección')
 })

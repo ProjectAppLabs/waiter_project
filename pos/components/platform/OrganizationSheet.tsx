@@ -7,7 +7,9 @@ import { StatusPill } from '@/components/kit/StatusPill'
 import { Button } from '@/components/ui/Button'
 import { Select, TextInput } from '@/components/ui/Field'
 import { usePlatformStore } from '@/lib/stores/platformStore'
-import { getOrganization, reactivateOrganization, resendOwnerInvite, suspendOrganization, updateOrganization, type OrganizationDetail } from '@/lib/services/core/platform'
+import { getOrganization, priceBook, reactivateOrganization, resendOwnerInvite, suspendOrganization, updateOrganization, type ClientPricing, type OrganizationDetail, type PriceBook } from '@/lib/services/core/platform'
+import { ClientPricingForm, effectiveLocal } from './ClientPricingForm'
+import { OrganizationCreditsPanel } from './OrganizationCredits'
 import { OrganizationModulesPanel, OrganizationUsagePanel } from './OrganizationModules'
 import { PLANS } from './NewOrganizationWizard'
 import { money, orgUrl, STATUS } from './OrganizationsView'
@@ -58,6 +60,9 @@ export function OrganizationSheet({ slug, justCreated = false }: { slug: string;
           <dl className="grid grid-cols-2 gap-3">
             {item('Dirección', <a href={orgUrl(o.slug)} target="_blank" rel="noreferrer" className="text-primary">{orgUrl(o.slug).replace(/^https?:\/\//, '')}</a>)}
             {item('Plan', PLANS.find(([v]) => v === o.plan)?.[1] ?? o.plan)}{item('Precio por local al mes', money(o.monthly_price))}
+            {item('Precios', o.pricing?.mode === 'estandar' ? 'Estándar' : 'Personalizados')}
+            {item('Asistente de WhatsApp', o.effective_pricing?.whatsapp_plan ? o.effective_pricing.whatsapp_plans.find((p) => p.key === o.effective_pricing!.whatsapp_plan)?.name ?? o.effective_pricing.whatsapp_plan : 'Sin plan')}
+            {(o.account_credit ?? 0) > 0 && item('Saldo a favor', money(o.account_credit ?? 0))}
             {item('Restaurantes', `${restaurants.length} de ${o.max_restaurants}`)}{item('En prueba hasta', o.trial_ends)}{item('Alta', new Date(o.created_at).toLocaleDateString('es-CO', { dateStyle: 'medium' }))}
           </dl></section>
         <section className="rounded-lg border border-border p-5"><h2 className="text-[17px] font-semibold mb-3">Facturación</h2>
@@ -72,6 +77,7 @@ export function OrganizationSheet({ slug, justCreated = false }: { slug: string;
       </div>
       <OrganizationModulesPanel slug={o.slug} canEdit={role === 'admin'} />
       <OrganizationUsagePanel slug={o.slug} />
+      <OrganizationCreditsPanel slug={o.slug} canEdit={role === 'admin'} />
       <section className="rounded-lg border border-border p-5"><h2 className="text-[17px] font-semibold mb-3">Historial</h2>
         {audit.length === 0 ? <p className="text-soft">Sin movimientos.</p> : <ul className="flex flex-col gap-2">{audit.map((a) => (
           <li key={a.id} className="flex flex-wrap justify-between gap-x-4 text-[14px]"><span>{ACTION[a.action] ?? a.action}{a.actor && <span className="text-soft"> · {a.actor.name}</span>}</span><span className="text-dim">{when(a.at)}</span></li>))}</ul>}</section>
@@ -92,13 +98,17 @@ export function OrganizationSheet({ slug, justCreated = false }: { slug: string;
 
 function EditModal({ detail, onClose, onSaved }: { detail: OrganizationDetail; onClose: () => void; onSaved: () => void }) {
   const o = detail.organization
-  const [form, setForm] = useState({ name: o.name, legal_name: o.legal_name, tax_id: o.tax_id, billing_email: o.billing_email, billing_contact: o.billing_contact, plan: o.plan, monthly_price: String(o.monthly_price), max_restaurants: String(o.max_restaurants), trial_ends: o.trial_ends ?? '' })
+  const [form, setForm] = useState({ name: o.name, legal_name: o.legal_name, tax_id: o.tax_id, billing_email: o.billing_email, billing_contact: o.billing_contact, plan: o.plan, max_restaurants: String(o.max_restaurants), trial_ends: o.trial_ends ?? '' })
   const [busy, setBusy] = useState(false), [error, setError] = useState('')
+  // Plan X: los precios del cliente con el mismo formulario del alta.
+  const [pricing, setPricing] = useState<ClientPricing>(() => o.pricing ?? { mode: 'personalizado', local_monthly: o.monthly_price, whatsapp_plan: null })
+  const [book, setBook] = useState<PriceBook | null>(null)
+  useEffect(() => { priceBook().then(setBook).catch(() => setBook(null)) }, [])
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm((f) => ({ ...f, [k]: e.target.value }))
   const save = async () => {
     setBusy(true); setError('')
     try {
-      await updateOrganization(o.slug, { ...form, monthly_price: Number(form.monthly_price), max_restaurants: Number(form.max_restaurants), trial_ends: form.trial_ends || null })
+      await updateOrganization(o.slug, { ...form, monthly_price: effectiveLocal(pricing, book), pricing, max_restaurants: Number(form.max_restaurants), trial_ends: form.trial_ends || null })
       onSaved()
     } catch (e) { setError(e instanceof Error ? e.message : 'No se pudo guardar.') } finally { setBusy(false) }
   }
@@ -110,10 +120,11 @@ function EditModal({ detail, onClose, onSaved }: { detail: OrganizationDetail; o
           <TextInput label="NIT" required value={form.tax_id} onChange={set('tax_id')} /><TextInput label="Correo de facturación" type="email" required value={form.billing_email} onChange={set('billing_email')} />
           <TextInput label="Contacto de facturación" value={form.billing_contact} onChange={set('billing_contact')} />
           <Select label="Plan" value={form.plan} onChange={set('plan')}>{PLANS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</Select>
-          <TextInput label="Precio por local al mes (COP)" type="number" min={0} step={1000} required value={form.monthly_price} onChange={set('monthly_price')} />
           <TextInput label="Límite de restaurantes" type="number" min={1} step={1} required value={form.max_restaurants} onChange={set('max_restaurants')} hint={`Hoy tiene ${detail.restaurants.length}.`} />
           <TextInput label="En prueba hasta" type="date" value={form.trial_ends} onChange={set('trial_ends')} />
         </div>
+        <ClientPricingForm value={pricing} onChange={setPricing} book={book} />
+        <p className="text-[13px] text-soft">Los cambios de precio se aplican desde la próxima cuenta; si cambia algo con mensualidad a mitad de mes, se ajusta por días.</p>
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}
         <div className="flex justify-end gap-3"><Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button><Button type="submit" variant="primary" disabled={busy || Number(form.max_restaurants) < detail.restaurants.length}>{busy ? 'Guardando…' : 'Guardar'}</Button></div>
       </form>

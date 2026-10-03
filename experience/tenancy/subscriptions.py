@@ -53,7 +53,7 @@ def eligible(org, today):
 
 
 def charge_dict(charge):
-    row = model_dict(charge, ('id', 'period', 'amount', 'due_date', 'state', 'paid_at', 'method', 'reference', 'notes', 'created_at'))
+    row = model_dict(charge, ('id', 'kind', 'period', 'amount', 'due_date', 'state', 'paid_at', 'method', 'reference', 'notes', 'created_at'))
     row['organization'] = {'slug': charge.organization.slug, 'name': charge.organization.name}
     from .pricing import charge_lines
     row['lines'] = charge_lines(charge)
@@ -81,8 +81,10 @@ def create_charge(actor, org, data):
     data = payload(data, ('period', 'amount'), ('period',))
     parse_period(data['period'])
     org = Organization.objects.select_for_update().get(pk=org.pk)
-    existing = charges_query().filter(organization=org, period=data['period']).first()
+    existing = charges_query().filter(organization=org, period=data['period'], kind='mensualidad').first()
     from .pricing import consumption
+    from .recurring import settle_expirations
+    settle_expirations(org)
     estimate = None if existing else consumption(org, data['period'], billing=True)
     # El importe enviado debe coincidir con la suma calculada por el servidor.
     if 'amount' in data:
@@ -95,7 +97,7 @@ def create_charge(actor, org, data):
                 'El importe debe coincidir con la cuenta existente o con el precio mensual contratado.', 'invalid_data', 400)
     if existing:
         return existing, False
-    require(eligible(org, local_today(org)) and estimate['estimated_total'] > 0, 'La organización está en prueba vigente o no tiene precio de suscripción.', 'charge_not_applicable', 409)
+    require(eligible(org, local_today(org)) and bool(estimate['lines']), 'La organización está en prueba vigente o no tiene precio de suscripción.', 'charge_not_applicable', 409)
     charge = charge_from_estimate(org, estimate, billing_settings())
     audit(actor, org, 'subscription.created', {'charge_id': charge.pk, 'period': charge.period, 'amount': str(charge.amount)})
     return charge, True
@@ -107,15 +109,17 @@ def generate_charges(period=None):
         parse_period(period)
     rules = billing_settings()
     organizations = list(Organization.objects.select_for_update().order_by('pk'))
-    existing = set(SubscriptionCharge.objects.values_list('organization_id', 'period'))
+    existing = set(SubscriptionCharge.objects.filter(kind='mensualidad').values_list('organization_id', 'period'))
     charges = []
     for org in organizations:
         today = local_today(org)
         key = period or today.strftime('%Y-%m')
         if eligible(org, today) and (org.pk, key) not in existing:
             from .pricing import consumption
+            from .recurring import settle_expirations
+            settle_expirations(org)
             estimate = consumption(org, key, billing=True)
-            if estimate['estimated_total'] > 0:
+            if bool(estimate['lines']):
                 charges.append(charge_from_estimate(org, estimate, rules))
     from .models import PlatformAudit
     PlatformAudit.objects.bulk_create([PlatformAudit(organization=c.organization, action='subscription.created',
@@ -159,9 +163,12 @@ def change_charge(actor, pk, data, *, void=False):
     if not void:
         charge.method, charge.reference, charge.paid_at = data['method'], data.get('reference', ''), paid_at
     charge.save()
+    if not void and charge.kind == 'recarga':
+        from .credits import paid_recharge
+        paid_recharge(charge, actor)
     audit(actor, org, 'subscription.' + target, {'charge_id': charge.pk, 'period': charge.period})
     if not void and org.status == 'suspended' and org.suspension_by_billing and org.suspended_reason == 'mora':
-        if not SubscriptionCharge.objects.filter(organization=org, state__in=OPEN_STATES, due_date__lt=local_today(org)).exists():
+        if not SubscriptionCharge.objects.filter(organization=org, kind='mensualidad', amount__gt=0, state__in=OPEN_STATES, due_date__lt=local_today(org)).exists():
             set_suspension(None, org, False)
     return charge
 
@@ -172,19 +179,12 @@ def update_rules(actor, data):
     data = payload(data, RULE_FIELDS)
     billing_settings()
     rules = PlatformSettings.objects.select_for_update().get(pk=1)
+    if 'unit_prices' in data:
+        from .price_lists import update_pricing
+        update_pricing(actor, {'unit_prices': data['unit_prices']})
+        rules.refresh_from_db()
     for field, value in data.items():
         if field == 'unit_prices':
-            from .modules import MODULES
-            valid_units = {f'{key}.{unit}' for key, module in MODULES.items() for unit in module['units']}
-            require(isinstance(value, dict) and set(value) <= valid_units, 'Indica precios de unidades del catálogo.', 'invalid_data', 400)
-            for price in value.values():
-                try:
-                    amount = Decimal(str(price))
-                    valid = type(price) in (int, float) and amount.is_finite() and 0 <= amount < Decimal('1000000000000') and amount == amount.quantize(Decimal('.01'))
-                except (InvalidOperation, ValueError):
-                    valid = False
-                require(valid, 'Los precios deben ser no negativos y tener hasta dos decimales.', 'invalid_data', 400)
-            rules.unit_prices = {**rules.unit_prices, **value}
             continue
         require(type(value) is int and 0 <= value <= 32767, 'Los ajustes deben ser enteros no negativos.', 'invalid_data', 400)
         setattr(rules, field, value)
@@ -197,7 +197,7 @@ def update_rules(actor, data):
 def enforce_subscriptions():
     rules = billing_settings()
     organizations = {o.pk: o for o in Organization.objects.select_for_update().order_by('pk')}
-    charges = list(SubscriptionCharge.objects.select_for_update().filter(state__in=OPEN_STATES).order_by('organization_id', 'due_date', 'pk'))
+    charges = list(SubscriptionCharge.objects.select_for_update().filter(state__in=OPEN_STATES, kind='mensualidad', amount__gt=0).order_by('organization_id', 'due_date', 'pk'))
     owners = {}
     for owner in Account.objects.filter(role='owner', active=True).exclude(email__isnull=True).exclude(email='').order_by('pk'):
         owners.setdefault(owner.organization_id, []).append(owner.email)
@@ -238,12 +238,13 @@ def enforce_subscriptions():
 
 
 def subscription_response(org):
-    qs = charges_query().filter(organization=org)
+    qs = charges_query().filter(organization=org, kind='mensualidad')
     today = local_today(org)
-    open_charges = list(qs.filter(state__in=OPEN_STATES).order_by('due_date', 'pk'))
+    open_charges = list(qs.filter(state__in=OPEN_STATES, kind='mensualidad', amount__gt=0).order_by('due_date', 'pk'))
     overdue = [c for c in open_charges if c.due_date < today]
     suspension = overdue[0].due_date + timedelta(days=billing_settings().suspend_after_days) if overdue else None
-    return {'plan': org.plan, 'monthly_price': org.monthly_price,
+    from .price_lists import effective_pricing
+    return {'plan': org.plan, 'monthly_price': effective_pricing(org)['local_monthly'],
             'next_due': open_charges[0].due_date.isoformat() if open_charges else None,
             'charges': [charge_dict(c) for c in qs[:6]],
             'overdue': sum((c.amount for c in overdue), Decimal(0)),
@@ -254,6 +255,8 @@ def subscription_response(org):
 def charge_from_estimate(org, estimate, rules):
     from .models import SubscriptionChargeLine
     charge = SubscriptionCharge.objects.create(organization=org, period=estimate['period'],
-        amount=estimate['estimated_total'], due_date=due_date(estimate['period'], rules))
+        amount=estimate['estimated_total'], due_date=due_date(estimate['period'], rules), advance=estimate['_advance'])
+    org.account_credit = estimate['_credit']
+    org.save(update_fields=['account_credit'])
     SubscriptionChargeLine.objects.bulk_create([SubscriptionChargeLine(charge=charge, **line) for line in estimate['lines']])
     return charge

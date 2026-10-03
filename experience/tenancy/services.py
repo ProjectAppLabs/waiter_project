@@ -15,15 +15,19 @@ from .models import Organization, PlatformAudit, PlatformSession, PlatformUser, 
 
 ORG_FIELDS = ('name', 'legal_name', 'tax_id', 'billing_email', 'billing_contact', 'plan', 'monthly_price',
               'max_restaurants', 'trial_ends', 'timezone', 'cash_tolerance', 'brand_color', 'brand_font',
-              'brand_radius', 'tagline', 'logo_url', 'greeting', 'waiter_name', 'welcome')
-RESTAURANT_FIELDS = ('slug', 'name', 'street', 'city', 'phone', 'latitude', 'longitude', 'access_margin_minutes')
+              'brand_radius', 'tagline', 'logo_url', 'greeting', 'waiter_name', 'welcome', 'pricing')
+RESTAURANT_FIELDS = ('slug', 'name', 'street', 'city', 'phone', 'latitude', 'longitude', 'access_margin_minutes', 'active')
 
 
 def assign_values(obj, data):
     """Rechaza tipos ambiguos antes de que los campos de Django los conviertan."""
     from django.db import models
     for key, value in data.items():
+        if key == 'pricing':
+            continue
         field = obj._meta.get_field(key)
+        if isinstance(field, models.BooleanField):
+            require(type(value) is bool, 'Indica si el local está activo.', 'invalid_data', 400)
         if isinstance(field, models.CharField):
             require(isinstance(value, str), 'Indica un texto válido.', 'invalid_data', 400)
             value = value.strip()
@@ -43,6 +47,12 @@ def assign_values(obj, data):
             # Compatibilidad con clientes anteriores que enviaban planes de texto libre.
             value = 'completo'
         setattr(obj, key, value)
+    if isinstance(obj, Organization):
+        from .price_lists import customer_pricing
+        if 'pricing' in data:
+            customer_pricing(obj, data['pricing'])
+        elif 'monthly_price' in data:
+            customer_pricing(obj, {**obj.pricing, 'mode': 'personalizado', 'local_monthly': data['monthly_price']})
     return save_valid(obj)
 
 
@@ -53,6 +63,10 @@ def audit(actor, organization, action, detail=None):
 @transaction.atomic
 def create_organization(actor, data):
     data = payload(data, (*ORG_FIELDS, 'slug', 'owner'), ('name', 'slug', 'owner'))
+    if 'pricing' in data or 'monthly_price' in data:
+        require(actor.role == 'admin')
+    if 'pricing' not in data and 'monthly_price' not in data:
+        data['pricing'] = {'mode': 'estandar'}
     owner_data = payload(data.pop('owner'), ('name', 'email', 'username'), ('name', 'email'))
     organization = assign_values(Organization(), data)
     from catalog.services import seed_organization
@@ -77,12 +91,18 @@ def create_organization(actor, data):
 def update_organization(actor, organization, data):
     organization = Organization.objects.select_for_update().get(pk=organization.pk)
     data = payload(data, ORG_FIELDS)
+    if 'pricing' in data or 'monthly_price' in data:
+        require(actor.role == 'admin')
+    from .recurring import settle_expirations, sync_recurring
+    settle_expirations(organization)
+    sync_recurring(organization)
     if isinstance(data.get('plan'), str) and data['plan'] not in ('completo', 'inicial'):
         data['plan'] = 'completo'
     if 'plan' in data and data['plan'] in ('completo', 'inicial') and data['plan'] != organization.plan:
         from .modules import change_modules
         change_modules(actor, organization, {'plan': data['plan']})
     assign_values(organization, data)
+    sync_recurring(organization)
     audit(actor, organization, 'organization.updated', {'fields': sorted(data)})
     return organization
 

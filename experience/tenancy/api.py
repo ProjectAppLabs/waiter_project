@@ -192,3 +192,42 @@ class ConsumptionView(ContractView):
         person = pos_session(request).account
         require(person.role == 'owner')
         return Response(consumption(person.organization, request.query_params.get('period')))
+
+
+class PricingSettingsView(ContractView):
+    def get(self, request):
+        from .price_lists import standard_pricing
+        platform_session(request)
+        return Response(standard_pricing())
+
+    def patch(self, request):
+        from .price_lists import update_pricing
+        return Response(update_pricing(platform_session(request).user, request.data))
+
+
+class CreditsView(OrganizationsView):
+    def get(self, request, slug):
+        from .credits import credits_response
+        platform_session(request)
+        return Response(credits_response(self.organization(slug)))
+
+    def post(self, request, slug):
+        from .credits import grant_credit
+        return Response(grant_credit(platform_session(request).user, self.organization(slug), request.data))
+
+
+class RechargesView(ContractView):
+    def owner(self, request):
+        from accounts.authentication import pos_session
+        account = pos_session(request).account
+        require(account.role == 'owner')
+        return account.organization
+
+    def get(self, request):
+        from .credits import recharges_response
+        return Response(recharges_response(self.owner(request)))
+
+    def post(self, request):
+        from .credits import request_recharge
+        from .subscriptions import charge_dict
+        return Response({'charge': charge_dict(request_recharge(self.owner(request), request.data))}, status=201)

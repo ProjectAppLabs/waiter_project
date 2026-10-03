@@ -20,3 +20,17 @@ test('la dirección vieja de ProjectApp lleva al inicio único', async ({ page }
   await page.waitForURL('**/login?codigo=ana.projectapp')
   await expect(page.getByText(/ana\.projectapp/).first()).toBeVisible()
 })
+
+// Falla si la lista de precios estándar no carga con el precio por local, el plan Inicial de WhatsApp y sus paquetes
+// de recarga, o si la ficha del cliente no muestra sus precios (plan X).
+test('Precios y precios del cliente', async ({ page }) => {
+  await signIn(page, USERS.platform)
+  await page.waitForURL(/\/plataforma$/)
+  await page.getByRole('link', { name: 'Precios' }).click()
+  await expect(page.getByLabel('Precio por local al mes ($)')).toHaveValue(/\d+/)
+  await expect(page.getByRole('region', { name: 'Planes del asistente de WhatsApp' }).getByLabel('Nombre del plan').first()).toHaveValue('Inicial')
+  await expect(page.getByRole('region', { name: 'Paquetes de recarga' }).getByLabel('Nombre del paquete').first()).toHaveValue(/pedidos/)
+  await page.goto('/plataforma/clientes/frisby-74312')
+  await expect(page.getByText('Personalizados')).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Recargas' })).toBeVisible()
+})

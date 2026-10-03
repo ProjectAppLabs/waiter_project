@@ -78,7 +78,8 @@ export function OrganizationModulesPanel({ slug, canEdit }: { slug: string; canE
             <tr key={m.key} className="border-b border-border last:border-0 align-top">
               <td className="px-3 py-2"><div className="font-semibold">{m.name}</div>
                 {m.required && <StatusPill tone="info">Siempre activo</StatusPill>}{!m.available && <StatusPill tone="progress">Próximamente</StatusPill>}
-                {m.depends.length > 0 && <p className="text-[12px] text-dim">Requiere: {m.depends.map((d) => data.catalog.find((c) => c.key === d)?.name ?? d).join(', ')}</p>}</td>
+                {m.depends.length > 0 && <p className="text-[12px] text-dim">Requiere: {m.depends.map((d) => data.catalog.find((c) => c.key === d)?.name ?? d).join(', ')}</p>}
+                {(m.depends_any?.length ?? 0) > 0 && <p className="text-[12px] text-dim">Requiere uno de: {m.depends_any!.map((d) => data.catalog.find((c) => c.key === d)?.name ?? d).join(' o ')}</p>}</td>
               {cell(m, stateOf(data.organization, m.key), null, 'la organización')}
               {data.restaurants.map((r) => <td key={r.id} className="p-0">{cell(m, stateOf(r.modules, m.key), r.id, r.name)}</td>)}
             </tr>

@@ -49,6 +49,9 @@ class Organization(models.Model):
     billing_contact = models.CharField(max_length=120, blank=True, default='')
     plan = models.CharField(max_length=40, default='completo', choices=PLAN_CHOICES)
     monthly_price = models.DecimalField(max_digits=14, decimal_places=2, default=0, validators=[MinValueValidator(0)])
+    pricing = models.JSONField(default=dict, blank=True)
+    account_credit = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    billing_history_starts = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=12, choices=[(s, s) for s in ('trial', 'active', 'suspended')], default='trial')
     trial_ends = models.DateField(null=True, blank=True)
     max_restaurants = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)])
@@ -70,6 +73,22 @@ class Organization(models.Model):
     suspended_reason = models.TextField(blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def save(self, *args, **kwargs):
+        from django.db import transaction
+        from .recurring import settle_expirations, sync_recurring
+        with transaction.atomic():
+            previous = type(self).objects.select_for_update().filter(pk=self.pk).first() if self.pk else None
+            fields = kwargs.get('update_fields')
+            commercial = {'pricing', 'monthly_price', 'plan'}
+            changed = (fields is None or bool(commercial & set(fields))) and (
+                previous is None or any(getattr(previous, field) != getattr(self, field) for field in commercial))
+            if previous and changed:
+                settle_expirations(previous)
+                sync_recurring(previous)
+            super().save(*args, **kwargs)
+            if changed:
+                sync_recurring(self)
+
     class Meta:
         constraints = [models.CheckConstraint(condition=models.Q(max_restaurants__gte=1), name='organization_restaurants_positive')]
 
@@ -87,6 +106,15 @@ class Restaurant(models.Model):
     active = models.BooleanField(default=True)
     legacy_odoo_config_id = models.PositiveIntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        from django.db import transaction
+        from .recurring import settle_expirations, sync_recurring
+        with transaction.atomic():
+            org = Organization.objects.select_for_update().get(pk=self.organization_id)
+            settle_expirations(org)
+            super().save(*args, **kwargs)
+            sync_recurring(org)
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['organization', 'slug'], name='restaurant_org_slug_unique')]
@@ -115,7 +143,7 @@ class PlatformAudit(models.Model):
         'organization.created', 'organization.updated', 'organization.suspended', 'organization.reactivated',
         'organization.invite_resent', 'platform_user.invited', 'platform_user.deactivated',
         'subscription.created', 'subscription.paid', 'subscription.void', 'subscription.overdue',
-        'subscription.reminder', 'billing_settings.updated', 'module_change',
+        'subscription.reminder', 'billing_settings.updated', 'module_change', 'pricing.updated', 'credits.granted',
     )])
     detail = models.JSONField(default=dict)
     at = models.DateTimeField(auto_now_add=True)
@@ -145,6 +173,7 @@ class LegacyMap(models.Model):
 class PlatformSettings(models.Model):
     """Una sola configuración de cobro para ProjectApp."""
     id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
+    pricing = models.JSONField(default=dict, blank=True)
     unit_prices = models.JSONField(default=default_unit_prices)
     billing_day = models.PositiveSmallIntegerField(default=5, validators=[MinValueValidator(1), MaxValueValidator(31)])
     grace_days = models.PositiveSmallIntegerField(default=10)
@@ -157,6 +186,10 @@ class PlatformSettings(models.Model):
 
 
 class SubscriptionCharge(models.Model):
+    kind = models.CharField(max_length=12, default='mensualidad', choices=[('mensualidad', 'Mensualidad'), ('recarga', 'Recarga')])
+    recharge = models.JSONField(default=dict, blank=True)
+    advance = models.JSONField(default=dict, blank=True)
+    monthly_period = only_when(models.Q(kind='mensualidad'), 'period', models.CharField(max_length=7))
     organization = models.ForeignKey(Organization, on_delete=models.PROTECT, related_name='subscription_charges')
     period = models.CharField(max_length=7, validators=[RegexValidator(r'^[0-9]{4}-(0[1-9]|1[0-2])$')])
     amount = models.DecimalField(max_digits=14, decimal_places=2, validators=[MinValueValidator(0)])
@@ -172,7 +205,7 @@ class SubscriptionCharge(models.Model):
     due_notice_sent_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=['organization', 'period'], name='subscription_org_period_unique'),
+        constraints = [models.UniqueConstraint(fields=['organization', 'monthly_period'], name='subscription_org_period_unique'),
                        models.CheckConstraint(condition=models.Q(amount__gte=0), name='subscription_amount_nonnegative')]
         indexes = [models.Index(fields=['state', 'due_date'])]
 
@@ -197,6 +230,11 @@ class OrganizationModule(models.Model):
 
 
 class UsageRecord(models.Model):
+    allocation = models.JSONField(default=dict, blank=True)
+    overage = models.DecimalField(max_digits=20, decimal_places=6, null=True)
+    unit_price = models.DecimalField(max_digits=14, decimal_places=2, null=True)
+    quota_scope = models.CharField(max_length=80, blank=True, default='')
+    included_used = models.DecimalField(max_digits=20, decimal_places=6, default=0)
     organization = models.ForeignKey(Organization, on_delete=models.PROTECT, related_name='usage_records')
     restaurant = models.ForeignKey(Restaurant, null=True, blank=True, on_delete=models.PROTECT)
     module = models.CharField(max_length=32, choices=MODULE_CHOICES)
@@ -220,9 +258,48 @@ class SubscriptionChargeLine(models.Model):
     unit = models.CharField(max_length=40)
     quantity = models.DecimalField(max_digits=20, decimal_places=6, validators=[MinValueValidator(0)])
     unit_price = models.DecimalField(max_digits=14, decimal_places=2, validators=[MinValueValidator(0)])
-    total = models.DecimalField(max_digits=14, decimal_places=2, validators=[MinValueValidator(0)])
+    total = models.DecimalField(max_digits=14, decimal_places=2)
 
     class Meta:
         ordering = ['id']
-        constraints = [models.CheckConstraint(condition=models.Q(total__gt=0, quantity__gt=0, unit_price__gt=0),
+        constraints = [models.CheckConstraint(condition=models.Q(quantity__gt=0, unit_price__gte=0),
                                                name='linea_cobro_valores_positivos')]
+
+
+class PricingRevision(models.Model):
+    starts = models.DateTimeField(null=True, default=timezone.now)
+    pricing = models.JSONField()
+
+
+class RecurringPeriod(models.Model):
+    """Intervalo de actividad; el día del cambio pertenece al estado nuevo."""
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='recurring_periods')
+    component = models.CharField(max_length=100)
+    module = models.CharField(max_length=32)
+    name = models.CharField(max_length=250)
+    price = models.JSONField()
+    starts = models.DateTimeField()
+    ends = models.DateTimeField(null=True, blank=True)
+    open_component = only_when(models.Q(ends__isnull=True), 'component', models.CharField(max_length=100))
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['organization', 'open_component'], name='intervalo_abierto_unico')]
+
+
+class CreditMovement(models.Model):
+    organization = models.ForeignKey(Organization, on_delete=models.PROTECT, related_name='credit_movements')
+    module = models.CharField(max_length=32)
+    unit = models.CharField(max_length=40)
+    kind = models.CharField(max_length=10, choices=[(s, s) for s in ('recarga', 'cortesia', 'consumo')])
+    quantity = models.DecimalField(max_digits=20, decimal_places=6)
+    remaining = models.DecimalField(max_digits=20, decimal_places=6, default=0)
+    amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    reference = models.CharField(max_length=250, blank=True, default='')
+    actor = models.ForeignKey(PlatformUser, null=True, on_delete=models.SET_NULL)
+    charge = models.OneToOneField(SubscriptionCharge, null=True, on_delete=models.PROTECT)
+    usage = models.ForeignKey(UsageRecord, null=True, on_delete=models.PROTECT)
+    source = models.ForeignKey('self', null=True, on_delete=models.PROTECT)
+    at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.CheckConstraint(condition=models.Q(remaining__gte=0), name='saldo_recarga_no_negativo')]

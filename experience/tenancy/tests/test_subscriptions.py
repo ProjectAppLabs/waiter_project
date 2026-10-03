@@ -63,7 +63,7 @@ def test_settings_singleton_validation_and_february(billing):
     org, owner, admin, client = billing
     path = BASE + 'settings/billing'
     assert client.get(path).json() == dict(billing_day=5, grace_days=10, suspend_after_days=15, reminder_days=3,
-                                         unit_prices={'asistente_menu.mensaje_ia': 0, 'asistente_whatsapp.pedido_asistente': 500})
+                                         unit_prices={'asistente_menu.mensaje_ia': 0, 'asistente_whatsapp.pedido_asistente': 500, 'facturacion.documento': 0, 'fidelizacion.codigo_verificacion': 0})
     for invalid in ({'billing_day': 0}, {'billing_day': 32}, {'grace_days': -1}, {'grace_days': True}, {'reminder_days': 1.2}, {'otro': 1}):
         assert client.patch(path, invalid, format='json').status_code == 400
     assert client.patch(path, {'billing_day': 31, 'grace_days': 2}, format='json').status_code == 200
@@ -237,7 +237,9 @@ def test_manual_ineligible_charge(billing, trial):
     if trial:
         org.status, org.trial_ends = 'trial', timezone.localdate() + timedelta(days=60)
     else:
-        org.monthly_price = 0
+        # Una organización gratuita desde el alta no tiene días anteriores con precio por ajustar.
+        org = organization('gratuita', status='active')
+        restaurant(org)
     org.save()
     result = client.post(BASE + f'organizations/{org.slug}/charges', {'period': '2026-11'}, format='json')
     assert result.status_code == 409 and result.json()['error'] == 'charge_not_applicable'
