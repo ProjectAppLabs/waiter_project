@@ -12,7 +12,7 @@ const data = {
     { line_id: 1, name: 'Hamburguesa', qty: 2, refundable_qty: 2, unit_amount: 19450, refundable_amount: 38900 },
     { line_id: 2, name: 'Limonada', qty: 1, refundable_qty: 0, unit_amount: 9900, refundable_amount: 0 },
   ],
-  tip: 3000, credit_note: true, refunds: [{ id: 1, order_id: 9, amount: 9900, tip: 0, reason: 'mal servida', restock: false, created_at: '' }],
+  tip: 3000, credit_note: true, refunds: [{ id: 1, order_id: 9, total: 9900, tip: 0, reason: 'mal servida', restock: false, created_at: '' }],
   methods: [{ method_id: 2, name: 'Tarjeta', type: 'bank', paid: 30000, refundable: 30000 }, { method_id: 1, name: 'Efectivo', type: 'cash', paid: 20000, refundable: 20000 }],
 }
 const wrap = (onDone = jest.fn()) => render(<NextIntlClientProvider locale="es" messages={messages}><RefundModal orderId={9} number="DI-004" onClose={jest.fn()} onDone={onDone} /></NextIntlClientProvider>)
@@ -42,7 +42,7 @@ it('devolución parcial: valida, reparte primero en efectivo y envía lo elegido
   expect(screen.getByText('El reparto debe sumar $ 22.450.')).toBeInTheDocument()
   expect(confirm).toBeDisabled()
   fireEvent.change(screen.getByLabelText('Tarjeta'), { target: { value: '2450' } })
-  jest.mocked(createRefund).mockRejectedValueOnce(new Error('Se cayó')).mockResolvedValueOnce({ refund: { amount: 22450 }, order: {}, credit_note: { number: 'NC-1' } } as never)
+  jest.mocked(createRefund).mockRejectedValueOnce(new Error('Se cayó')).mockResolvedValueOnce({ refund: { total: 22450 }, order: {}, credit_note: { number: 'NC-1' } } as never)
   fireEvent.click(confirm)
   expect(await screen.findByRole('alert')).toHaveTextContent('Se cayó')
   fireEvent.click(confirm)

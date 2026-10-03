@@ -8,8 +8,11 @@ const methods: RefundableMethod[] = [
   { method_id: 1, name: 'Efectivo', type: 'cash', paid: 20000, refundable: 15000 },
 ]
 
-// Falla si devolver todo lo que queda de una línea deja pesos sueltos por redondeo, o si una parte no va por unidad.
+// Falla si devolver todo lo que queda de una línea deja pesos sueltos por redondeo, o si una parte no se calcula como
+// el servidor (redondeo sobre lo acumulado: después de devolver una, la siguiente vale la diferencia).
 it('valor de una línea', () => {
+  const half: RefundableLine = { ...burger, refundable_qty: 2, refundable_amount: 25933 }
+  expect(lineAmount(half, 1)).toBe(25933 - 12967)
   expect(lineAmount(burger, 3)).toBe(38900)
   expect(lineAmount(burger, 1)).toBe(12967)
   expect(lineAmount(burger, 0)).toBe(0)

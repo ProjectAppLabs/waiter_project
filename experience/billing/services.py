@@ -3,6 +3,7 @@
 from decimal import Decimal
 from functools import wraps
 from time import sleep
+from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 from django.core.files.base import ContentFile
@@ -223,7 +224,7 @@ def emit(account, order_id, data):
     with writing(org, operational=True):
         reference(Order, org, order_id)
         order = Order.objects.select_for_update().get(pk=order_id, organization=org)
-        existing = SalesDocument.objects.filter(order=order, organization=org).first()
+        existing = SalesDocument.objects.filter(order=order, organization=org, kind__in=["invoice", "pos"]).first()
         if existing:
             return existing, False
         if SalesDocument.objects.filter(organization=org, request_key=key).exists():
@@ -282,3 +283,101 @@ def retry(account, pk):
                 "not_retryable", "El documento rechazado requiere revisión; no puede reenviarse sin corrección.", 409
             )
         return transmit(document)
+
+
+def credit_note(refund, original):
+    """El llamador bloquea la organización; NC tiene un consecutivo ajeno a las resoluciones."""
+    if original is None:
+        return None
+    from sales.refunds import decimal, proportional
+
+    numbers = SalesDocument.objects.filter(organization=refund.organization, kind="credit_note").values_list(
+        "number", flat=True
+    )
+    sequence = max((int(number.removeprefix("NC-")) for number in numbers), default=0) + 1
+    # Reserva el prefijo NC aunque existan resoluciones antiguas con ese prefijo.
+    while SalesDocument.objects.filter(organization=refund.organization, number=f"NC-{sequence}").exists():
+        sequence += 1
+    sources = {line["id"]: line for line in original.lines}
+    returned = {}
+    for previous in refund.order.refunds.exclude(pk=refund.pk):
+        for row in previous.lines:
+            returned[row["line_id"]] = returned.get(row["line_id"], Decimal(0)) + decimal(row["qty"])
+    lines, taxes = [], {}
+    for row in refund.lines:
+        source = sources[row["line_id"]]
+        before = returned.get(row["line_id"], Decimal(0))
+        gross = proportional(
+            decimal(source["total"]), before + decimal(row["qty"]), decimal(source["qty"])
+        ) - proportional(decimal(source["total"]), before, decimal(source["qty"]))
+        base = gross - decimal(row["tax"])
+        remaining = decimal(row["tax"])
+        details = []
+        for index, tax in enumerate(source["taxes"]):
+            amount = (
+                remaining
+                if index == len(source["taxes"]) - 1
+                else proportional(decimal(tax["amount"]), before + decimal(row["qty"]), decimal(source["qty"]))
+                - proportional(decimal(tax["amount"]), before, decimal(source["qty"]))
+            )
+            remaining -= amount
+            detail = dict(name=tax["name"], rate=tax["rate"], base=float(base), amount=float(amount))
+            details.append(detail)
+            aggregate = taxes.setdefault(
+                (tax["name"], tax["rate"]), dict(name=tax["name"], rate=tax["rate"], base=Decimal(0), amount=Decimal(0))
+            )
+            aggregate["base"] += base
+            aggregate["amount"] += amount
+        lines.append(
+            {
+                **source,
+                "qty": row["qty"],
+                "subtotal": float(base),
+                "base": float(base),
+                "total": float(gross),
+                "tax": row["tax"],
+                "taxes": details,
+            }
+        )
+        redemption = decimal(row["amount"]) - gross
+        if redemption:
+            # El canje conserva su naturaleza de línea negativa sin impuestos, igual que en el original.
+            lines.append(
+                dict(
+                    id=f"canje-{row['line_id']}",
+                    name="Reintegro proporcional del canje de puntos",
+                    qty=1,
+                    unit_price=float(redemption),
+                    subtotal=float(redemption),
+                    base=float(redemption),
+                    total=float(redemption),
+                    tax=0,
+                    taxes=[],
+                    discount_pct=0,
+                )
+            )
+    document = SalesDocument.objects.create(
+        organization=refund.organization,
+        restaurant=refund.restaurant,
+        order=refund.order,
+        refund=refund,
+        kind="credit_note",
+        original=original,
+        number=f"NC-{sequence}",
+        resolution=None,
+        buyer=original.buyer,
+        buyer_data=original.buyer_data,
+        company_data=original.company_data,
+        resolution_data={},
+        tip_label=original.tip_label,
+        issued_at=refund.created_at,
+        subtotal=sum((decimal(row["subtotal"]) for row in refund.lines), Decimal(0)),
+        tax_total=sum((decimal(row["tax"]) for row in refund.lines), Decimal(0)),
+        tip=refund.tip,
+        total=refund.total,
+        lines=lines,
+        taxes=[{**tax, "base": float(tax["base"]), "amount": float(tax["amount"])} for tax in taxes.values()],
+        request_key=uuid4().hex,
+        created_by=refund.account,
+    )
+    return transmit(document)

@@ -284,3 +284,49 @@ def banners(org, restaurant):
 
     local_restaurant(org, restaurant)
     return banner_settings(org, restaurant)
+
+
+def refund_points(refund, balances):
+    """Devuelve el canje y revierte el abono; la deuda no recuperable queda en el movimiento."""
+    from sales.refunds import POINT, decimal, proportional
+
+    order = refund.order
+    selected = {row["line_id"]: row for row in refund.lines}
+    credits = defaultdict(Decimal)
+    for pk, row in balances.items():
+        if pk not in selected:
+            continue
+        before, qty = row["returned"]["qty"], decimal(selected[pk]["qty"])
+        for card_id, points in row["points"].items():
+            credits[card_id] += (proportional(points, before + qty, row["line"].qty, POINT)
+                                 - proportional(points, before, row["line"].qty, POINT))
+    earned = list(LoyaltyMove.objects.filter(organization=order.organization, order=order, kind="earn"))
+    cards = {card.pk: card for card in LoyaltyCard.objects.select_for_update().filter(
+        organization=order.organization, pk__in=set(credits) | {m.card_id for m in earned}).order_by("pk")}
+    # La reversión del abono precede al reintegro: los puntos canjeados vuelven completos.
+    for move in earned:
+        relevant = [row for row in balances.values()
+                    if order.channel != "menu" or row["line"].loyalty_card_id == move.card_id]
+        base = sum((row["amount"] for row in relevant), Decimal(0))
+        before = sum((row["returned"]["amount"] for row in relevant), Decimal(0))
+        amount = sum((decimal(selected[row["line"].pk]["amount"]) for row in relevant
+                      if row["line"].pk in selected), Decimal(0))
+        requested = (proportional(move.points, before + amount, base, POINT)
+                     - proportional(move.points, before, base, POINT))
+        if not requested:
+            continue
+        card = cards[move.card_id]
+        actual = min(card.points, requested)
+        card.points -= actual
+        LoyaltyMove.objects.create(organization=order.organization, card=card, order=order, kind="reversal",
+            points=-actual, key=f"refund:{refund.pk}:earn:{move.pk}",
+            description=f"Devolución {refund.pk} de {order.number}; reversión: {requested}; "
+                        f"diferencia sin recuperar: {requested - actual}")
+    for card_id, points in credits.items():
+        if points:
+            cards[card_id].points += points
+            LoyaltyMove.objects.create(organization=order.organization, card_id=card_id, order=order, kind="reversal",
+                points=points, key=f"refund:{refund.pk}:redeem:{card_id}",
+                description=f"Reintegro del canje por devolución {refund.pk} de {order.number}")
+    for card in cards.values():
+        card.save(update_fields=["points"])

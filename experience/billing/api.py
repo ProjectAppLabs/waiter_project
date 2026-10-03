@@ -78,7 +78,12 @@ def document_dict(doc, detail=False):
 
 class BillingOrdersView(OwnerView):
     def get(self, request):
-        qs = orders().filter(organization=self.org, state="paid").select_related("customer", "document")
+        qs = (
+            orders()
+            .filter(organization=self.org, state="paid")
+            .select_related("customer")
+            .prefetch_related("documents")
+        )
         params = request.query_params
         if params.get("restaurant_id"):
             qs = qs.filter(restaurant=restaurant_for(self.account, params["restaurant_id"]))
@@ -86,7 +91,7 @@ class BillingOrdersView(OwnerView):
             method = reference(PaymentMethod, self.org, integer(params["method_id"], 1))
             qs = qs.filter(payments__method=method).distinct()
         if params.get("pending") in ("1", "true"):
-            qs = qs.filter(document__isnull=True)
+            qs = qs.exclude(documents__kind__in=["invoice", "pos"])
         elif params.get("pending"):
             valid(params["pending"] in ("0", "false"))
         query = params.get("q", "").strip()
@@ -109,7 +114,7 @@ class BillingOrdersView(OwnerView):
                 {
                     **model_dict(order, ("id", "number", "paid_at", "total", "tax", "tip", "table_id", "customer_id")),
                     "customer_name": order.customer.name if order.customer else order.customer_name,
-                    "document_id": order.document.pk if hasattr(order, "document") else None,
+                    "document_id": next((d.pk for d in order.documents.all() if d.kind != "credit_note"), None),
                     "payments": list(payments.values()),
                 }
             )
@@ -160,13 +165,16 @@ class DetailView(OwnerView):
             dict(id=3, account="Impuesto", label="Impuestos de la venta", debit=0, credit=float(doc.tax_total)),
             dict(id=4, account="Propina para terceros", label=doc.tip_label, debit=0, credit=float(doc.tip)),
         ]
+        if doc.kind == "credit_note":
+            for line in lines:
+                line["debit"], line["credit"] = line["credit"], line["debit"]
         issues = doc.errors or ([] if doc.state == "issued" else ["El documento está pendiente de emisión."])
         return Response(
             {
                 "ready": not issues,
                 "issues": issues,
                 "company": doc.company_data["legal_name"] or doc.company_data["name"],
-                "journal": doc.resolution_data["prefix"],
+                "journal": doc.resolution_data.get("prefix", "NC"),
                 "date": doc.issued_at.date().isoformat(),
                 "origin": doc.order.number,
                 "currency": "COP",

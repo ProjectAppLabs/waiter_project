@@ -4,12 +4,13 @@ import type { RefundableLine, RefundableMethod } from '@/lib/services/core/refun
 // pantalla muestre lo mismo antes de confirmar.
 export type Selection = Record<number, number>
 
-// Lo que vale devolver `qty` de una línea: todo lo que queda si se devuelve todo (sin errores de redondeo), y si no,
-// el valor por unidad.
+// Lo que vale devolver `qty` de una línea, como lo calcula el servidor: redondeo sobre la cantidad acumulada devuelta
+// (lo de antes más lo de ahora) menos lo ya devuelto. Devolver todo lo que queda es exactamente el saldo de la línea.
 export function lineAmount(line: RefundableLine, qty: number): number {
   if (qty <= 0) return 0
   if (qty >= line.refundable_qty) return line.refundable_amount
-  return Math.round(line.unit_amount * qty)
+  const done = line.qty - line.refundable_qty
+  return Math.round(line.unit_amount * (done + qty)) - Math.round(line.unit_amount * done)
 }
 
 export function refundTotal(lines: RefundableLine[], selection: Selection, tip: number): number {

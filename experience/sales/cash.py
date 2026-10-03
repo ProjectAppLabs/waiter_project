@@ -9,7 +9,7 @@ from accounts.models import Account
 from notifications.models import Notification
 from tenancy.http import require
 
-from .models import Payment
+from .models import Payment, RefundPayment
 from .reading import fields, person
 from .services import event, money, text
 
@@ -36,8 +36,18 @@ def closing(shift):
         (p.received - p.amount for p in payments if p.method.type == "cash" and p.received is not None), Decimal(0)
     )
     moves = list(shift.moves.all())
+    from .refunds import refund_dict
+
+    refunds = list(shift.refunds.select_related("account").prefetch_related("payments__method"))
+    refunds_cash = sum(
+        (p.amount for p in RefundPayment.objects.filter(refund__shift=shift, method__type="cash")), Decimal(0)
+    )
     expected = (
-        shift.opening_cash + cash - change + sum((m.amount if m.kind == "in" else -m.amount for m in moves), Decimal(0))
+        shift.opening_cash
+        + cash
+        - change
+        - refunds_cash
+        + sum((m.amount if m.kind == "in" else -m.amount for m in moves), Decimal(0))
     )
     methods = {}
     for p in payments:
@@ -53,13 +63,17 @@ def closing(shift):
         "orders_count": len(paid),
         "orders_total": sum((o.total - o.tip for o in paid), Decimal(0)),
         "opening_cash": shift.opening_cash,
+        "refunds_cash": refunds_cash,
+        "refunds": [refund_dict(refund) for refund in refunds],
         "cash_payments": cash,
         "cash_moves": [fields(m, "kind amount reason") for m in moves],
         "expected_cash": expected,
         "other_methods": list(methods.values()),
         # Un pre-pedido confirmado queda programado; se asigna al turno abierto cuando llega el cliente.
-        "draft_orders": shift.orders.filter(state="draft").exclude(
-            Q(reservation__state="confirmed") & Q(payments__isnull=True)).distinct().count(),
+        "draft_orders": shift.orders.filter(state="draft")
+        .exclude(Q(reservation__state="confirmed") & Q(payments__isnull=True))
+        .distinct()
+        .count(),
         "opening_notes": shift.opening_notes,
     }
 

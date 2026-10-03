@@ -124,4 +124,23 @@ mm incluidas). Para que no aparezca el diálogo en un equipo dedicado, Chrome o 
 
 ## Estado
 
-- (pendiente)
+- **U1 hecha** (2026-10-03).
+  - Backend (Codex): `sales/refunds.py` con devoluciones totales y parciales, reparto del canje entre platos, puntos
+    revertidos sin saldo negativo, reposición opcional con el consumo guardado al cobrar, notas crédito `NC-n` por el
+    proveedor simulado, cuadre e informes netos, aviso al dueño y aislamiento. Decisiones en
+    [backend de devoluciones](2026-10-03-plan-U-devoluciones-backend.md).
+  - POS (Claude): «Devolver» en Historial con permiso `refund_orders`, ventana de devolución (cantidades, propina,
+    reparto que empieza por efectivo, motivo, inventario), «Devuelto» en la cuenta, «Devoluciones en efectivo» en el
+    cierre y la sección **Devoluciones** en la consola del dueño, con exportar CSV.
+- **U2 hecha** (2026-10-03). Lecturas guardadas por organización, cola de salida con reenvío en orden e idempotente,
+  aviso fijo y revisión de rechazos, cobro sin conexión en efectivo o datáfono, comanda impresa sin conexión, service
+  worker de producción. experience omite líneas con un `uuid` ya aceptado (Codex).
+- **U3 hecha** (2026-10-03). Comanda por estación desde el ticket (que ahora trae las opciones), botón en cocina y en
+  el detalle del pedido, impresión automática al enviar o al cobrar sin repetir rondas, papel de 80 o 58 mm y copias
+  del recibo por equipo. Cocina muestra las opciones y el tipo de servicio.
+- **Verificado en Chromium** (e2e): comanda impresa con opciones; pedido cobrado sin conexión que llega pagado una sola
+  vez al volver la red; devolución parcial en efectivo desde Historial que baja el esperado del cuadre y aparece en
+  Devoluciones del dueño.
+- **Guías de QA:** casos K-07 (comanda impresa), C-09 (sin internet) y E-14 (devolución).
+- **Pendiente para el sprint de integraciones:** nota crédito real ante la DIAN, reembolso automático por Bold o Wompi
+  e impresoras de red sin diálogo.

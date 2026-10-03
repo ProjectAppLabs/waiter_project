@@ -3,7 +3,7 @@
 from django.db import models
 
 from sales.models import money
-from tenancy.fields import ExactCharField
+from tenancy.fields import ExactCharField, only_when
 
 
 class Resolution(models.Model):
@@ -44,10 +44,10 @@ class BillingSettings(models.Model):
 class SalesDocument(models.Model):
     organization = models.ForeignKey("tenancy.Organization", on_delete=models.PROTECT)
     restaurant = models.ForeignKey("tenancy.Restaurant", on_delete=models.PROTECT)
-    order = models.OneToOneField("sales.Order", on_delete=models.PROTECT, related_name="document")
+    order = models.ForeignKey("sales.Order", on_delete=models.PROTECT, related_name="documents")
     kind = models.CharField(max_length=11, choices=[(v, v) for v in ("invoice", "pos", "credit_note")])
     original = models.ForeignKey("self", null=True, blank=True, on_delete=models.PROTECT)
-    resolution = models.ForeignKey(Resolution, on_delete=models.PROTECT)
+    resolution = models.ForeignKey(Resolution, on_delete=models.PROTECT, null=True, blank=True)
     number = models.CharField(max_length=50)
     buyer = models.ForeignKey("loyalty.Customer", on_delete=models.PROTECT)
     buyer_data = models.JSONField(default=dict)
@@ -72,9 +72,19 @@ class SalesDocument(models.Model):
     attempts = models.PositiveIntegerField(default=0)
     request_key = ExactCharField(max_length=80)
     created_by = models.ForeignKey("accounts.Account", on_delete=models.PROTECT)
+    refund = models.OneToOneField(
+        "sales.Refund", on_delete=models.PROTECT, null=True, blank=True, related_name="credit_note"
+    )
+    original_order = only_when(models.Q(kind__in=["invoice", "pos"]), "order_id", models.BigIntegerField())
 
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=["organization", "number"], name="document_org_number_unique"),
             models.UniqueConstraint(fields=["organization", "request_key"], name="document_org_key_unique"),
+            models.UniqueConstraint(fields=["original_order"], name="document_one_original"),
+            models.CheckConstraint(
+                condition=models.Q(kind="credit_note", resolution__isnull=True, original__isnull=False)
+                | models.Q(kind__in=["invoice", "pos"], resolution__isnull=False, original__isnull=True),
+                name="document_resolution_kind",
+            ),
         ]

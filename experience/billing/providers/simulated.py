@@ -38,15 +38,17 @@ def fiscal_fields(document):
         f"{document.total:.2f}",
         document.company_data["tax_id"],
         document.buyer_data["vat"],
-        document.resolution_data["technical_key"],
+        document.resolution_data.get("technical_key", ""),
         "2",
     ]
 
 
 def xml_document(document, cufe):
+    credit = document.kind == "credit_note"
+    kind = "CreditNote" if credit else "Invoice"
     root = Element(
-        "Invoice",
-        xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2",
+        kind,
+        xmlns=f"urn:oasis:names:specification:ubl:schema:xsd:{kind}-2",
         attrib={
             "xmlns:cbc": "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2",
             "xmlns:cac": "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2",
@@ -75,6 +77,10 @@ def xml_document(document, cufe):
     ]:
         basic(root, key, value)
     basic(root, "Note", f"{document.tip_label}: {document.tip:.2f} COP. Fuera de la base gravable.")
+    if credit:
+        reference = SubElement(SubElement(root, "cac:BillingReference"), "cac:InvoiceDocumentReference")
+        basic(reference, "ID", document.original.number)
+        basic(reference, "UUID", document.original.cufe)
     for role, data in [
         ("AccountingSupplierParty", document.company_data),
         ("AccountingCustomerParty", document.buyer_data),
@@ -104,9 +110,9 @@ def xml_document(document, cufe):
     ]:
         amount(monetary, key, value)
     for line in document.lines:
-        node = SubElement(root, "cac:InvoiceLine")
+        node = SubElement(root, "cac:CreditNoteLine" if credit else "cac:InvoiceLine")
         basic(node, "ID", line["id"])
-        basic(node, "InvoicedQuantity", line["qty"])
+        basic(node, "CreditedQuantity" if credit else "InvoicedQuantity", line["qty"])
         amount(node, "LineExtensionAmount", line["base"])
         item = SubElement(node, "cac:Item")
         basic(item, "Description", line["name"])

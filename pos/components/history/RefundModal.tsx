@@ -78,7 +78,7 @@ export function RefundModal({ orderId, number, onClose, onDone }: { orderId: num
       {data && (
         <div className="flex flex-col gap-5">
           {data.refunds.length > 0 && (
-            <p className="text-[14px] text-soft">{t('previous', { amount: formatCop(data.refunds.reduce((a, r) => a + r.amount, 0)) })}</p>
+            <p className="text-[14px] text-soft">{t('previous', { amount: formatCop(data.refunds.reduce((a, r) => a + r.total, 0)) })}</p>
           )}
           <section aria-label={t('dishes')} className="flex flex-col gap-2">
             <div className="flex items-center justify-between">

@@ -79,7 +79,7 @@ export default function HistorialPage() {
         <RefundModal orderId={selected.id} number={selected.number} onClose={() => setRefunding(false)}
           onDone={(r) => {
             setRefunding(false)
-            toast({ title: t('refund.doneTitle', { amount: formatCop(r.refund.amount) }), body: r.credit_note ? t('refund.doneCreditNote', { number: r.credit_note.number }) : t('refund.doneBody') })
+            toast({ title: t('refund.doneTitle', { amount: formatCop(r.refund.total) }), body: r.credit_note ? t('refund.doneCreditNote', { number: r.credit_note.number }) : t('refund.doneBody') })
             void reload()
           }} />
       )}
