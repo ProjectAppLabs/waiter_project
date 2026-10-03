@@ -1,7 +1,8 @@
 import type { Role } from '@/lib/domain/roles'
 
 export const ROLE_VIEWS = ['dashboard', 'tables', 'orders', 'reservations', 'history', 'inventory', 'kitchen', 'sales', 'customers', 'billing'] as const
-export const ROLE_ACTIONS = ['create_orders', 'charge_orders', 'serve_orders', 'edit_inventory'] as const
+// `refund_orders` (plan U1): devolver pedidos cobrados; por omisión solo el encargado.
+export const ROLE_ACTIONS = ['create_orders', 'charge_orders', 'serve_orders', 'edit_inventory', 'refund_orders'] as const
 export type RoleView = typeof ROLE_VIEWS[number]
 export type RoleAction = typeof ROLE_ACTIONS[number]
 export type RolePolicy = Record<Role, { views: RoleView[]; actions: RoleAction[] }>

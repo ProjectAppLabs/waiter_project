@@ -1,9 +1,59 @@
 {
   "title": "Historial",
   "search": "Buscar por número o cliente",
-  "filters": { "all": "Todos", "dine_in": "En mesa", "takeout": "Para llevar", "delivery": "Domicilio" },
-  "row": { "orderNo": "Pedido#", "type": "Tipo de pedido", "table": "Número de mesa", "customer": "Nombre del cliente", "total": "Total" },
-  "bill": { "title": "Información de la cuenta", "details": "Detalle del pedido", "subtotal": "Subtotal", "tax": "Impuestos", "total": "Total a pagar", "print": "Imprimir" },
-  "empty": { "title": "Selecciona una cuenta", "body": "Toca un pedido de la lista para ver el detalle de la cuenta." },
-  "noOrders": "Aún no hay pedidos pagados."
+  "filters": {
+    "all": "Todos",
+    "dine_in": "En mesa",
+    "takeout": "Para llevar",
+    "delivery": "Domicilio"
+  },
+  "row": {
+    "orderNo": "Pedido#",
+    "type": "Tipo de pedido",
+    "table": "Número de mesa",
+    "customer": "Nombre del cliente",
+    "total": "Total"
+  },
+  "bill": {
+    "title": "Información de la cuenta",
+    "details": "Detalle del pedido",
+    "subtotal": "Subtotal",
+    "tax": "Impuestos",
+    "total": "Total a pagar",
+    "print": "Imprimir",
+    "refund": "Devolver",
+    "refunded": "Devuelto"
+  },
+  "empty": {
+    "title": "Selecciona una cuenta",
+    "body": "Toca un pedido de la lista para ver el detalle de la cuenta."
+  },
+  "noOrders": "Aún no hay pedidos pagados.",
+  "refund": {
+    "title": "Devolver pedido {number}",
+    "loading": "Cargando lo que se puede devolver…",
+    "previous": "Este pedido ya tiene devoluciones por $ {amount}.",
+    "dishes": "Platos",
+    "all": "Devolver todo",
+    "available": "Se pueden devolver {n} de {of}",
+    "done": "Ya devuelto",
+    "less": "Uno menos de {name}",
+    "more": "Uno más de {name}",
+    "tip": "Propina a devolver (hasta $ {max})",
+    "tipLabel": "Propina a devolver",
+    "methods": "Por dónde sale el dinero",
+    "upTo": "hasta $ {amount}",
+    "mustMatch": "El reparto debe sumar $ {amount}.",
+    "overMethod": "Un método pasa de lo que se le puede devolver.",
+    "cardHint": "El efectivo sale de la caja abierta. La tarjeta o la transferencia se reembolsan en el datáfono o el banco; aquí solo se registran.",
+    "reason": "Motivo de la devolución",
+    "restock": "Volver al inventario (no se preparó o se puede revender)",
+    "creditNote": "El pedido tiene factura: se emitirá una nota crédito.",
+    "total": "Total a devolver",
+    "confirm": "Devolver $ {amount}",
+    "offline": "Las devoluciones necesitan conexión. Inténtalo cuando vuelva la red.",
+    "doneTitle": "Devolución de $ {amount} registrada",
+    "doneBody": "El dinero sale del cuadre de esta caja.",
+    "doneCreditNote": "Se emitió la nota crédito {number}."
+  }
 }

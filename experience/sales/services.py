@@ -159,7 +159,6 @@ def recalculate(order):
 
 
 def add_lines(order, raw):
-    editable(order)
     valid(isinstance(raw, list) and 1 <= len(raw) <= 500)
     data = CatalogData(order.organization, [order.restaurant])
 
@@ -169,6 +168,29 @@ def add_lines(order, raw):
         )
         item = payload(item, allowed, ("uuid", "product_id", "qty"))
         pk = integer(item["product_id"], high=2**63 - 1)
+        uid = uuid_value(item["uuid"])
+        qty = number(item["qty"], positive=True)
+        valid(qty <= 999)
+        existing = order.lines.filter(uuid=uid).first()
+        if existing:
+            require(
+                existing.product_id == pk and existing.qty == qty and existing.parent_id == (parent.pk if parent else None),
+                "El UUID ya corresponde a otra línea o cantidad.", "uuid_conflict", 409,
+            )
+            if parent is None and "children" in item:
+                children = item["children"]
+                valid(isinstance(children, list))
+                stored = {str(child.uuid): child for child in existing.children.all()}
+                require(len(children) == len(stored), "Los componentes no coinciden con el combo aceptado.", "uuid_conflict", 409)
+                seen = set()
+                for child in children:
+                    child = payload(child, ("uuid", "product_id", "qty"), ("uuid", "product_id", "qty"))
+                    child_uid = str(uuid_value(child["uuid"]))
+                    require(child_uid in stored and child_uid not in seen, "El UUID no corresponde al componente aceptado.", "uuid_conflict", 409)
+                    seen.add(child_uid)
+                    create(child, existing)
+            return existing
+        editable(order)
         product = data.products.get(pk)
         require(
             product and product.kind == "dish" and not data.sold_out(pk, order.restaurant_id),
@@ -176,8 +198,6 @@ def add_lines(order, raw):
             "unavailable",
             400,
         )
-        qty = number(item["qty"], positive=True)
-        valid(qty <= 999)
         servings = data.servings(pk, order.restaurant_id)
         require(servings is None or qty <= servings, f"No está disponible: {product.name}.", "unavailable", 400)
         options = item.get("options", [])
@@ -204,7 +224,7 @@ def add_lines(order, raw):
         subtotal = rounded(total / (1 + excluded) / (1 + included))
         line = OrderLine.objects.create(
             order=order,
-            uuid=uuid_value(item["uuid"]),
+            uuid=uid,
             product=product,
             name=product.name,
             qty=qty,
@@ -417,16 +437,36 @@ def pay(order, account):
 
     data = CatalogData(order.organization, [order.restaurant])
     requirements = defaultdict(Decimal)
+    usage = {}
     # Los componentes ya están materializados: no se cuenta también su padre.
-    lines = list(order.lines.filter(cancelled=False))
+    lines = list(order.lines.filter(cancelled=False).order_by("id"))
     parents = {line.parent_id for line in lines if line.parent_id is not None}
     for line in lines:
         if line.pk in parents:
             continue
-        for ingredient, qty in data.requirements(line.product_id).items():
-            requirements[ingredient] += qty * line.qty
+        usage[line.pk] = {ingredient: qty * line.qty for ingredient, qty in data.requirements(line.product_id).items()}
+        for ingredient, qty in usage[line.pk].items():
+            requirements[ingredient] += qty
     for pk, qty in requirements.items():
         apply_sale(account, data.products[pk], order, qty)
+    from inventory.models import StockMove
+
+    movements = {m.ingredient_id: m for m in StockMove.objects.filter(
+        organization=order.organization, request_key__in=[f"order:{order.pk}:ingredient:{pk}" for pk in requirements]
+    )}
+    allocated, consumed = defaultdict(Decimal), defaultdict(Decimal)
+    for line in lines:
+        line.stock_usage = []
+        for pk, qty in usage.get(line.pk, {}).items():
+            if not requirements[pk]:
+                continue
+            allocated[pk] += qty
+            target = (-movements[pk].qty * allocated[pk] / requirements[pk]).quantize(
+                Decimal("0.000001"), rounding=ROUND_HALF_UP)
+            line.stock_usage.append({"ingredient_id": pk, "unit_id": movements[pk].unit_id,
+                                    "qty": str(target - consumed[pk])})
+            consumed[pk] = target
+    OrderLine.objects.bulk_update(lines, ["stock_usage"])
     if order.table_id and not Order.objects.filter(table_id=order.table_id, state="draft").exists():
         from tables.models import Table
 

@@ -46,7 +46,7 @@ def order_dict(order):
     return {
         **fields(
             order,
-            "id uuid number tracking service state origin channel table_id guests baby_chair customer_id customer_name delivery_address delivery_phone note billing created_at paid_at subtotal tax tip total paid change",
+            "id uuid number tracking service state origin channel table_id guests baby_chair customer_id customer_name delivery_address delivery_phone note billing created_at paid_at subtotal tax tip total paid change refunded",
         ),
         "table_number": order.table.number if order.table else None,
         "waiter": person(order.created_by),

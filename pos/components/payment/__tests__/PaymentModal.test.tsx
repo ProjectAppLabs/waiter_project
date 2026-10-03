@@ -5,6 +5,7 @@ import { NextIntlClientProvider } from 'next-intl'
 import { PaymentModal } from '@/components/payment/PaymentModal'
 import { messages } from '@/lib/i18n/messages'
 import { loadLoyaltyProgram, readPayableOrder } from '@/lib/services/paymentKit'
+import { useNetworkStore } from '@/lib/offline/network'
 import { useCatalogStore } from '@/lib/stores/catalogStore'
 import { useOrderStore } from '@/lib/stores/orderStore'
 import type { Catalog } from '@/lib/types'
@@ -21,6 +22,8 @@ beforeEach(() => {
   ;(readPayableOrder as jest.Mock).mockResolvedValue(order)
   ;(loadLoyaltyProgram as jest.Mock).mockResolvedValue(null)
   useCatalogStore.setState({ catalog, status: 'ready' })
+  // Una lectura sin simular deja la app «sin conexión»: cada prueba empieza con red.
+  useNetworkStore.setState({ online: true })
   useOrderStore.setState({ busy: false, error: null, settle: jest.fn().mockResolvedValue(true) as never })
 })
 
@@ -129,4 +132,14 @@ it('never offers pay later as a way to charge', async () => {
   await userEvent.click(await screen.findByRole('tab', { name: /Tarjeta/ }))
   expect(screen.queryByText('Cuenta de cliente')).not.toBeInTheDocument()
   expect(await screen.findByRole('alert')).toHaveTextContent(/método/i)
+})
+
+// Falla si sin conexión la caja ve el cobro normal (QR, puntos, propina) que no puede completarse, en vez del cobro
+// sin conexión por el saldo del pedido.
+it('sin conexión ofrece el cobro sin conexión por el saldo', async () => {
+  useNetworkStore.setState({ online: false })
+  ;(readPayableOrder as jest.Mock).mockResolvedValue({ ...order, paid: 20000 })
+  render(<NextIntlClientProvider locale="es" messages={messages}><PaymentModal orderId={40} onClose={jest.fn()} onPaid={jest.fn()} /></NextIntlClientProvider>)
+  expect(await screen.findByRole('dialog', { name: 'Cobrar sin conexión' })).toHaveTextContent('80.000')
+  expect(screen.queryByRole('tab', { name: 'Código QR' })).toBeNull()
 })

@@ -4,12 +4,15 @@ import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
 import { Chip } from '@/components/kit/Chip'
+import { Toggle } from '@/components/kit/Toggle'
 import { Icon } from '@/components/kit/Icon'
 import { StatusPill } from '@/components/kit/StatusPill'
 import { MapsLinkField, type MapsStatus } from '@/components/settings/MapsLinkField'
 import { SaveBar, useSaveState } from '@/components/settings/SettingsForms'
 import { Select, TextInput } from '@/components/ui/Field'
 import { play, setStation, type SoundId, type Station } from '@/lib/audio/sounds'
+import { readPrintSettings, writePrintSettings, type PrintSettings } from '@/lib/print/settings'
+import { useCatalogStore } from '@/lib/stores/catalogStore'
 import { shiftLabel } from '@/lib/domain/employees'
 import type { PosEmployee } from '@/lib/services/employees'
 import { saveCompany, type CompanyInfo, type PaymentMethodInfo, type TaxInfo } from '@/lib/services/settings'
@@ -102,7 +105,40 @@ export function DisplayForm() {
         <p className="text-[15px] font-semibold text-ink">{t('sounds')}</p>
         <div className="flex flex-wrap gap-2">{SOUNDS.map((id) => <Chip key={id} label={`${t('test')}: ${id}`} icon="volume" onClick={() => play(id)} />)}</div>
       </div>
+      <PrintSettingsBox />
       <p className="text-[13px] text-soft">{t('localHint')}</p>
     </div>
+  )
+}
+
+// Plan U3: la impresora de este equipo. Las estaciones salen de las categorías de la carta.
+function PrintSettingsBox() {
+  const t = useTranslations('admin.settings.display.print')
+  const [settings, setSettings] = useState<PrintSettings>(() => readPrintSettings())
+  const categories = useCatalogStore((s) => s.catalog?.categories ?? [])
+  const stations = [...new Set(categories.map((c) => c.station).filter((s): s is string => !!s))]
+  const update = (patch: Partial<PrintSettings>) => setSettings((current) => { const next = { ...current, ...patch }; writePrintSettings(next); return next })
+  const toggleStation = (station: string) => update({ stations: settings.stations.includes(station) ? settings.stations.filter((s) => s !== station) : [...settings.stations, station] })
+  return (
+    <section aria-label={t('title')} className={box}>
+      <p className="text-[15px] font-semibold text-ink">{t('title')}</p>
+      <p className="text-[13px] text-soft">{t('hint')}</p>
+      <div className="grid grid-cols-2 gap-4">
+        <Select label={t('paper')} value={settings.paper} onChange={(e) => update({ paper: e.target.value === '58' ? '58' : '80' })}>
+          <option value="80">{t('paper80')}</option><option value="58">{t('paper58')}</option>
+        </Select>
+        <Select label={t('copies')} value={String(settings.receiptCopies)} onChange={(e) => update({ receiptCopies: Number(e.target.value) })}>
+          {[1, 2, 3].map((n) => <option key={n} value={n}>{n}</option>)}
+        </Select>
+      </div>
+      <div className="flex items-center gap-3 text-[15px] text-ink"><Toggle checked={settings.autoComanda} onChange={(v) => update({ autoComanda: v })} label={t('auto')} /><span>{t('auto')}</span></div>
+      {settings.autoComanda && stations.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <p className="text-[14px] text-soft">{t('stations')}</p>
+          <div className="flex flex-wrap gap-2">{stations.map((s) => <Chip key={s} label={s} active={settings.stations.includes(s)} onClick={() => toggleStation(s)} />)}</div>
+          <p className="text-[13px] text-dim">{settings.stations.length === 0 ? t('allStations') : t('someStations')}</p>
+        </div>
+      )}
+    </section>
   )
 }

@@ -33,13 +33,13 @@ const live = (o: CoreOrder) => o.lines.filter((l) => !l.cancelled)
 
 export const toKitLine = (l: CoreOrder['lines'][number]): KitLine => ({
   id: l.id, uuid: l.uuid, productId: l.product_id, name: l.name, qty: l.qty, unitPrice: l.unit_price, subtotal: l.subtotal, total: l.total, note: l.note,
-  courseId: l.course_id, readyAt: l.ready_at, servedAt: l.served_at,
+  courseId: l.course_id, readyAt: l.ready_at, servedAt: l.served_at, options: (l.options ?? []).map((o) => o.name),
 })
 export const toKitCourse = (c: CoreOrder['courses'][number]): KitCourse => ({ id: c.id, fired: true, preparationAt: c.preparation_at, readyAt: c.ready_at, servedAt: c.served_at })
 export const toKitOrder = (o: CoreOrder): KitOrder => ({
   channel: o.channel === 'whatsapp' ? 'whatsapp' : null, phone: o.delivery_phone, id: o.id, number: o.number, type: o.service, state: state(o),
   tableId: o.table_id, tableNumber: o.table_number, customer: o.customer_name, startedAt: o.created_at, total: o.total, tax: o.tax,
-  lines: live(o).map(toKitLine), courses: o.courses.map(toKitCourse), waiter: o.waiter?.name ?? '', tracking: String(o.tracking),
+  lines: live(o).map(toKitLine), courses: o.courses.map(toKitCourse), waiter: o.waiter?.name ?? '', tracking: String(o.tracking), refunded: o.refunded ?? 0,
 })
 export const toSavedOrder = (o: CoreOrder): SavedOrder => ({ id: o.id, reference: o.number, state: o.state === 'paid' ? 'paid' : 'draft', total: o.total, tax: o.tax, paid: o.paid })
 export const toCreatedOrder = (o: CoreOrder): CreatedOrder => ({ id: o.id, reference: o.number, trackingNumber: String(o.tracking), total: o.total, tax: o.tax })
@@ -91,15 +91,15 @@ export const toInvoiceableOrder = (o: CoreOrder): InvoiceableOrder => ({
 // Cocina. La comanda del sistema propio trae el número de mesa; el KDS busca la mesa por id y, si no la encuentra,
 // muestra el valor tal cual: por eso aquí viaja el número.
 export const toKitchenTicket = (t: CoreTicket): KitchenTicket => ({
-  id: t.id, orderId: t.order_id, tableId: t.table_number ?? 0, tracking: t.number, waiter: typeof t.waiter === 'string' ? t.waiter : t.waiter?.name ?? '', note: t.note, firedAt: t.fired_at, preparationAt: t.preparation_at, readyAt: t.ready_at,
-  lines: t.lines.map((l) => ({ id: l.id, name: l.name, qty: l.qty, note: l.note, station: l.station || null, readyAt: l.ready_at, servedAt: l.served_at })),
+  id: t.id, orderId: t.order_id, tableId: t.table_number ?? 0, service: t.service, tracking: t.number, waiter: typeof t.waiter === 'string' ? t.waiter : t.waiter?.name ?? '', note: t.note, firedAt: t.fired_at, preparationAt: t.preparation_at, readyAt: t.ready_at,
+  lines: t.lines.map((l) => ({ id: l.id, name: l.name, qty: l.qty, note: l.note, station: l.station || null, options: l.options ?? [], readyAt: l.ready_at, servedAt: l.served_at })),
 })
 export const toCompleted = (c: { fired_at: string; ready_at: string }): CompletedCourse => ({ firedAt: c.fired_at, readyAt: c.ready_at })
 
 // Caja
 export const toClosingData = (c: CoreClosing): ClosingData => ({
   ordersCount: c.orders_count, ordersTotal: c.orders_total, expectedCash: c.expected_cash, openingCash: c.opening_cash, cashPayments: c.cash_payments,
-  cashMoves: c.cash_moves.map((m) => ({ name: m.reason, amount: m.kind === 'out' ? -m.amount : m.amount })), otherMethods: c.other_methods, draftOrders: c.draft_orders, openingNotes: c.opening_notes,
+  cashMoves: c.cash_moves.map((m) => ({ name: m.reason, amount: m.kind === 'out' ? -m.amount : m.amount })), otherMethods: c.other_methods, draftOrders: c.draft_orders, openingNotes: c.opening_notes, refundsCash: c.refunds_cash ?? 0,
 })
 export const toShiftRow = (s: CoreShift): ShiftRow => ({
   id: s.id, name: `Turno ${s.id}`, state: s.state === 'open' ? 'opened' : 'closed', startAt: s.opened_at, stopAt: s.closed_at ?? null, user: s.opened_by?.name ?? '', total: s.total ?? 0, orders: s.orders ?? 0,

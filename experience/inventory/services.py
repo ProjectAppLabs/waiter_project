@@ -185,3 +185,67 @@ def apply_sale(account, product, order, qty):
     StockMove.objects.create(organization=order.organization, restaurant=order.restaurant, ingredient=product,
         kind='sale', qty=-delta, reason=reason, request_key=key, account=account, unit=product.unit,
         requested_qty=qty, stock_after=stock.qty)
+
+
+def apply_return(refund, balances):
+    """Repone el consumo guardado al cobrar, en la unidad actual del ingrediente."""
+    from collections import defaultdict
+    from catalog.models import Unit
+    from sales.refunds import POINT, decimal, proportional
+
+    amounts = defaultdict(Decimal)
+    order = refund.order
+    all_lines = list(order.lines.filter(cancelled=False).order_by("id"))
+    selected = {row['line_id']: row for row in refund.lines}
+    # Los pedidos anteriores a U1 no guardaban consumo por línea. Se reconstruye de la receta,
+    # limitado a lo realmente descontado por la venta; las ventas nuevas usan siempre la copia.
+    legacy = {}
+    if not any(line.stock_usage for line in all_lines):
+        from catalog.reading import CatalogData
+        data = CatalogData(order.organization, [order.restaurant])
+        parents = {line.parent_id for line in all_lines if line.parent_id}
+        needs, total = {}, defaultdict(Decimal)
+        for line in all_lines:
+            if line.pk in parents or line.points_cost:
+                continue
+            needs[line.pk] = {pk: qty * line.qty for pk, qty in data.requirements(line.product_id).items()}
+            for pk, qty in needs[line.pk].items():
+                total[pk] += qty
+        moves = StockMove.objects.filter(organization=order.organization,
+                    request_key__in=[f'order:{order.pk}:ingredient:{pk}' for pk in total]).select_related('unit', 'ingredient__unit')
+        for move in moves:
+            allocated, consumed = Decimal(0), Decimal(0)
+            for line_id, usage in needs.items():
+                if usage.get(move.ingredient_id) and total[move.ingredient_id]:
+                    allocated += usage[move.ingredient_id]
+                    target = proportional(-move.qty, allocated, total[move.ingredient_id], POINT)
+                    legacy.setdefault(line_id, []).append(dict(ingredient_id=move.ingredient_id, unit_id=move.unit_id,
+                                                              qty=str(target - consumed)))
+                    consumed = target
+    units = {u.pk: u for u in Unit.objects.filter(organization=order.organization)}
+    for line in all_lines:
+        parent_id = line.parent_id or line.pk
+        if parent_id not in selected:
+            continue
+        balance = balances[parent_id]
+        before = balance['returned']['qty']
+        qty = decimal(selected[parent_id]['qty'])
+        for usage in line.stock_usage or legacy.get(line.pk, []):
+            consumed = decimal(usage['qty'])
+            delta = (proportional(consumed, before + qty, balance['line'].qty, POINT)
+                     - proportional(consumed, before, balance['line'].qty, POINT))
+            amounts[(usage['ingredient_id'], usage['unit_id'])] += delta
+    for (ingredient_id, unit_id), qty in amounts.items():
+        if qty <= 0:
+            continue
+        product = Product.objects.select_related('unit').get(pk=ingredient_id, organization=order.organization)
+        if unit_id:
+            qty = (qty * units[unit_id].factor / product.unit.factor).quantize(POINT)
+        stock, _ = Stock.objects.get_or_create(restaurant=order.restaurant, ingredient=product)
+        stock = Stock.objects.select_for_update().get(pk=stock.pk)
+        stock.qty += qty
+        stock.save()
+        StockMove.objects.create(organization=order.organization, restaurant=order.restaurant, ingredient=product,
+            kind='return', qty=qty, reason=f'Devolución {refund.pk} de {order.number}: {refund.reason}'[:300],
+            request_key=f'refund:{refund.pk}:ingredient:{ingredient_id}', account=refund.account,
+            unit=product.unit, requested_qty=qty, stock_after=stock.qty)

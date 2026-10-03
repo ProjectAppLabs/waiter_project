@@ -506,3 +506,13 @@ def test_kitchen_only_shows_the_open_shift(setup):
     assert [t["order_id"] for t in call(s["client"], "get", url)["tickets"]] == [o["id"]]
     CashShift.objects.filter(restaurant=s["r1"], state="open").update(state="closed")
     assert call(s["client"], "get", url)["tickets"] == []
+
+
+def test_kitchen_ticket_carries_the_chosen_options(setup):
+    # Falla si cocina no recibe el tamaño o las adiciones elegidas: la pantalla y la comanda impresa saldrían sin ellas.
+    s = setup
+    open_shift(s)
+    chosen = [{"group": "attribute", "name": "Doble", "price_extra": 8000}, {"group": "attribute", "name": "Tocineta", "price_extra": 0}]
+    order(s, lines=[line(s, options=chosen)], fire=True)
+    ticket = call(s["client"], "get", f"kitchen/tickets?restaurant_id={s['r1'].pk}")["tickets"][0]
+    assert ticket["lines"][0]["options"] == ["Doble", "Tocineta"]

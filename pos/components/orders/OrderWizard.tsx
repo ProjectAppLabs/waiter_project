@@ -11,6 +11,8 @@ import { CustomerStep } from '@/components/orders/CustomerStep'
 import { MenuStep } from '@/components/orders/MenuStep'
 import { SummaryStep } from '@/components/orders/SummaryStep'
 import { TableStep } from '@/components/orders/TableStep'
+import { OfflinePayment } from '@/components/offline/OfflinePayment'
+import { readPrintSettings } from '@/lib/print/settings'
 import { PaymentModal } from '@/components/payment/PaymentModal'
 import { cartTotals, displayReference, stepsFor, type OptionGroup, type OrderType } from '@/lib/domain/orderWizard'
 import { roleCan } from '@/lib/domain/permissions'
@@ -32,6 +34,7 @@ const TABLE_TYPES: OrderType[] = ['dineIn']
 // y el resumen la enseña antes de crear el pedido.
 export function OrderWizard({ presetTableId, returnTo = '/pedidos', withoutTable = false }: { presetTableId: number | null; returnTo?: '/salon' | '/pedidos'; withoutTable?: boolean }) {
   const t = useTranslations('orders.create')
+  const tOffline = useTranslations('pos.offline')
   const locationText = useTranslations('orders.location')
   const router = useRouter()
   const session = useAuthStore((s) => s.session)
@@ -68,7 +71,14 @@ export function OrderWizard({ presetTableId, returnTo = '/pedidos', withoutTable
     if (skipTable && currentStep(useOrderWizardStore.getState()) === 'table') w.back()
   }
 
-  function leave(created: { trackingNumber: string } | null) {
+  function leave(created: { trackingNumber: string; offline?: boolean } | null) {
+    // Sin conexión no se navega: otra pantalla quizá no cargue sin red. El asistente queda listo para el siguiente pedido.
+    if (created?.offline) {
+      toast({ title: tOffline('savedTitle'), body: tOffline(readPrintSettings().autoComanda ? 'savedBody' : 'savedBodyNoPrint') })
+      setPaying(null)
+      w.reset({ tableId: presetTableId ?? null })
+      return
+    }
     if (created) toast({ title: t('successTitle', { ref: displayReference(w.info.type, created.trackingNumber) }), body: t('successBody') })
     router.push(returnTo)
   }
@@ -154,7 +164,11 @@ export function OrderWizard({ presetTableId, returnTo = '/pedidos', withoutTable
         </div>
       </div>
 
-      {paying !== null && (
+      {paying !== null && paying < 0 && w.created && (
+        <OfflinePayment order={{ uuid: w.requestUuid }} total={w.created.total} label={w.info.name.trim()} onClose={() => { setPaying(null); if (step === 'payment') w.back() }}
+          onPaid={() => { const created = w.created; void w.fireKitchen(paying).then((sent) => { if (sent) leave(created) }) }} />
+      )}
+      {paying !== null && paying >= 0 && (
         <PaymentModal orderId={paying} onClose={() => { setPaying(null); if (step === 'payment') w.back() }}
           onPaid={() => { const created = w.created; void w.fireKitchen(paying).then((sent) => { if (sent) leave(created) }) }} />
       )}

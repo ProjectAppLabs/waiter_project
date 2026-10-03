@@ -25,6 +25,7 @@ Que el cajero abre el turno, ve y crea pedidos, cobra de todas las formas que of
 | C-06 | Cliente socio y uso de puntos | Cajero |
 | C-07 | Historial y cuenta de un pedido pagado | Cajero |
 | C-08 | Cerrar la caja: cuadrada y con diferencia | Cajero (con la vista Ventas) |
+| C-09 | Seguir trabajando sin internet | Cajero |
 
 ## 4. Paso a paso
 
@@ -93,6 +94,18 @@ Que el cajero abre el turno, ve y crea pedidos, cobra de todas las formas que of
 
 **Resultado esperado:** con la caja cuadrada el cierre pasa sin nota. Con diferencia, «Confirmar» queda bloqueado y el mensaje dice «Escribe el motivo para cerrar: el dueño lo verá en los cuadres de caja.»; con la nota se cierra. Si la diferencia supera la tolerancia del dueño ($ 2.000 en Burger House), el dueño recibe un aviso de caja (D-08).
 
+### C-09 — Seguir trabajando sin internet
+
+**Preparación:** desconecte el internet del equipo (o active el modo avión) con la caja abierta y el POS ya cargado.
+
+1. Cree un pedido para llevar con el asistente. Al cobrar, aparece «Cobrar sin conexión»: pague en efectivo con un billete mayor y revise el cambio.
+2. Repita con «Datáfono» y un número de aprobación.
+3. Abra un pedido en mesa que ya existía y agregue una ronda.
+4. Revise el aviso al pie: «Sin conexión · N operaciones por enviar». Intente devolver un pedido en Historial.
+5. Vuelva a conectar el internet.
+
+**Resultado esperado:** sin red se puede crear, enviar a cocina y cobrar en efectivo o con datáfono; no se ofrecen QR ni devoluciones. Si el equipo imprime comandas, salen con el sello «SIN CONEXIÓN». Al volver la red el aviso dice «Enviando…» y desaparece; los pedidos aparecen en Pedidos o Historial pagados **una sola vez**. Si algo no se pudo enviar (por ejemplo, un plato que se agotó), el aviso ofrece «Revisar» con el motivo.
+
 ## 5. Registro de resultados
 
 | Caso | Resultado | Observaciones | Evidencia |
@@ -105,3 +118,4 @@ Que el cajero abre el turno, ve y crea pedidos, cobra de todas las formas que of
 | C-06 | | | |
 | C-07 | | | |
 | C-08 | | | |
+| C-09 | | | |

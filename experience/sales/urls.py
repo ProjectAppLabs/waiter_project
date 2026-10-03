@@ -1,10 +1,14 @@
 from django.urls import path
 
 from .api import ClosingsView, OrderActionView, OrdersView, PaymentMethodsView, ShiftsView
+from .refunds import RefundableView, RefundsView
 from .reports import InsightsView, SalesView
 from .settings_api import CashSettingsView, RolesView, SettingsView
 
 urlpatterns = [
+    path("orders/<int:pk>/refundable", RefundableView.as_view()),
+    path("orders/<int:pk>/refunds", RefundsView.as_view(http_method_names=["post", "options"])),
+    path("refunds", RefundsView.as_view(http_method_names=["get", "head", "options"])),
     path("orders", OrdersView.as_view(http_method_names=["get", "post", "head", "options"])),
     path("orders/<int:pk>", OrdersView.as_view(http_method_names=["get", "patch", "head", "options"])),
     path("shifts", ShiftsView.as_view(http_method_names=["get", "post", "head", "options"])),

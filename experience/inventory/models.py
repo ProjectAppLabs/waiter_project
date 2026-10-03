@@ -26,7 +26,7 @@ class StockMove(models.Model):
     organization = models.ForeignKey('tenancy.Organization', on_delete=models.CASCADE)
     restaurant = models.ForeignKey('tenancy.Restaurant', on_delete=models.CASCADE)
     ingredient = models.ForeignKey('catalog.Product', on_delete=models.PROTECT)
-    kind = models.CharField(max_length=10, choices=choices('receipt', 'waste', 'count', 'sale', 'adjust'))
+    kind = models.CharField(max_length=10, choices=choices('receipt', 'waste', 'count', 'sale', 'adjust', 'return'))
     qty = models.DecimalField(max_digits=18, decimal_places=6)
     reason = models.CharField(max_length=300)
     request_key = ExactCharField(max_length=80)

@@ -9,7 +9,8 @@ from rest_framework.response import Response
 from catalog.api import PosView
 from catalog.reading import CatalogData
 from catalog.services import manager, owner, price_before_taxes, restaurant_for, valid
-from sales.models import Order, OrderLine
+from sales.models import Order, Refund
+from sales.refunds import sale_values
 from sales.services import period
 from tenancy.models import Restaurant
 
@@ -39,6 +40,11 @@ class SummaryView(PosView):
             row["tips"] += order.tip
             row["orders"] += 1
             row["guests"] += order.guests
+
+        for refund in Refund.objects.filter(organization=self.org, created_at__gte=previous, created_at__lt=end):
+            row = (current if refund.created_at >= start else before)[refund.restaurant_id]
+            row["sales"] -= refund.total - refund.tip
+            row["tips"] -= refund.tip
 
         def total(rows):
             row = metrics()
@@ -72,17 +78,23 @@ class ProfitabilityView(PosView):
         start, end = period(self.org, request.query_params.get("from"), request.query_params.get("to"))
         data = CatalogData(self.org, restaurants)
         sales = defaultdict(lambda: dict(units=Decimal(0), revenue=Decimal(0)))
-        for line in OrderLine.objects.filter(
-            order__organization=self.org,
-            order__restaurant__in=restaurants,
-            order__state="paid",
-            order__paid_at__gte=start,
-            order__paid_at__lt=end,
-            cancelled=False,
-            parent__isnull=True,
+        for order in Order.objects.filter(
+            organization=self.org, restaurant__in=restaurants, state="paid", paid_at__gte=start, paid_at__lt=end
+        ).prefetch_related("lines"):
+            for value in sale_values(order.lines.all()).values():
+                line = value["line"]
+                sales[line.product_id]["units"] += line.qty
+                sales[line.product_id]["revenue"] += value["subtotal"]
+        returned_cost = defaultdict(Decimal)
+        for refund in Refund.objects.filter(
+            organization=self.org, restaurant__in=restaurants, created_at__gte=start, created_at__lt=end
         ):
-            sales[line.product_id]["units"] += line.qty
-            sales[line.product_id]["revenue"] += line.subtotal
+            for line in refund.lines:
+                qty = Decimal(str(line["qty"]))
+                sales[line["product_id"]]["units"] -= qty
+                sales[line["product_id"]]["revenue"] -= Decimal(str(line["subtotal"]))
+                if not refund.restock:
+                    returned_cost[line["product_id"]] += qty
         rows = []
         for p in sorted(data.products.values(), key=lambda p: (p.name, p.pk)):
             if not p.active or p.kind != "dish" or not p.available_in_pos:
@@ -103,7 +115,7 @@ class ProfitabilityView(PosView):
                     "food_cost_pct": cost / net * 100 if cost is not None and net > 0 else None,
                     "units": units,
                     "revenue": revenue,
-                    "gross_profit": revenue - cost * units if cost is not None else None,
+                    "gross_profit": revenue - cost * (units + returned_cost[p.pk]) if cost is not None else None,
                     "class": None,
                 }
             )

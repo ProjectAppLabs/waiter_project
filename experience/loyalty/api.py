@@ -1,7 +1,7 @@
 """Rutas de clientes y promociones con identidad y organización explícitas."""
 
 from django.core.files.storage import default_storage
-from django.db.models import Count, OuterRef, Q, Subquery, Sum
+from django.db.models import Case, Count, F, OuterRef, Q, Subquery, Sum, When
 from django.http import FileResponse
 from rest_framework.response import Response
 
@@ -28,7 +28,7 @@ def customers(org):
     billed = (
         SalesDocument.objects.filter(organization=org, buyer_id=OuterRef("pk"), state="issued")
         .values("buyer_id")
-        .annotate(amount=Sum("total"))
+        .annotate(amount=Sum(Case(When(kind="credit_note", then=-F("total")), default=F("total"))))
         .values("amount")
     )
     return Customer.objects.filter(organization=org).annotate(

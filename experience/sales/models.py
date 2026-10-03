@@ -2,6 +2,7 @@
 
 from django.db import models
 from django.utils import timezone
+
 from tenancy.fields import ExactCharField, only_when
 
 
@@ -74,7 +75,9 @@ class Order(models.Model):
     table = models.ForeignKey("tables.Table", on_delete=models.SET_NULL, null=True, related_name="orders")
     guests = models.PositiveIntegerField(default=1)
     baby_chair = models.BooleanField(default=False)
-    customer = models.ForeignKey("loyalty.Customer", on_delete=models.PROTECT, null=True, blank=True, related_name="orders")
+    customer = models.ForeignKey(
+        "loyalty.Customer", on_delete=models.PROTECT, null=True, blank=True, related_name="orders"
+    )
     customer_name = models.CharField(max_length=120, blank=True, default="")
     delivery_address = models.CharField(max_length=500, blank=True, default="")
     delivery_phone = models.CharField(max_length=40, blank=True, default="")
@@ -95,6 +98,7 @@ class Order(models.Model):
     total = money()
     paid = money()
     change = money()
+    refunded = money()
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["organization", "uuid"], name="order_org_uuid_unique")]
@@ -125,6 +129,7 @@ class OrderLine(models.Model):
     unit_price = money()
     taxes = models.JSONField(default=list)
     options = models.JSONField(default=list)
+    stock_usage = models.JSONField(default=list)
     parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, related_name="children")
     loyalty_card = models.ForeignKey("loyalty.LoyaltyCard", on_delete=models.PROTECT, null=True, blank=True)
     points_cost = models.DecimalField(max_digits=18, decimal_places=6, default=0)
@@ -163,4 +168,38 @@ class Payment(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["organization", "request_key"], name="payment_org_key_unique"),
             models.CheckConstraint(condition=models.Q(amount__gt=0), name="payment_positive"),
+        ]
+
+
+class Refund(models.Model):
+    organization = models.ForeignKey("tenancy.Organization", on_delete=models.PROTECT)
+    restaurant = models.ForeignKey("tenancy.Restaurant", on_delete=models.PROTECT)
+    order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name="refunds")
+    shift = models.ForeignKey(CashShift, on_delete=models.PROTECT, related_name="refunds")
+    lines = models.JSONField(default=list)
+    tip = money()
+    total = money()
+    reason = models.CharField(max_length=500)
+    restock = models.BooleanField(default=False)
+    request_key = ExactCharField(max_length=80)
+    account = models.ForeignKey("accounts.Account", on_delete=models.PROTECT)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["organization", "request_key"], name="refund_org_key_unique"),
+            models.CheckConstraint(condition=models.Q(total__gte=0, tip__gte=0), name="refund_nonnegative"),
+        ]
+        indexes = [models.Index(fields=["restaurant", "created_at"], name="refund_restaurant_date")]
+
+
+class RefundPayment(models.Model):
+    refund = models.ForeignKey(Refund, on_delete=models.PROTECT, related_name="payments")
+    method = models.ForeignKey(PaymentMethod, on_delete=models.PROTECT)
+    amount = money()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["refund", "method"], name="refund_method_unique"),
+            models.CheckConstraint(condition=models.Q(amount__gt=0), name="refund_payment_positive"),
         ]

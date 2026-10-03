@@ -17,7 +17,7 @@ export interface CoreOrder {
   id: number; uuid: string; number: string; tracking: number; service: Service; state: OrderState; origin: Origin; channel: 'pos' | 'menu' | 'whatsapp'
   table_id: number | null; table_number: number | null; guests: number; baby_chair: boolean; customer_name: string; delivery_address: string; delivery_phone: string
   note: string; billing: boolean; created_at: string; paid_at: string | null; waiter: CorePerson | null
-  subtotal: number; tax: number; tip: number; total: number; paid: number; change: number; lines: CoreLine[]; courses: CoreCourse[]; payments: CorePayment[]
+  subtotal: number; tax: number; tip: number; total: number; paid: number; change: number; refunded?: number; lines: CoreLine[]; courses: CoreCourse[]; payments: CorePayment[]
 }
 export interface LineInput { uuid: string; product_id: number; qty: number; note?: string; options?: { group: string; name: string; price_extra: number }[]; children?: { uuid: string; product_id: number; qty: number }[] }
 export interface OrderInput {
@@ -32,6 +32,8 @@ export interface CoreShift {
 export interface CoreClosing {
   orders_count: number; orders_total: number; opening_cash: number; cash_payments: number; cash_moves: { kind: 'in' | 'out'; amount: number; reason: string }[]
   expected_cash: number; other_methods: { id: number; name: string; amount: number; count: number }[]; draft_orders: number; opening_notes: string
+  // Plan U1: el efectivo devuelto en este turno, ya restado del esperado.
+  refunds_cash?: number
 }
 export interface CoreClosingRow {
   shift_id: number; restaurant_id: number; restaurant_name: string; closed_at: string; closed_by: CorePerson | null; expected: number; counted: number

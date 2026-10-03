@@ -8,6 +8,7 @@ export interface ClosingData {
   ordersCount: number; ordersTotal: number; expectedCash: number; openingCash: number; cashPayments: number
   cashMoves: { name: string; amount: number }[]; otherMethods: { id: number; name: string; amount: number; count: number }[]
   draftOrders: number; openingNotes: string
+  refundsCash?: number
 }
 export interface CloseResult { successful: boolean; message: string }
 export interface RegisterConfig { id: number; name: string }

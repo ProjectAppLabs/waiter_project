@@ -50,6 +50,7 @@ export function CloseRegisterModal({ data, onClose, onConfirm, canForce = false,
             {row(`${t('cash')} · ${t('opening', { amount: formatCop(data.openingCash) })}`, data.cashPayments)}
             {data.otherMethods.map((m) => <div key={m.id}>{row(`${m.name} · ${m.count}`, m.amount)}</div>)}
           </div>
+          {(data.refundsCash ?? 0) > 0 && row(t('refunds'), -(data.refundsCash ?? 0), true)}
           {data.cashMoves.length > 0 && <div className="flex flex-col gap-2"><p className="text-[13px] text-soft">{t('moves')}</p>{data.cashMoves.map((m, i) => <div key={i}>{row(m.name, m.amount, true)}</div>)}</div>}
           <div className="rounded-md bg-muted p-4 flex flex-col gap-1"><span className="text-[13px] text-soft">{t('expected')}</span><span className="text-[24px] font-semibold tabular text-ink">$ {formatCop(data.expectedCash)}</span></div>
           {/* Si la caja no cuadra, la nota es obligatoria: el dueño la lee en los cuadres y en el aviso. */}

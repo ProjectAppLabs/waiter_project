@@ -1,4 +1,6 @@
 import { currentOrg } from '@/lib/domain/tenant'
+import { recall, remember } from '@/lib/offline/cache'
+import { markOffline, markOnline } from '@/lib/offline/network'
 
 // Plan T: el transporte hacia el sistema propio (Django). Mismo origen: Next reescribe /experience/* hacia Django, y así
 // viajan las cookies HttpOnly de sesión (`waiter_sid`, `waiter_platform_sid`). Cada petición del POS lleva la
@@ -22,13 +24,25 @@ export async function coreFetch<T>(path: string, { method = 'GET', body, scope =
   // Las rutas del sistema propio van sin barra final (así las define `tenancy/urls.py`); Django no redirige los POST,
   // así que la ruta se envía tal cual.
   const url = `${BASE}/${scope}/v1/${path.replace(/^\/+/, '').replace(/\/+$/, '')}`
+  const relative = path.replace(/^\/+/, '').replace(/\/+$/, '')
+  // Plan U2: sin red, las lecturas que el POS necesita salen de la última respuesta guardada.
+  const unreachable = () => {
+    markOffline()
+    const cached = scope === 'pos' && method === 'GET' ? recall(relative) : null
+    if (cached !== null) return JSON.parse(cached) as T
+    throw new CoreError(0, 'unreachable', 'No se pudo conectar con el servidor. Revisa la conexión de este dispositivo.')
+  }
   let response: Response
   try {
     response = await fetch(url, { method, headers, credentials: 'include', body: body === undefined ? undefined : JSON.stringify(body) })
   } catch {
-    throw new CoreError(0, 'unreachable', 'No se pudo conectar con el servidor. Revisa la conexión de este dispositivo.')
+    return unreachable()
   }
+  // El proxy responde 502–504 cuando el servidor no está: es lo mismo que no tener red.
+  if (response.status >= 502 && response.status <= 504) return unreachable()
+  markOnline()
   const text = await response.text()
+  if (response.ok && scope === 'pos' && method === 'GET') remember(relative, text)
   let data: Record<string, unknown> = {}
   try { data = text ? (JSON.parse(text) as Record<string, unknown>) : {} } catch { /* respuesta sin JSON: se trata abajo */ }
   if (!response.ok) {

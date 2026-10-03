@@ -1,5 +1,6 @@
 'use client'
 
+import { printReceipt } from '@/lib/print/settings'
 import { useTranslations } from 'next-intl'
 
 import { Button } from '@/components/ui/Button'
@@ -112,7 +113,7 @@ export function Receipt({ data, onClose }: { data: ReceiptData; onClose: () => v
       </div>
 
       <footer className="px-[22px] py-4 border-t border-border bg-canvas flex gap-2.5 print:hidden">
-        <Button className="flex-1" onClick={() => window.print()}>{t('print')}</Button>
+        <Button className="flex-1" onClick={printReceipt}>{t('print')}</Button>
         <Button variant="primary" className="flex-1" onClick={onClose}>{t('close')}</Button>
       </footer>
     </aside>

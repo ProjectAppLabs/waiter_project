@@ -23,6 +23,7 @@ Que la pantalla de cocina recibe las comandas del salón y del menú del comensa
 | K-04 | Cocina no entrega; el salón sí | Cocina y mesero |
 | K-05 | Umbrales de demora, colores y sonido | Cocina y encargado |
 | K-06 | La pantalla no se cierra por inactividad | Cocina |
+| K-07 | Comanda impresa por estación | Cocina y encargado |
 
 ## 4. Paso a paso
 
@@ -70,6 +71,17 @@ Que la pantalla de cocina recibe las comandas del salón y del menú del comensa
 
 **Resultado esperado:** sigue abierta y recibiendo comandas. Solo se cierra al terminar el turno de la persona que entró (A-10).
 
+### K-07 — Comanda impresa por estación
+
+**Preparación:** en el equipo de cocina, Configuración → Pantalla → «Impresión en este equipo»: active «Imprimir la comanda al enviar a cocina» y, si hay varias estaciones, elija las de ese equipo. Para imprimir sin diálogo, el navegador se abre con `--kiosk-printing` y la impresora térmica como predeterminada.
+
+1. Desde la caja, cree un pedido con una hamburguesa con «Adición de tocineta» y una nota, y una bebida de la barra. Envíelo a cocina (o cóbrelo, si es para llevar).
+2. Revise lo que imprime el equipo de cocina.
+3. En la pantalla de cocina, pulse el botón de impresora de un ticket.
+4. En Pedidos, abra el detalle de un pedido enviado y pulse «Imprimir comanda».
+
+**Resultado esperado:** sale una hoja por estación (solo las del equipo, más la de platos sin estación) con el número, «Mesa N» o «Para llevar», la hora, el mesero, cada plato con su cantidad en grande, «+ Adición de tocineta» y la nota. Cocina muestra las adiciones bajo el plato y dice «Para llevar» o «Domicilio» en vez de una mesa. El botón reimprime la comanda completa. Con papel de 58 mm la hoja sale angosta.
+
 ## 5. Registro de resultados
 
 | Caso | Resultado | Observaciones | Evidencia |
@@ -80,3 +92,4 @@ Que la pantalla de cocina recibe las comandas del salón y del menú del comensa
 | K-04 | | | |
 | K-05 | | | |
 | K-06 | | | |
+| K-07 | | | |

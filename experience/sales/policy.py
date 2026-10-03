@@ -14,7 +14,7 @@ VIEWS = [
     "customers",
     "billing",
 ]
-ACTIONS = ["create_orders", "charge_orders", "serve_orders", "edit_inventory"]
+ACTIONS = ["create_orders", "charge_orders", "serve_orders", "edit_inventory", "refund_orders"]
 
 
 def default_role_policy():

@@ -29,6 +29,7 @@ Que el encargado opera su sede completa: entra sin abrir caja, lee el Inicio, ma
 | E-11 | Meseros por zona | Encargado |
 | E-12 | Lo que el encargado no puede hacer | Encargado |
 | E-13 | Equipo limitado a su sede (sistema propio) | Encargado en Frisby |
+| E-14 | Devolver un pedido cobrado | Encargada |
 
 ## 4. Paso a paso
 
@@ -143,6 +144,19 @@ Que el encargado opera su sede completa: entra sin abrir caja, lee el Inicio, ma
 
 **Resultado esperado:** el encargado solo maneja personas de sus restaurantes y no puede asignar el rol Dueño; nadie puede desactivarse a sí mismo.
 
+### E-14 — Devolver un pedido cobrado
+
+**Preparación:** un pedido pagado ayer y otro de hoy, uno de ellos con propina y pagado en parte con efectivo y en parte con tarjeta. La caja debe estar abierta.
+
+1. En Historial, abra el pedido de hoy y pulse «Devolver». Elija un plato (uno menos de lo pedido), parte de la propina y revise el reparto: primero efectivo, luego tarjeta.
+2. Intente confirmar sin motivo, y con un reparto que no sume el total.
+3. Escriba el motivo, deje «Volver al inventario» apagado y confirme.
+4. Abra otra vez «Devolver» del mismo pedido y devuelva lo que queda con «Devolver todo». Repita con el pedido de ayer.
+5. Cierre la caja y revise el efectivo esperado.
+6. Como cajero (sin el permiso), abra Historial. Luego el dueño le da «Devolver pedidos cobrados» en Permisos por rol y el cajero lo intenta de nuevo.
+
+**Resultado esperado:** el botón confirma «Devolver $ X» solo con motivo y un reparto exacto, sin pasar de lo pagado por cada método. Lo ya devuelto no se puede devolver otra vez y la cuenta muestra «Devuelto». El cierre muestra «Devoluciones en efectivo» y el esperado baja en ese valor. Los puntos ganados por el cliente bajan en proporción. Si el pedido tenía factura, sale la nota crédito y se informa su número. El dueño recibe un aviso de caja con el valor, el pedido, quién y el motivo, y lo ve en Devoluciones de su consola. Sin el permiso el cajero no ve «Devolver».
+
 ## 5. Registro de resultados
 
 | Caso | Resultado | Observaciones | Evidencia |
@@ -160,3 +174,4 @@ Que el encargado opera su sede completa: entra sin abrir caja, lee el Inicio, ma
 | E-11 | | | |
 | E-12 | | | |
 | E-13 | | | |
+| E-14 | | | |

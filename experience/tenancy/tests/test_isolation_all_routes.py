@@ -118,7 +118,7 @@ def scenario(s, method, route):
     scoped_get = {'catalog', 'inventory', 'inventory/requests', 'floors', 'tables/calls', 'shifts', 'shifts/open',
         'orders', 'payment-methods', 'settings', 'sales/summary', 'sales/orders', 'sales/insights', 'kitchen/tickets',
         'events', 'banners', 'benefits', 'reservations', 'reservations/schedule', 'reservations/timeline', 'reservations/slots',
-        'reservations/tables', 'reports/profitability', 'billing/orders'}
+        'reservations/tables', 'reports/profitability', 'billing/orders', 'refunds'}
     if method == 'get' and (route in scoped_get or route.startswith('inventory/<')):
         target = True
         query = {'restaurant_id': rid, 'date': date.today().isoformat(), 'time_start': 12, 'people': 2}
@@ -152,6 +152,9 @@ def scenario(s, method, route):
         'inventory/requests/<int:pk>/mark': {'state': 'sent'},
         'orders/<int:pk>/lines': {'line_ids': [s['order']['lines'][0]['id']]},
         'orders/<int:pk>/tip': {'amount': 10},
+        'orders/<int:pk>/refunds': {'lines': [{'line_id': s['order']['lines'][0]['id'], 'qty': 1}],
+            'tip': 0, 'payments': [{'method_id': cash_method(s).pk, 'amount': 10800}],
+            'reason': 'Devolución de prueba', 'restock': False, 'request_key': uuid4().hex},
         'floors/<int:pk>/zone-staff': {'assignments': {}},
         'shifts/<int:pk>/zones': {'floor_id': s['r1'].floors.get().pk, 'assignments': {}},
         'tables/<int:pk>/call': {'kind': 'assist'},

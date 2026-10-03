@@ -862,7 +862,8 @@
       "nav": {
         "main": "Navegación principal",
         "adminRow": "Administración",
-        "dashboard": "Dashboard", "openRegister": "Abrir caja",
+        "dashboard": "Dashboard",
+        "openRegister": "Abrir caja",
         "orders": "Pedidos",
         "tables": "Mesas",
         "reservations": "Reservas",
@@ -939,6 +940,40 @@
         "reservations": "Reservas",
         "history": "Historial"
       }
+    },
+    "offline": {
+      "offline": "Sin conexión · {n, plural, =0 {nada por enviar} one {# operación por enviar} other {# operaciones por enviar}}",
+      "syncing": "Enviando {n, plural, one {# operación} other {# operaciones}}…",
+      "pending": "{n, plural, one {# operación} other {# operaciones}} por enviar",
+      "failed": "{n, plural, one {# operación no se pudo enviar} other {# operaciones no se pudieron enviar}}",
+      "retry": "Reintentar",
+      "review": "Revisar ({n})",
+      "discard": "Descartar",
+      "failedTitle": "Operaciones que el servidor rechazó",
+      "failedHint": "Se hicieron sin conexión y el servidor no las aceptó al volver la red. Revísalas en el pedido y hazlas de nuevo si hace falta; luego descártalas de esta lista.",
+      "kind": {
+        "create_order": "Crear pedido",
+        "add_lines": "Agregar platos",
+        "fire": "Enviar a cocina",
+        "payment": "Pago",
+        "pay": "Cerrar pedido"
+      },
+      "savedTitle": "Pedido guardado sin conexión",
+      "savedBody": "Se enviará solo al volver la red. La comanda salió impresa para cocina.",
+      "notAvailable": "Esto necesita conexión. Inténtalo cuando vuelva la red.",
+      "pay": {
+        "title": "Cobrar sin conexión",
+        "hint": "Solo efectivo o datáfono. El pago se registra al volver la red, por el saldo que confirme el servidor.",
+        "total": "Total del pedido",
+        "method": "Método",
+        "cash": "Efectivo",
+        "card": "Datáfono",
+        "received": "Efectivo recibido",
+        "change": "Cambio: $ {amount}",
+        "reference": "Número de aprobación del datáfono",
+        "confirm": "Registrar pago"
+      },
+      "savedBodyNoPrint": "Se enviará solo al volver la red. Avisa a cocina: no lo verá en su pantalla hasta entonces."
     }
   }
 }

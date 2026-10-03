@@ -1,16 +1,19 @@
+import { printFiredCourse } from '@/lib/print/autoComanda'
 import { currentRestaurantId } from '@/lib/services/core/catalogBridge'
 import * as coreKitchen from '@/lib/services/core/kitchen'
 import * as sales from '@/lib/services/core/sales'
 import { toCompleted, toCourseSummaries, toKitchenTicket } from '@/lib/services/core/salesBridge'
 
-export interface KitchenLine { id: number; name: string; qty: number; note: string; station: string | null; readyAt: string | null; servedAt: string | null }
-export interface KitchenTicket { id: number; orderId: number; tableId: number; tracking: string; waiter: string; note: string; firedAt: string; preparationAt?: string | null; readyAt: string | null; lines: KitchenLine[] }
+export interface KitchenLine { id: number; name: string; qty: number; note: string; station: string | null; options?: string[]; readyAt: string | null; servedAt: string | null }
+export interface KitchenTicket { id: number; orderId: number; tableId: number; service?: 'dine_in' | 'takeout' | 'delivery'; tracking: string; waiter: string; note: string; firedAt: string; preparationAt?: string | null; readyAt: string | null; lines: KitchenLine[] }
 export interface CourseSummary { orderId: number; firedAt: string; readyAt: string | null; servedAt: string | null }
 export interface CompletedCourse { firedAt: string; readyAt: string }
 
 // Envía a cocina lo que aún no tiene curso. Devuelve el id del curso o null si no había nada nuevo.
 export async function fireUnsentLines(orderId: number): Promise<number | null> {
-  return (await sales.fireOrder(orderId)).course_id
+  const courseId = (await sales.fireOrder(orderId)).course_id
+  void printFiredCourse(courseId)
+  return courseId
 }
 
 // Comandas disparadas y aún no entregadas, con sus líneas y quién las pidió. Tres llamadas por sondeo.

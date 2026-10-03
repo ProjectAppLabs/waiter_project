@@ -1,5 +1,6 @@
 'use client'
 
+import { printReceipt } from '@/lib/print/settings'
 import { useTranslations } from 'next-intl'
 
 import { Icon } from '@/components/kit/Icon'
@@ -9,11 +10,11 @@ import { formatCop } from '@/lib/domain/money'
 import { orderDate, type KitLine, type KitOrder } from '@/lib/domain/orderState'
 import type { ReceiptData } from '@/lib/stores/orderStore'
 
-interface Props { order: KitOrder | null; lines: KitLine[]; company: string }
+interface Props { order: KitOrder | null; lines: KitLine[]; company: string; onRefund?: () => void }
 
 // "Bill Information" del kit: cabecera con mesa, cliente y número; líneas (unitario × cantidad), subtotal, impuestos
 // reales, total e "Imprimir". Imprime el recibo de pago existente (components/pay/Receipt): solo él es visible al imprimir.
-export function BillInfo({ order, lines, company }: Props) {
+export function BillInfo({ order, lines, company, onRefund }: Props) {
   const t = useTranslations('history')
   const to = useTranslations('orders')
   if (!order) {
@@ -57,9 +58,11 @@ export function BillInfo({ order, lines, company }: Props) {
         <div className="flex justify-between text-[14px] text-soft"><span>{t('bill.subtotal')}</span><span className="tabular text-ink">$ {formatCop(subtotal)}</span></div>
         <div className="flex justify-between text-[14px] text-soft"><span>{t('bill.tax')}</span><span className="tabular text-ink">$ {formatCop(order.tax)}</span></div>
         <div className="flex justify-between items-baseline pt-2 mt-1 border-t border-dashed border-border"><span className="text-[16px] font-semibold text-ink">{t('bill.total')}</span><span className="text-[20px] font-semibold text-ink tabular">$ {formatCop(order.total)}</span></div>
+        {(order.refunded ?? 0) > 0 && <div className="flex justify-between text-[14px] text-danger-ink"><span>{t('bill.refunded')}</span><span className="tabular">− $ {formatCop(order.refunded ?? 0)}</span></div>}
       </div>
-      <div className="px-4 pb-4 shrink-0">
-        <button type="button" onClick={() => window.print()} className="w-full h-12 rounded-md bg-primary text-primary-ink text-[16px] font-bold inline-flex items-center justify-center gap-2"><Icon name="printer" size={20} />{t('bill.print')}</button>
+      <div className="px-4 pb-4 shrink-0 flex flex-col gap-2">
+        {onRefund && (order.refunded ?? 0) < order.total && <button type="button" onClick={onRefund} className="w-full h-11 rounded-md border border-danger text-danger-ink bg-surface text-[15px] font-bold inline-flex items-center justify-center gap-2"><Icon name="refresh" size={18} />{t('bill.refund')}</button>}
+        <button type="button" onClick={printReceipt} className="w-full h-12 rounded-md bg-primary text-primary-ink text-[16px] font-bold inline-flex items-center justify-center gap-2"><Icon name="printer" size={20} />{t('bill.print')}</button>
       </div>
       <PrintableReceipt data={receipt} />
     </aside>

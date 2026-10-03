@@ -1,8 +1,13 @@
 {
-  "received": "Recibida", "preparing": "En preparación", "startPreparation": "Iniciar preparación",
+  "received": "Recibida",
+  "preparing": "En preparación",
+  "startPreparation": "Iniciar preparación",
   "title": "Cocina",
   "screen": "Pantalla de cocina",
-  "tabs": { "all": "Todas", "late": "Demorados" },
+  "tabs": {
+    "all": "Todas",
+    "late": "Demorados"
+  },
   "avg": "Tiempo medio",
   "avgNone": "—",
   "grid": "Comandas en preparación",
@@ -10,8 +15,11 @@
   "emptyBody": "Cuando el salón envíe un pedido, la comanda aparecerá aquí.",
   "ready": "Listos por entregar",
   "readyEmpty": "Nada listo todavía",
-  "readyBtn": "Listo", "readyAll": "Listo todo", "dishReady": "Listo",
-  "serve": "Entregado", "waitingWaiter": "Esperando al mesero",
+  "readyBtn": "Listo",
+  "readyAll": "Listo todo",
+  "dishReady": "Listo",
+  "serve": "Entregado",
+  "waitingWaiter": "Esperando al mesero",
   "order": "Pedido#",
   "typeTable": "Mesa",
   "typeDelivery": "Domicilio",
@@ -23,8 +31,28 @@
   "note": "Nota",
   "minutes": "min",
   "readyAgo": "listo hace",
-  "mood": { "late": "Demorado", "attention": "Atención", "fresh": "Recién entra", "normal": "En preparación" },
-  "legend": { "ok": "menos de 12 min", "warn": "12 a 18 min", "late": "más de 18 min", "suffix": "en preparación" },
+  "mood": {
+    "late": "Demorado",
+    "attention": "Atención",
+    "fresh": "Recién entra",
+    "normal": "En preparación"
+  },
+  "legend": {
+    "ok": "menos de 12 min",
+    "warn": "12 a 18 min",
+    "late": "más de 18 min",
+    "suffix": "en preparación"
+  },
   "mute": "Silenciar avisos",
-  "unmute": "Activar avisos"
+  "unmute": "Activar avisos",
+  "print": {
+    "button": "Imprimir comanda",
+    "table": "Mesa {n}",
+    "takeout": "Para llevar",
+    "delivery": "Domicilio",
+    "kitchen": "Cocina",
+    "sheet": "Comanda {number}",
+    "offline": "SIN CONEXIÓN · aún no está en la pantalla de cocina"
+  },
+  "typeTakeout": "Para llevar"
 }

@@ -12,12 +12,16 @@ export interface KitCourse { id: number; fired: boolean; preparationAt?: string 
 export interface KitLine {
   id: number; uuid: string; productId: number; name: string; qty: number; unitPrice: number; subtotal: number; total: number; note: string
   courseId: number | null; readyAt: string | null; servedAt: string | null
+  // Opciones elegidas (tamaño, adiciones): van en la comanda impresa.
+  options?: string[]
 }
 export interface KitOrder {
   channel?: 'whatsapp' | null; phone?: string
   id: number; number: string; type: OrderType; state: 'draft' | 'paid' | 'done' | 'invoiced' | 'cancel'
   tableId: number | null; tableNumber: number | null; customer: string; startedAt: string; total: number; tax: number
   lines: KitLine[]; courses: KitCourse[]
+  // Lo devuelto de un pedido cobrado (plan U1).
+  refunded?: number
   // Para derivar de aquí la lista del salón (`openOrderFromKit`) sin pedir los mismos pedidos otra vez.
   waiter?: string; tracking?: string | null
 }
