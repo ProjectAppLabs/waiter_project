@@ -33,10 +33,6 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
       <div className="flex-1 min-w-0 min-h-0 ambient-panel border border-border rounded-lg flex overflow-hidden">
         <nav aria-label="Consola de ProjectApp" className="relative w-[260px] shrink-0 border-r border-border p-4 flex flex-col gap-1 overflow-y-auto">
           <BrandMark href="/plataforma" className="px-3 pt-1 pb-5" />
-          <div className="px-3 pb-4 border-t border-border pt-4">
-            <span className="text-[12px] font-bold uppercase tracking-widest text-primary">ProjectApp</span>
-            <p className="mt-1 text-[18px] font-semibold truncate">Plataforma</p>
-          </div>
           {SECTIONS.map(([href, label, icon]) => (
             <Link key={href} href={href} aria-current={pathname === href ? 'page' : undefined}
               className={cn('flex items-center gap-3 h-11 px-3 rounded-md text-[15px] font-semibold', pathname === href ? 'bg-canvas border border-border text-ink' : 'text-soft hover:bg-muted')}>
