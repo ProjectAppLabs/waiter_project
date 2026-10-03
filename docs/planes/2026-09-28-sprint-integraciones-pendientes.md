@@ -1,6 +1,7 @@
-# Sprint de integraciones pendientes: WhatsApp, Bold, Wompi e IA de decisiones
+# Sprint de integraciones pendientes: WhatsApp, Bold, Wompi, IA de decisiones y facturación electrónica
 
-**Estado: pendiente, a propósito.** Por decisión del dueño (2026-09-28), estas integraciones (WhatsApp, Bold, Wompi y una IA de decisiones) se atacan juntas en un sprint
+**Estado: pendiente, a propósito.** Por decisión del dueño (2026-09-28), estas integraciones (WhatsApp, Bold, Wompi, una IA de decisiones y, desde el 2026-10-03, la facturación
+electrónica ante la DIAN) se atacan juntas en un sprint
 propio **al final**, después de cerrar el producto del menú y del POS. Hasta entonces, el sistema funciona con los
 sustitutos de demostración que se indican abajo, y ningún plan intermedio debe darlas por hechas.
 
@@ -39,7 +40,8 @@ falsas.
 
 **Alcance del sprint:**
 - Adaptador Bold del datáfono (cobro, estado, anulación).
-- Conciliación con el pedido de Odoo, sin cobros dobles.
+- Conciliación con el pedido del sistema propio, sin cobros dobles.
+- Anulación desde una devolución del POS (plan U): el reembolso con tarjeta se hace en el mismo datáfono.
 - Configuración por sede desde el POS, con secretos cifrados.
 - Pruebas en su entorno de pruebas.
 
@@ -47,7 +49,7 @@ falsas.
 
 **Hoy:**
 - Implementación inicial instalada ([plan](2026-09-14-wompi.md)): configuración en el POS, pantalla de pago del menú,
-  adaptador, webhook firmado y conciliación idempotente con Odoo.
+  adaptador, webhook firmado y conciliación idempotente (hoy con el sistema propio; nació contra Odoo).
 - Nunca se probó contra el sandbox real: faltan las cuatro credenciales de pruebas.
 - El pago en vivo sigue bloqueado con `PAYMENTS_LIVE_ENABLED=false`.
 
@@ -76,6 +78,33 @@ paso. La opción propuesta es **JEV** u otra equivalente, preferiblemente **de c
 - En qué decisiones ayuda.
 - Dónde corre (servidor propio o servicio).
 - Cómo se conecta al chat del menú y al asistente de WhatsApp.
+
+## 5. Facturación electrónica ante la DIAN
+
+**Para qué:** emitir de verdad las facturas electrónicas, los documentos equivalentes POS y las notas crédito de las
+devoluciones, como exige la DIAN a los restaurantes en Colombia.
+
+**Hoy:**
+- La app `billing` de experience (plan T4) arma el documento completo: resolución de numeración con prefijo y rango,
+  datos de la empresa y del comprador, líneas, impuestos de Colombia (INC o IVA, propina fuera de la base), XML, CUFE y
+  QR.
+- La emisión pasa por una interfaz de proveedor (`billing/providers/base.py`, `BillingProvider.issue`). Hoy solo existe
+  el proveedor simulado (`billing/providers/simulated.py`), que no firma nada y aprueba todo.
+- Los estados del documento (pendiente, emitido, rechazado, contingencia) y el reintento ya existen.
+- Las notas crédito de las devoluciones (plan U) se arman igual y pasan por el mismo proveedor.
+
+**Alcance del sprint:**
+- Elegir el proveedor tecnológico autorizado por la DIAN (por ejemplo Alegra, Siigo, Facture, The Factory HKA o
+  Carvajal) o la emisión directa con certificado propio. La recomendación es un proveedor con API: firma, envío y
+  validación previa quedan de su lado.
+- Implementar su adaptador detrás de `BillingProvider`: emitir factura, documento equivalente POS y nota crédito;
+  consultar el estado; descargar el XML firmado y el PDF.
+- Habilitación de cada organización ante la DIAN: set de pruebas, resolución de numeración real, clave técnica y
+  certificado o credenciales del proveedor, guardados cifrados como los de Wompi.
+- Contingencia: si la DIAN o el proveedor no responden, el documento queda en contingencia y se reenvía solo, sin
+  duplicar numeración.
+- Envío del documento al correo del comprador.
+- Pruebas contra el ambiente de habilitación de la DIAN, no solo con respuestas simuladas.
 
 ## Criterio de cierre del sprint
 
