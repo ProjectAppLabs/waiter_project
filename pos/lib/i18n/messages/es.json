@@ -956,7 +956,8 @@
         "add_lines": "Agregar platos",
         "fire": "Enviar a cocina",
         "payment": "Pago",
-        "pay": "Cerrar pedido"
+        "pay": "Cerrar pedido",
+        "cash_move": "Movimiento de efectivo"
       },
       "savedTitle": "Pedido guardado sin conexión",
       "savedBody": "Se enviará solo al volver la red. La comanda salió impresa para cocina.",
@@ -973,7 +974,41 @@
         "reference": "Número de aprobación del datáfono",
         "confirm": "Registrar pago"
       },
-      "savedBodyNoPrint": "Se enviará solo al volver la red. Avisa a cocina: no lo verá en su pantalla hasta entonces."
+      "savedBodyNoPrint": "Se enviará solo al volver la red. Avisa a cocina: no lo verá en su pantalla hasta entonces.",
+      "countdown": "Sin conexión · en {time} la operación pasa a la caja{n, plural, =0 {} one { · # por enviar} other { · # por enviar}}",
+      "emergency": "Modo emergencia · la operación está en la caja{n, plural, =0 {} one { · # por enviar} other { · # por enviar}}",
+      "activate": "Pasar a la caja ahora",
+      "emergencyOrders": "Pedidos de emergencia",
+      "needsLogin": "La sesión venció · inicia sesión para enviar {n, plural, one {# operación} other {# operaciones}}",
+      "login": "Iniciar sesión",
+      "lockTitle": "Modo emergencia",
+      "lockBody": "No hay internet. Mientras vuelve, los pedidos y los cobros se hacen en la caja. Lo que ya tomaste se enviará solo al volver la red.",
+      "page": {
+        "title": "Pedidos de emergencia",
+        "new": "Nuevo pedido",
+        "hint": "Los pedidos tomados en la caja sin internet. Se envían solos al volver la red; entonces reciben su número definitivo.",
+        "orders": "Pedidos",
+        "empty": "Aún no hay pedidos de emergencia.",
+        "table": "Mesa {n}",
+        "takeout": "Para llevar",
+        "synced": "En el servidor",
+        "paid": "Cobrado",
+        "open": "Sin cobrar",
+        "precheck": "Precuenta",
+        "round": "Agregar",
+        "charge": "Cobrar",
+        "count": "Arqueo provisional",
+        "countTitle": "ARQUEO PROVISIONAL",
+        "countHint": "Para contar el cajón sin internet. El cierre de caja se hace al volver la red.",
+        "base": "Efectivo esperado al perder la red",
+        "cashSales": "Cobros en efectivo sin conexión",
+        "cashIn": "Entradas de efectivo",
+        "cashOut": "Salidas de efectivo",
+        "expected": "Efectivo esperado ahora",
+        "otherSales": "Cobros con datáfono sin conexión",
+        "printCount": "Imprimir arqueo",
+        "countFoot": "Provisional: el cierre formal se hace al volver la red."
+      }
     }
   }
 }

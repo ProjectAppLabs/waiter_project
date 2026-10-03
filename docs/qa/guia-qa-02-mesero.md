@@ -27,6 +27,7 @@ Que el mesero atiende el salón de principio a fin: ve el plano, crea pedidos en
 | M-07 | Cambiar un pedido de mesa | Mesero |
 | M-08 | Lo que el mesero no puede hacer | Mesero |
 | M-09 | El dueño amplía los permisos del mesero | Dueño y mesero |
+| M-10 | Sin internet: la tableta pasa la operación a la caja | Mesero y cajero |
 
 ## 4. Paso a paso
 
@@ -106,6 +107,20 @@ Que el mesero atiende el salón de principio a fin: ve el plano, crea pedidos en
 
 **Resultado esperado:** las pestañas nuevas aparecen sin volver a entrar (la política se recarga al recuperar el foco o cada 60 segundos). Con «Cobrar» la mesera puede abrir `/pago/<id>`. Al revertir, las pestañas desaparecen igual de solas. Las columnas del Encargado no se pueden editar.
 
+### M-10 — Sin internet: la tableta pasa la operación a la caja
+
+**Preparación:** la mesera con sesión en su tableta y la caja abierta en otro equipo. Se ejecuta junto con C-09.
+
+1. Desconecte el internet de la tableta. Revise el aviso al pie: «Sin conexión · en 3:00 la operación pasa a la caja».
+2. Antes de que termine la cuenta, intente crear un pedido: todavía puede, y queda «por enviar».
+3. Espere a que termine la cuenta (o que la encargada la adelante).
+4. Vuelva a conectar el internet.
+
+**Resultado esperado:** durante la cuenta la mesera sigue tomando pedidos, que se guardan en su tableta. Al cumplirse
+los 3 minutos aparece la pantalla «Modo emergencia: los pedidos y los cobros se hacen en la caja» y no puede tomar
+pedidos ni cobrar. Al volver la red la pantalla desaparece y lo que había tomado antes del bloqueo se envía solo, una
+sola vez.
+
 ## 5. Registro de resultados
 
 | Caso | Resultado | Observaciones | Evidencia |
@@ -119,3 +134,4 @@ Que el mesero atiende el salón de principio a fin: ve el plano, crea pedidos en
 | M-07 | | | |
 | M-08 | | | |
 | M-09 | | | |
+| M-10 | | | |

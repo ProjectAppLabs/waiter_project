@@ -1,3 +1,4 @@
+import { useOutboxStore } from '@/lib/offline/outbox'
 import { CoreError } from '@/lib/services/core/http'
 import * as sales from '@/lib/services/core/sales'
 import { toClosingData, toPosSession, toRegisterConfig } from '@/lib/services/core/salesBridge'
@@ -31,9 +32,14 @@ export async function closeRegister(sessionId: number, countedCash: number, note
   catch (e) { if (e instanceof CoreError) return { successful: false, message: e.message }; throw e }
 }
 
+// Plan V: sin conexión la entrada o salida de efectivo queda en la cola y cuenta en el arqueo provisional.
 export async function cashInOut(sessionId: number, type: 'in' | 'out', amount: number, reason: string): Promise<void> {
-  await sales.cashMove(sessionId, type, amount, reason)
-  return
+  try {
+    await sales.cashMove(sessionId, type, amount, reason)
+  } catch (e) {
+    if (!(e instanceof CoreError && e.code === 'unreachable')) throw e
+    useOutboxStore.getState().enqueue({ kind: 'cash_move', shiftId: sessionId, type, amount, reason, label: reason })
+  }
 }
 
 export async function forceCloseRegister(sessionId: number): Promise<CloseResult> {

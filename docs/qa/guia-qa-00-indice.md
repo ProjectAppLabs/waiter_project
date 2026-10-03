@@ -1,7 +1,7 @@
 # Guía QA Waiter — 0. Índice, lineamientos y datos de prueba
 
 **Producto:** Waiter · ProjectApp
-**Fecha de actualización:** 2 de octubre de 2026 (Waiter sin Odoo: plan T completo)
+**Fecha de actualización:** 3 de octubre de 2026 (MySQL, inicio único, devoluciones, impresión, sin internet y modo de emergencia)
 **Estado de la entrega:** POS, consola del dueño, cocina, menú del comensal y consola de ProjectApp en desarrollo continuo. Esta guía es un documento vivo: cada plan que se termina añade o corrige casos.
 **Ambiente:** desarrollo compartido (ver «Direcciones»). Nada de lo que se haga aquí toca dinero real ni a clientes reales.
 
@@ -12,10 +12,10 @@ La guía se divide por **rol** y, dentro de cada rol, por **funcionalidad**. Cad
 | Guía | Rol o área | Casos |
 |---|---|---|
 | 1 | Acceso e identidad (todos los roles) | A-01 … A-10 |
-| 2 | Mesero | M-01 … M-09 |
-| 3 | Cajero | C-01 … C-08 |
-| 4 | Cocina (vista KDS) | K-01 … K-06 |
-| 5 | Encargado | E-01 … E-13 |
+| 2 | Mesero | M-01 … M-10 |
+| 3 | Cajero | C-01 … C-09 |
+| 4 | Cocina (vista KDS) | K-01 … K-07 |
+| 5 | Encargado | E-01 … E-15 |
 | 6 | Dueño (consola de la organización) | D-01 … D-15 |
 | 7 | Comensal (menú por QR) | Co-01 … Co-09 |
 | 8 | ProjectApp (consola de la plataforma) | P-01 … P-10 |

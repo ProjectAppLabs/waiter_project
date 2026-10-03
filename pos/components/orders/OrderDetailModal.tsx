@@ -49,10 +49,15 @@ export function OrderDetailModal({ order, location, status, percent, onClose, im
         {sent && <button type="button" onClick={() => printComanda(fromOrder(order, stationOf))} className="ml-auto h-9 px-3 rounded-sm border border-border bg-surface text-ink text-[14px] font-semibold inline-flex items-center gap-1.5"><Icon name="printer" size={16} />{tp('button')}</button>}
         <span className="text-[20px] font-semibold text-ink tabular">$ {formatCop(order.total)}</span></div>
       <div className="grid grid-cols-2 gap-3">
+        {order.id < 0 ? (
+          // Plan V: un pedido de emergencia se gestiona en su pantalla (sin red no se carga una dirección con su id).
+          <Link href="/emergencia" className="col-span-2 h-12 rounded-md bg-primary text-primary-ink text-[15px] font-bold inline-flex items-center justify-center gap-1.5"><Icon name="alarm" size={18} />{t('detail.emergency')}</Link>
+        ) : <>
         <Link href={`/pedidos/${order.id}/agregar`} className="h-12 rounded-md border border-border bg-surface text-ink text-[15px] font-bold inline-flex items-center justify-center gap-1.5"><Icon name="plus" size={18} />{t('detail.newOrder')}</Link>
         {chargeable
           ? <Link href={`/pago/${order.id}`} className="h-12 rounded-md bg-primary text-primary-ink text-[15px] font-bold inline-flex items-center justify-center gap-1.5"><Icon name="money" size={18} />{t('detail.proceed')}</Link>
           : <span aria-disabled="true" className="h-12 rounded-md bg-muted text-dim text-[15px] font-bold inline-flex items-center justify-center gap-1.5"><Icon name="money" size={18} />{mayCharge ? t('detail.proceed') : t('card.cashierCharges')}</span>}
+        </>}
       </div>
     </div>
   )

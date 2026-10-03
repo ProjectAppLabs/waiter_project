@@ -106,8 +106,8 @@ class OrderActionView(PosView):
             elif self.action == "payments":
                 s.add_payment(order, self.account, request.data)
             elif self.action == "pay":
-                payload(request.data, ())
-                s.pay(order, self.account)
+                data = payload(request.data, ("paid_at",))
+                s.pay(order, self.account, data.get("paid_at"))
             elif self.action == "cancel":
                 data = payload(request.data, ("reason",), ("reason",))
                 reason = s.text(data["reason"], 500, True)

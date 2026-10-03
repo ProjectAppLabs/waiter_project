@@ -6,6 +6,7 @@ import { addLine, cartTotals, DEFAULT_INFO, orderNote, replaceLine, setLineQty, 
 import { uuid } from '@/lib/domain/uuid'
 import { play } from '@/lib/audio/sounds'
 import { printOfflineComanda, stationOf, tablePlace } from '@/lib/offline/comanda'
+import { useEmergencyOrders } from '@/lib/offline/emergency'
 import { useOutboxStore } from '@/lib/offline/outbox'
 import { CoreError } from '@/lib/services/core/http'
 import { fireUnsentLines } from '@/lib/services/kitchen'
@@ -78,10 +79,11 @@ export const useOrderWizardStore = create<WizardState>((set, get) => ({
     set({ busy: true })
     // Plan U2: sin conexión el envío a cocina queda en la cola y, si este equipo imprime, la comanda sale impresa.
     const queue = () => {
-      const { requestUuid, lines, info, tableId } = get()
-      useOutboxStore.getState().enqueue({ kind: 'fire', order: orderId < 0 ? { uuid: requestUuid } : { id: orderId }, label: info.name.trim() })
+      const { requestUuid, lines, info, tableId, created } = get()
+      useOutboxStore.getState().enqueue({ kind: 'fire', order: orderId < 0 ? { uuid: requestUuid } : { id: orderId }, label: created?.trackingNumber ?? info.name.trim() })
+      if (orderId < 0) useEmergencyOrders.getState().update(requestUuid, { fired: true })
       printOfflineComanda({
-        number: info.name.trim() || '—', place: info.type === 'dineIn' ? tablePlace(tableId) : { kind: info.type === 'delivery' ? 'delivery' : 'takeout' },
+        number: [created?.offline ? created.trackingNumber : '', info.name.trim()].filter(Boolean).join(' · ') || '—', place: info.type === 'dineIn' ? tablePlace(tableId) : { kind: info.type === 'delivery' ? 'delivery' : 'takeout' },
         lines: lines.map((l) => ({ qty: l.qty, name: l.name, options: l.options.map((o) => o.name), note: l.note, station: stationOf(l.productId) })),
       })
       set({ busy: false, error: null })

@@ -10,8 +10,9 @@ import { KitShell } from '@/components/kit/KitShell'
 import { SessionGuard } from '@/components/account/SessionGuard'
 import { AuroraBackground } from '@/components/kit/Aurora'
 import { PageSkeleton, Skeleton } from '@/components/kit/Skeleton'
-import { allowedPath, effectiveRole } from '@/lib/domain/roles'
-import { OfflineBar } from '@/components/offline/OfflineBar'
+import { allowedPath, effectiveRole, type Role } from '@/lib/domain/roles'
+import { EmergencyLock, OfflineBar } from '@/components/offline/OfflineBar'
+import { emergencyPath, operatesInEmergency, useEmergency } from '@/lib/offline/emergency'
 import { PrintHost } from '@/components/print/PrintHost'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useCatalogStore } from '@/lib/stores/catalogStore'
@@ -25,6 +26,9 @@ export default function PosLayout({ children }: { children: React.ReactNode }) {
   const policy = useCatalogStore((s) => s.catalog?.settings.rolePermissions)
   const configId = useCatalogStore((s) => s.catalog?.settings.configId)
   const catalogError = useCatalogStore((s) => s.error)
+  // Plan V: en emergencia la caja abre las pantallas de tomar pedidos y cobrar aunque su política no se las dé.
+  const emergency = useEmergency().active
+  const allowed = (role: Role) => allowedPath(role, pathname, policy) || (emergency && operatesInEmergency(role) && emergencyPath(pathname))
 
   useEffect(() => { void hydrate() }, [hydrate])
   // PWA: registro del service worker (no hace nada más que permitir la instalación).
@@ -44,7 +48,7 @@ export default function PosLayout({ children }: { children: React.ReactNode }) {
     if (!employee) { router.replace('/login'); return }
     if (!session && (effectiveRole(user.role, employee.role) !== 'admin' || !administrationPath(pathname))) { router.replace('/caja'); return }
     // Rol: una pantalla que no le toca lo devuelve al salón, sin pantalla de error.
-    if (policy && !allowedPath(effectiveRole(user.role, employee.role), pathname, policy)) { router.replace(homePath(effectiveRole(user.role, employee.role), !!session, policy)); return }
+    if (policy && !allowed(effectiveRole(user.role, employee.role))) { router.replace(homePath(effectiveRole(user.role, employee.role), !!session, policy)); return }
   }, [hydrated, user, employee, session, pathname, router, policy])
 
   const ready = hydrated && !!user && !!employee
@@ -64,7 +68,7 @@ export default function PosLayout({ children }: { children: React.ReactNode }) {
 
   // Al abrir o recargar la app, hasta saber quién es se veía todo en blanco. Ahora, el armazón con su esqueleto.
   if (!hydrated) return <BootSkeleton />
-  if (!hydrated || !user || !employee || (!session && (effectiveRole(user.role, employee.role) !== 'admin' || !administrationPath(pathname))) || !allowedPath(effectiveRole(user.role, employee.role), pathname, policy)) return null
+  if (!hydrated || !user || !employee || (!session && (effectiveRole(user.role, employee.role) !== 'admin' || !administrationPath(pathname))) || !allowed(effectiveRole(user.role, employee.role))) return null
   // Sin catálogo no hay pantalla que pintar: se dice por qué en vez de dejar el POS en blanco.
   if (catalogStatus === 'error') {
     return (
@@ -81,7 +85,7 @@ export default function PosLayout({ children }: { children: React.ReactNode }) {
   }
   if (!policy) return <BootSkeleton />
   const shell = withShell(pathname)
-  return <>{shell ? <KitShell>{children}</KitShell> : children}<SessionGuard idle={shell} /><PrintHost /><OfflineBar /></>
+  return <>{shell ? <KitShell>{children}</KitShell> : children}<SessionGuard idle={shell} /><PrintHost /><OfflineBar /><EmergencyLock /></>
 }
 
 // El armazón de la app (barra y contenido) en esqueleto, mientras se recupera la sesión.

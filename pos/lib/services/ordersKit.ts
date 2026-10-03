@@ -8,6 +8,7 @@ import { toKitOrder } from '@/lib/services/core/salesBridge'
 import { withComboChildren } from '@/lib/services/productOptions'
 import { printFiredCourse } from '@/lib/print/autoComanda'
 import { printOfflineComanda, stationOf, tablePlace } from '@/lib/offline/comanda'
+import { useEmergencyOrders } from '@/lib/offline/emergency'
 import { useOutboxStore } from '@/lib/offline/outbox'
 import { CoreError } from '@/lib/services/core/http'
 
@@ -55,12 +56,17 @@ export async function cancelLines(orderId: number, lineIds: number[]): Promise<v
 export async function addRound(orderId: number, lines: DraftLine[], place?: { number: string; tableId: number | null }): Promise<number | null> {
   if (!lines.length) return null
   const input = await withComboChildren(lines.map((l) => ({ uuid: l.uuid, product_id: l.productId, qty: l.qty, note: l.note })))
+  // Plan V: un pedido de emergencia (id negativo) aún no existe en el servidor: la ronda va a la cola con su uuid.
+  const emergency = orderId < 0 ? useEmergencyOrders.getState().byLocalId(orderId) : null
   let o: sales.CoreOrder
   try {
+    if (orderId < 0) throw new CoreError(0, 'unreachable', 'Pedido de emergencia: se envía al volver la red.')
     o = await sales.addLines(orderId, input, true)
   } catch (e) {
     if (!(e instanceof CoreError && e.code === 'unreachable')) throw e
-    useOutboxStore.getState().enqueue({ kind: 'add_lines', order: { id: orderId }, lines: input, fire: true, label: place?.number ?? '' })
+    if (orderId < 0 && !emergency) throw new CoreError(404, 'not_found', 'No encontramos este pedido de emergencia en el equipo.')
+    useOutboxStore.getState().enqueue({ kind: 'add_lines', order: emergency ? { uuid: emergency.uuid } : { id: orderId }, lines: input, fire: true, label: place?.number ?? '' })
+    if (emergency) useEmergencyOrders.getState().addLines(emergency.uuid, lines.map((l) => ({ uuid: l.uuid, productId: l.productId, name: l.name, qty: l.qty, unitPrice: l.unitPrice, total: l.unitPrice * l.qty, note: l.note, options: [] })), lines.reduce((sum, l) => sum + l.unitPrice * l.qty, 0))
     printOfflineComanda({ number: place?.number ?? '—', place: tablePlace(place?.tableId ?? null),
       lines: lines.map((l) => ({ qty: l.qty, name: l.name, options: [], note: l.note, station: stationOf(l.productId) })) })
     return null

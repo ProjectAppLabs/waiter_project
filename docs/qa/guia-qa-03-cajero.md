@@ -25,7 +25,7 @@ Que el cajero abre el turno, ve y crea pedidos, cobra de todas las formas que of
 | C-06 | Cliente socio y uso de puntos | Cajero |
 | C-07 | Historial y cuenta de un pedido pagado | Cajero |
 | C-08 | Cerrar la caja: cuadrada y con diferencia | Cajero (con la vista Ventas) |
-| C-09 | Seguir trabajando sin internet | Cajero |
+| C-09 | Seguir trabajando sin internet (modo de emergencia) | Cajero, encargada y mesera |
 
 ## 4. Paso a paso
 
@@ -94,17 +94,29 @@ Que el cajero abre el turno, ve y crea pedidos, cobra de todas las formas que of
 
 **Resultado esperado:** con la caja cuadrada el cierre pasa sin nota. Con diferencia, «Confirmar» queda bloqueado y el mensaje dice «Escribe el motivo para cerrar: el dueño lo verá en los cuadres de caja.»; con la nota se cierra. Si la diferencia supera la tolerancia del dueño ($ 2.000 en Burger House), el dueño recibe un aviso de caja (D-08).
 
-### C-09 — Seguir trabajando sin internet
+### C-09 — Seguir trabajando sin internet (modo de emergencia)
 
-**Preparación:** desconecte el internet del equipo (o active el modo avión) con la caja abierta y el POS ya cargado.
+**Preparación:** caja abierta, el POS de caja abierto en la versión instalada (producción) y, en otro equipo, una
+mesera con sesión. Con red, recorra Pedidos, Crear pedido y «Pedidos de emergencia» para que el equipo las guarde.
 
-1. Cree un pedido para llevar con el asistente. Al cobrar, aparece «Cobrar sin conexión»: pague en efectivo con un billete mayor y revise el cambio.
-2. Repita con «Datáfono» y un número de aprobación.
-3. Abra un pedido en mesa que ya existía y agregue una ronda.
-4. Revise el aviso al pie: «Sin conexión · N operaciones por enviar». Intente devolver un pedido en Historial.
-5. Vuelva a conectar el internet.
+1. Desconecte el internet de los dos equipos. Revise el aviso al pie: «Sin conexión · en 3:00 la operación pasa a la
+   caja», que baja segundo a segundo. Recargue la caja: la app abre y la cuenta sigue donde iba.
+2. Como encargada, pulse «Pasar a la caja ahora» (o espere los 3 minutos).
+3. En la tableta de la mesera: aparece «Modo emergencia» y no puede tomar pedidos ni cobrar.
+4. En la caja (también como cajero sin el permiso de crear pedidos): cree un pedido para llevar y cóbrelo en efectivo.
+   Cree otro en mesa y no lo cobre.
+5. Abra «Pedidos de emergencia»: los pedidos tienen número provisional E-01, E-02…. Imprima la precuenta del que está en
+   mesa, agréguele una ronda y cóbrelo con datáfono.
+6. Registre una salida de efectivo en Administración → Ventas. Imprima el **arqueo provisional**.
+7. Intente devolver un pedido en Historial y cerrar la caja.
+8. Apague y encienda el equipo de caja sin red: la app abre y los pedidos de emergencia siguen ahí.
+9. Vuelva a conectar el internet.
 
-**Resultado esperado:** sin red se puede crear, enviar a cocina y cobrar en efectivo o con datáfono; no se ofrecen QR ni devoluciones. Si el equipo imprime comandas, salen con el sello «SIN CONEXIÓN». Al volver la red el aviso dice «Enviando…» y desaparece; los pedidos aparecen en Pedidos o Historial pagados **una sola vez**. Si algo no se pudo enviar (por ejemplo, un plato que se agotó), el aviso ofrece «Revisar» con el motivo.
+**Resultado esperado:** solo la caja opera en emergencia; las comandas impresas llevan «SIN CONEXIÓN» y el número E-nn.
+El arqueo suma los cobros en efectivo y la entrada o salida, y aparte los de datáfono. Devolver y cerrar caja no se
+pueden sin red. Al volver la red el aviso dice «Enviando…» y desaparece; cada pedido pasa a «En el servidor» con su
+número definitivo (E-01 → TA-012), aparece pagado **una sola vez** en Historial con la nota «Emergencia E-01» y con la
+hora real en que se hizo. Si la sesión venció mientras tanto, el aviso pide iniciar sesión y, al entrar, sigue enviando.
 
 ## 5. Registro de resultados
 

@@ -1,5 +1,6 @@
 'use client'
 
+import { emergencyKitOrder, useEmergencyOrders } from '@/lib/offline/emergency'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { orderStatus, progressPercent, type KitOrder, type KitStatus } from '@/lib/domain/orderState'
@@ -69,5 +70,9 @@ export function useKitOrders() {
   const billingOf = useCallback((o: KitOrder) => o.tableId !== null && (Boolean(flags[o.tableId]?.billing) || calls.some((c) => c.tableId === o.tableId && c.kind === 'bill')), [flags, calls])
   const statusOf = useCallback((o: KitOrder): KitStatus => orderStatus(o, billingOf(o)), [billingOf])
   const percentOf = useCallback((o: KitOrder) => progressPercent(o), [])
-  return useMemo(() => ({ orders, loaded, refresh, statusOf, percentOf }), [orders, loaded, refresh, statusOf, percentOf])
+  // Plan V: los pedidos de emergencia sin cobrar que aún no llegan al servidor se ven con los demás.
+  const emergency = useEmergencyOrders((s) => s.orders)
+  useEffect(() => { useEmergencyOrders.getState().hydrate() }, [])
+  const all = useMemo(() => [...orders, ...emergency.filter((o) => !o.serverId && !o.paid).map(emergencyKitOrder)], [orders, emergency])
+  return useMemo(() => ({ orders: all, loaded, refresh, statusOf, percentOf }), [all, loaded, refresh, statusOf, percentOf])
 }
