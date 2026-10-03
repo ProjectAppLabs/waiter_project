@@ -33,6 +33,7 @@ Que el dueño gobierna su organización desde la consola: sus restaurantes, su e
 | D-14 | Empresa e impuestos, Facturación, Retorno | Dueño | Ambas |
 | D-15 | Diseño del menú e integraciones IA | Dueño | Ambas |
 | D-16 | Consumo del mes | Dueño | Ambas |
+| D-17 | Recargar el asistente de WhatsApp | Dueño | Ambas |
 
 ## 4. Paso a paso
 
@@ -168,6 +169,17 @@ En Frisby, además: en Facturación pulse «Revisar» en una venta pagada; con l
 **Resultado esperado:** el dueño ve antes del cierre del mes lo que se le va a cobrar y por qué, sin sorpresas. Las
 secciones de módulos apagados no aparecen; si entra por la dirección, se le explica que no están en su plan.
 
+### D-17 — Recargar el asistente de WhatsApp
+
+1. En **Consumo**, revise «Incluido y recargas»: incluido del mes, usado, saldo de recargas y excedente.
+2. Pulse **Recargar** y elija un paquete.
+3. Revise «Tus recargas» y, cuando ProjectApp registre el pago, el saldo.
+4. Revise la cuenta estimada: ajustes de prorrateo y saldo a favor si los hay.
+
+**Resultado esperado:** la recarga queda «Pendiente de pago» y el saldo sube solo cuando ProjectApp registra el pago.
+La pantalla explica que primero se usa lo incluido (no se acumula) y luego las recargas (no vencen), y qué pasa si se
+acaban.
+
 ## 5. Registro de resultados
 
 | Caso | Resultado | Observaciones | Evidencia |
@@ -188,3 +200,4 @@ secciones de módulos apagados no aparecen; si entra por la dirección, se le ex
 | D-14 | | | |
 | D-15 | | | |
 | D-16 | | | |
+| D-17 | | | |

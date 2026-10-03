@@ -30,6 +30,9 @@ Que ProjectApp da de alta a un cliente nuevo en tres pasos sin tocar scripts, in
 | P-10 | Cobro de la suscripción: mora, suspensión automática y pago | Administra, Opera y el dueño |
 | P-11 | Módulos del cliente por organización y por local | Administra y Opera |
 | P-12 | Consumo del cliente y cobro por local y por uso | Administra |
+| P-13 | Lista de precios y alta con precios personalizados | Administra |
+| P-14 | Recargas, cortesías e incluido del asistente | Administra y dueño |
+| P-15 | Prorrateo y saldo a favor | Administra y dueño |
 
 ## 4. Paso a paso
 
@@ -150,6 +153,46 @@ los módulos pero no puede cambiarlos. Cada cambio queda en el Historial de la f
 local activo** al precio por local, y una línea por los mensajes del asistente a su precio; lo que vale cero no sale. El
 total de la cuenta es la suma de sus líneas.
 
+### P-13 — Lista de precios y alta con precios personalizados
+
+1. Abra **Precios**. Revise el precio por local, los precios por unidad, los planes de WhatsApp (Inicial: $ 50.000 con
+   100 pedidos), los paquetes de recarga y qué pasa al agotarse. Cambie el precio por local y guarde.
+2. Dé de alta un cliente con precios **Estándar** y el plan Inicial de WhatsApp. Dé de alta otro con precios
+   **Personalizados**: $ 120.000 por local, 300 pedidos incluidos y el pedido extra a $ 400.
+3. Abra la ficha de cada uno y revise «Precios» y «Asistente de WhatsApp». Edite el segundo y deje vacío el pedido extra.
+4. Como alguien que solo **Opera**, abra Precios.
+
+**Resultado esperado:** el cliente Estándar toma la lista (y un cambio de la lista le llega desde la cuenta siguiente);
+el Personalizado conserva sus valores y lo que se deja vacío vuelve al estándar. Frisby y Burger House siguen con su
+precio de siempre (Personalizados). Quien opera ve la lista pero no puede cambiarla.
+
+### P-14 — Recargas, cortesías e incluido del asistente
+
+**Preparación:** un cliente con el plan Inicial de WhatsApp y el consumo simulado de pedidos del asistente (soporte
+técnico, mientras no existe el canal).
+
+1. El dueño pide una recarga de 100 pedidos en su consola (D-17). En **Cobros** aparece una cuenta marcada «Recarga».
+2. Antes de pagarla, revise el saldo de recargas en la ficha del cliente. Registre el pago y revise otra vez.
+3. Anule otra cuenta de recarga sin pagar.
+4. Dé un saldo de cortesía de 50 pedidos con motivo.
+5. Simule 130 pedidos en el mes con 100 incluidos y 20 de saldo, con «cobrar» y luego con «bloquear».
+
+**Resultado esperado:** la recarga suma saldo solo al registrar su pago; la anulada no suma. La cortesía suma y queda
+con su motivo. Primero se gasta lo incluido, luego las recargas y, al final, con «cobrar» el excedente (10) sale en la
+cuenta siguiente; con «bloquear» el pedido 121 se rechaza pidiendo recargar. Lo incluido no pasa al mes siguiente y
+las recargas no vencen.
+
+### P-15 — Prorrateo y saldo a favor
+
+1. A mitad de mes, el dueño crea un local nuevo; otro cliente desactiva uno de sus locales.
+2. Cambie el plan de WhatsApp de un cliente a mitad de mes y apague un módulo con precio especial.
+3. Genere las cuentas del mes siguiente y revise sus líneas.
+4. Provoque una cuenta que quede en negativo (por ejemplo, desactivar un local caro el día 1) y revise la siguiente.
+
+**Resultado esperado:** cada cambio sale como «Ajuste por prorrateo · local (N de 31 días)», positivo si se agregó y
+negativo si se quitó, contado en la zona horaria del cliente. Ninguna cuenta queda en negativo: queda en 0 y la
+diferencia aparece como «saldo a favor», que se descuenta en la cuenta siguiente («Saldo a favor aplicado»).
+
 ## 5. Registro de resultados
 
 | Caso | Resultado | Observaciones | Evidencia |
@@ -166,3 +209,6 @@ total de la cuenta es la suma de sus líneas.
 | P-10 | | | |
 | P-11 | | | |
 | P-12 | | | |
+| P-13 | | | |
+| P-14 | | | |
+| P-15 | | | |
