@@ -11,6 +11,7 @@ import { SessionGuard } from '@/components/account/SessionGuard'
 import { AuroraBackground } from '@/components/kit/Aurora'
 import { PageSkeleton, Skeleton } from '@/components/kit/Skeleton'
 import { allowedPath, effectiveRole } from '@/lib/domain/roles'
+import { OfflineBar } from '@/components/offline/OfflineBar'
 import { PrintHost } from '@/components/print/PrintHost'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useCatalogStore } from '@/lib/stores/catalogStore'
@@ -27,7 +28,14 @@ export default function PosLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { void hydrate() }, [hydrate])
   // PWA: registro del service worker (no hace nada más que permitir la instalación).
-  useEffect(() => { if ('serviceWorker' in navigator) void navigator.serviceWorker.register('/sw.js').catch(() => undefined) }, [])
+  // Plan U2: el service worker guarda la app para abrirla sin internet; solo en producción (en desarrollo estorbaría
+  // la recarga en caliente).
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return
+    if (process.env.NODE_ENV === 'production') void navigator.serviceWorker.register('/sw.js').catch(() => undefined)
+    // En desarrollo se quita el que haya quedado registrado: guardaría archivos que aquí cambian a cada edición.
+    else void navigator.serviceWorker.getRegistrations().then((all) => all.forEach((r) => void r.unregister())).catch(() => undefined)
+  }, [])
   useEffect(() => {
     if (!hydrated) return
     // Sin usuario: login. Con usuario pero sin caja abierta: abrir caja (no es un error, es el inicio del turno).
@@ -73,7 +81,7 @@ export default function PosLayout({ children }: { children: React.ReactNode }) {
   }
   if (!policy) return <BootSkeleton />
   const shell = withShell(pathname)
-  return <>{shell ? <KitShell>{children}</KitShell> : children}<SessionGuard idle={shell} /><PrintHost /></>
+  return <>{shell ? <KitShell>{children}</KitShell> : children}<SessionGuard idle={shell} /><PrintHost /><OfflineBar /></>
 }
 
 // El armazón de la app (barra y contenido) en esqueleto, mientras se recupera la sesión.

@@ -54,3 +54,26 @@ it('retries a failed kitchen dispatch without creating a duplicate order', async
   expect((await useOrderWizardStore.getState().createOrder(16, labels))?.id).toBe(40)
   expect(mCreate).toHaveBeenCalledTimes(1)
 })
+
+// Falla si sin conexión el asistente no pasa a la cola los totales del carrito, si enviar a cocina un pedido aún sin
+// enviar no queda en la cola con el uuid del pedido, si un corte de red al enviar un pedido ya creado lo pierde, o si
+// la comanda no se imprime con el sello «sin conexión» en un equipo que imprime.
+it('sin conexión el envío a cocina queda en la cola e imprime la comanda', async () => {
+  const { useOutboxStore } = jest.requireActual('@/lib/offline/outbox') as typeof import('@/lib/offline/outbox')
+  const { usePrintStore } = jest.requireActual('@/lib/stores/printStore') as typeof import('@/lib/stores/printStore')
+  const { CoreError } = jest.requireActual('@/lib/services/core/http') as typeof import('@/lib/services/core/http')
+  localStorage.setItem('waiter.print', JSON.stringify({ autoComanda: true }))
+  useOutboxStore.setState({ entries: [], failed: [], ids: {}, loaded: true })
+  mCreate.mockResolvedValue({ id: -1, reference: '', trackingNumber: '', total: 36900, tax: 2733, offline: true })
+  act(() => { useOrderWizardStore.getState().setInfo({ type: 'takeAway', name: 'Ana' }); useOrderWizardStore.getState().add(newLine(angus, 2, 'sin cebolla', [])) })
+  const created = await act(() => useOrderWizardStore.getState().createOrder(16, labels))
+  expect(created?.offline).toBe(true)
+  expect(mCreate.mock.calls[0][2]).toMatchObject({ total: expect.any(Number), label: 'Ana' })
+  await act(() => useOrderWizardStore.getState().fireKitchen(-1))
+  expect(fireUnsentLines).not.toHaveBeenCalled()
+  expect(useOutboxStore.getState().entries).toMatchObject([{ kind: 'fire', order: { uuid: useOrderWizardStore.getState().requestUuid } }])
+  expect(usePrintStore.getState().sheets?.[0]).toMatchObject({ offline: true, place: { kind: 'takeout' }, lines: [{ qty: 2, name: 'Hamburguesa Angus', note: 'sin cebolla' }] })
+  jest.mocked(fireUnsentLines).mockRejectedValue(new CoreError(0, 'unreachable', 'sin red'))
+  await expect(act(() => useOrderWizardStore.getState().fireKitchen(40))).resolves.toBe(true)
+  expect(useOutboxStore.getState().entries.at(-1)).toMatchObject({ kind: 'fire', order: { id: 40 } })
+})

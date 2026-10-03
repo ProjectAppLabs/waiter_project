@@ -2,9 +2,12 @@
 
 import { create } from 'zustand'
 
-import { addLine, DEFAULT_INFO, orderNote, replaceLine, setLineQty, stepsFor, toKitPayload, type CartLine, type CustomerInfo, type TaxRate, type WizardStep } from '@/lib/domain/orderWizard'
+import { addLine, cartTotals, DEFAULT_INFO, orderNote, replaceLine, setLineQty, stepsFor, toKitPayload, type CartLine, type CustomerInfo, type TaxRate, type WizardStep } from '@/lib/domain/orderWizard'
 import { uuid } from '@/lib/domain/uuid'
 import { play } from '@/lib/audio/sounds'
+import { printOfflineComanda, stationOf, tablePlace } from '@/lib/offline/comanda'
+import { useOutboxStore } from '@/lib/offline/outbox'
+import { CoreError } from '@/lib/services/core/http'
 import { fireUnsentLines } from '@/lib/services/kitchen'
 import { createKitOrder, type CreatedOrder } from '@/lib/services/orderCreate'
 import { loadMenuExtras, loadTaxes, type MenuExtras } from '@/lib/services/productOptions'
@@ -59,7 +62,10 @@ export const useOrderWizardStore = create<WizardState>((set, get) => ({
     const { info, tableId, lines, requestUuid } = get()
     set({ busy: true, error: null })
     try {
-      const created = await createKitOrder(toKitPayload({ uuid: requestUuid, tableId, info, note: orderNote(info, labels) }), lines)
+      const { total, tax } = cartTotals(lines, get().taxes)
+      const place = tablePlace(tableId)
+      const label = info.name.trim() || (info.type === 'dineIn' && place.kind === 'table' ? `Mesa ${place.number}` : '')
+      const created = await createKitOrder(toKitPayload({ uuid: requestUuid, tableId, info, note: orderNote(info, labels) }), lines, { total, tax, label })
       set({ created, busy: false })
       return created
     } catch (e) {
@@ -70,7 +76,22 @@ export const useOrderWizardStore = create<WizardState>((set, get) => ({
   },
   fireKitchen: async (orderId) => {
     set({ busy: true })
-    try { await fireUnsentLines(orderId); set({ busy: false, error: null }); return true } catch (e) { set({ busy: false, error: message(e) }); return false }
+    // Plan U2: sin conexión el envío a cocina queda en la cola y, si este equipo imprime, la comanda sale impresa.
+    const queue = () => {
+      const { requestUuid, lines, info, tableId } = get()
+      useOutboxStore.getState().enqueue({ kind: 'fire', order: orderId < 0 ? { uuid: requestUuid } : { id: orderId }, label: info.name.trim() })
+      printOfflineComanda({
+        number: info.name.trim() || '—', place: info.type === 'dineIn' ? tablePlace(tableId) : { kind: info.type === 'delivery' ? 'delivery' : 'takeout' },
+        lines: lines.map((l) => ({ qty: l.qty, name: l.name, options: l.options.map((o) => o.name), note: l.note, station: stationOf(l.productId) })),
+      })
+      set({ busy: false, error: null })
+      return true
+    }
+    if (orderId < 0) return queue()
+    try { await fireUnsentLines(orderId); set({ busy: false, error: null }); return true } catch (e) {
+      if (e instanceof CoreError && e.code === 'unreachable') return queue()
+      set({ busy: false, error: message(e) }); return false
+    }
   },
 }))
 

@@ -63,7 +63,7 @@ export default function AgregarRondaPage() {
     if (!order || lines.length === 0) return
     setBusy(true)
     try {
-      await addRound(order.id, lines)
+      await addRound(order.id, lines, { number: order.number, tableId: order.tableId })
       toast({ title: t('addRound.sent', { number: order.number }), body: t('addRound.sentBody') })
       discard()
       router.push(returnTo)

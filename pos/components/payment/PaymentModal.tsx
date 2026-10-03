@@ -17,6 +17,8 @@ import { change as changeOf, remaining, splitEqual, suggestedTip, type Payment }
 import { amountOf, CARD_TIMEOUT_MS, methodFor, PAY_KINDS, pointsDiscount, pointsToRedeem, QR_CHECK_MS, type PayKind } from '@/lib/domain/paymentKit'
 import { manualTerminal, type TerminalResult } from '@/lib/payments/terminal'
 import { loadLoyaltyProgram, lookupMember, readPayableOrder, redeemPoints, type LoyaltyProgram, type Member, type PayableOrder } from '@/lib/services/paymentKit'
+import { OfflinePayment } from '@/components/offline/OfflinePayment'
+import { useNetworkStore } from '@/lib/offline/network'
 import { useCatalogStore } from '@/lib/stores/catalogStore'
 import { useOrderStore } from '@/lib/stores/orderStore'
 import { cn } from '@/lib/utils'
@@ -35,6 +37,7 @@ export function PaymentModal({ orderId, onClose, onPaid }: { orderId: number; on
   const { settle, busy, error, receipt } = useOrderStore()
 
   const [order, setOrder] = useState<PayableOrder | null>(null)
+  const online = useNetworkStore((st) => st.online)
   const [program, setProgram] = useState<LoyaltyProgram | null>(null)
   const [loadFailed, setLoadFailed] = useState(false)
   const [benefitError,setBenefitError]=useState('')
@@ -140,6 +143,11 @@ export function PaymentModal({ orderId, onClose, onPaid }: { orderId: number; on
 
   // El documento va montado junto al aviso: la hoja de impresión solo deja visible `.receipt`, así que sin
   // esto "Imprimir" sacaba una hoja en blanco desde Pedidos.
+  // Plan U2: sin conexión solo se cobra en efectivo o con datáfono manual, y el pago se envía al volver la red.
+  if (!online && order && !done) {
+    return <OfflinePayment order={{ id: orderId }} total={Math.max(0, order.total - order.paid)} label={order.trackingNumber} onClose={onClose}
+      onPaid={() => onPaid({ total: order.total, methodName: '', received: 0, change: 0 })} />
+  }
   if (done) return (
     <>
       <PaymentSuccess summary={done} onPrint={printReceipt} onDone={() => onPaid(done)} />

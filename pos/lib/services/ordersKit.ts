@@ -7,6 +7,9 @@ import * as sales from '@/lib/services/core/sales'
 import { toKitOrder } from '@/lib/services/core/salesBridge'
 import { withComboChildren } from '@/lib/services/productOptions'
 import { printFiredCourse } from '@/lib/print/autoComanda'
+import { printOfflineComanda, stationOf, tablePlace } from '@/lib/offline/comanda'
+import { useOutboxStore } from '@/lib/offline/outbox'
+import { CoreError } from '@/lib/services/core/http'
 
 // Pedidos abiertos de la sesión con sus líneas y cursos: tres llamadas por sondeo (pedidos, líneas, cursos).
 export async function listKitOrders(sessionId: number, tableNumberOf: (id: number) => number | null): Promise<KitOrder[]> {
@@ -47,9 +50,21 @@ export async function cancelLines(orderId: number, lineIds: number[]): Promise<v
   return
 }
 
-export async function addRound(orderId: number, lines: DraftLine[]): Promise<number | null> {
+// Plan U2: sin conexión la ronda queda en la cola de salida (las líneas llevan su uuid: reenviarla no la duplica) y, si
+// este equipo imprime, la comanda sale impresa. Devuelve null porque el curso aún no existe en el servidor.
+export async function addRound(orderId: number, lines: DraftLine[], place?: { number: string; tableId: number | null }): Promise<number | null> {
   if (!lines.length) return null
-  const o = await sales.addLines(orderId, await withComboChildren(lines.map((l) => ({ uuid: l.uuid, product_id: l.productId, qty: l.qty, note: l.note }))), true)
+  const input = await withComboChildren(lines.map((l) => ({ uuid: l.uuid, product_id: l.productId, qty: l.qty, note: l.note })))
+  let o: sales.CoreOrder
+  try {
+    o = await sales.addLines(orderId, input, true)
+  } catch (e) {
+    if (!(e instanceof CoreError && e.code === 'unreachable')) throw e
+    useOutboxStore.getState().enqueue({ kind: 'add_lines', order: { id: orderId }, lines: input, fire: true, label: place?.number ?? '' })
+    printOfflineComanda({ number: place?.number ?? '—', place: tablePlace(place?.tableId ?? null),
+      lines: lines.map((l) => ({ qty: l.qty, name: l.name, options: [], note: l.note, station: stationOf(l.productId) })) })
+    return null
+  }
   const courseId = o.courses.at(-1)?.id ?? null
   void printFiredCourse(courseId)
   return courseId
