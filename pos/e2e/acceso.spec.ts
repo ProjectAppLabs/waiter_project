@@ -21,22 +21,31 @@ test('credenciales incorrectas y recuperación', async ({ page }) => {
   await expect(page.getByText('Tengo un código')).toHaveCount(0)
 })
 
-// Falla si la mesera, con la caja cerrada, puede abrir el salón escribiendo la dirección: debe quedar en /caja.
+// Falla si un mesero en su turno, con la caja cerrada, puede abrir el salón escribiendo la dirección: debe quedar en
+// /caja.
 test('sin caja abierta la mesera no pasa de la caja', async ({ page, browser }) => {
-  // La encargada cierra la caja si está abierta (cobra lo pendiente y cuadra exacto).
-  const manager = await (await browser.newContext()).newPage()
-  await signIn(manager, USERS.manager)
-  await manager.waitForURL(/dashboard|caja|salon/)
-  const rid = Number((await api<{ restaurants: { id: string }[] }>(manager, 'auth/me')).restaurants[0].id)
-  const shift = (await api<{ shift: { id: number } | null }>(manager, `shifts/open?restaurant_id=${rid}`)).shift
-  if (shift) {
-    const { settleOpenOrders } = await import('./helpers/waiter')
-    await settleOpenOrders(manager, rid)
-    const closing = await api<{ expected_cash: number }>(manager, `shifts/${shift.id}/closing`)
-    await api(manager, `shifts/${shift.id}/close`, { method: 'POST', data: { counted_cash: closing.expected_cash, notes: '' } })
+  // El POS solo deja entrar a meseros en su turno (Sofía 08–16 en Poblado, Mateo 18–23 en Laureles): la dueña elige
+  // al que esté en turno ahora y cierra la caja de su restaurante si está abierta (cobra lo pendiente y cuadra exacto).
+  const owner = await (await browser.newContext()).newPage()
+  await signIn(owner, USERS.owner)
+  await owner.waitForURL('**/organizacion')
+  const hour = Number(new Date().toLocaleString('en-US', { timeZone: 'America/Bogota', hour: 'numeric', hourCycle: 'h23' }))
+  type Person = { username: string; role: string; restaurant_ids: string[]; shift: { from: number; to: number } | null }
+  const people = (await api<{ people: Person[] }>(owner, 'team')).people
+  const onShift = people.find((p) => ['sofia.mesera', 'mateo.mesero'].includes(p.username) && p.shift && p.shift.from <= hour && hour < p.shift.to)
+  if (onShift) {
+    const rid = Number(onShift.restaurant_ids[0])
+    const shift = (await api<{ shift: { id: number } | null }>(owner, `shifts/open?restaurant_id=${rid}`)).shift
+    if (shift) {
+      const { settleOpenOrders } = await import('./helpers/waiter')
+      await settleOpenOrders(owner, rid)
+      const closing = await api<{ expected_cash: number }>(owner, `shifts/${shift.id}/closing`)
+      await api(owner, `shifts/${shift.id}/close`, { method: 'POST', data: { counted_cash: closing.expected_cash, notes: '' } })
+    }
   }
-  await manager.context().close()
-  await signIn(page, USERS.waiter)
+  await owner.context().close()
+  test.skip(!onShift, `Ningún mesero de prueba tiene turno a las ${hour}:00`)
+  await signIn(page, { login: onShift!.username, password: USERS.waiter.password })
   await page.waitForURL('**/caja')
   await page.goto('/salon')
   await page.waitForURL('**/caja')
