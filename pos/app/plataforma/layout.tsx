@@ -23,7 +23,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
   const onLogin = pathname.startsWith('/plataforma/login')
   // La página de inicio hidrata por su cuenta: el armazón no repite la pregunta al servidor.
   useEffect(() => { if (!onLogin) void hydrate() }, [hydrate, onLogin])
-  useEffect(() => { if (hydrated && !user && !onLogin) router.replace('/plataforma/login') }, [hydrated, user, onLogin, router])
+  useEffect(() => { if (hydrated && !user && !onLogin) router.replace('/login') }, [hydrated, user, onLogin, router])
 
   if (onLogin) return <>{children}</>
   if (!hydrated || !user) return null
@@ -45,7 +45,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
           ))}
           <div className="mt-auto flex flex-col gap-2 px-3 pt-4 text-[14px] text-soft">
             <span className="truncate">{user.name} · {user.role === 'admin' ? 'Administra' : 'Opera'}</span>
-            <Button size="compact" onClick={() => { void logout().then(() => router.replace('/plataforma/login')) }}>Cerrar sesión</Button>
+            <Button size="compact" onClick={() => { void logout().then(() => router.replace('/login')) }}>Cerrar sesión</Button>
           </div>
         </nav>
         <div className="relative flex-1 min-w-0 m-4 rounded-lg border border-border overflow-y-auto px-7 pt-7">{children}<div aria-hidden className="h-7" /></div>

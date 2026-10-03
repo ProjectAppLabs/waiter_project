@@ -10,18 +10,26 @@ import { Icon } from '@/components/kit/Icon'
 import { Toggle } from '@/components/kit/Toggle'
 import { Button } from '@/components/ui/Button'
 import { homePath } from '@/lib/domain/navigation'
+import { currentOrg } from '@/lib/domain/tenant'
 import { effectiveRole, isOwner } from '@/lib/domain/roles'
 import { readLogoutReason, rememberLogoutReason, type GuardReason } from '@/lib/domain/sessionGuard'
 import { useStored } from '@/lib/hooks/useStored'
 import { activate, requestCode } from '@/lib/services/activation'
 import { CoreError } from '@/lib/services/core/http'
+import { platformActivate, platformRequestCode } from '@/lib/services/core/platform'
 import { ShiftDeniedError, useAuthStore } from '@/lib/stores/authStore'
+import { usePlatformStore } from '@/lib/stores/platformStore'
 import { cn } from '@/lib/utils'
 
 const write = (key: string, value: string) => { try { if (value) localStorage.setItem(key, value); else localStorage.removeItem(key) } catch { /* sin almacenamiento */ } }
 type View = 'main' | 'forgot' | 'code'
 // El enlace de la invitación abre el inicio en «escribe el código» con el usuario puesto: /login?codigo=<usuario>.
 const invitedLogin = (): string | null => { try { return new URLSearchParams(window.location.search).get('codigo') } catch { return null } }
+// Un solo inicio para todos: las cuentas de los restaurantes y las de ProjectApp siguen separadas en el servidor (cada
+// una con su sesión), pero se entra por aquí. Si el usuario no existe en la organización de esta dirección, se prueba
+// como persona de ProjectApp; donde no hay organización (plataforma.…) solo se prueba ProjectApp.
+const notInOrg = (e: unknown) => e instanceof CoreError && e.code === 'invalid_credentials'
+const badCode = (e: unknown) => e instanceof CoreError && e.code === 'invalid_code'
 
 export function loginError(error: unknown, tl: (key: string) => string): string {
   if (error instanceof ShiftDeniedError) return error.message
@@ -35,6 +43,7 @@ export default function LoginPage() {
   const tl = useTranslations('pos.login')
   const router = useRouter()
   const { user, employee, session, restaurant, restaurants, hydrated, hydrate, login, chooseRestaurant } = useAuthStore()
+  const platform = usePlatformStore()
   const [invited] = useState<string | null>(() => (typeof window === 'undefined' ? null : invitedLogin()))
   const [view, setView] = useState<View>(invited ? 'code' : 'main')
   const storedEmail = useStored('waiter.email')
@@ -51,6 +60,10 @@ export default function LoginPage() {
   const [codeState, setCodeState] = useState<'idle' | 'sent' | 'resent' | 'invalid' | 'mismatch'>('idle')
 
   useEffect(() => { void hydrate() }, [hydrate])
+  const platformHydrate = platform.hydrate
+  useEffect(() => { void platformHydrate() }, [platformHydrate])
+  // Una persona de ProjectApp con su sesión viva vuelve a su consola.
+  useEffect(() => { if (hydrated && platform.hydrated && platform.user && !user) router.replace('/plataforma') }, [hydrated, platform.hydrated, platform.user, user, router])
   // Si la sesión se cerró sola (inactividad o fin del turno) se explica. Solo se pinta ya hidratado, en el navegador.
   const [closed, setClosed] = useState<GuardReason | null>(() => (typeof window === 'undefined' ? null : readLogoutReason()))
   const owner = !!user && isOwner(user.role, employee?.role)
@@ -64,25 +77,42 @@ export default function LoginPage() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     setFailed(null); setBusy(true)
-    try { await login(email.trim(), password); write('waiter.email', remember ? email.trim() : ''); setPassword(''); rememberLogoutReason(null); setClosed(null) }
+    try {
+      let inOrg = false
+      if (currentOrg()) {
+        try { await login(email.trim(), password); inOrg = true } catch (e) { if (!notInOrg(e)) throw e }
+      }
+      if (!inOrg) await platform.login(email.trim(), password)
+      write('waiter.email', remember ? email.trim() : ''); setPassword(''); rememberLogoutReason(null); setClosed(null)
+      if (!inOrg) router.replace('/plataforma')
+    }
     catch (e) { setFailed(loginError(e, tl)) }
     finally { setBusy(false) }
   }
-  // El servidor responde igual exista o no la cuenta: no revela quién tiene usuario.
+  // El servidor responde igual exista o no la cuenta: no revela quién tiene usuario. Se pide a los dos lados: el código
+  // solo llega de donde la cuenta exista.
+  const sendCode = () => Promise.allSettled([currentOrg() ? requestCode(email) : Promise.resolve(), platformRequestCode(email.trim())])
   async function onRequest(e: React.FormEvent) {
     e.preventDefault()
-    setBusy(true); try { await requestCode(email); setCode(''); setView('code'); setCodeState('sent') } finally { setBusy(false) }
+    setBusy(true); try { await sendCode(); setCode(''); setView('code'); setCodeState('sent') } finally { setBusy(false) }
   }
-  async function onResend() { setBusy(true); try { await requestCode(email); setCodeState('resent') } finally { setBusy(false) } }
+  async function onResend() { setBusy(true); try { await sendCode(); setCodeState('resent') } finally { setBusy(false) } }
   async function onActivate(e: React.FormEvent) {
     e.preventDefault()
     if (newPassword !== confirm) { setCodeState('mismatch'); return }
     setBusy(true)
     try {
-      const ok = await activate(email, code, newPassword)
-      if (!ok) { setCodeState('invalid'); return }
+      let side: 'org' | 'platform' | null = null
+      if (currentOrg()) {
+        try { if (await activate(email, code, newPassword)) side = 'org' } catch (e) { if (!badCode(e)) throw e }
+      }
+      if (!side) {
+        try { await platformActivate(email.trim(), code, newPassword); side = 'platform' } catch (e) { if (!badCode(e)) throw e }
+      }
+      if (!side) { setCodeState('invalid'); return }
       write('waiter.email', email.trim()); setView('main')
-      await login(email.trim(), newPassword)
+      if (side === 'org') await login(email.trim(), newPassword)
+      else { await platform.login(email.trim(), newPassword); router.replace('/plataforma') }
     } catch (e) {
       // El código sirvió pero entrar no (p. ej. fuera de su turno): la contraseña ya quedó guardada, se explica en el inicio.
       if (e instanceof ShiftDeniedError || (e instanceof CoreError && e.code !== 'invalid_code')) { setView('main'); setFailed(loginError(e, tl)) } else setCodeState('invalid')

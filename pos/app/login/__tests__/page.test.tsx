@@ -6,7 +6,9 @@ import LoginPage from '@/app/login/page'
 import { activate, requestCode } from '@/lib/services/activation'
 import { messages } from '@/lib/i18n/messages'
 import { CoreError } from '@/lib/services/core/http'
+import { platformActivate, platformLogin, platformRequestCode } from '@/lib/services/core/platform'
 import { ShiftDeniedError, useAuthStore, type ActiveEmployee } from '@/lib/stores/authStore'
+import { usePlatformStore } from '@/lib/stores/platformStore'
 import type { AuthUser } from '@/lib/services/session'
 
 const replace = jest.fn()
@@ -15,6 +17,10 @@ jest.mock('@/lib/services/activation', () => ({ requestCode: jest.fn(async () =>
 jest.mock('@/lib/services/employees', () => ({ startMyShift: jest.fn(), endShift: jest.fn(), findOpenAttendance: jest.fn(), readEmployee: jest.fn() }))
 jest.mock('@/lib/services/session', () => ({ currentUser: jest.fn(), getOpenSession: jest.fn(), login: jest.fn(), logout: jest.fn() }))
 jest.mock('@/lib/services/cashRegister', () => ({ openRegister: jest.fn() }))
+jest.mock('@/lib/services/core/platform', () => ({
+  platformLogin: jest.fn(), platformMe: jest.fn(async () => { throw new Error('sin sesión') }), platformLogout: jest.fn(),
+  platformRequestCode: jest.fn(async () => ({ ok: true })), platformActivate: jest.fn(),
+}))
 
 const wrap = () => render(<NextIntlClientProvider locale="es" messages={messages}><LoginPage /></NextIntlClientProvider>)
 const person = (role: ActiveEmployee['role']): ActiveEmployee => ({ id: 2, name: 'Sofía', code: null, role, shift: null, userId: 5, checkIn: '', attendanceId: 1, sessionEnds: null })
@@ -24,8 +30,16 @@ const signsInAs = (role: AuthUser['role'], extra: Record<string, unknown> = {}) 
   useAuthStore.setState({ user: account(role), employee: person(role), session: { id: 16, configId: 1, state: 'opened' }, ...extra })
 })
 
+const NO_ACCOUNT = () => new CoreError(401, 'invalid_credentials', 'El usuario o la contraseña no son correctos.')
+const ana = { id: '1', name: 'Ana', username: 'ana.projectapp', email: 'ana@projectapp.co', role: 'admin' as const }
+
 beforeEach(() => {
-  replace.mockReset(); localStorage.clear()
+  replace.mockReset(); localStorage.clear(); jest.mocked(platformActivate).mockReset()
+  jest.mocked(activate).mockClear(); jest.mocked(requestCode).mockClear(); jest.mocked(platformRequestCode).mockClear()
+  // Por omisión el usuario no es de ProjectApp: el inicio único dice «incorrectos» como antes.
+  jest.mocked(platformLogin).mockReset().mockRejectedValue(NO_ACCOUNT())
+  process.env.NEXT_PUBLIC_DEFAULT_ORG = 'burger-house'
+  usePlatformStore.setState({ user: null, hydrated: false })
   useAuthStore.setState({ hydrate: async () => undefined, hydrated: true, user: null, employee: null, session: null, restaurant: null, restaurants: null })
 })
 
@@ -128,4 +142,55 @@ it('el encargado de varios restaurantes elige uno y entra', async () => {
   expect(chooseRestaurant).toHaveBeenCalledWith({ id: 2, name: 'Laureles' })
   await waitFor(() => expect(replace).toHaveBeenCalledWith('/dashboard'))
   expect(screen.queryByText('Ir a la consola de la organización')).toBeNull()
+})
+
+// Falla si una persona de ProjectApp necesita otra pantalla para entrar: con un usuario que no es del restaurante, el
+// inicio prueba la cuenta de ProjectApp y la lleva a su consola.
+it('la persona de ProjectApp entra por el mismo inicio y va a su consola', async () => {
+  useAuthStore.setState({ login: jest.fn(async () => { throw NO_ACCOUNT() }) })
+  jest.mocked(platformLogin).mockResolvedValue({ user: ana } as never)
+  wrap()
+  await signIn('ana.projectapp', 'Plataforma-2026')
+  await waitFor(() => expect(replace).toHaveBeenCalledWith('/plataforma'))
+  expect(platformLogin).toHaveBeenCalledWith('ana.projectapp', 'Plataforma-2026')
+})
+
+// Falla si un rechazo real del restaurante (fuera de turno, cuenta suspendida) se tapa probando la cuenta de ProjectApp,
+// o si una contraseña mala en los dos lados no dice «incorrectos».
+it('solo prueba ProjectApp cuando el usuario no existe en el restaurante', async () => {
+  useAuthStore.setState({ login: jest.fn(async () => { throw new ShiftDeniedError('outside_hours', '08:00–16:00') }) })
+  wrap()
+  await signIn()
+  expect(await screen.findByRole('alert')).toHaveTextContent('08:00–16:00')
+  expect(platformLogin).not.toHaveBeenCalled()
+  useAuthStore.setState({ login: jest.fn(async () => { throw NO_ACCOUNT() }) })
+  jest.mocked(platformLogin).mockRejectedValue(NO_ACCOUNT())
+  await userEvent.click(screen.getByRole('button', { name: 'Entrar' }))
+  await waitFor(() => expect(platformLogin).toHaveBeenCalled())
+  expect(await screen.findByRole('alert')).toHaveTextContent(/incorrectos/)
+  expect(replace).not.toHaveBeenCalledWith('/plataforma')
+})
+
+// Falla si en la dirección de ProjectApp (sin organización) el inicio intenta entrar a un restaurante, o si el código
+// de invitación de ProjectApp no se acepta en el inicio único.
+it('sin organización entra directo como ProjectApp y acepta su código', async () => {
+  delete process.env.NEXT_PUBLIC_DEFAULT_ORG
+  const orgLogin = jest.fn()
+  useAuthStore.setState({ login: orgLogin })
+  jest.mocked(platformLogin).mockResolvedValue({ user: ana } as never)
+  jest.mocked(platformActivate).mockResolvedValue({ ok: true })
+  wrap()
+  await userEvent.click(screen.getByRole('button', { name: '¿Olvidaste tu contraseña?' }))
+  await userEvent.type(screen.getByLabelText('Usuario o correo'), 'ana.projectapp')
+  await userEvent.click(screen.getByRole('button', { name: /Enviar código/ }))
+  expect(platformRequestCode).toHaveBeenCalledWith('ana.projectapp')
+  expect(requestCode).not.toHaveBeenCalledWith('ana.projectapp')
+  await userEvent.type(await screen.findByLabelText(/Código/), '123456')
+  await userEvent.type(screen.getByLabelText(/Nueva contraseña/), 'Nueva-clave-2026')
+  await userEvent.type(screen.getByLabelText(/Repite|Confirma/), 'Nueva-clave-2026')
+  await userEvent.click(screen.getByRole('button', { name: /Guardar|Activar/ }))
+  await waitFor(() => expect(replace).toHaveBeenCalledWith('/plataforma'))
+  expect(platformActivate).toHaveBeenCalledWith('ana.projectapp', '123456', 'Nueva-clave-2026')
+  expect(activate).not.toHaveBeenCalled()
+  expect(orgLogin).not.toHaveBeenCalled()
 })
