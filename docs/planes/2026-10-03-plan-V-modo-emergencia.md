@@ -76,4 +76,18 @@ definitivo). Desde ahí se agrega una ronda, se imprime la precuenta y se cobra.
 
 ## Estado
 
-- (pendiente)
+- **Hecho** (2026-10-03), rama `feat/03102026-modo-emergencia`.
+  - Servidor: el pedido (`created_at`) y el cobro (`paid_at`) aceptan la hora real, ajustada al turno.
+  - POS: cuenta regresiva de 3 minutos que sobrevive a recargar, activación manual de la encargada, bloqueo de las
+    tabletas de meseros, la caja toma pedidos aunque su política no se lo dé, pedidos de emergencia `E-nn` en Pedidos y
+    en «Pedidos de emergencia» (precuenta, cobrar y agregar ronda sin navegar, arqueo provisional), entradas y salidas
+    de efectivo en la cola, cola que se pausa con la sesión vencida, almacenamiento persistente.
+  - Service worker: guarda páginas, archivos y los trozos de precarga de Next 16; sin red sirve la misma pantalla aunque
+    la dirección lleve otros parámetros. Con red, el POS precarga las pantallas de la caja y las lecturas del asistente.
+- **Verificado con la compilación de producción** (`e2e/emergencia.spec.ts`, `PLAYWRIGHT_PROD=1`): sin red la app abre
+  al recargar, aparece la cuenta regresiva, la encargada pasa a la caja, la caja crea un pedido para llevar, lo cobra
+  después desde «Pedidos de emergencia», el arqueo lo suma, y al volver la red llega al servidor **pagado una sola vez**,
+  con la nota «Emergencia E-01» y la hora en que se creó sin red.
+- **Encontrado al probar en producción:** la carta y los platos del asistente no estaban entre las lecturas guardadas;
+  Next 16 precarga por trozos y una sola clave los pisaba; cambiar `?sinMesa=1` sin red no tenía copia. Corregido.
+- **Límite conocido:** en desarrollo (`next dev`) no hay service worker; una pantalla no visitada no abre sin red.

@@ -57,7 +57,7 @@ test('pedido y cobro sin conexión se envían al volver la red', async ({ page, 
   const pay = page.getByRole('dialog', { name: 'Cobrar sin conexión' })
   await pay.getByLabel('Efectivo recibido').fill('50000')
   await pay.getByRole('button', { name: 'Registrar pago' }).click()
-  await expect(page.getByRole('status').filter({ hasText: /Sin conexión/ })).toContainText('4 operaciones por enviar')
+  await expect(page.getByRole('status').filter({ hasText: /Sin conexión/ })).toContainText(/la operación pasa a la caja · 4 por enviar/)
 
   await context.setOffline(false)
   await expect(page.getByRole('status').filter({ hasText: /por enviar|Enviando/ })).toHaveCount(0, { timeout: 60_000 })

@@ -54,7 +54,8 @@ test('emergencia: sin red la caja crea, cobra después y todo llega al volver la
 
   // La red vuelve: todo se envía, el pedido recibe su número y el aviso desaparece.
   await context.setOffline(false)
-  await expect(page.getByRole('status').filter({ hasText: /por enviar|Enviando|Modo emergencia/ })).toHaveCount(0, { timeout: 60_000 })
+  // Sin aviso: ni pendientes ni rechazos.
+  await expect(page.getByRole('status').filter({ hasText: /enviar|Enviando|Modo emergencia|Sin conexión/ })).toHaveCount(0, { timeout: 60_000 })
   await expect(row).toContainText('En el servidor', { timeout: 30_000 })
   const orders = (await api<{ orders: { customer_name: string; state: string; note?: string }[] }>(page, `sales/orders?restaurant_id=${rid}&limit=40`)).orders.filter((o) => o.customer_name === name)
   expect(orders.map((o) => o.state)).toEqual(['paid'])

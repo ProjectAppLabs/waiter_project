@@ -15,6 +15,7 @@ jest.mock('@/lib/stores/catalogStore', () => ({ useCatalogStore: jest.fn() }))
 jest.mock('@/components/kit/KitShell', () => ({ KitShell: ({ children }: { children: React.ReactNode }) => <div data-testid="shell">{children}</div> }))
 // La guardia de sesión tiene su propia prueba (lib/domain/__tests__/sessionGuard.test.ts).
 jest.mock('@/components/account/SessionGuard', () => ({ SessionGuard: () => null }))
+jest.mock('@/components/offline/OfflineBar', () => ({ OfflineBar: () => null, EmergencyLock: () => null }))
 const load = jest.fn()
 const auth = { user: { role: 'admin' }, employee: { role: 'admin' }, session: null, hydrated: true, hydrate: jest.fn() }
 beforeEach(() => {
