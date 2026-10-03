@@ -5,6 +5,7 @@ import { uuid } from '@/lib/domain/uuid'
 import { currentRestaurantId } from '@/lib/services/core/catalogBridge'
 import * as sales from '@/lib/services/core/sales'
 import { toOpenOrder, toSavedOrder } from '@/lib/services/core/salesBridge'
+import { printFiredCourse } from '@/lib/print/autoComanda'
 import { withComboChildren } from '@/lib/services/productOptions'
 import { useAuthStore } from '@/lib/stores/authStore'
 
@@ -35,7 +36,10 @@ export async function setChange(orderId: number, amount: number): Promise<void> 
 }
 
 export async function closeOrder(orderId: number): Promise<SavedOrder> {
-  return toSavedOrder(await sales.payOrder(orderId))
+  const saved = toSavedOrder(await sales.payOrder(orderId))
+  // Cobrar envía a cocina lo que faltaba: esa ronda también sale impresa en los equipos que imprimen (plan U3).
+  void printFiredCourse(null, orderId)
+  return saved
 }
 
 export async function listOpenOrders(sessionId: number): Promise<OpenOrder[]> {

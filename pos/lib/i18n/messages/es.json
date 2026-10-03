@@ -972,7 +972,8 @@
         "change": "Cambio: $ {amount}",
         "reference": "Número de aprobación del datáfono",
         "confirm": "Registrar pago"
-      }
+      },
+      "savedBodyNoPrint": "Se enviará solo al volver la red. Avisa a cocina: no lo verá en su pantalla hasta entonces."
     }
   }
 }

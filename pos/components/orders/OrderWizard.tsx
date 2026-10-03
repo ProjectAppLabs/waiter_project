@@ -12,6 +12,7 @@ import { MenuStep } from '@/components/orders/MenuStep'
 import { SummaryStep } from '@/components/orders/SummaryStep'
 import { TableStep } from '@/components/orders/TableStep'
 import { OfflinePayment } from '@/components/offline/OfflinePayment'
+import { readPrintSettings } from '@/lib/print/settings'
 import { PaymentModal } from '@/components/payment/PaymentModal'
 import { cartTotals, displayReference, stepsFor, type OptionGroup, type OrderType } from '@/lib/domain/orderWizard'
 import { roleCan } from '@/lib/domain/permissions'
@@ -71,8 +72,14 @@ export function OrderWizard({ presetTableId, returnTo = '/pedidos', withoutTable
   }
 
   function leave(created: { trackingNumber: string; offline?: boolean } | null) {
-    if (created?.offline) toast({ title: tOffline('savedTitle'), body: tOffline('savedBody') })
-    else if (created) toast({ title: t('successTitle', { ref: displayReference(w.info.type, created.trackingNumber) }), body: t('successBody') })
+    // Sin conexión no se navega: otra pantalla quizá no cargue sin red. El asistente queda listo para el siguiente pedido.
+    if (created?.offline) {
+      toast({ title: tOffline('savedTitle'), body: tOffline(readPrintSettings().autoComanda ? 'savedBody' : 'savedBodyNoPrint') })
+      setPaying(null)
+      w.reset({ tableId: presetTableId ?? null })
+      return
+    }
+    if (created) toast({ title: t('successTitle', { ref: displayReference(w.info.type, created.trackingNumber) }), body: t('successBody') })
     router.push(returnTo)
   }
 
