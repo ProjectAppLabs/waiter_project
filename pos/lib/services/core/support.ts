@@ -5,7 +5,7 @@ import type { LoginResult } from '@/lib/services/core/pos'
 export type SupportState = 'pedido' | 'vigente' | 'revocado' | 'vencido'
 export interface SupportGrant {
   id: number; state: SupportState; reason: string; hours: number
-  starts_at: string | null; ends_at: string | null; created_at: string
+  since: string | null; until: string | null; created_at: string
   requested_by: { name: string } | null; approved_by: { name: string } | null; revoked_by?: { name: string } | null
 }
 export const SUPPORT_STATE: Record<SupportState, string> = { pedido: 'Pedido, sin aprobar', vigente: 'Vigente', revocado: 'Revocado', vencido: 'Vencido' }

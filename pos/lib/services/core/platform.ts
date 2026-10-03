@@ -33,7 +33,7 @@ export const platformVerify2fa = (challenge: string, code: string) => platform<{
 export const setup2fa = () => platform<{ secret: string; otpauth_uri: string; qr: string }>('auth/2fa/setup', { method: 'POST' })
 export const enable2fa = (code: string) => platform<{ recovery_codes: string[] }>('auth/2fa/enable', { method: 'POST', body: { code } })
 export const disable2fa = (code: string) => platform<{ ok: true }>('auth/2fa/disable', { method: 'POST', body: { code } })
-export const resetPlatform2fa = (id: string) => platform<{ ok: true }>(`team/${id}/2fa/reset`, { method: 'POST' })
+export const resetPlatform2fa = (id: string) => platform<{ ok: true }>(`team/${id}/reset_2fa`, { method: 'POST' })
 export const platformLogout = () => platform<{ ok: true }>('auth/logout', { method: 'POST' })
 export const platformMe = () => platform<{ user: PlatformUser; two_factor?: boolean; two_factor_required?: boolean }>('auth/me')
   // Plan Y3: los dos datos pueden venir junto a la persona o dentro de ella.

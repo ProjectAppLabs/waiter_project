@@ -43,7 +43,7 @@ const entry = (over: Partial<AuditEntry> = {}): AuditEntry => ({
   before: { precio: 20000 }, after: { precio: 22000 }, ...over,
 })
 const grant = (over: Partial<SupportGrant> = {}): SupportGrant => ({
-  id: 3, state: 'pedido', reason: 'Revisar el cierre de ayer', hours: 24, starts_at: null, ends_at: null, created_at: '2026-10-03T12:00:00Z',
+  id: 3, state: 'pedido', reason: 'Revisar el cierre de ayer', hours: 24, since: null, until: null, created_at: '2026-10-03T12:00:00Z',
   requested_by: { name: 'Ana · ProjectApp' }, approved_by: null, ...over,
 })
 
@@ -94,7 +94,7 @@ it('horas y propinas por persona con su pago estimado', async () => {
 // Falla si el dueño no puede dar, aprobar o quitar el acceso de soporte, o si una sesión de soporte ve los botones para
 // darse más acceso a sí misma (plan Y4).
 it('el dueño da, aprueba y quita el acceso de soporte', async () => {
-  jest.mocked(listSupport).mockResolvedValue([grant(), grant({ id: 4, state: 'vigente', reason: 'Ajustar la impresora', starts_at: '2026-10-03T10:00:00Z', ends_at: '2026-10-04T10:00:00Z', approved_by: { name: 'Gustavo' } })])
+  jest.mocked(listSupport).mockResolvedValue([grant(), grant({ id: 4, state: 'vigente', reason: 'Ajustar la impresora', since: '2026-10-03T10:00:00Z', until: '2026-10-04T10:00:00Z', approved_by: { name: 'Gustavo' } })])
   jest.mocked(grantSupport).mockResolvedValue(grant({ id: 5, state: 'vigente' }))
   jest.mocked(approveSupport).mockResolvedValue(grant({ state: 'vigente' }))
   jest.mocked(revokeSupport).mockResolvedValue(grant({ id: 4, state: 'revocado' }))
@@ -153,7 +153,7 @@ it('un token de soporte que ya no sirve se explica', async () => {
 // Falla si ProjectApp puede entrar sin acceso vigente desde la ficha, si pedirlo no manda motivo y horas, o si «Entrar
 // como soporte» no abre el enlace de un solo uso.
 it('la ficha del cliente pide acceso y entra solo con uno vigente', async () => {
-  jest.mocked(organizationSupport).mockResolvedValueOnce([]).mockResolvedValue([grant({ state: 'vigente', ends_at: '2026-10-04T10:00:00Z', approved_by: { name: 'Gustavo' } })])
+  jest.mocked(organizationSupport).mockResolvedValueOnce([]).mockResolvedValue([grant({ state: 'vigente', until: '2026-10-04T10:00:00Z', approved_by: { name: 'Gustavo' } })])
   jest.mocked(requestSupport).mockResolvedValue(grant())
   jest.mocked(supportEntryUrl).mockResolvedValue('https://burger-house.waiter.co/soporte?token=t1')
   const tab = { location: { href: '' }, close: jest.fn() }

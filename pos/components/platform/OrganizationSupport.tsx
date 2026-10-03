@@ -38,7 +38,7 @@ export function OrganizationSupportPanel({ slug }: { slug: string }) {
       {notice && <p role="status" className="text-success-ink">{notice}</p>}
       {active ? (
         <div className="flex flex-wrap items-center gap-3">
-          <p className="text-[15px]"><strong>Acceso vigente</strong> hasta {supportWhen(active.ends_at)}{active.approved_by ? `, aprobado por ${active.approved_by.name}` : ''}.</p>
+          <p className="text-[15px]"><strong>Acceso vigente</strong> hasta {supportWhen(active.until)}{active.approved_by ? `, aprobado por ${active.approved_by.name}` : ''}.</p>
           <Button variant="primary" disabled={busy} onClick={() => void enter()}>Entrar como soporte</Button>
         </div>
       ) : pending ? (

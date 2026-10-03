@@ -18,7 +18,7 @@ export function SupportGrantsTable({ grants, actions }: { grants: SupportGrant[]
             <td className="px-4 py-2"><StatusPill tone={TONE[g.state]}>{SUPPORT_STATE[g.state]}</StatusPill></td>
             <td className="px-4 py-2 cell-wrap max-w-[320px]">{g.reason || '—'}</td>
             <td className="px-4 py-2">{g.requested_by?.name ?? '—'}</td><td className="px-4 py-2">{g.approved_by?.name ?? '—'}</td>
-            <td className="px-4 py-2">{supportWhen(g.starts_at)}</td><td className="px-4 py-2">{g.state === 'pedido' ? `${g.hours} h al aprobar` : supportWhen(g.ends_at)}</td>
+            <td className="px-4 py-2">{supportWhen(g.since)}</td><td className="px-4 py-2">{g.state === 'pedido' ? `${g.hours} h al aprobar` : supportWhen(g.until)}</td>
             <td className="px-4 py-2"><div className="flex justify-end gap-2">{actions?.(g)}</div></td>
           </tr>))}</tbody>
       </table>
