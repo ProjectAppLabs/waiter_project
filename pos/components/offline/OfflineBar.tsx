@@ -16,6 +16,7 @@ import { useAuthStore } from '@/lib/stores/authStore'
 import { cn } from '@/lib/utils'
 
 const PROBE_MS = 8_000
+const OFFLINE_READS = ['products?kind=dish&q=', 'taxes']
 const OFFLINE_ROUTES = ['/pedidos', '/pedidos/nuevo', '/salon', '/salon/nuevo', '/emergencia', '/historial', '/ventas']
 const clock = (ms: number) => { const s = Math.ceil(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` }
 
@@ -30,6 +31,9 @@ export function useOfflineSync() {
   const router = useRouter()
   // Con red, deja listas las pantallas de la caja para abrirlas sin red (en producción las guarda el service worker).
   useEffect(() => { if (online) for (const path of OFFLINE_ROUTES) router.prefetch?.(path) }, [online, router])
+  // Y las lecturas que el asistente de pedidos solo hace al llegar al menú (platos con sus combos, impuestos): así
+  // quedan guardadas aunque nadie haya abierto el menú antes del corte.
+  useEffect(() => { if (online && accountId !== null) for (const path of OFFLINE_READS) void coreFetch(path).catch(() => undefined) }, [online, accountId])
   useEffect(() => {
     useOutboxStore.getState().hydrate()
     useEmergencyOrders.getState().hydrate()
