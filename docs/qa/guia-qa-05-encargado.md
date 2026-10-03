@@ -30,6 +30,7 @@ Que el encargado opera su sede completa: entra sin abrir caja, lee el Inicio, ma
 | E-12 | Lo que el encargado no puede hacer | Encargado |
 | E-13 | Equipo limitado a su sede (sistema propio) | Encargado en Frisby |
 | E-14 | Devolver un pedido cobrado | Encargada |
+| E-15 | Adelantar el modo de emergencia y la sesión vencida | Encargada |
 
 ## 4. Paso a paso
 
@@ -157,6 +158,20 @@ Que el encargado opera su sede completa: entra sin abrir caja, lee el Inicio, ma
 
 **Resultado esperado:** el botón confirma «Devolver $ X» solo con motivo y un reparto exacto, sin pasar de lo pagado por cada método. Lo ya devuelto no se puede devolver otra vez y la cuenta muestra «Devuelto». El cierre muestra «Devoluciones en efectivo» y el esperado baja en ese valor. Los puntos ganados por el cliente bajan en proporción. Si el pedido tenía factura, sale la nota crédito y se informa su número. El dueño recibe un aviso de caja con el valor, el pedido, quién y el motivo, y lo ve en Devoluciones de su consola. Sin el permiso el cajero no ve «Devolver».
 
+### E-15 — Adelantar el modo de emergencia y la sesión vencida
+
+**Preparación:** caja abierta y la encargada con sesión. Se puede ejecutar junto con C-09.
+
+1. Desconecte el internet. En el aviso «Sin conexión · en 3:00…», pulse «Pasar a la caja ahora».
+2. Revise que el aviso diga «Modo emergencia · la operación está en la caja» y abra «Pedidos de emergencia».
+3. Con el internet aún desconectado, deje pasar el tiempo hasta que la sesión venza (o pida a soporte que la cierre en
+   el servidor) y vuelva a conectar.
+
+**Resultado esperado:** la encargada puede adelantar la emergencia sin esperar los 3 minutos; los cajeros y meseros no
+ven ese botón. Si al volver la red la sesión ya venció, el aviso dice «La sesión venció · inicia sesión para enviar N
+operaciones» con el botón «Iniciar sesión»; nada pasa a «no se pudieron enviar». Al entrar de nuevo, lo pendiente se
+envía solo.
+
 ## 5. Registro de resultados
 
 | Caso | Resultado | Observaciones | Evidencia |
@@ -175,3 +190,4 @@ Que el encargado opera su sede completa: entra sin abrir caja, lee el Inicio, ma
 | E-12 | | | |
 | E-13 | | | |
 | E-14 | | | |
+| E-15 | | | |
