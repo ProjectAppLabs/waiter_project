@@ -1,5 +1,6 @@
 'use client'
-/* eslint-disable @next/next/no-img-element -- Original exported illustrations and restaurant logo. */
+
+import { accountScreen, dinerHas } from '@/lib/domain/modules'/* eslint-disable @next/next/no-img-element -- Original exported illustrations and restaurant logo. */
 import Link from 'next/link'
 import { useRef } from 'react'
 import type { Entry } from '@/lib/types'
@@ -52,8 +53,8 @@ export function SmartHeader({ entry, current='portada' }: { entry: Entry;current
     </header>
     <dialog ref={dialog} className="sm-navigation" aria-label="Navegación principal" onClick={e => {if(e.target === e.currentTarget) dialog.current?.close()}}>
       <div className="sm-navigation-inner">
-        <header><Link href={href('cuenta')} onClick={() => dialog.current?.close()} className="sm-profile-link"><span className="sm-avatar">{account ? initials(account.nombre) : <Icon name="user"/>}</span><span><span>{account?.nombre || 'Bienvenido'}</span><small>Mi perfil</small></span></Link><button className="sm-icon" aria-label="Cerrar navegación" onClick={() => dialog.current?.close()}><Icon name="close"/></button></header>
-        <nav>{([['ubicacion','Restaurante y mesa'],['recompensas','Recompensas'],['carta','Menú'],['pedido','Pedido actual'],['historial','Mis pedidos'],['favoritos','Favoritos']] as const).map(([screen,label]) => <Link key={screen} aria-current={screen===current?'page':undefined} href={href(screen)} onClick={() => dialog.current?.close()}>{label}<Icon name="arrow"/></Link>)}</nav>
+        <header>{dinerHas(entry, 'fidelizacion') ? <Link href={href('cuenta')} onClick={() => dialog.current?.close()} className="sm-profile-link"><span className="sm-avatar">{account ? initials(account.nombre) : <Icon name="user"/>}</span><span><span>{account?.nombre || 'Bienvenido'}</span><small>Mi perfil</small></span></Link> : <span />}<button className="sm-icon" aria-label="Cerrar navegación" onClick={() => dialog.current?.close()}><Icon name="close"/></button></header>
+        <nav>{([['ubicacion','Restaurante y mesa'],['recompensas','Recompensas'],['carta','Menú'],['pedido','Pedido actual'],['historial','Mis pedidos'],['favoritos','Favoritos']] as const).filter(([screen]) => !accountScreen(screen) || dinerHas(entry, 'fidelizacion')).map(([screen,label]) => <Link key={screen} aria-current={screen===current?'page':undefined} href={href(screen)} onClick={() => dialog.current?.close()}>{label}<Icon name="arrow"/></Link>)}</nav>
         <p>{entry.contexto.sede.nombre}{entry.contexto.mesa ? ` · Mesa ${entry.contexto.mesa.numero}` : ''}</p>
       </div>
     </dialog>

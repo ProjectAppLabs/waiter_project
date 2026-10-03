@@ -8,7 +8,9 @@ export interface OrgBrand { brand_color: string; brand_font: string; brand_radiu
 export interface PublicOrganization { slug: string; name: string; status: 'trial' | 'active' | 'suspended'; brand: OrgBrand }
 export interface CoreAccount { id: string; name: string; username: string; email: string | null; role: AccountRole; restaurant_ids: string[]; shift: { from: number; to: number } | null }
 export interface CoreRestaurant { id: string; slug: string; name: string; street: string; city: string; phone: string; latitude: string; longitude: string; access_margin_minutes: number }
-export interface LoginResult { account: CoreAccount; attendance_id: string | null; session_ends: string; restaurants: { id: string; name: string }[] }
+export interface LoginResult { account: CoreAccount; attendance_id: string | null; session_ends: string; restaurants: { id: string; name: string }[]
+  // Plan W: módulos activos de la organización y de cada local de la cuenta.
+  modules?: string[]; restaurant_modules?: Record<string, string[]> }
 export interface CorePerson extends CoreAccount { status: 'active' | 'pending' }
 export interface CoreNotification { id: string; kind: 'kitchen' | 'inventory' | 'system' | 'access' | 'cash'; title: string; body: string; restaurant_id: string | null; read: boolean; action: string | null; action_done: boolean; created_at: string }
 

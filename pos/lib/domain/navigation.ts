@@ -1,4 +1,5 @@
 import { roleCan, DEFAULT_ROLE_POLICY, type RolePolicy, type RoleView } from '@/lib/domain/permissions'
+import { hasModule, TAB_MODULE, type ActiveModules } from '@/lib/domain/modules'
 import type { Role } from '@/lib/domain/roles'
 
 // Pestañas disponibles. La política guardada del restaurante decide cuáles ve cada rol.
@@ -16,9 +17,11 @@ export const TAB_ROUTES: Record<KitTab, string> = {
 export const ADMIN_SUBTABS = [['sales', '/ventas'], ['cash', '/cuadres'], ['profit', '/rentabilidad'], ['settings', '/configuracion']] as const
 export type AdminSubtab = (typeof ADMIN_SUBTABS)[number][0]
 
-export const tabsFor = (role: Role, policy: RolePolicy = DEFAULT_ROLE_POLICY): KitTab[] => KIT_TABS.filter((tab) =>
-  tab === 'admin' ? role === 'admin' || policy[role].views.includes('sales') : roleCan(role, tab, policy))
-export const adminSubtabsFor = (role: Role, policy: RolePolicy = DEFAULT_ROLE_POLICY) => ADMIN_SUBTABS.filter(([key]) => role === 'admin' || policy[role].views.includes(key as RoleView))
+// Plan W: una pestaña de un módulo apagado no se muestra, ni siquiera al encargado.
+export const tabsFor = (role: Role, policy: RolePolicy = DEFAULT_ROLE_POLICY, modules?: ActiveModules): KitTab[] => KIT_TABS.filter((tab) =>
+  hasModule(modules, TAB_MODULE[tab]) && (tab === 'admin' ? role === 'admin' || policy[role].views.includes('sales') : roleCan(role, tab, policy)))
+export const adminSubtabsFor = (role: Role, policy: RolePolicy = DEFAULT_ROLE_POLICY, modules?: ActiveModules) => ADMIN_SUBTABS.filter(([key]) =>
+  (key !== 'profit' || hasModule(modules, 'inventario')) && (role === 'admin' || policy[role].views.includes(key as RoleView)))
 
 const PATH_TAB: [RegExp, KitTab][] = [
   [/^\/dashboard/, 'dashboard'], [/^\/(pedidos|operacion)/, 'orders'], [/^\/(salon|mesas)/, 'tables'], [/^\/reservas/, 'reservations'],

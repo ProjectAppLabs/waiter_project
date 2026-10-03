@@ -13,6 +13,8 @@ import { PageSkeleton, Skeleton } from '@/components/kit/Skeleton'
 import { allowedPath, effectiveRole, type Role } from '@/lib/domain/roles'
 import { EmergencyLock, OfflineBar } from '@/components/offline/OfflineBar'
 import { emergencyPath, operatesInEmergency, useEmergency } from '@/lib/offline/emergency'
+import { ModuleInactive } from '@/components/kit/ModuleInactive'
+import { hasModule, moduleForPath } from '@/lib/domain/modules'
 import { PrintHost } from '@/components/print/PrintHost'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useCatalogStore } from '@/lib/stores/catalogStore'
@@ -26,6 +28,7 @@ export default function PosLayout({ children }: { children: React.ReactNode }) {
   const policy = useCatalogStore((s) => s.catalog?.settings.rolePermissions)
   const configId = useCatalogStore((s) => s.catalog?.settings.configId)
   const catalogError = useCatalogStore((s) => s.error)
+  const modules = useCatalogStore((s) => s.catalog?.settings.modules)
   // Plan V: en emergencia la caja abre las pantallas de tomar pedidos y cobrar aunque su política no se las dé.
   const emergency = useEmergency().active
   const allowed = (role: Role) => allowedPath(role, pathname, policy) || (emergency && operatesInEmergency(role) && emergencyPath(pathname))
@@ -85,7 +88,10 @@ export default function PosLayout({ children }: { children: React.ReactNode }) {
   }
   if (!policy) return <BootSkeleton />
   const shell = withShell(pathname)
-  return <>{shell ? <KitShell>{children}</KitShell> : children}<SessionGuard idle={shell} /><PrintHost /><OfflineBar /><EmergencyLock /></>
+  // Plan W: un módulo apagado para este local muestra la explicación en vez de la pantalla.
+  const pageModule = moduleForPath(pathname)
+  const content = pageModule && !hasModule(modules, pageModule) ? <ModuleInactive module={pageModule} /> : children
+  return <>{shell ? <KitShell>{content}</KitShell> : content}<SessionGuard idle={shell} /><PrintHost /><OfflineBar /><EmergencyLock /></>
 }
 
 // El armazón de la app (barra y contenido) en esqueleto, mientras se recupera la sesión.

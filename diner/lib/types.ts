@@ -80,7 +80,9 @@ export interface Category { id: number; nombre: string; productos: Dish[] }
 // imagenesDeReferencia: algún plato con foto la tiene generada con IA. Opcional: una experience/ anterior no lo manda y la carta sigue igual, sin la nota.
 export interface Menu { restaurante: string; categorias: Category[]; imagenesDeReferencia?: boolean }
 export interface MenuBanner {layout:'product'|'promotion'|'category'|'image'|'notice';title:string;subtitle:string;button:string;target:'product'|'category'|'none';targetId:number|null;image:string;theme:'violet'|'amber'|'dark';active:boolean}
-export interface Entry { banners?: MenuBanner[] | null; contexto: Context; carta: Menu }
+export interface Entry { banners?: MenuBanner[] | null; contexto: Context; carta: Menu
+  // Plan W: módulos activos que afectan al comensal (menu_comensal, pagos_en_linea, fidelizacion, asistente_menu).
+  modulos?: string[] }
 export interface Session { id: string; estado: string; mesa: number | null }
 export interface CartLine { id: number; comensal: string; mio: boolean; producto_id: number; nombre: string; precio: number; cantidad: number; nota: string; subtotal: number }
 // Descuento de primera compra (5 % por defecto): aplicable = la cuenta verificada aún no lo usó; aplicado = ya va en las líneas.

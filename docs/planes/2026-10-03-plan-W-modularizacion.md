@@ -241,6 +241,26 @@ Codex hace el servidor y Claude las pantallas en paralelo contra estas formas. N
 | `asistente_menu` | | | |
 | `multisucursal` | | | |
 
+### Pantallas del POS y de la consola del dueño por módulo (W0, Claude)
+
+La asignación vive en `pos/lib/domain/modules.ts` (`TAB_MODULE`, `VIEW_MODULE`, `ACTION_MODULE`, `moduleForPath`).
+
+| Módulo | Pantallas |
+|---|---|
+| `nucleo` | `/dashboard`, `/pedidos`, `/pedidos/nuevo`, `/pedidos/[id]/agregar`, `/pago/[id]`, `/historial`, `/ventas`, `/cuadres`, `/configuracion`, `/caja`, `/emergencia`, `/operacion`; consola: `/organizacion`, `ventas`, `cuadres`, `devoluciones`, `consumo`, `retorno`, `empresa`, `restaurantes`, `catalogo`, `equipo` |
+| `salon` | `/salon`, `/salon/nuevo`, `/salon/[id]/agregar`, `/mesas/[id]` |
+| `cocina` | `/kds` |
+| `inventario` | `/inventario`, `/rentabilidad`; consola: `rentabilidad` |
+| `reservas` | `/reservas` |
+| `facturacion` | consola: `facturacion` |
+| `pagos_en_linea` | consola: `pagos` |
+| `fidelizacion` | consola: `clientes`, `promociones` |
+| `menu_comensal` | consola: `diseno`, `integraciones` (claves del MCP del diseño) |
+
+- La acción `serve_orders` es de `salon`, `edit_inventory` de `inventario`; las demás, del núcleo.
+- Rutas viejas que redirigen a la consola (`/catalogo`, `/clientes`, `/facturacion`, `/automatizacion`) siguen la de su
+  destino.
+
 ## Decisiones del dueño (2026-10-03)
 
 - **Alcance de los módulos:** por organización **y** por local (la excepción del local gana).

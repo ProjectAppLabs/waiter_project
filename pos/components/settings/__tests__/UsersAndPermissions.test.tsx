@@ -30,3 +30,15 @@ it('la tabla de permisos dice cuántas personas tiene cada rol', () => {
   expect(screen.getByText('2 personas')).toBeInTheDocument()
   expect(screen.getByRole('heading', { name: 'Qué puede hacer cada rol' })).toBeInTheDocument()
 })
+
+// Falla si la tabla de permisos ofrece dar a un rol una vista o acción de un módulo apagado en ese local.
+it('no ofrece permisos de módulos apagados en el local', () => {
+  const { useAuthStore } = jest.requireActual('@/lib/stores/authStore') as typeof import('@/lib/stores/authStore')
+  useAuthStore.setState({ modules: ['nucleo', 'salon', 'inventario'], restaurantModules: { 1: ['nucleo', 'salon'] } })
+  render(<RolePermissionsForm configId={1} />)
+  expect(screen.queryByText('Inventario')).toBeNull()
+  expect(screen.queryByText('Modificar inventario')).toBeNull()
+  expect(screen.queryByText('Cocina')).toBeNull()
+  expect(screen.getAllByText(/Salón|Mesas/).length).toBeGreaterThan(0)
+  useAuthStore.setState({ modules: null, restaurantModules: null })
+})

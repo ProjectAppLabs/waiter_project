@@ -64,3 +64,17 @@ it('shows the app frame skeleton while it restores the session', () => {
   expect(container.querySelectorAll('.skeleton').length).toBeGreaterThan(3)
   expect(screen.queryByText('Inventario editable')).not.toBeInTheDocument()
 })
+
+// Falla si entrar por la dirección a un módulo apagado muestra la pantalla (o la rompe) en vez de explicar que no está
+// en el plan, aunque quien entra sea el encargado; o si un módulo activo deja de mostrarse.
+it('un módulo apagado muestra la explicación aunque el rol tenga permiso', () => {
+  ;(useCatalogStore as unknown as jest.Mock).mockImplementation((select) => select({ load, status: 'ready', error: null, catalog: { settings: { rolePermissions: DEFAULT_ROLE_POLICY, modules: ['nucleo', 'salon'] } } }))
+  const { unmount } = render(<PosLayout><p>Inventario editable</p></PosLayout>)
+  expect(screen.queryByText('Inventario editable')).toBeNull()
+  expect(screen.getByRole('alert')).toHaveTextContent('Esta función no está activa en tu plan')
+  expect(screen.getByRole('alert')).toHaveTextContent('Inventario')
+  unmount()
+  ;(useCatalogStore as unknown as jest.Mock).mockImplementation((select) => select({ load, status: 'ready', error: null, catalog: { settings: { rolePermissions: DEFAULT_ROLE_POLICY, modules: ['nucleo', 'inventario'] } } }))
+  render(<PosLayout><p>Inventario editable</p></PosLayout>)
+  expect(screen.getByText('Inventario editable')).toBeInTheDocument()
+})

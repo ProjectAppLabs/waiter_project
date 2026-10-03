@@ -27,3 +27,9 @@ export const saveBillingSettings = <T>(patch: Record<string, unknown>) => coreFe
 // Contrato M: el estado de la suscripción de Waiter que ve el dueño (cuentas de cobro de ProjectApp).
 export interface Subscription { plan: string; monthly_price: number; next_due: string | null; overdue: number; suspend_on?: string | null; charges: { id: number; period: string; amount: number; due_date: string; state: string }[] }
 export const subscription = () => coreFetch<Subscription>('subscription')
+
+// Plan W5: lo que la organización lleva del mes (contrato en docs/planes/2026-10-03-plan-W-modularizacion.md).
+export interface ConsumptionLine { concept: string; module: string; unit: string; quantity: number; unit_price: number; total: number }
+export interface ConsumptionUsage { module: string; module_name: string; unit: string; unit_name: string; quantity: number; restaurant_id: number | null; restaurant_name: string | null }
+export interface Consumption { period: string; currency: string; locals_active: number; price_per_local: number; lines: ConsumptionLine[]; estimated_total: number; usage: ConsumptionUsage[] }
+export const consumption = (period?: string) => coreFetch<Consumption>(`consumption${period ? `?period=${period}` : ''}`)

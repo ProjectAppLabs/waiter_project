@@ -13,13 +13,15 @@ import { Button } from '@/components/ui/Button'
 import { isOwner } from '@/lib/domain/roles'
 import { listRestaurants, type Restaurant } from '@/lib/services/restaurants'
 import { getCompany } from '@/lib/services/settings'
+import { ModuleInactive } from '@/components/kit/ModuleInactive'
+import { hasModule, moduleForPath } from '@/lib/domain/modules'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { cn } from '@/lib/utils'
 
 // Consola del dueño, fuera del POS (planes O y Q): lo del negocio y lo de la organización, agrupado por para qué sirve, y
 // la puerta al POS de cada restaurante. Solo entra el dueño, con su propia cuenta.
 const GROUPS: [string, [string, string, KitIcon][]][] = [
-  ['Negocio', [['/organizacion', 'Resumen', 'dashboard'], ['/organizacion/ventas', 'Ventas', 'sales'], ['/organizacion/cuadres', 'Cuadres de caja', 'scale'], ['/organizacion/devoluciones', 'Devoluciones', 'refresh'],
+  ['Negocio', [['/organizacion', 'Resumen', 'dashboard'], ['/organizacion/ventas', 'Ventas', 'sales'], ['/organizacion/cuadres', 'Cuadres de caja', 'scale'], ['/organizacion/devoluciones', 'Devoluciones', 'refresh'], ['/organizacion/consumo', 'Consumo', 'chartLine'],
     ['/organizacion/rentabilidad', 'Rentabilidad', 'coins'], ['/organizacion/retorno', 'Retorno de inversión', 'chartLine']]],
   ['Contabilidad', [['/organizacion/facturacion', 'Facturación', 'billing'], ['/organizacion/pagos', 'Pagos', 'card'], ['/organizacion/empresa', 'Empresa e impuestos', 'lock']]],
   ['Clientes y marca', [['/organizacion/clientes', 'Clientes', 'customers'], ['/organizacion/promociones', 'Promociones', 'percentage'], ['/organizacion/diseno', 'Diseño del menú', 'layout']]],
@@ -32,7 +34,10 @@ const CORE_READY = new Set(GROUPS.flatMap(([, links]) => links.map(([href]) => h
 export default function OrganizationLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { user, employee, hydrated, hydrate, logout } = useAuthStore()
+  const { user, employee, hydrated, hydrate, logout, modules } = useAuthStore()
+  // Plan W: lo que no está en el plan de la organización no aparece en el menú; por la dirección, se explica.
+  const enabled = (href: string) => { const m = moduleForPath(href); return !m || hasModule(modules, m) }
+  const pageModule = moduleForPath(pathname)
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [companyName, setCompanyName] = useState('')
   const owner = !!user && !!employee && isOwner(user.role, employee.role)
@@ -64,7 +69,7 @@ export default function OrganizationLayout({ children }: { children: React.React
               <span className="text-[12px] font-bold uppercase tracking-widest text-primary">Organización</span>
               <p className="mt-1 text-[18px] font-semibold truncate">{companyName || 'Tu organización'}</p>
             </div>
-            {GROUPS.map(([group, links]) => [group, links.filter(([href]) => CORE_READY.has(href))] as const).filter(([, links]) => links.length).map(([group, links]) => (
+            {GROUPS.map(([group, links]) => [group, links.filter(([href]) => CORE_READY.has(href) && enabled(href))] as const).filter(([, links]) => links.length).map(([group, links]) => (
               <div key={group} className="flex flex-col gap-1 pb-3">
                 <span className="px-3 pt-2 pb-1 text-[12px] font-semibold uppercase tracking-wider text-dim">{group}</span>
                 {links.map(([href, label, icon]) => (
@@ -83,7 +88,7 @@ export default function OrganizationLayout({ children }: { children: React.React
           {/* relative: lo absoluto de adentro (textos sr-only) se recorta aquí y no estira la página. */}
           {/* Sin relleno abajo: la barra horizontal de las tablas (ScrollTable) se pega al borde de lo visible, no 28 px antes con
               una franja transparente debajo. El mismo espacio va al final del contenido. */}
-          <div className="relative flex-1 min-w-0 m-4 rounded-lg border border-border overflow-y-auto px-7 pt-7">{<SubscriptionNotice />}{children}<div aria-hidden className="h-7" /></div>
+          <div className="relative flex-1 min-w-0 m-4 rounded-lg border border-border overflow-y-auto px-7 pt-7">{<SubscriptionNotice />}{pageModule && !hasModule(modules, pageModule) ? <ModuleInactive module={pageModule} /> : children}<div aria-hidden className="h-7" /></div>
         </div>
       </main>
     </OrgContext.Provider>

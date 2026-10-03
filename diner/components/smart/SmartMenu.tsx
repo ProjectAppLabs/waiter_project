@@ -12,6 +12,7 @@ import type { TemplateData, TemplateSlots } from '@/lib/domain/plantillas'
 import { Plantilla } from '@/components/plantillas/Renderizador'
 import { usePlantilla } from '@/components/plantillas/usePlantilla'
 import { formatCop } from '@/lib/domain/cart'
+import { accountScreen, dinerHas } from '@/lib/domain/modules'
 import { useDinerStore } from '@/lib/stores/dinerStore'
 import type { Dish, Entry } from '@/lib/types'
 import { SmartCart, SmartPay, SmartStatus, SmartBill } from './SmartOrder'
@@ -256,6 +257,8 @@ export function Heart({ dish }: { dish: Dish }) {
   const { account, favorites, favorite, favoritesBusy } = useDinerStore()
   const { go } = useSmartRoute()
   const selected = favorites.includes(dish.id)
+  // Plan W: los favoritos son de la cuenta del comensal; sin fidelización no se ofrecen.
+  if (!dinerHas(useDinerStore.getState().entry, 'fidelizacion')) return null
   return (
     <button
       type="button"
@@ -706,7 +709,7 @@ export function SmartExperience({
 }: SmartProps & { route: Route }) {
   const { cart, account, loadAccount, loadFavorites, session, error, preview } =
     useDinerStore()
-  const { href } = useSmartRoute()
+  const { href, go } = useSmartRoute()
   useEffect(() => {
     if (session && !preview) void loadAccount()
   }, [session, loadAccount, preview])
@@ -715,7 +718,9 @@ export function SmartExperience({
   }, [account, loadFavorites, preview])
   const [cartActionTarget, setCartActionTarget] = useState<HTMLDivElement | null>(null)
   const [dishActionTarget, setDishActionTarget] = useState<HTMLDivElement | null>(null)
-  const screen = route.screen
+  // Plan W: sin fidelización, las pantallas de cuenta muestran un aviso en lugar de su contenido.
+  const accountOff = accountScreen(route.screen) && !dinerHas(props.entry, 'fidelizacion')
+  const screen = accountOff ? 'no-disponible' : route.screen
   const count = (cart?.lineas ?? [])
     .filter((l) => l.mio)
     .reduce((n, l) => n + l.cantidad, 0)
@@ -744,6 +749,7 @@ export function SmartExperience({
             {error}
           </p>
         )}
+        {accountOff && <Empty icon="user" title="Esta función no está disponible en este restaurante" action="Ver el menú" onAction={() => go('carta')}>Puedes pedir y pagar con el mesero como siempre.</Empty>}
         {screen === 'portada' && <SmartHome entry={props.entry} />}
         {screen === 'carta' && (
           <SmartBrowse entry={props.entry} />
@@ -777,7 +783,7 @@ export function SmartExperience({
       </div>
       {/* En el pago no hay muelle: la persona ya está pagando y «Mi mesero» solo la distraería (tampoco en la reserva). */}
       {!['reserva', 'pago'].includes(screen) && <div ref={dockRef} className={`sm-action-dock${showCart || showConfirm || compactDock ? ' sm-action-dock-pair' : ''}${compactDock ? ' sm-action-dock-compacto' : ''}`}>
-        <SmartChat key={`${props.rest}/${props.venue}/${props.token}`} entry={props.entry} rest={props.rest} venue={props.venue} token={props.token}/>
+        {dinerHas(props.entry, 'asistente_menu') && <SmartChat key={`${props.rest}/${props.venue}/${props.token}`} entry={props.entry} rest={props.rest} venue={props.venue} token={props.token}/>}
         {showConfirm && <div className="sm-confirm-slot" ref={setCartActionTarget}/>}
         {screen === 'plato' && <div className="sm-confirm-slot" ref={setDishActionTarget}/>}
         {showCart && <Link href={href('pedido')} className="sm-cart-float">

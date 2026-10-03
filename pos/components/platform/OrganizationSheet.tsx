@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Select, TextInput } from '@/components/ui/Field'
 import { usePlatformStore } from '@/lib/stores/platformStore'
 import { getOrganization, reactivateOrganization, resendOwnerInvite, suspendOrganization, updateOrganization, type OrganizationDetail } from '@/lib/services/core/platform'
+import { OrganizationModulesPanel, OrganizationUsagePanel } from './OrganizationModules'
 import { PLANS } from './NewOrganizationWizard'
 import { money, orgUrl, STATUS } from './OrganizationsView'
 
@@ -56,7 +57,7 @@ export function OrganizationSheet({ slug, justCreated = false }: { slug: string;
         <section className="rounded-lg border border-border p-5"><h2 className="text-[17px] font-semibold mb-3">Cuenta</h2>
           <dl className="grid grid-cols-2 gap-3">
             {item('Dirección', <a href={orgUrl(o.slug)} target="_blank" rel="noreferrer" className="text-primary">{orgUrl(o.slug).replace(/^https?:\/\//, '')}</a>)}
-            {item('Plan', PLANS.find(([v]) => v === o.plan)?.[1] ?? o.plan)}{item('Precio mensual', money(o.monthly_price))}
+            {item('Plan', PLANS.find(([v]) => v === o.plan)?.[1] ?? o.plan)}{item('Precio por local al mes', money(o.monthly_price))}
             {item('Restaurantes', `${restaurants.length} de ${o.max_restaurants}`)}{item('En prueba hasta', o.trial_ends)}{item('Alta', new Date(o.created_at).toLocaleDateString('es-CO', { dateStyle: 'medium' }))}
           </dl></section>
         <section className="rounded-lg border border-border p-5"><h2 className="text-[17px] font-semibold mb-3">Facturación</h2>
@@ -69,6 +70,8 @@ export function OrganizationSheet({ slug, justCreated = false }: { slug: string;
           {restaurants.length === 0 ? <p className="text-soft">El dueño todavía no ha creado ninguno.</p>
             : <ul className="flex flex-col gap-1">{restaurants.map((r) => <li key={r.id} className="flex justify-between text-[15px]"><span className="font-medium">{r.name}</span><span className="text-dim">{r.slug}</span></li>)}</ul>}</section>
       </div>
+      <OrganizationModulesPanel slug={o.slug} canEdit={role === 'admin'} />
+      <OrganizationUsagePanel slug={o.slug} />
       <section className="rounded-lg border border-border p-5"><h2 className="text-[17px] font-semibold mb-3">Historial</h2>
         {audit.length === 0 ? <p className="text-soft">Sin movimientos.</p> : <ul className="flex flex-col gap-2">{audit.map((a) => (
           <li key={a.id} className="flex flex-wrap justify-between gap-x-4 text-[14px]"><span>{ACTION[a.action] ?? a.action}{a.actor && <span className="text-soft"> · {a.actor.name}</span>}</span><span className="text-dim">{when(a.at)}</span></li>))}</ul>}</section>
@@ -107,7 +110,7 @@ function EditModal({ detail, onClose, onSaved }: { detail: OrganizationDetail; o
           <TextInput label="NIT" required value={form.tax_id} onChange={set('tax_id')} /><TextInput label="Correo de facturación" type="email" required value={form.billing_email} onChange={set('billing_email')} />
           <TextInput label="Contacto de facturación" value={form.billing_contact} onChange={set('billing_contact')} />
           <Select label="Plan" value={form.plan} onChange={set('plan')}>{PLANS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</Select>
-          <TextInput label="Precio mensual (COP)" type="number" min={0} step={1000} required value={form.monthly_price} onChange={set('monthly_price')} />
+          <TextInput label="Precio por local al mes (COP)" type="number" min={0} step={1000} required value={form.monthly_price} onChange={set('monthly_price')} />
           <TextInput label="Límite de restaurantes" type="number" min={1} step={1} required value={form.max_restaurants} onChange={set('max_restaurants')} hint={`Hoy tiene ${detail.restaurants.length}.`} />
           <TextInput label="En prueba hasta" type="date" value={form.trial_ends} onChange={set('trial_ends')} />
         </div>

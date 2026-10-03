@@ -36,6 +36,9 @@ interface AuthState {
   restaurants: Restaurant[] | null
   session: PosSession | null
   employee: ActiveEmployee | null
+  // Plan W: módulos activos de la organización (consola del dueño) y por local. null: el servidor no los manda.
+  modules: string[] | null
+  restaurantModules: Record<number, string[]> | null
   hydrated: boolean
   login: (login: string, password: string) => Promise<void>
   hydrate: () => Promise<void>
@@ -48,12 +51,13 @@ interface AuthState {
 }
 
 // Plan T: en el sistema propio entrar ya abre el turno y trae los restaurantes de la cuenta en una sola respuesta.
-function fromCore(r: core.LoginResult): Pick<AuthState, 'user' | 'restaurants' | 'restaurant' | 'employee' | 'session'> {
+function fromCore(r: core.LoginResult): Pick<AuthState, 'user' | 'restaurants' | 'restaurant' | 'employee' | 'session' | 'modules' | 'restaurantModules'> {
   const restaurants = r.restaurants.map(toRestaurant)
   const chosen = pickRestaurant(restaurants, readDeviceRestaurant())
   const restaurant = chosen ? { id: chosen.id, name: chosen.name } : null
   if (restaurant) storeDeviceRestaurant(restaurant)
-  return { user: toAuthUser(r.account), restaurants, restaurant, employee: toActiveEmployee(r), session: null }
+  const restaurantModules = r.restaurant_modules ? Object.fromEntries(Object.entries(r.restaurant_modules).map(([id, list]) => [Number(id), list])) : null
+  return { user: toAuthUser(r.account), restaurants, restaurant, employee: toActiveEmployee(r), session: null, modules: r.modules ?? null, restaurantModules }
 }
 // Plan T2: la caja abierta del restaurante elegido en el sistema propio (null si no hay restaurante o no hay turno).
 const openShiftOf = (restaurant: { id: number } | null) => (restaurant ? getOpenSession(restaurant.id).catch(() => null) : Promise.resolve(null))
@@ -67,6 +71,8 @@ async function coreLogin(l: string, p: string): Promise<core.LoginResult> {
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
+  modules: null,
+  restaurantModules: null,
   restaurant: null,
   restaurants: null,
   session: null,
@@ -82,7 +88,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   hydrate: async () => {
     try { const base = fromCore(await core.me()); set({ ...base, session: await openShiftOf(base.restaurant), hydrated: true }) }
-    catch { set({ user: null, session: null, employee: null, restaurants: null, restaurant: null, hydrated: true }) }
+    catch { set({ user: null, session: null, employee: null, restaurants: null, restaurant: null, modules: null, restaurantModules: null, hydrated: true }) }
     return
   },
   refreshSession: async () => set({ session: await getOpenSession(get().restaurant?.id ?? null) }),
@@ -105,7 +111,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     clearStoredEmployee()
     // El bus deja de tener dueño: se cierra con la sesión, no en cada navegación.
     useBusStore.getState().stop()
-    set({ user: null, session: null, employee: null, restaurants: null })
+    set({ user: null, session: null, employee: null, restaurants: null, modules: null, restaurantModules: null })
   },
 }))
 
