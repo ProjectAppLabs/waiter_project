@@ -4,6 +4,8 @@ import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { BillInfo } from '@/components/history/BillInfo'
+import { RefundModal } from '@/components/history/RefundModal'
+import { toast } from '@/lib/stores/toastStore'
 import { HistoryRow } from '@/components/history/HistoryRow'
 import { Chip } from '@/components/kit/Chip'
 import { PageTitle } from '@/components/ui/PageHeader'
@@ -12,6 +14,11 @@ import { KitEmptyState } from '@/components/kit/KitEmptyState'
 import { ListSkeleton } from '@/components/kit/Skeleton'
 import { filterHistory, matchesOrderSearch, type HistoryFilter, type KitLine, type KitOrder } from '@/lib/domain/orderState'
 import { getKitOrderLines, listHistoryOrders } from '@/lib/services/ordersKit'
+import { roleCan } from '@/lib/domain/permissions'
+import { effectiveRole } from '@/lib/domain/roles'
+import { formatCop } from '@/lib/domain/money'
+import { useNetworkStore } from '@/lib/offline/network'
+import { useAuthStore } from '@/lib/stores/authStore'
 import { useCatalogStore } from '@/lib/stores/catalogStore'
 
 const FILTERS: HistoryFilter[] = ['all', 'dine_in', 'takeout', 'delivery']
@@ -26,12 +33,15 @@ export default function HistorialPage() {
   const [filter, setFilter] = useState<HistoryFilter>('all')
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [lines, setLines] = useState<{ orderId: number; lines: KitLine[] } | null>(null)
+  const [refunding, setRefunding] = useState(false)
+  const online = useNetworkStore((s) => s.online)
+  const { user, employee } = useAuthStore()
+  // Plan U1: devolver es del encargado y del dueño, o de quien tenga el permiso; necesita conexión.
+  const mayRefund = !!user && roleCan(effectiveRole(user.role, employee?.role), 'refund_orders', catalog?.settings.rolePermissions) && online
   const tableNumberOf = useCallback((id: number) => catalog?.tables.find((x) => x.id === id)?.number ?? null, [catalog])
 
-  useEffect(() => {
-    if (!catalog) return
-    listHistoryOrders(tableNumberOf).then(setOrders).catch((e) => console.warn('No se pudo cargar el historial.', e)).finally(() => setLoaded(true))
-  }, [catalog, tableNumberOf])
+  const reload = useCallback(() => listHistoryOrders(tableNumberOf).then(setOrders).catch((e) => console.warn('No se pudo cargar el historial.', e)).finally(() => setLoaded(true)), [tableNumberOf])
+  useEffect(() => { if (catalog) void reload() }, [catalog, reload])
   useEffect(() => {
     if (selectedId === null) return
     void getKitOrderLines(selectedId).then((l) => setLines({ orderId: selectedId, lines: l }))
@@ -63,8 +73,16 @@ export default function HistorialPage() {
             </div>
           </div>
         </div>
-        <BillInfo order={selected} lines={lines?.orderId === selectedId ? lines.lines : []} company={catalog?.company.name ?? ''} />
+        <BillInfo order={selected} lines={lines?.orderId === selectedId ? lines.lines : []} company={catalog?.company.name ?? ''} onRefund={mayRefund ? () => setRefunding(true) : undefined} />
       </div>
+      {refunding && selected && (
+        <RefundModal orderId={selected.id} number={selected.number} onClose={() => setRefunding(false)}
+          onDone={(r) => {
+            setRefunding(false)
+            toast({ title: t('refund.doneTitle', { amount: formatCop(r.refund.amount) }), body: r.credit_note ? t('refund.doneCreditNote', { number: r.credit_note.number }) : t('refund.doneBody') })
+            void reload()
+          }} />
+      )}
     </>
   )
 }

@@ -11,7 +11,7 @@ import { useCatalogStore } from '@/lib/stores/catalogStore'
 
 const LABELS: Record<string, string> = {
   dashboard: 'Inicio', tables: 'Mesas', orders: 'Pedidos / caja', reservations: 'Reservas', history: 'Historial', inventory: 'Inventario', kitchen: 'Cocina', sales: 'Ventas', customers: 'Clientes', billing: 'Contabilidad y facturación',
-  create_orders: 'Crear pedidos y agregar rondas', charge_orders: 'Cobrar pedidos', serve_orders: 'Registrar entregas y atender llamadas', edit_inventory: 'Modificar inventario',
+  create_orders: 'Crear pedidos y agregar rondas', charge_orders: 'Cobrar pedidos', serve_orders: 'Registrar entregas y atender llamadas', edit_inventory: 'Modificar inventario', refund_orders: 'Devolver pedidos cobrados',
 }
 const ROLES = [['waiter', 'Mesero'], ['cashier', 'Cajero']] as const
 const peopleLabel = (n: number) => n === 1 ? '1 persona' : `${n} personas`

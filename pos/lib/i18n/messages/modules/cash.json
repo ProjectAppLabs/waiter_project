@@ -52,7 +52,8 @@
     "closed": "Caja cerrada. El turno queda contabilizado en el servidor.",
     "failed": "el servidor no cerró la caja: {message}",
     "force": "Forzar cierre (administrador)",
-    "forceHint": "el servidor detectó un descuadre contable. Forzar el cierre lo contabiliza como diferencia de caja."
+    "forceHint": "el servidor detectó un descuadre contable. Forzar el cierre lo contabiliza como diferencia de caja.",
+    "refunds": "Devoluciones en efectivo"
   },
   "sales": {
     "title": "Ventas",
@@ -61,18 +62,45 @@
     "shiftClosed": "cerrado",
     "shiftLabel": "{name} · {date}",
     "shiftNotStarted": "{name} · sin iniciar",
-    "period": { "label": "Periodo", "today": "Hoy", "yesterday": "Ayer", "week": "Esta semana", "month": "Este mes", "lastMonth": "Mes pasado", "custom": "Rango", "shift": "Por turno",
-      "from": "Desde", "to": "Hasta", "invalid": "Elige un rango válido (máximo un año)." },
+    "period": {
+      "label": "Periodo",
+      "today": "Hoy",
+      "yesterday": "Ayer",
+      "week": "Esta semana",
+      "month": "Este mes",
+      "lastMonth": "Mes pasado",
+      "custom": "Rango",
+      "shift": "Por turno",
+      "from": "Desde",
+      "to": "Hasta",
+      "invalid": "Elige un rango válido (máximo un año)."
+    },
     "ordersLimited": "Pedidos · los {shown} más recientes de {total}",
-    "kpi": { "sales": "Ventas", "orders": "Pedidos", "avg": "Ticket promedio", "autonomous": "Autónomos" },
+    "kpi": {
+      "sales": "Ventas",
+      "orders": "Pedidos",
+      "avg": "Ticket promedio",
+      "autonomous": "Autónomos"
+    },
     "byMethod": "Por método de pago",
     "byWaiter": "Por mesero",
     "top": "Más vendidos",
     "orders": "Pedidos pagados",
     "empty": "Sin ventas en este turno todavía",
     "emptyBody": "Los pedidos cobrados del turno aparecerán aquí.",
-    "cols": { "order": "Pedido", "time": "Hora", "table": "Mesa", "waiter": "Mesero", "origin": "Origen", "total": "Total", "orders": "pedidos" },
-    "origin": { "waiter": "Mesero", "auto": "Autónomo" },
+    "cols": {
+      "order": "Pedido",
+      "time": "Hora",
+      "table": "Mesa",
+      "waiter": "Mesero",
+      "origin": "Origen",
+      "total": "Total",
+      "orders": "pedidos"
+    },
+    "origin": {
+      "waiter": "Mesero",
+      "auto": "Autónomo"
+    },
     "table": "Mesa {n}",
     "delivery": "Domicilio",
     "none": "Sin datos en este turno"

@@ -20,6 +20,8 @@ export interface KitOrder {
   id: number; number: string; type: OrderType; state: 'draft' | 'paid' | 'done' | 'invoiced' | 'cancel'
   tableId: number | null; tableNumber: number | null; customer: string; startedAt: string; total: number; tax: number
   lines: KitLine[]; courses: KitCourse[]
+  // Lo devuelto de un pedido cobrado (plan U1).
+  refunded?: number
   // Para derivar de aquí la lista del salón (`openOrderFromKit`) sin pedir los mismos pedidos otra vez.
   waiter?: string; tracking?: string | null
 }

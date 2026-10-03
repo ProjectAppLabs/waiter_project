@@ -39,7 +39,7 @@ export const toKitCourse = (c: CoreOrder['courses'][number]): KitCourse => ({ id
 export const toKitOrder = (o: CoreOrder): KitOrder => ({
   channel: o.channel === 'whatsapp' ? 'whatsapp' : null, phone: o.delivery_phone, id: o.id, number: o.number, type: o.service, state: state(o),
   tableId: o.table_id, tableNumber: o.table_number, customer: o.customer_name, startedAt: o.created_at, total: o.total, tax: o.tax,
-  lines: live(o).map(toKitLine), courses: o.courses.map(toKitCourse), waiter: o.waiter?.name ?? '', tracking: String(o.tracking),
+  lines: live(o).map(toKitLine), courses: o.courses.map(toKitCourse), waiter: o.waiter?.name ?? '', tracking: String(o.tracking), refunded: o.refunded ?? 0,
 })
 export const toSavedOrder = (o: CoreOrder): SavedOrder => ({ id: o.id, reference: o.number, state: o.state === 'paid' ? 'paid' : 'draft', total: o.total, tax: o.tax, paid: o.paid })
 export const toCreatedOrder = (o: CoreOrder): CreatedOrder => ({ id: o.id, reference: o.number, trackingNumber: String(o.tracking), total: o.total, tax: o.tax })
@@ -99,7 +99,7 @@ export const toCompleted = (c: { fired_at: string; ready_at: string }): Complete
 // Caja
 export const toClosingData = (c: CoreClosing): ClosingData => ({
   ordersCount: c.orders_count, ordersTotal: c.orders_total, expectedCash: c.expected_cash, openingCash: c.opening_cash, cashPayments: c.cash_payments,
-  cashMoves: c.cash_moves.map((m) => ({ name: m.reason, amount: m.kind === 'out' ? -m.amount : m.amount })), otherMethods: c.other_methods, draftOrders: c.draft_orders, openingNotes: c.opening_notes,
+  cashMoves: c.cash_moves.map((m) => ({ name: m.reason, amount: m.kind === 'out' ? -m.amount : m.amount })), otherMethods: c.other_methods, draftOrders: c.draft_orders, openingNotes: c.opening_notes, refundsCash: c.refunds_cash ?? 0,
 })
 export const toShiftRow = (s: CoreShift): ShiftRow => ({
   id: s.id, name: `Turno ${s.id}`, state: s.state === 'open' ? 'opened' : 'closed', startAt: s.opened_at, stopAt: s.closed_at ?? null, user: s.opened_by?.name ?? '', total: s.total ?? 0, orders: s.orders ?? 0,
