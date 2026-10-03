@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils'
 // Plan T0: la consola de ProjectApp. Aquí se dan de alta los dueños que pagan por Waiter, se lleva su plan y su estado y
 // se suspende a quien no paga. Solo entra la gente de ProjectApp (`PlatformUser`), con su propia sesión. Mismo sistema de
 // diseño que la consola del dueño: aurora al fondo y un panel translúcido con el menú y el contenido.
-const SECTIONS: [string, string, KitIcon][] = [['/plataforma', 'Clientes', 'store'], ['/plataforma/metricas', 'Métricas', 'chartLine'], ['/plataforma/cobros', 'Cobros', 'coins'], ['/plataforma/equipo', 'Equipo de ProjectApp', 'users']]
+const SECTIONS: [string, string, KitIcon][] = [['/plataforma', 'Clientes', 'store'], ['/plataforma/metricas', 'Métricas', 'chartLine'], ['/plataforma/cobros', 'Cobros', 'coins'], ['/plataforma/precios', 'Precios', 'percentage'], ['/plataforma/equipo', 'Equipo de ProjectApp', 'users']]
 
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()

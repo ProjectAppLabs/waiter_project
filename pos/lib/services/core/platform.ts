@@ -10,11 +10,14 @@ export interface Organization {
   plan: string; monthly_price: number; status: OrganizationStatus; trial_ends: string | null; max_restaurants: number
   timezone: string; suspended_at: string | null; suspended_reason: string; created_at: string
   owner?: OrganizationOwner; restaurants_count?: number
+  // Plan X: precios del cliente (lo que se aparta del estándar), los que se aplican y su saldo a favor.
+  pricing?: ClientPricing; effective_pricing?: EffectivePricing; account_credit?: number
 }
 export interface OrganizationInput {
   name: string; slug: string; legal_name: string; tax_id: string; billing_email: string; billing_contact: string
   plan: string; monthly_price: number; max_restaurants: number; trial_ends: string | null; timezone: string
   owner: { name: string; email: string; username?: string }
+  pricing?: ClientPricing
 }
 export interface AuditEntry { id: string; action: string; detail: Record<string, unknown>; at: string; actor: { name: string } | null }
 export interface OrganizationDetail { organization: Organization; owner: OrganizationOwner; restaurants: { id: string; slug: string; name: string }[]; audit: AuditEntry[] }
@@ -51,6 +54,7 @@ export interface PlatformMetrics { totals: MetricsTotals; organizations: OrgMetr
 export type ChargeState = 'pending' | 'paid' | 'overdue' | 'void'
 export type ChargeMethod = 'transferencia' | 'nequi' | 'efectivo' | 'otro'
 export interface Charge {
+  kind?: 'mensualidad' | 'recarga'
   id: number; organization: { slug: string; name: string } | string; period: string; amount: number; due_date: string; state: ChargeState
   paid_at: string | null; method: ChargeMethod | '' | null; reference: string; notes: string; recorded_by?: { name: string } | null; created_at: string
   // Plan W: mensualidad por local y uso, línea por línea.
@@ -89,3 +93,29 @@ export const changeOrganizationModules = (slug: string, change: ModuleChange) =>
 export interface UsageRow { module: string; module_name: string; unit: string; unit_name: string; quantity: number; restaurant_id: number | null; restaurant_name: string | null }
 export interface OrganizationUsage { period: string; rows: UsageRow[]; totals: { module: string; unit: string; quantity: number }[] }
 export const organizationUsage = (slug: string, period: string) => platform<OrganizationUsage>(`organizations/${slug}/usage?${qs({ period })}`)
+
+// Plan X: lista de precios estándar y precios de cada cliente (contrato en
+// docs/planes/2026-10-03-plan-X-precios-recargas-prorrateo.md).
+export type OnExhausted = 'cobrar' | 'bloquear'
+export interface WhatsappPlan { key: string; name: string; monthly_price: number; included: Record<string, number> }
+export interface RechargePack { key: string; name: string; module: string; unit: string; quantity: number; price: number }
+export interface PriceBook {
+  local_monthly: number; modules: Record<string, number>; unit_prices: Record<string, number>
+  whatsapp_plans: WhatsappPlan[]; recharge_packs: RechargePack[]; on_exhausted: OnExhausted
+}
+export interface ClientPricing {
+  mode: 'estandar' | 'personalizado'
+  local_monthly?: number; unit_prices?: Record<string, number>; modules?: Record<string, number>
+  whatsapp_plan?: string | null; whatsapp?: { monthly_price: number; included: Record<string, number> } | null
+  recharge_packs?: RechargePack[]; on_exhausted?: OnExhausted
+}
+export type EffectivePricing = PriceBook & { whatsapp_plan: string | null }
+export const priceBook = () => platform<PriceBook>('settings/pricing')
+export const savePriceBook = (patch: Partial<PriceBook>) => platform<PriceBook>('settings/pricing', { method: 'PATCH', body: patch })
+
+export interface CreditBalance { module: string; unit: string; unit_name: string; balance: number }
+export interface CreditMovement { id: number; at: string; kind: 'recarga' | 'cortesia' | 'consumo'; module: string; unit: string; quantity: number; amount: number | null; reference: string; actor: { name: string } | null }
+export interface OrganizationCredits { balances: CreditBalance[]; movements: CreditMovement[] }
+export const organizationCredits = (slug: string) => platform<OrganizationCredits>(`organizations/${slug}/credits`)
+export const grantCredits = (slug: string, body: { module: string; unit: string; quantity: number; reason: string }) =>
+  platform<OrganizationCredits>(`organizations/${slug}/credits`, { method: 'POST', body })
