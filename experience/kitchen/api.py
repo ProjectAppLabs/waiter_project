@@ -55,6 +55,8 @@ class TicketsView(PosView):
                         {
                             **fields(line, "id name qty note ready_at served_at"),
                             "station": next((c.station for c in line.product.categories.all() if c.station), ""),
+                            # Las opciones elegidas (tamaño, adiciones) van en la pantalla y en la comanda impresa.
+                            "options": [option["name"] for option in line.options or []],
                         }
                         for line in course.lines.all()
                     ],

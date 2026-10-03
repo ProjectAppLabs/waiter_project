@@ -48,3 +48,17 @@ it('requires preparation before marking received dishes ready', () => {
   fireEvent.click(screen.getByRole('button', { name: 'Iniciar preparación' }))
   expect(onStart).toHaveBeenCalledWith(5)
 })
+
+// Falla si cocina no ve el tamaño o las adiciones del plato, si un pedido para llevar dice «Mesa 0», o si el botón de
+// imprimir no manda la comanda con su número y lugar.
+it('muestra opciones y el tipo de servicio, e imprime la comanda', () => {
+  const { usePrintStore } = jest.requireActual('@/lib/stores/printStore') as typeof import('@/lib/stores/printStore')
+  usePrintStore.setState({ sheets: null })
+  const takeout = { ...ticket, service: 'takeout' as const, lines: [{ ...ticket.lines[0], options: ['Doble', 'Tocineta'] }] }
+  wrap(<TicketCard ticket={takeout} tableNumber={0} now={NOW} onReady={jest.fn()} onReadyDish={jest.fn()} />)
+  expect(screen.getByText('+ Doble · Tocineta')).toBeInTheDocument()
+  expect(screen.getByText('Para llevar')).toBeInTheDocument()
+  expect(screen.queryByRole('heading', { name: 'Mesa 0' })).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'Imprimir comanda' }))
+  expect(usePrintStore.getState().sheets?.[0]).toMatchObject({ number: '127', place: { kind: 'takeout' } })
+})

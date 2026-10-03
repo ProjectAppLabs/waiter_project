@@ -11,6 +11,7 @@ import { SessionGuard } from '@/components/account/SessionGuard'
 import { AuroraBackground } from '@/components/kit/Aurora'
 import { PageSkeleton, Skeleton } from '@/components/kit/Skeleton'
 import { allowedPath, effectiveRole } from '@/lib/domain/roles'
+import { PrintHost } from '@/components/print/PrintHost'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useCatalogStore } from '@/lib/stores/catalogStore'
 
@@ -72,7 +73,7 @@ export default function PosLayout({ children }: { children: React.ReactNode }) {
   }
   if (!policy) return <BootSkeleton />
   const shell = withShell(pathname)
-  return <>{shell ? <KitShell>{children}</KitShell> : children}<SessionGuard idle={shell} /></>
+  return <>{shell ? <KitShell>{children}</KitShell> : children}<SessionGuard idle={shell} /><PrintHost /></>
 }
 
 // El armazón de la app (barra y contenido) en esqueleto, mientras se recupera la sesión.

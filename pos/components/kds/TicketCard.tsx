@@ -5,9 +5,11 @@ import { useTranslations } from 'next-intl'
 import { Icon } from '@/components/kit/Icon'
 import { StatusPill, type PillTone } from '@/components/kit/StatusPill'
 import { Button } from '@/components/ui/Button'
+import { fromTicket } from '@/lib/domain/comanda'
 import { elapsedSeconds, formatClock, ticketMood, type TicketMood } from '@/lib/domain/kitchen'
 import { BAR_SCALE_MIN, barFill, barTone } from '@/lib/domain/tableState'
 import type { KitchenTicket } from '@/lib/services/kitchen'
+import { usePrintStore } from '@/lib/stores/printStore'
 import { cn } from '@/lib/utils'
 
 const TONE: Record<TicketMood, PillTone> = { late: 'danger', attention: 'progress', fresh: 'success', normal: 'info' }
@@ -28,16 +30,20 @@ export function TicketCard({ ticket, tableNumber, now, onStart, onReady, onReady
   const started = Boolean(ticket.preparationAt || ticket.readyAt || ticket.lines.some((l) => l.readyAt))
   const cooking = ticket.lines.filter((l) => !l.readyAt)
   const dishes = cooking.reduce((acc, l) => acc + l.qty, 0)
+  const printComanda = usePrintStore((s) => s.printComanda)
+  // Para llevar y domicilio no tienen mesa: la tarjeta dice el tipo de servicio.
+  const atTable = !ticket.service || ticket.service === 'dine_in'
+  const kind = atTable ? t('typeTable') : t(ticket.service === 'takeout' ? 'typeTakeout' : 'typeDelivery')
   return (
-    <article aria-label={t('table', { n: tableNumber })} className={cn('bg-surface rounded-lg border flex flex-col overflow-hidden text-ink', EDGE[mood])}>
+    <article aria-label={atTable ? t('table', { n: tableNumber }) : `${kind} ${ticket.tracking}`} className={cn('bg-surface rounded-lg border flex flex-col overflow-hidden text-ink', EDGE[mood])}>
       <header className="h-10 px-4 flex items-center justify-between gap-3 bg-muted text-[13px] text-soft">
-        <span>{t('order')} <span className="font-semibold text-ink">{ticket.tracking}</span> / {t('typeTable')}</span>
+        <span>{t('order')} <span className="font-semibold text-ink">{ticket.tracking}</span> / {kind}</span>
         <span className="truncate">{ticket.waiter}</span>
       </header>
       <div className="p-4 flex flex-col gap-3">
         <div className="flex items-center gap-3">
-          <span aria-hidden className="w-11 h-11 rounded-md bg-primary text-primary-ink grid place-items-center text-[16px] font-semibold">{tableNumber}</span>
-          <div className="min-w-0"><p className="text-[13px] text-soft">{t('typeTable')}</p><h2 className="text-[16px] font-semibold leading-tight">{t('table', { n: tableNumber })}</h2></div>
+          <span aria-hidden className="w-11 h-11 rounded-md bg-primary text-primary-ink grid place-items-center text-[16px] font-semibold">{atTable ? tableNumber : <Icon name={ticket.service === 'delivery' ? 'delivery' : 'bag'} size={20} />}</span>
+          <div className="min-w-0"><p className="text-[13px] text-soft">{kind}</p><h2 className="text-[16px] font-semibold leading-tight">{atTable ? t('table', { n: tableNumber }) : ticket.tracking}</h2></div>
           <span className={cn('ml-auto font-mono tabular text-[30px] font-semibold leading-none', mood === 'late' && 'text-danger')}>{formatClock(seconds)}</span>
         </div>
         <div className="flex items-center justify-between gap-2">
@@ -64,7 +70,7 @@ export function TicketCard({ ticket, tableNumber, now, onStart, onReady, onReady
               const done = Boolean(l.readyAt)
               return (
                 <li key={l.id} className={cn('grid grid-cols-[1fr_auto_auto] gap-3 px-3 py-2 border-t border-border items-center', done && 'text-dim')}>
-                  <div className="min-w-0 leading-tight"><span className={cn('text-[16px] font-medium', done && 'line-through')}>{l.name}</span>{l.note && <p className="text-[14px] text-progress-ink">{t('note')}: {l.note}</p>}</div>
+                  <div className="min-w-0 leading-tight"><span className={cn('text-[16px] font-medium', done && 'line-through')}>{l.name}</span>{(l.options ?? []).length > 0 && <p className="text-[14px] text-soft">+ {l.options!.join(' · ')}</p>}{l.note && <p className="text-[14px] text-progress-ink">{t('note')}: {l.note}</p>}</div>
                   <span className="font-mono tabular text-[16px] font-semibold">{l.qty}×</span>
                   {done ? (
                     <span className="w-[54px] inline-flex items-center justify-center gap-1 text-[13px] font-semibold text-success-ink"><Icon name="check" size={13} />{t('dishReady')}</span>
@@ -80,7 +86,10 @@ export function TicketCard({ ticket, tableNumber, now, onStart, onReady, onReady
           </ul>
         </div>
       </div>
-      <div className="px-4 pb-4 mt-auto"><Button variant="primary" className="w-full" onClick={() => started ? onReady(ticket.id) : onStart?.(ticket.id)}><Icon name="checks" size={18} />{t(started ? 'readyAll' : 'startPreparation')}</Button></div>
+      <div className="px-4 pb-4 mt-auto flex gap-2">
+        <Button aria-label={t('print.button')} title={t('print.button')} onClick={() => printComanda({ ...fromTicket(ticket), place: atTable ? { kind: 'table', number: tableNumber } : fromTicket(ticket).place })}><Icon name="printer" size={18} /></Button>
+        <Button variant="primary" className="flex-1" onClick={() => started ? onReady(ticket.id) : onStart?.(ticket.id)}><Icon name="checks" size={18} />{t(started ? 'readyAll' : 'startPreparation')}</Button>
+      </div>
     </article>
   )
 }

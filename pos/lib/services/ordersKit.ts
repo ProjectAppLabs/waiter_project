@@ -6,6 +6,7 @@ import * as coreKitchen from '@/lib/services/core/kitchen'
 import * as sales from '@/lib/services/core/sales'
 import { toKitOrder } from '@/lib/services/core/salesBridge'
 import { withComboChildren } from '@/lib/services/productOptions'
+import { printFiredCourse } from '@/lib/print/autoComanda'
 
 // Pedidos abiertos de la sesión con sus líneas y cursos: tres llamadas por sondeo (pedidos, líneas, cursos).
 export async function listKitOrders(sessionId: number, tableNumberOf: (id: number) => number | null): Promise<KitOrder[]> {
@@ -49,7 +50,9 @@ export async function cancelLines(orderId: number, lineIds: number[]): Promise<v
 export async function addRound(orderId: number, lines: DraftLine[]): Promise<number | null> {
   if (!lines.length) return null
   const o = await sales.addLines(orderId, await withComboChildren(lines.map((l) => ({ uuid: l.uuid, product_id: l.productId, qty: l.qty, note: l.note }))), true)
-  return o.courses.at(-1)?.id ?? null
+  const courseId = o.courses.at(-1)?.id ?? null
+  void printFiredCourse(courseId)
+  return courseId
 }
 
 // Tasas reales de los impuestos que usa la carta, para mostrar el subtotal, el impuesto y el total de la ronda.

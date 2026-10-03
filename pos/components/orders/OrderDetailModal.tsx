@@ -10,6 +10,9 @@ import { Modal } from '@/components/kit/Modal'
 import { CustomerRow, OrderHeadline, StatusBar } from '@/components/orders/OrderCard'
 import { formatCop } from '@/lib/domain/money'
 import { canCharge, lineGroup, type KitLine, type KitOrder, type KitStatus, type LineGroup } from '@/lib/domain/orderState'
+import { fromOrder } from '@/lib/domain/comanda'
+import { useCatalogStore } from '@/lib/stores/catalogStore'
+import { usePrintStore } from '@/lib/stores/printStore'
 import { cn } from '@/lib/utils'
 
 const GROUPS: { key: LineGroup; icon: KitIcon; cls: string }[] = [
@@ -29,12 +32,22 @@ interface Props {
 // "Detail Order" del kit: cabecera del pedido, líneas agrupadas por estado de cocina y pie con total, "+ Nuevo pedido" e "Ir a pagar".
 export function OrderDetailModal({ order, location, status, percent, onClose, imageOf, onCancelWaiting, onSendPending, onServeReady, busy = false, mayCharge = true }: Props) {
   const t = useTranslations('orders')
+  const tp = useTranslations('kds.print')
+  const catalog = useCatalogStore((s) => s.catalog)
+  const printComanda = usePrintStore((s) => s.printComanda)
   if (!order) return null
+  const stationOf = (productId: number) => {
+    const ids = catalog?.products.find((p) => p.id === productId)?.categoryIds ?? []
+    return catalog?.categories.find((c) => ids.includes(c.id) && c.station)?.station ?? null
+  }
+  const sent = order.lines.some((l) => l.courseId !== null)
   const groups = GROUPS.map((g) => ({ ...g, lines: order.lines.filter((l) => lineGroup(order, l) === g.key) })).filter((g) => g.lines.length > 0)
   const chargeable = canCharge(order) && mayCharge
   const footer = (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between"><span className="text-[15px] text-soft">{t('detail.totalPayment')}</span><span className="text-[20px] font-semibold text-ink tabular">$ {formatCop(order.total)}</span></div>
+      <div className="flex items-center justify-between gap-3"><span className="text-[15px] text-soft">{t('detail.totalPayment')}</span>
+        {sent && <button type="button" onClick={() => printComanda(fromOrder(order, stationOf))} className="ml-auto h-9 px-3 rounded-sm border border-border bg-surface text-ink text-[14px] font-semibold inline-flex items-center gap-1.5"><Icon name="printer" size={16} />{tp('button')}</button>}
+        <span className="text-[20px] font-semibold text-ink tabular">$ {formatCop(order.total)}</span></div>
       <div className="grid grid-cols-2 gap-3">
         <Link href={`/pedidos/${order.id}/agregar`} className="h-12 rounded-md border border-border bg-surface text-ink text-[15px] font-bold inline-flex items-center justify-center gap-1.5"><Icon name="plus" size={18} />{t('detail.newOrder')}</Link>
         {chargeable

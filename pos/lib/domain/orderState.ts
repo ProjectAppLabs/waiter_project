@@ -12,6 +12,8 @@ export interface KitCourse { id: number; fired: boolean; preparationAt?: string 
 export interface KitLine {
   id: number; uuid: string; productId: number; name: string; qty: number; unitPrice: number; subtotal: number; total: number; note: string
   courseId: number | null; readyAt: string | null; servedAt: string | null
+  // Opciones elegidas (tamaño, adiciones): van en la comanda impresa.
+  options?: string[]
 }
 export interface KitOrder {
   channel?: 'whatsapp' | null; phone?: string

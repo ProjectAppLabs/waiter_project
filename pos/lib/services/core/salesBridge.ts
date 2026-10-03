@@ -33,7 +33,7 @@ const live = (o: CoreOrder) => o.lines.filter((l) => !l.cancelled)
 
 export const toKitLine = (l: CoreOrder['lines'][number]): KitLine => ({
   id: l.id, uuid: l.uuid, productId: l.product_id, name: l.name, qty: l.qty, unitPrice: l.unit_price, subtotal: l.subtotal, total: l.total, note: l.note,
-  courseId: l.course_id, readyAt: l.ready_at, servedAt: l.served_at,
+  courseId: l.course_id, readyAt: l.ready_at, servedAt: l.served_at, options: (l.options ?? []).map((o) => o.name),
 })
 export const toKitCourse = (c: CoreOrder['courses'][number]): KitCourse => ({ id: c.id, fired: true, preparationAt: c.preparation_at, readyAt: c.ready_at, servedAt: c.served_at })
 export const toKitOrder = (o: CoreOrder): KitOrder => ({
@@ -91,8 +91,8 @@ export const toInvoiceableOrder = (o: CoreOrder): InvoiceableOrder => ({
 // Cocina. La comanda del sistema propio trae el número de mesa; el KDS busca la mesa por id y, si no la encuentra,
 // muestra el valor tal cual: por eso aquí viaja el número.
 export const toKitchenTicket = (t: CoreTicket): KitchenTicket => ({
-  id: t.id, orderId: t.order_id, tableId: t.table_number ?? 0, tracking: t.number, waiter: typeof t.waiter === 'string' ? t.waiter : t.waiter?.name ?? '', note: t.note, firedAt: t.fired_at, preparationAt: t.preparation_at, readyAt: t.ready_at,
-  lines: t.lines.map((l) => ({ id: l.id, name: l.name, qty: l.qty, note: l.note, station: l.station || null, readyAt: l.ready_at, servedAt: l.served_at })),
+  id: t.id, orderId: t.order_id, tableId: t.table_number ?? 0, service: t.service, tracking: t.number, waiter: typeof t.waiter === 'string' ? t.waiter : t.waiter?.name ?? '', note: t.note, firedAt: t.fired_at, preparationAt: t.preparation_at, readyAt: t.ready_at,
+  lines: t.lines.map((l) => ({ id: l.id, name: l.name, qty: l.qty, note: l.note, station: l.station || null, options: l.options ?? [], readyAt: l.ready_at, servedAt: l.served_at })),
 })
 export const toCompleted = (c: { fired_at: string; ready_at: string }): CompletedCourse => ({ firedAt: c.fired_at, readyAt: c.ready_at })
 

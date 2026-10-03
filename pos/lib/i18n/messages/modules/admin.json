@@ -390,7 +390,19 @@
       "test": "Probar",
       "localHint": "La densidad y el volumen se guardan en este dispositivo.",
       "theme": "Modo de color",
-      "themeHint": "Sistema, claro u oscuro. También se cambia desde el chip de usuario."
+      "themeHint": "Sistema, claro u oscuro. También se cambia desde el chip de usuario.",
+      "print": {
+        "title": "Impresión en este equipo",
+        "hint": "Se imprime con la impresora predeterminada del equipo, incluidas las térmicas. Para que no aparezca el diálogo, abre el navegador con --kiosk-printing.",
+        "paper": "Ancho del papel",
+        "paper80": "80 mm",
+        "paper58": "58 mm",
+        "copies": "Copias del recibo",
+        "auto": "Imprimir la comanda al enviar a cocina",
+        "stations": "Estaciones que imprime este equipo",
+        "allStations": "Sin elegir ninguna, imprime todas.",
+        "someStations": "Los platos sin estación se imprimen siempre."
+      }
     }
   },
   "roi": {

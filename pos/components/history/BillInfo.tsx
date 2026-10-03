@@ -1,5 +1,6 @@
 'use client'
 
+import { printReceipt } from '@/lib/print/settings'
 import { useTranslations } from 'next-intl'
 
 import { Icon } from '@/components/kit/Icon'
@@ -59,7 +60,7 @@ export function BillInfo({ order, lines, company }: Props) {
         <div className="flex justify-between items-baseline pt-2 mt-1 border-t border-dashed border-border"><span className="text-[16px] font-semibold text-ink">{t('bill.total')}</span><span className="text-[20px] font-semibold text-ink tabular">$ {formatCop(order.total)}</span></div>
       </div>
       <div className="px-4 pb-4 shrink-0">
-        <button type="button" onClick={() => window.print()} className="w-full h-12 rounded-md bg-primary text-primary-ink text-[16px] font-bold inline-flex items-center justify-center gap-2"><Icon name="printer" size={20} />{t('bill.print')}</button>
+        <button type="button" onClick={printReceipt} className="w-full h-12 rounded-md bg-primary text-primary-ink text-[16px] font-bold inline-flex items-center justify-center gap-2"><Icon name="printer" size={20} />{t('bill.print')}</button>
       </div>
       <PrintableReceipt data={receipt} />
     </aside>

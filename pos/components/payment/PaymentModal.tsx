@@ -1,5 +1,6 @@
 'use client'
 
+import { printReceipt } from '@/lib/print/settings'
 import { serverDate } from '@/lib/domain/time'
 import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -141,7 +142,7 @@ export function PaymentModal({ orderId, onClose, onPaid }: { orderId: number; on
   // esto "Imprimir" sacaba una hoja en blanco desde Pedidos.
   if (done) return (
     <>
-      <PaymentSuccess summary={done} onPrint={() => window.print()} onDone={() => onPaid(done)} />
+      <PaymentSuccess summary={done} onPrint={printReceipt} onDone={() => onPaid(done)} />
       {receipt && <PrintableReceipt data={receipt} />}
     </>
   )
