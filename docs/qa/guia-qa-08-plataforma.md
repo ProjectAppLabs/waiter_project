@@ -28,6 +28,8 @@ Que ProjectApp da de alta a un cliente nuevo en tres pasos sin tocar scripts, in
 | P-08 | Lo que el rol Opera no puede hacer | Opera |
 | P-09 | Métricas por cliente | Administra u Opera |
 | P-10 | Cobro de la suscripción: mora, suspensión automática y pago | Administra, Opera y el dueño |
+| P-11 | Módulos del cliente por organización y por local | Administra y Opera |
+| P-12 | Consumo del cliente y cobro por local y por uso | Administra |
 
 ## 4. Paso a paso
 
@@ -120,6 +122,34 @@ Que ProjectApp da de alta a un cliente nuevo en tres pasos sin tocar scripts, in
 
 **Resultado esperado:** con la mora pasada el plazo, el cliente queda **Suspendido** solo y su dueño ve «La cuenta de tu organización está suspendida. Escribe a ProjectApp.»; antes de suspender, su consola muestra el aviso de la cuenta vencida y la fecha de suspensión. Al registrar el pago queda **Activa** sola y el dueño entra. Una suspensión hecha a mano no se levanta por pagar. Opera registra pagos, pero no ve las reglas ni anula cuentas.
 
+### P-11 — Módulos del cliente por organización y por local
+
+1. Abra la ficha de Burger House. En **Módulos** revise el plan (Completo) y, por cada módulo, el estado en la
+   organización y en cada local con su origen: «Del plan», «Excepción de la organización» o «Excepción del local».
+2. Apague **Inventario** solo para Poblado. Entre al POS de Poblado como encargada y revise la barra; entre a
+   `/inventario` por la dirección. Revise Laureles.
+3. Apague **Menú del comensal** en la organización con el **Asistente en el menú** encendido.
+4. Abra «Vigencia y cupos» del Asistente en el menú: ponga una fecha de vencimiento de ayer y guarde.
+5. En Poblado, pulse «Quitar excepción» en Inventario.
+6. Repita el paso 2 con una cuenta que solo **Opera**.
+
+**Resultado esperado:** con el plan Completo nada cambia para nadie. En el paso 2 Poblado no muestra Inventario ni
+Rentabilidad, y por la dirección dice «Esta función no está activa en tu plan · Inventario» (también a la encargada);
+Laureles sigue igual. El paso 3 se rechaza con el mensaje de dependencias y el nombre del Asistente. Con la vigencia
+vencida vuelve a mandar el plan. Al quitar la excepción Poblado recupera Inventario con todos sus datos. Quien opera ve
+los módulos pero no puede cambiarlos. Cada cambio queda en el Historial de la ficha.
+
+### P-12 — Consumo del cliente y cobro por local y por uso
+
+1. En la ficha de Burger House revise **Consumo del mes**: documentos emitidos y mensajes del asistente por local.
+   Cambie el mes.
+2. En **Cobros → Reglas de cobro**, fije el precio del «Asistente en el menú, por mensaje» (por ejemplo $ 100).
+3. Genere el cobro del mes y revise su detalle.
+
+**Resultado esperado:** el consumo se ve por módulo, unidad y local. La cuenta trae una línea de **mensualidad por cada
+local activo** al precio por local, y una línea por los mensajes del asistente a su precio; lo que vale cero no sale. El
+total de la cuenta es la suma de sus líneas.
+
 ## 5. Registro de resultados
 
 | Caso | Resultado | Observaciones | Evidencia |
@@ -134,3 +164,5 @@ Que ProjectApp da de alta a un cliente nuevo en tres pasos sin tocar scripts, in
 | P-08 | | | |
 | P-09 | | | |
 | P-10 | | | |
+| P-11 | | | |
+| P-12 | | | |

@@ -32,6 +32,7 @@ Que el dueño gobierna su organización desde la consola: sus restaurantes, su e
 | D-13 | Pagos: «Cobrar antes de enviar a cocina» por rol | Dueño y mesero | Ambas |
 | D-14 | Empresa e impuestos, Facturación, Retorno | Dueño | Ambas |
 | D-15 | Diseño del menú e integraciones IA | Dueño | Ambas |
+| D-16 | Consumo del mes | Dueño | Ambas |
 
 ## 4. Paso a paso
 
@@ -157,6 +158,16 @@ En Frisby, además: en Facturación pulse «Revisar» en una venta pagada; con l
 
 **Resultado esperado:** la carta refleja la plantilla; la clave se crea y se puede revocar. El contenido del asistente no se valida en esta guía.
 
+### D-16 — Consumo del mes
+
+1. En la consola, abra **Consumo**.
+2. Revise la cuenta estimada: locales activos, precio por local, líneas por uso y total.
+3. Revise el uso del mes por módulo y local. Cambie de mes.
+4. Pida a ProjectApp apagar un módulo (P-11) y revise que su sección desaparece del menú de la consola.
+
+**Resultado esperado:** el dueño ve antes del cierre del mes lo que se le va a cobrar y por qué, sin sorpresas. Las
+secciones de módulos apagados no aparecen; si entra por la dirección, se le explica que no están en su plan.
+
 ## 5. Registro de resultados
 
 | Caso | Resultado | Observaciones | Evidencia |
@@ -176,3 +187,4 @@ En Frisby, además: en Facturación pulse «Revisar» en una venta pagada; con l
 | D-13 | | | |
 | D-14 | | | |
 | D-15 | | | |
+| D-16 | | | |
