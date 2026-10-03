@@ -173,6 +173,41 @@ la ficha del cliente, en `/plataforma`.
 - El dueño ve en su consola (`/organizacion`) una sección **Consumo** con lo del mes en curso: locales, pedidos del
   asistente, documentos emitidos y mensajes, para que no haya cobros sorpresa.
 
+## Contratos entre el servidor y las pantallas
+
+Codex hace el servidor y Claude las pantallas en paralelo contra estas formas. Nombres de campos exactos.
+
+**POS (`/api/pos/v1`):**
+
+- `GET settings?restaurant_id=N` agrega `"modules": ["nucleo", "salon", …]`: los activos de ese local.
+- `GET auth/me` (y la respuesta de `auth/login`) agrega `"modules": [...]` (activos de la organización: plantilla más
+  excepciones de la organización, sin las de local) y `"restaurant_modules": {"<id>": [...]}` por cada local de la
+  cuenta.
+- Una ruta de un módulo apagado responde `403 {"error": "module_inactive", "message": "…", "module": "inventario",
+  "module_name": "Inventario"}`.
+- `GET consumption?period=YYYY-MM` (dueño): `{"period", "currency": "COP", "locals_active", "price_per_local",
+  "lines": [{"concept", "module", "unit", "quantity", "unit_price", "total"}], "estimated_total", "usage": [{"module",
+  "module_name", "unit", "unit_name", "quantity", "restaurant_id", "restaurant_name"}]}`. Sin periodo: el mes en curso.
+
+**Menú del comensal (`/api/v1`):** `GET <restaurante>/<sede>/` agrega `"modulos": [...]`, solo con
+`menu_comensal`, `pagos_en_linea`, `fidelizacion` y `asistente_menu` cuando están activos en ese local.
+
+**Plataforma (`/api/platform/v1`, solo administradores para escribir):**
+
+- `GET organizations/<slug>/modules` → `{"plan", "plans": [{"key", "name"}], "catalog": [{"key", "name", "depends":
+  [...], "units": [...], "required": bool, "available": bool}], "organization": [{"key", "active", "source": "plan" |
+  "organization", "starts", "ends", "limits", "price", "notes"}], "restaurants": [{"id", "name", "modules": [{"key",
+  "active", "source": "plan" | "organization" | "restaurant", "starts", "ends", "limits", "price", "notes"}]}]}`.
+- `PATCH organizations/<slug>/modules` con `{"plan": "completo"}` o con `{"key", "active", "restaurant_id": N | null,
+  "ends"?, "limits"?, "price"?, "notes"?}`, o `{"key", "restaurant_id", "clear": true}` para quitar la excepción. Responde
+  lo mismo que el GET. Dependencias: `409 {"error": "module_dependency", "message", "dependents": ["Nombre", …]}` o
+  `"missing": [...]` al activar.
+- `GET organizations/<slug>/usage?period=YYYY-MM` → `{"period", "rows": [{"module", "module_name", "unit",
+  "unit_name", "quantity", "restaurant_id", "restaurant_name"}], "totals": [{"module", "unit", "quantity"}]}`.
+- Los cobros (`charges`) traen `"lines": [{"concept", "module", "unit", "quantity", "unit_price", "total"}]`.
+- Las reglas de cobro (`settings/billing`) agregan `"unit_prices": {"asistente_menu.mensaje_ia": 0,
+  "asistente_whatsapp.pedido_asistente": 500}` (precios por unidad editables).
+
 ## Pruebas que deben existir (`# Falla si …`)
 
 - Falla si una organización migrada de `'basico'` pierde alguna vista, acción o sección que tenía (todo el conjunto de
@@ -206,13 +241,18 @@ la ficha del cliente, en `/plataforma`.
 | `asistente_menu` | | | |
 | `multisucursal` | | | |
 
+## Decisiones del dueño (2026-10-03)
+
+- **Alcance de los módulos:** por organización **y** por local (la excepción del local gana).
+- **Mensualidad por local desde ya:** `monthly_price` pasa a ser el precio **por local**, sin dividirlo entre los
+  locales actuales. Una organización con dos locales activos paga dos veces su precio.
+- **Asistente en el menú por uso**, como el de WhatsApp. El precio por unidad no está definido: queda configurable en
+  la consola de ProjectApp (reglas de cobro), en cero hasta que el dueño lo fije.
+
 ## Decisiones pendientes del dueño
 
-- **Antes de W5:** ¿la mensualidad se cobra por local desde ya? Afecta a las organizaciones con varios locales.
-- **Antes de W2:** ¿los módulos se activan por organización, por local o ambos? El plan soporta ambos; si basta por
-  organización, W4 se simplifica.
 - ¿Se abre un plan `inicial` más barato? Si sí, qué módulos quedan fuera.
-- ¿`asistente_menu` va dentro de la mensualidad o cobra por pedido como el de WhatsApp?
+- Precio por unidad del asistente en el menú (¿por mensaje respondido o por pedido que nace del chat?).
 - Política de prorrateo al activar o desactivar a mitad de periodo (hasta decidirla, los cambios no alteran el cobro
   del periodo en curso).
 - ¿Los módulos por uso tienen cupo incluido (por ejemplo documentos fiscales) o se cobran desde la primera unidad?
