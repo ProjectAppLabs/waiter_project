@@ -15,10 +15,10 @@ La guía se divide por **rol** y, dentro de cada rol, por **funcionalidad**. Cad
 | 2 | Mesero | M-01 … M-10 |
 | 3 | Cajero | C-01 … C-09 |
 | 4 | Cocina (vista KDS) | K-01 … K-07 |
-| 5 | Encargado | E-01 … E-15 |
-| 6 | Dueño (consola de la organización) | D-01 … D-17 |
+| 5 | Encargado | E-01 … E-16 |
+| 6 | Dueño (consola de la organización) | D-01 … D-21 |
 | 7 | Comensal (menú por QR) | Co-01 … Co-10 |
-| 8 | ProjectApp (consola de la plataforma) | P-01 … P-15 |
+| 8 | ProjectApp (consola de la plataforma) | P-01 … P-17 |
 
 **Roles del restaurante.** Son cuatro: **Dueño**, **Encargado**, **Cajero** y **Mesero**. Cocina no es un rol: es una vista (KDS) que por defecto solo tiene el encargado y que el dueño puede dar a meseros o cajeros desde la matriz de permisos. Dentro del POS el dueño trabaja como encargado; la consola de la organización es solo del dueño.
 

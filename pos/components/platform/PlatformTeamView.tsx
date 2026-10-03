@@ -11,7 +11,7 @@ import { Select, TextInput } from '@/components/ui/Field'
 import { RowMenu } from '@/components/ui/RowMenu'
 import { ScrollTable } from '@/components/ui/ScrollTable'
 import { suggestUsername, validUsername } from '@/lib/domain/slug'
-import { deactivatePlatformUser, invitePlatformUser, listPlatformTeam, resendPlatformInvite, type PlatformRole, type PlatformUser } from '@/lib/services/core/platform'
+import { deactivatePlatformUser, invitePlatformUser, listPlatformTeam, resendPlatformInvite, resetPlatform2fa, type PlatformRole, type PlatformUser } from '@/lib/services/core/platform'
 import { usePlatformStore } from '@/lib/stores/platformStore'
 
 const ROLE: Record<PlatformRole, string> = { admin: 'Administra', operator: 'Opera' }
@@ -21,7 +21,7 @@ const ROLE: Record<PlatformRole, string> = { admin: 'Administra', operator: 'Ope
 export function PlatformTeamView() {
   const me = usePlatformStore((s) => s.user)
   const [users, setUsers] = useState<PlatformUser[] | null>(null)
-  const [inviting, setInviting] = useState(false), [leaving, setLeaving] = useState<PlatformUser | null>(null)
+  const [inviting, setInviting] = useState(false), [leaving, setLeaving] = useState<PlatformUser | null>(null), [resetting, setResetting] = useState<PlatformUser | null>(null)
   const [error, setError] = useState(''), [notice, setNotice] = useState(''), [version, setVersion] = useState(0)
   useEffect(() => {
     let alive = true
@@ -52,6 +52,8 @@ export function PlatformTeamView() {
                 <td className="px-4 py-3"><StatusPill tone={u.active === false ? 'neutral' : u.status === 'pending' ? 'progress' : 'success'}>{u.active === false ? 'Desactivada' : u.status === 'pending' ? 'Invitación pendiente' : 'Activa'}</StatusPill></td>
                 <td className="px-4 py-3">{admin && u.id !== me?.id && u.active !== false && <div className="flex justify-end"><RowMenu label={`Más acciones de ${u.name}`} items={[
                   { label: u.status === 'pending' ? 'Reenviar invitación' : 'Restablecer contraseña', onSelect: () => void act(() => resendPlatformInvite(u.id), `Correo enviado a ${u.email}.`) },
+                  // Plan Y3: si perdió el teléfono y los códigos de respaldo; queda en la auditoría.
+                  ...(u.two_factor ? [{ label: 'Restablecer doble factor', onSelect: () => setResetting(u) }] : []),
                   { label: 'Desactivar', danger: true, onSelect: () => setLeaving(u) },
                 ]} /></div>}</td>
               </tr>))}</tbody>
@@ -59,6 +61,9 @@ export function PlatformTeamView() {
         </ScrollTable>
       )}
       {inviting && <InviteModal onClose={() => setInviting(false)} onSaved={(name, email) => { setInviting(false); void act(async () => undefined, `Invitamos a ${name}: le llegó a ${email} un código para poner su contraseña.`) }} />}
+      <ConfirmDialog open={!!resetting} title={`¿Restablecer el doble factor de ${resetting?.name}?`} confirmLabel="Restablecer" cancelLabel="Cancelar"
+        body="Se le quita el doble factor y sus códigos de respaldo. Al entrar deberá activarlo de nuevo si su cuenta lo exige. Queda en la auditoría."
+        onCancel={() => setResetting(null)} onConfirm={() => { const u = resetting; setResetting(null); if (u) void act(() => resetPlatform2fa(u.id), `Doble factor de ${u.name} restablecido.`) }} />
       <ConfirmDialog open={!!leaving} title={`¿Desactivar a ${leaving?.name}?`} destructive confirmLabel="Desactivar" cancelLabel="Cancelar" body="No podrá volver a entrar a la plataforma. Su historial se conserva."
         onCancel={() => setLeaving(null)} onConfirm={() => { const u = leaving; setLeaving(null); if (u) void act(() => deactivatePlatformUser(u.id), `${u.name} quedó desactivada.`) }} />
     </section>

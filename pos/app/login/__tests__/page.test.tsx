@@ -6,7 +6,7 @@ import LoginPage from '@/app/login/page'
 import { activate, requestCode } from '@/lib/services/activation'
 import { messages } from '@/lib/i18n/messages'
 import { CoreError } from '@/lib/services/core/http'
-import { platformActivate, platformLogin, platformRequestCode } from '@/lib/services/core/platform'
+import { platformActivate, platformLogin, platformRequestCode, platformVerify2fa } from '@/lib/services/core/platform'
 import { ShiftDeniedError, useAuthStore, type ActiveEmployee } from '@/lib/stores/authStore'
 import { usePlatformStore } from '@/lib/stores/platformStore'
 import type { AuthUser } from '@/lib/services/session'
@@ -19,7 +19,7 @@ jest.mock('@/lib/services/session', () => ({ currentUser: jest.fn(), getOpenSess
 jest.mock('@/lib/services/cashRegister', () => ({ openRegister: jest.fn() }))
 jest.mock('@/lib/services/core/platform', () => ({
   platformLogin: jest.fn(), platformMe: jest.fn(async () => { throw new Error('sin sesión') }), platformLogout: jest.fn(),
-  platformRequestCode: jest.fn(async () => ({ ok: true })), platformActivate: jest.fn(),
+  platformRequestCode: jest.fn(async () => ({ ok: true })), platformActivate: jest.fn(), platformVerify2fa: jest.fn(),
 }))
 
 const wrap = () => render(<NextIntlClientProvider locale="es" messages={messages}><LoginPage /></NextIntlClientProvider>)
@@ -193,4 +193,38 @@ it('sin organización entra directo como ProjectApp y acepta su código', async 
   expect(platformActivate).toHaveBeenCalledWith('ana.projectapp', '123456', 'Nueva-clave-2026')
   expect(activate).not.toHaveBeenCalled()
   expect(orgLogin).not.toHaveBeenCalled()
+})
+
+// Falla si una cuenta de ProjectApp con doble factor entra con solo la contraseña, si el paso del código no manda el
+// desafío del servidor, o si un desafío vencido deja a la persona atascada en vez de volver a la contraseña (plan Y3).
+it('con doble factor pide el código de verificación antes de abrir la consola', async () => {
+  useAuthStore.setState({ login: jest.fn(async () => { throw NO_ACCOUNT() }) })
+  jest.mocked(platformLogin).mockResolvedValue({ two_factor: true, challenge: 'desafio-1' } as never)
+  jest.mocked(platformVerify2fa).mockReset().mockRejectedValueOnce(new CoreError(400, 'invalid_code', 'Código incorrecto.')).mockResolvedValueOnce({ user: ana } as never)
+  wrap()
+  await signIn('ana.projectapp', 'Plataforma-2026')
+  expect(await screen.findByRole('heading', { name: 'Código de verificación' })).toBeInTheDocument()
+  expect(replace).not.toHaveBeenCalledWith('/plataforma')
+  await userEvent.type(screen.getByLabelText('Código de verificación'), '111111')
+  await userEvent.click(screen.getByRole('button', { name: 'Verificar y entrar' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent(/Código incorrecto/)
+  await userEvent.clear(screen.getByLabelText('Código de verificación'))
+  await userEvent.type(screen.getByLabelText('Código de verificación'), '123456')
+  await userEvent.click(screen.getByRole('button', { name: 'Verificar y entrar' }))
+  await waitFor(() => expect(replace).toHaveBeenCalledWith('/plataforma'))
+  expect(platformVerify2fa).toHaveBeenLastCalledWith('desafio-1', '123456')
+})
+
+// Falla si con el desafío vencido o anulado (cinco códigos malos) el paso del código sigue pidiendo códigos que ya no
+// pueden servir, en vez de volver a pedir la contraseña.
+it('un desafío vencido vuelve a la contraseña con el aviso', async () => {
+  useAuthStore.setState({ login: jest.fn(async () => { throw NO_ACCOUNT() }) })
+  jest.mocked(platformLogin).mockResolvedValue({ two_factor: true, challenge: 'desafio-2' } as never)
+  jest.mocked(platformVerify2fa).mockReset().mockRejectedValue(new CoreError(400, 'challenge_expired', 'Vencido.'))
+  wrap()
+  await signIn('ana.projectapp', 'Plataforma-2026')
+  await userEvent.type(await screen.findByLabelText('Código de verificación'), '123456')
+  await userEvent.click(screen.getByRole('button', { name: 'Verificar y entrar' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent(/se acabó/)
+  expect(screen.getByRole('button', { name: 'Entrar' })).toBeInTheDocument()
 })

@@ -22,7 +22,7 @@ import { usePlatformStore } from '@/lib/stores/platformStore'
 import { cn } from '@/lib/utils'
 
 const write = (key: string, value: string) => { try { if (value) localStorage.setItem(key, value); else localStorage.removeItem(key) } catch { /* sin almacenamiento */ } }
-type View = 'main' | 'forgot' | 'code'
+type View = 'main' | 'forgot' | 'code' | 'twoFactor'
 // El enlace de la invitación abre el inicio en «escribe el código» con el usuario puesto: /login?codigo=<usuario>.
 const invitedLogin = (): string | null => { try { return new URLSearchParams(window.location.search).get('codigo') } catch { return null } }
 // Un solo inicio para todos: las cuentas de los restaurantes y las de ProjectApp siguen separadas en el servidor (cada
@@ -30,6 +30,8 @@ const invitedLogin = (): string | null => { try { return new URLSearchParams(win
 // como persona de ProjectApp; donde no hay organización (plataforma.…) solo se prueba ProjectApp.
 const notInOrg = (e: unknown) => e instanceof CoreError && e.code === 'invalid_credentials'
 const badCode = (e: unknown) => e instanceof CoreError && e.code === 'invalid_code'
+// Plan Y3: el desafío del doble factor ya no sirve (vencido o con cinco códigos malos): hay que volver a la contraseña.
+const deadChallenge = (e: unknown) => e instanceof CoreError && ['challenge_expired', 'invalid_challenge', 'too_many_attempts'].includes(e.code)
 
 export function loginError(error: unknown, tl: (key: string) => string): string {
   if (error instanceof ShiftDeniedError) return error.message
@@ -58,6 +60,8 @@ export default function LoginPage() {
   const [newPassword, setNewPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [codeState, setCodeState] = useState<'idle' | 'sent' | 'resent' | 'invalid' | 'mismatch'>('idle')
+  const [challenge, setChallenge] = useState<string | null>(null)
+  const [otp, setOtp] = useState('')
 
   useEffect(() => { void hydrate() }, [hydrate])
   const platformHydrate = platform.hydrate
@@ -82,7 +86,10 @@ export default function LoginPage() {
       if (currentOrg()) {
         try { await login(email.trim(), password); inOrg = true } catch (e) { if (!notInOrg(e)) throw e }
       }
-      if (!inOrg) await platform.login(email.trim(), password)
+      if (!inOrg) {
+        const pending = await platform.login(email.trim(), password)
+        if (pending) { write('waiter.email', remember ? email.trim() : ''); setPassword(''); setChallenge(pending); setOtp(''); setView('twoFactor'); return }
+      }
       write('waiter.email', remember ? email.trim() : ''); setPassword(''); rememberLogoutReason(null); setClosed(null)
       if (!inOrg) router.replace('/plataforma')
     }
@@ -118,6 +125,16 @@ export default function LoginPage() {
       if (e instanceof ShiftDeniedError || (e instanceof CoreError && e.code !== 'invalid_code')) { setView('main'); setFailed(loginError(e, tl)) } else setCodeState('invalid')
     } finally { setBusy(false) }
   }
+  async function onVerify(e: React.FormEvent) {
+    e.preventDefault()
+    if (!challenge) return
+    setFailed(null); setBusy(true)
+    try { await platform.verify(challenge, otp.trim()); setChallenge(null); rememberLogoutReason(null); setClosed(null); router.replace('/plataforma') }
+    catch (e) {
+      if (deadChallenge(e)) { setChallenge(null); setView('main'); setFailed(tl('twoFactor.expired')) }
+      else setFailed(e instanceof CoreError && e.code === 'unreachable' ? tl('unreachable') : tl('twoFactor.invalid'))
+    } finally { setBusy(false) }
+  }
   const openForgot = () => { setView('forgot'); setCodeState('idle'); setFailed(null) }
 
   if (!hydrated) return <LoginFrame><p className="pt-20 text-dim">{t('employee.loading')}</p></LoginFrame>
@@ -132,7 +149,18 @@ export default function LoginPage() {
 
   return (
     <LoginFrame>
-      {view === 'forgot' ? (
+      {view === 'twoFactor' ? (
+        <form onSubmit={onVerify} className="w-[440px] pt-6 flex flex-col gap-4">
+          <span className="w-10 h-10 rounded-md border border-border grid place-items-center text-ink shadow-sm"><Icon name="lock" size={22} /></span>
+          <div><h1 className="mt-2 text-[24px] font-semibold text-ink">{tl('twoFactor.title')}</h1><p className="mt-1 text-[15px] text-dim">{tl('twoFactor.intro')}</p></div>
+          <label className="flex flex-col gap-2 text-[15px] font-medium">{tl('twoFactor.code')}
+            {/* Admite el código de 6 dígitos o uno de respaldo (letras, números y guion). */}
+            <input aria-label={tl('twoFactor.code')} value={otp} onChange={(e) => setOtp(e.target.value.replace(/[^0-9A-Za-z-]/g, '').slice(0, 20))} inputMode="text" autoComplete="one-time-code" autoFocus className={cn(LOGIN_INPUT, 'font-mono tracking-[0.3em] text-xl')} /></label>
+          {failed && <p role="alert" className="text-danger-ink text-[14px]">{failed}</p>}
+          <Button type="submit" variant="primary" className="w-full h-12 text-[17px] font-semibold" disabled={busy || otp.trim().length < 6}>{tl('twoFactor.verify')}</Button>
+          <button type="button" onClick={() => { setChallenge(null); setFailed(null); setView('main') }} className="self-center text-[16px] font-semibold text-ink">{t('terminal.back')}</button>
+        </form>
+      ) : view === 'forgot' ? (
         <form onSubmit={onRequest} className="w-[440px] pt-6 flex flex-col gap-4">
           <span className="w-10 h-10 rounded-md border border-border grid place-items-center text-ink shadow-sm"><Icon name="lock" size={22} /></span>
           <div><h1 className="mt-2 text-[24px] font-semibold text-ink">{t('terminal.forgot')}</h1><p className="mt-1 text-[15px] text-dim">{tl('code.intro')}</p></div>

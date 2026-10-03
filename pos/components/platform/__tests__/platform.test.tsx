@@ -26,6 +26,9 @@ jest.mock('@/lib/services/core/platform', () => ({
   organizationModules: jest.fn(() => new Promise(() => undefined)), organizationUsage: jest.fn(() => new Promise(() => undefined)), changeOrganizationModules: jest.fn(),
 }))
 
+// Plan Y4: el panel de soporte de la ficha tiene sus propias pruebas; aquí se queda leyendo.
+jest.mock('@/lib/services/core/support', () => ({ ...jest.requireActual('@/lib/services/core/support'), organizationSupport: jest.fn(() => new Promise(() => undefined)) }))
+
 const org = (over: Partial<Organization> = {}): Organization => ({
   id: 'o1', slug: 'burger-house', name: 'Burger House', legal_name: 'Burger House SAS', tax_id: '900.123.456-7', billing_email: 'pagos@burger.co', billing_contact: 'Gustavo',
   plan: 'pro', monthly_price: 599000, status: 'active', trial_ends: null, max_restaurants: 3, timezone: 'America/Bogota', suspended_at: null, suspended_reason: '', created_at: '2026-09-04T12:00:00Z',

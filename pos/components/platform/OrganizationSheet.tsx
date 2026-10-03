@@ -11,6 +11,7 @@ import { getOrganization, priceBook, reactivateOrganization, resendOwnerInvite, 
 import { ClientPricingForm, effectiveLocal } from './ClientPricingForm'
 import { OrganizationCreditsPanel } from './OrganizationCredits'
 import { OrganizationModulesPanel, OrganizationUsagePanel } from './OrganizationModules'
+import { OrganizationSupportPanel } from './OrganizationSupport'
 import { PLANS } from './NewOrganizationWizard'
 import { money, orgUrl, STATUS } from './OrganizationsView'
 
@@ -78,6 +79,7 @@ export function OrganizationSheet({ slug, justCreated = false }: { slug: string;
       <OrganizationModulesPanel slug={o.slug} canEdit={role === 'admin'} />
       <OrganizationUsagePanel slug={o.slug} />
       <OrganizationCreditsPanel slug={o.slug} canEdit={role === 'admin'} />
+      <OrganizationSupportPanel slug={o.slug} />
       <section className="rounded-lg border border-border p-5"><h2 className="text-[17px] font-semibold mb-3">Historial</h2>
         {audit.length === 0 ? <p className="text-soft">Sin movimientos.</p> : <ul className="flex flex-col gap-2">{audit.map((a) => (
           <li key={a.id} className="flex flex-wrap justify-between gap-x-4 text-[14px]"><span>{ACTION[a.action] ?? a.action}{a.actor && <span className="text-soft"> · {a.actor.name}</span>}</span><span className="text-dim">{when(a.at)}</span></li>))}</ul>}</section>

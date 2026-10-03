@@ -172,6 +172,15 @@ ven ese botón. Si al volver la red la sesión ya venció, el aviso dice «La se
 operaciones» con el botón «Iniciar sesión»; nada pasa a «no se pudieron enviar». Al entrar de nuevo, lo pendiente se
 envía solo.
 
+### E-16 — Exportar desde el POS
+
+1. Como encargada de un solo local, en **Ventas** del POS exporte ventas y pagos; en **Inventario**, existencias y
+   movimientos.
+2. Abra los archivos con Excel.
+
+**Resultado esperado:** solo trae datos de los locales que ella lleva, con tildes y decimales correctos. Un mesero o
+un cajero no ven el botón y el servidor le rechaza el archivo.
+
 ## 5. Registro de resultados
 
 | Caso | Resultado | Observaciones | Evidencia |
@@ -191,3 +200,4 @@ envía solo.
 | E-13 | | | |
 | E-14 | | | |
 | E-15 | | | |
+| E-16 | | | |

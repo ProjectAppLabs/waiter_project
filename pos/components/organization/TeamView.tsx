@@ -163,6 +163,7 @@ function PersonModal({ person, onClose, onSaved }: { person: Person | null; onCl
   const [role, setRole] = useState<AccountRole>(person?.role ?? 'waiter')
   const [ids, setIds] = useState<number[]>(person?.configIds ?? (restaurants.length === 1 ? [restaurants[0].id] : []))
   const [start, setStart] = useState(hoursToTime(person?.shift?.from)), [end, setEnd] = useState(hoursToTime(person?.shift?.to))
+  const [rate, setRate] = useState(person?.hourlyRate == null ? '' : String(person.hourlyRate))
   const [busy, setBusy] = useState(false), [error, setError] = useState('')
   const rule = restaurantRule(role)
   const shifted = role === 'waiter' || role === 'cashier'
@@ -171,7 +172,7 @@ function PersonModal({ person, onClose, onSaved }: { person: Person | null; onCl
   const toggle = (id: number) => setIds((v) => (rule === 'one' ? [id] : v.includes(id) ? v.filter((x) => x !== id) : [...v, id]))
   // Turno a medias no vale: o las dos horas o ninguna (sin turno = sin restricción horaria).
   const shiftOk = !shifted || (start === '' && end === '') || (start !== '' && end !== '' && start !== end)
-  const valid = name.trim() && validUsername(username) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) && validAssignment(role, rule === 'all' ? [] : ids) && shiftOk
+  const valid = name.trim() && validUsername(username) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) && validAssignment(role, rule === 'all' ? [] : ids) && shiftOk && (rate.trim() === '' || Number(rate) >= 0)
 
   async function save(e: React.FormEvent) {
     e.preventDefault()
@@ -179,10 +180,11 @@ function PersonModal({ person, onClose, onSaved }: { person: Person | null; onCl
     const values: PersonValues = {
       name: name.trim(), username, email: email.trim().toLowerCase(), role, configIds: rule === 'all' ? [] : ids,
       shiftStart: shifted ? timeToHours(start) : null, shiftEnd: shifted ? timeToHours(end) : null,
+      hourlyRate: rate.trim() === '' ? null : Number(rate),
     }
     try {
       if (person) {
-        await updatePerson(person.id, { name: values.name, email: values.email, role, configIds: values.configIds, shiftStart: values.shiftStart, shiftEnd: values.shiftEnd })
+        await updatePerson(person.id, { name: values.name, email: values.email, role, configIds: values.configIds, shiftStart: values.shiftStart, shiftEnd: values.shiftEnd, hourlyRate: values.hourlyRate })
         onSaved(`Guardamos los cambios de ${values.name}.`)
       } else {
         const { invite_sent: sent } = await invitePerson(values)
@@ -224,6 +226,8 @@ function PersonModal({ person, onClose, onSaved }: { person: Person | null; onCl
             <p className="text-[13px] text-soft">Solo podrá entrar durante su turno, con el margen del restaurante. Si sale después de medianoche, pon la hora del día siguiente. Sin turno, entra a cualquier hora.</p>
           </fieldset>
         )}
+        {/* Plan Y5: base para la nómina; solo se usa para el pago estimado de Horas y propinas. */}
+        <div className="sm:w-1/2"><TextInput label="Valor de la hora ($)" type="number" min={0} step={100} value={rate} onChange={(e) => setRate(e.target.value)} hint="Opcional. Para estimar el pago en Horas y propinas." /></div>
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}
         <div className="flex justify-end gap-3"><Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
           <Button type="submit" variant="primary" disabled={busy || !valid}>{busy ? 'Guardando…' : person ? 'Guardar' : 'Invitar'}</Button></div>
