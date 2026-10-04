@@ -1,5 +1,6 @@
 """Datos del emisor y marca, independientes de las cuentas de plataforma."""
 
+from tenancy.audit import audited
 import base64
 import binascii
 import io
@@ -110,6 +111,7 @@ class BrandView(PosView):
         return Response({'brand': save_brand(self.org, request.data)})
 
 
+@audited
 def save_brand(organization, data):
     data = payload(
         data, ("color", "font", "radius", "tagline", "greeting", "waiter_name", "welcome", "logo")

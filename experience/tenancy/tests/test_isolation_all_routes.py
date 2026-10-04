@@ -25,7 +25,10 @@ from loyalty.models import Banner
 from loyalty.tests.test_permissions import context as context
 from sales.models import Course, Order
 from sales.tests.helpers import cash_method
-from tenancy.models import SubscriptionCharge
+from tenancy.models import SubscriptionCharge, SupportGrant, SupportToken
+from accounts.services import digest
+from datetime import timedelta
+from .helpers import platform_user
 from .helpers import PASSWORD, account, organization, pos_client, restaurant
 
 pytestmark = pytest.mark.django_db
@@ -82,6 +85,11 @@ def isolated(context, settings):
     document = SalesDocument.objects.create(organization=org_b, restaurant=s['r1'], order=order, kind='pos', resolution=resolution,
         number=SECRET, buyer=s['customer'], issued_at=timezone.now(), created_by=s['person'], request_key=uuid4().hex)
     charge = SubscriptionCharge.objects.create(organization=org_b, period='2026-10', amount=999, due_date=date(2026, 10, 15))
+    support = SupportGrant.objects.create(organization=org_b, reason=SECRET, requested_by=platform_user('operator'),
+        approved_by=s['person'], state='vigente', since=timezone.now(), until=timezone.now() + timedelta(hours=1))
+    SupportToken.objects.create(grant=support, agent=support.requested_by, token_hash=digest('token-de-otra-organizacion'),
+        expires=timezone.now() + timedelta(minutes=2))
+    s['support'] = support
     s.update(org_a=org_a, actor=actor, venue_a=venue_a, actor_client=client, course=course, photo=photo, banner=banner,
         purchase=purchase, resolution=resolution, document=document, subscription=charge, order_obj=order)
     return s
@@ -92,14 +100,14 @@ def scenario(s, method, route):
     rid, oid = s['r1'].pk, s['order']['id']
     body, query = {}, {}
     target = '<' in route
-    ids = {'restaurant_id': rid, 'image_id': 'imagen-b', 'code': s['card'].code, 'token': s['reservation'].pay_token}
+    ids = {'restaurant_id': rid, 'image_id': 'imagen-b', 'code': s['card'].code, 'token': s['reservation'].pay_token, 'kind': 'ventas'}
     resources = {
         'products': s['dish'].pk, 'categories': s['category'].pk, 'inventory': s['ingredient'].pk,
         'photos': s['dish'].pk, 'floors': s['r1'].floors.get().pk, 'tables': s['table'].pk,
         'shifts': s['order_obj'].shift_id, 'orders': oid, 'payment-methods': cash_method(s).pk,
         'courses': s['course'].pk, 'customers': s['customer'].pk, 'reservations': s['reservation'].pk,
         'banners': s['banner'].pk, 'documents': s['document'].pk, 'restaurants': rid,
-        'team': s['person'].pk, 'notifications': s['notification'].pk,
+        'support': s['support'].pk, 'team': s['person'].pk, 'notifications': s['notification'].pk,
     }
     if '<int:pk>' in route:
         if route.startswith('billing/orders/'):
@@ -118,7 +126,7 @@ def scenario(s, method, route):
     scoped_get = {'catalog', 'inventory', 'inventory/requests', 'floors', 'tables/calls', 'shifts', 'shifts/open',
         'orders', 'payment-methods', 'settings', 'sales/summary', 'sales/orders', 'sales/insights', 'kitchen/tickets',
         'events', 'banners', 'benefits', 'reservations', 'reservations/schedule', 'reservations/timeline', 'reservations/slots',
-        'reservations/tables', 'reports/profitability', 'billing/orders', 'refunds'}
+        'reservations/tables', 'reports/profitability', 'billing/orders', 'refunds', 'audit', 'reports/team', 'exports/<str:kind>'}
     if method == 'get' and (route in scoped_get or route.startswith('inventory/<')):
         target = True
         query = {'restaurant_id': rid, 'date': date.today().isoformat(), 'time_start': 12, 'people': 2}
@@ -172,7 +180,7 @@ def scenario(s, method, route):
     if method == 'post' and route == 'payment-methods':
         target, body = True, {'name': 'Banco A', 'type': 'bank', 'restaurant_ids': [rid]}
     # Rutas sin selección de un recurso: los datos y las escrituras pertenecen siempre a la sesión A.
-    implicit = {'recharges', 'consumption', 'subscription', 'org', 'restaurants', 'team', 'notifications', 'notifications/read_all',
+    implicit = {'audit/actions', 'support', 'recharges', 'consumption', 'subscription', 'org', 'restaurants', 'team', 'notifications', 'notifications/read_all',
         'products', 'categories', 'taxes', 'taxes/regime', 'units', 'suppliers', 'catalog/overview', 'catalog/restaurants',
         'payment-methods', 'settings/cash', 'settings/roles', 'customers', 'customers/id-types', 'loyalty/program',
         'benefits', 'banners', 'me/notify-prefs', 'reports/summary', 'company', 'brand', 'brand/logo',
@@ -181,6 +189,8 @@ def scenario(s, method, route):
         assert route in implicit or route.startswith('auth/'), f'Falta un escenario para {method} {route}'
         if method in ('post', 'put', 'patch'):
             bodies = {
+                'support': {'reason': 'Ayuda autorizada'},
+                'auth/support': {'token': 'token-de-otra-organizacion'},
                 'recharges': {'pack': 'pedidos_100'},
                 'products': {'name': 'Plato A', 'kind': 'dish', 'price': 10, 'category_ids': [], 'tax_ids': []},
                 'categories': {'name': 'Categoría A'}, 'suppliers': {'name': 'Proveedor A'},
@@ -208,7 +218,7 @@ def test_all_registered_pos_routes(isolated, method, route):
     s = isolated
     path, query, body, target = scenario(s, method, route)
     tracked = [s[k] for k in ('org', 'r1', 'person', 'dish', 'ingredient', 'customer', 'card', 'reservation',
-                              'notification', 'document', 'resolution', 'subscription', 'order_obj', 'purchase', 'banner')]
+                              'notification', 'document', 'resolution', 'subscription', 'order_obj', 'purchase', 'banner', 'support')]
     before = [model_to_dict(obj) for obj in tracked]
     from urllib.parse import urlencode
     url = BASE + path + ('?' + urlencode(query) if query else '')

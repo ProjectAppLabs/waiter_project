@@ -27,10 +27,12 @@ export const toRestaurantInfo = (r: CoreRestaurant): RestaurantInfo => ({
 
 export const toPerson = (p: CorePerson): Person => ({
   id: num(p.id), name: p.name, role: p.role, configIds: p.restaurant_ids.map(num), shift: p.shift, userId: num(p.id), username: p.username, email: p.email, status: p.status,
+  hourlyRate: p.hourly_rate === null || p.hourly_rate === undefined || p.hourly_rate === '' ? null : Number(p.hourly_rate),
 })
 
 export const toCorePerson = (v: Partial<PersonValues>) => ({
   ...(v.name !== undefined && { name: v.name }), ...(v.username !== undefined && { username: v.username }), ...(v.email !== undefined && { email: v.email }),
   ...(v.role !== undefined && { role: v.role }), ...(v.configIds !== undefined && { restaurant_ids: v.configIds }),
   ...(v.shiftStart !== undefined && { shift_start: v.shiftStart }), ...(v.shiftEnd !== undefined && { shift_end: v.shiftEnd }),
+  ...(v.hourlyRate !== undefined && { hourly_rate: v.hourlyRate }),
 })

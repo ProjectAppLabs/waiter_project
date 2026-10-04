@@ -1,7 +1,6 @@
 """Altas y cambios de la plataforma con auditoría y aislamiento transaccional."""
+from tenancy.audit import audited
 import math
-from datetime import timedelta
-import secrets
 from zoneinfo import ZoneInfo
 
 from django.contrib.auth.hashers import check_password
@@ -9,9 +8,9 @@ from django.db import transaction
 from django.utils import timezone
 
 from accounts.models import Account, Attendance, Session
-from accounts.services import digest, find_identity, invitation, revoke, suggested_username
+from accounts.services import find_identity, invitation, revoke, suggested_username
 from .http import payload, require, save_valid
-from .models import Organization, PlatformAudit, PlatformSession, PlatformUser, Restaurant
+from .models import Organization, PlatformAudit, PlatformUser, Restaurant
 
 ORG_FIELDS = ('name', 'legal_name', 'tax_id', 'billing_email', 'billing_contact', 'plan', 'monthly_price',
               'max_restaurants', 'trial_ends', 'timezone', 'cash_tolerance', 'brand_color', 'brand_font',
@@ -56,11 +55,23 @@ def assign_values(obj, data):
     return save_valid(obj)
 
 
+@transaction.atomic
 def audit(actor, organization, action, detail=None):
+    if organization and action in ('support.enter', 'support.started', 'support.requested', 'organization.invite_resent'):
+        from .models import OrganizationAudit
+        from .audit import _context, ACTIONS
+        context = _context.get()
+        support = context and context[1]
+        OrganizationAudit.objects.create(organization=organization, actor_kind='platform' if actor else 'system',
+            actor_id=actor.pk if actor else None,
+            actor_name=f'ProjectApp · {actor.name}' + (' (soporte)' if support else '') if actor else 'Sistema',
+            action=action, entity='tenancy.organization', entity_id=str(organization.pk),
+            summary=ACTIONS[action], before={}, after=detail or {})
     return PlatformAudit.objects.create(actor=actor, organization=organization, action=action, detail=detail or {})
 
 
 @transaction.atomic
+@audited
 def create_organization(actor, data):
     data = payload(data, (*ORG_FIELDS, 'slug', 'owner'), ('name', 'slug', 'owner'))
     if 'pricing' in data or 'monthly_price' in data:
@@ -88,6 +99,7 @@ def create_organization(actor, data):
 
 
 @transaction.atomic
+@audited
 def update_organization(actor, organization, data):
     organization = Organization.objects.select_for_update().get(pk=organization.pk)
     data = payload(data, ORG_FIELDS)
@@ -108,6 +120,7 @@ def update_organization(actor, organization, data):
 
 
 @transaction.atomic
+@audited
 def set_suspension(actor, organization, suspended, reason=''):
     # actor=None se reserva a los comandos y servicios internos del cobro.
     require(actor is None or actor.role == 'admin')
@@ -129,6 +142,7 @@ def set_suspension(actor, organization, suspended, reason=''):
 
 
 @transaction.atomic
+@audited
 def create_restaurant(account, data, *, source_restaurant=None):
     require(account.role == 'owner')
     organization = Organization.objects.select_for_update().get(pk=account.organization_id)
@@ -156,11 +170,11 @@ def login_platform(data):
         user = PlatformUser.objects.select_for_update().get(pk=user.pk)
         require(user.active and user.activated and check_password(data['password'], user.password),
                 'La cuenta no está disponible.', 'invalid_credentials', 401)
-        token = secrets.token_hex(32)
-        session = PlatformSession.objects.create(user=user, token_hash=digest(token), expires=timezone.now()+timedelta(hours=12))
-        user.last_login = timezone.now()
-        user.save(update_fields=['last_login'])
-    return user, session, token
+        from .two_factor import challenge, create_session
+        if user.two_factor:
+            return user, None, challenge(user)
+        return create_session(user)
+
 
 
 @transaction.atomic

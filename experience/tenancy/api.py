@@ -15,14 +15,20 @@ class AuthView(ContractView):
 
     def get(self, request):
         require(self.action == 'me', 'La ruta no existe.', 'not_found', 404)
-        return Response({'user': user_dict(platform_session(request).user)})
+        from .two_factor import required
+        user = platform_session(request, allow_setup=True).user
+        return Response({'user': user_dict(user), 'two_factor': user.two_factor, 'two_factor_required': required(user)})
 
     def post(self, request):
         if self.action == 'login':
             user, session, token = login_platform(request.data)
+            if session is None:
+                response = Response({'two_factor': True, 'challenge': token})
+                response.delete_cookie('waiter_platform_sid', samesite='Lax')
+                return response
             return set_cookie(Response({'user': user_dict(user)}), 'waiter_platform_sid', token, session.expires)
         if self.action == 'logout':
-            platform_session(request).delete()
+            platform_session(request, allow_setup=True).delete()
             response = Response({'ok': True})
             response.delete_cookie('waiter_platform_sid', samesite='Lax')
             return response

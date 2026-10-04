@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from 'next-intl'
 
 import { ThemeBoot } from '@/components/kit/ThemeBoot'
 import { Toaster } from '@/components/kit/Toaster'
+import { SupportBanner } from '@/components/support/SupportBanner'
 
 import { messages } from '@/lib/i18n/messages'
 
@@ -13,6 +14,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       <ThemeBoot />
       {children}
       <Toaster />
+      <SupportBanner />
     </NextIntlClientProvider>
   )
 }

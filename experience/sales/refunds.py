@@ -1,5 +1,6 @@
 """Devoluciones atómicas y proporcionales a los importes históricos cobrados."""
 
+from tenancy.audit import audited
 from collections import defaultdict
 from decimal import ROUND_HALF_UP, Decimal
 
@@ -170,6 +171,7 @@ def request_data(raw):
 
 
 @sqlite_busy_retry
+@audited
 def create_refund(account, pk, raw):
     permit(account, "refund_orders")
     data = request_data(raw)

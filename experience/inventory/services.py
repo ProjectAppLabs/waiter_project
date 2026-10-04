@@ -1,4 +1,5 @@
 """Movimientos y compras serializados por organización, con saldo y auditoría atómicos."""
+from tenancy.audit import audited
 import uuid
 from decimal import Decimal
 
@@ -36,6 +37,7 @@ def detail(product, restaurant):
                 restaurant=restaurant, ingredient=product).select_related('account', 'unit').order_by('-created_at', '-id')[:100]]}
 
 
+@audited
 def initial_stock(account, product, data):
     minimum, maximum = number(data.get('min', 5)), number(data.get('max', 20))
     initial = data.get('initial_stock', [])
@@ -89,6 +91,7 @@ def apply_move(account, product, restaurant, data):
     return {'stock': float(stock.qty), 'move': move_dict(move)}
 
 
+@audited
 def record_move(account, product, raw):
     manager(account)
     data = payload(raw, ('restaurant_id', 'kind', 'qty', 'reason', 'request_key', 'expected_stock'),
@@ -99,6 +102,7 @@ def record_move(account, product, raw):
         return apply_move(account, product, restaurant, data)
 
 
+@audited
 def settings(account, product, raw):
     manager(account)
     data = payload(raw, ('restaurant_id', 'min', 'max', 'cost'), ('restaurant_id',))

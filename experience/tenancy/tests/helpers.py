@@ -39,6 +39,10 @@ def pos_client(person):
 
 
 def platform_client(user):
+    # Las pruebas anteriores de negocio ejercen permisos sin exigir el alta de TOTP en cada caso.
+    # Las pruebas de seguridad Y usan el login real y la configuración obligatoria por omisión.
+    from tenancy.models import PlatformSettings
+    PlatformSettings.objects.update_or_create(pk=1, defaults={'require_2fa': False})
     client = APIClient()
     response = client.post('/api/platform/v1/auth/login', {'login': user.username, 'password': PASSWORD}, format='json')
     assert response.status_code == 200, response.data

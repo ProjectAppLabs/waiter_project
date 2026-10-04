@@ -1,4 +1,5 @@
 """Formas compatibles con el menú, respaldadas por servicios de dominio locales."""
+from tenancy.audit import audited
 from collections import defaultdict
 from decimal import Decimal
 from uuid import UUID, uuid5
@@ -169,6 +170,7 @@ def status_for(order):
     return OrderStatus('cancel' if order.state == 'cancelled' else order.state, kitchen)
 
 
+@audited
 def create_order(client, *, pos_session_id, table_id, order_uuid, guests, lines, date_order, requires_payment=True):
     from loyalty.models import LoyaltyCard
     from loyalty.services import coupon_quote

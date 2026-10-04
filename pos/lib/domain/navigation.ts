@@ -24,7 +24,7 @@ export const adminSubtabsFor = (role: Role, policy: RolePolicy = DEFAULT_ROLE_PO
   (key !== 'profit' || hasModule(modules, 'inventario')) && (role === 'admin' || policy[role].views.includes(key as RoleView)))
 
 const PATH_TAB: [RegExp, KitTab][] = [
-  [/^\/dashboard/, 'dashboard'], [/^\/(pedidos|operacion)/, 'orders'], [/^\/(salon|mesas)/, 'tables'], [/^\/reservas/, 'reservations'],
+  [/^\/dashboard/, 'dashboard'], [/^\/(pedidos|operacion)/, 'orders'], [/^\/salon/, 'tables'], [/^\/reservas/, 'reservations'],
   [/^\/historial/, 'history'], [/^\/inventario/, 'inventory'], [/^\/kds/, 'kitchen'],
   [/^\/(ventas|cuadres|rentabilidad|catalogo|clientes|facturacion|automatizacion|configuracion|kit)/, 'admin'],
 ]

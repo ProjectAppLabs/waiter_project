@@ -6,11 +6,15 @@ import { coreFetch } from '@/lib/services/core/http'
 // funciones solo las usa la verificación.
 export interface OrgBrand { brand_color: string; brand_font: string; brand_radius: string; tagline: string; logo_url: string; greeting: string; waiter_name: string; welcome: string }
 export interface PublicOrganization { slug: string; name: string; status: 'trial' | 'active' | 'suspended'; brand: OrgBrand }
-export interface CoreAccount { id: string; name: string; username: string; email: string | null; role: AccountRole; restaurant_ids: string[]; shift: { from: number; to: number } | null }
+export interface CoreAccount { id: string; name: string; username: string; email: string | null; role: AccountRole; restaurant_ids: string[]; shift: { from: number; to: number } | null
+  // Plan Y5: valor de la hora, base de la nómina (null: sin definir).
+  hourly_rate?: number | string | null }
 export interface CoreRestaurant { id: string; slug: string; name: string; street: string; city: string; phone: string; latitude: string; longitude: string; access_margin_minutes: number }
 export interface LoginResult { account: CoreAccount; attendance_id: string | null; session_ends: string; restaurants: { id: string; name: string }[]
   // Plan W: módulos activos de la organización y de cada local de la cuenta.
-  modules?: string[]; restaurant_modules?: Record<string, string[]> }
+  modules?: string[]; restaurant_modules?: Record<string, string[]>
+  // Plan Y4: presente solo en una sesión de soporte de ProjectApp.
+  support?: { until: string; agent: string } | null }
 export interface CorePerson extends CoreAccount { status: 'active' | 'pending' }
 export interface CoreNotification { id: string; kind: 'kitchen' | 'inventory' | 'system' | 'access' | 'cash'; title: string; body: string; restaurant_id: string | null; read: boolean; action: string | null; action_done: boolean; created_at: string }
 
@@ -27,7 +31,7 @@ export const createRestaurant = (input: { name: string; slug: string; street?: s
 export const updateRestaurant = (id: string, patch: Partial<CoreRestaurant>) => coreFetch<{ restaurant: CoreRestaurant }>(`restaurants/${id}`, { method: 'PATCH', body: patch }).then((r) => r.restaurant)
 
 export const listPeople = () => coreFetch<{ people: CorePerson[] }>('team').then((r) => r.people)
-export const invitePerson = (input: { name: string; username?: string; email: string; role: AccountRole; restaurant_ids: string[]; shift_start?: number | null; shift_end?: number | null }) =>
+export const invitePerson = (input: { name: string; username?: string; email: string; role: AccountRole; restaurant_ids: string[]; shift_start?: number | null; shift_end?: number | null; hourly_rate?: number | null }) =>
   coreFetch<{ person: CorePerson; invite_sent: boolean }>('team', { method: 'POST', body: input })
 export const updatePerson = (id: string, patch: Record<string, unknown>) => coreFetch<{ person: CorePerson }>(`team/${id}`, { method: 'PATCH', body: patch }).then((r) => r.person)
 export const resendInvite = (id: string) => coreFetch<{ ok: true }>(`team/${id}/resend_invite`, { method: 'POST' })

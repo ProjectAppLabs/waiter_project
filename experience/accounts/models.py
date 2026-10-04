@@ -3,7 +3,8 @@ from django.db import models
 from django.db.models.functions import Lower
 
 from tenancy.models import Identity
-from tenancy.fields import only_when
+from tenancy.fields import ExactCharField, only_when
+from django.core.validators import MinValueValidator
 
 
 def default_notify_prefs():
@@ -11,6 +12,7 @@ def default_notify_prefs():
 
 
 class Account(Identity):
+    hourly_rate = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True, validators=[MinValueValidator(0)])
     organization = models.ForeignKey('tenancy.Organization', on_delete=models.CASCADE, related_name='accounts')
     email = models.EmailField(null=True, blank=True)
     role = models.CharField(max_length=10, choices=[(r, r) for r in ('owner', 'admin', 'cashier', 'waiter')])
@@ -41,8 +43,10 @@ class Attendance(models.Model):
 
 
 class Session(models.Model):
+    support_grant = models.ForeignKey("tenancy.SupportGrant", null=True, blank=True, on_delete=models.CASCADE)
+    support_agent = models.ForeignKey("tenancy.PlatformUser", null=True, blank=True, on_delete=models.CASCADE)
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='sessions')
-    token_hash = models.CharField(max_length=64, unique=True)
+    token_hash = ExactCharField(max_length=64, unique=True)
     restaurant = models.ForeignKey('tenancy.Restaurant', on_delete=models.SET_NULL, null=True, blank=True)
     expires = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)

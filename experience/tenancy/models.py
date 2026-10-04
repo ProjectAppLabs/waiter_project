@@ -121,6 +121,11 @@ class Restaurant(models.Model):
 
 
 class PlatformUser(Identity):
+    two_factor = models.BooleanField(default=False)
+    totp_secret = models.TextField(blank=True, default="")
+    totp_pending = models.TextField(blank=True, default="")
+    totp_last_step = models.BigIntegerField(default=-1)
+    recovery_hashes = models.JSONField(default=list, blank=True)
     username = models.CharField(max_length=32, unique=True, validators=[validate_username])
     email = models.EmailField()
     role = models.CharField(max_length=10, choices=[('admin', 'Administrador'), ('operator', 'Operador')], default='operator')
@@ -131,7 +136,7 @@ class PlatformUser(Identity):
 
 class PlatformSession(models.Model):
     user = models.ForeignKey(PlatformUser, on_delete=models.CASCADE, related_name='sessions')
-    token_hash = models.CharField(max_length=64, unique=True)
+    token_hash = ExactCharField(max_length=64, unique=True)
     expires = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -143,6 +148,7 @@ class PlatformAudit(models.Model):
         'organization.created', 'organization.updated', 'organization.suspended', 'organization.reactivated',
         'organization.invite_resent', 'platform_user.invited', 'platform_user.deactivated',
         'subscription.created', 'subscription.paid', 'subscription.void', 'subscription.overdue',
+        'two_factor.enabled', 'two_factor.disabled', 'two_factor.reset', 'support.enter', 'support.started', 'support.requested',
         'subscription.reminder', 'billing_settings.updated', 'module_change', 'pricing.updated', 'credits.granted',
     )])
     detail = models.JSONField(default=dict)
@@ -171,6 +177,7 @@ class LegacyMap(models.Model):
 
 
 class PlatformSettings(models.Model):
+    require_2fa = models.BooleanField(default=True)
     """Una sola configuración de cobro para ProjectApp."""
     id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
     pricing = models.JSONField(default=dict, blank=True)
@@ -303,3 +310,48 @@ class CreditMovement(models.Model):
 
     class Meta:
         constraints = [models.CheckConstraint(condition=models.Q(remaining__gte=0), name='saldo_recarga_no_negativo')]
+
+
+class OrganizationAudit(models.Model):
+    """Historia inmutable con identidad conservada aunque cambie el nombre de la persona."""
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
+    restaurant = models.ForeignKey(Restaurant, null=True, on_delete=models.SET_NULL)
+    actor_kind = models.CharField(max_length=10)
+    actor_id = models.PositiveBigIntegerField(null=True)
+    actor_name = models.CharField(max_length=180)
+    action = models.CharField(max_length=100)
+    entity = models.CharField(max_length=100)
+    entity_id = models.CharField(max_length=80)
+    summary = models.TextField()
+    before = models.JSONField(default=dict)
+    after = models.JSONField(default=dict)
+    at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        indexes = [models.Index(fields=['organization', 'at'], name='historial_organizacion_fecha')]
+
+
+class TwoFactorChallenge(models.Model):
+    user = models.ForeignKey(PlatformUser, on_delete=models.CASCADE)
+    token_hash = ExactCharField(max_length=64, unique=True)
+    expires = models.DateTimeField()
+    attempts = models.PositiveSmallIntegerField(default=0)
+
+
+class SupportGrant(models.Model):
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
+    requested_by = models.ForeignKey(PlatformUser, null=True, on_delete=models.PROTECT)
+    approved_by = models.ForeignKey('accounts.Account', null=True, on_delete=models.PROTECT)
+    reason = models.CharField(max_length=1000)
+    hours = models.PositiveSmallIntegerField(default=24)
+    since = models.DateTimeField(null=True)
+    until = models.DateTimeField(null=True)
+    state = models.CharField(max_length=10, default='pedido', choices=[(v, v) for v in ('pedido', 'vigente', 'revocado', 'vencido')])
+    created_at = models.DateTimeField(default=timezone.now)
+
+
+class SupportToken(models.Model):
+    grant = models.ForeignKey(SupportGrant, on_delete=models.CASCADE)
+    agent = models.ForeignKey(PlatformUser, on_delete=models.CASCADE)
+    token_hash = ExactCharField(max_length=64, unique=True)
+    expires = models.DateTimeField()

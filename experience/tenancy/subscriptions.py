@@ -19,7 +19,7 @@ from .models import Organization, PlatformSettings, SubscriptionCharge
 from .services import audit, set_suspension
 
 logger = logging.getLogger(__name__)
-RULE_FIELDS = ('billing_day', 'grace_days', 'suspend_after_days', 'reminder_days', 'unit_prices')
+RULE_FIELDS = ('billing_day', 'grace_days', 'suspend_after_days', 'reminder_days', 'unit_prices', 'require_2fa')
 OPEN_STATES = ('pending', 'overdue')
 
 
@@ -184,6 +184,10 @@ def update_rules(actor, data):
         update_pricing(actor, {'unit_prices': data['unit_prices']})
         rules.refresh_from_db()
     for field, value in data.items():
+        if field == 'require_2fa':
+            require(type(value) is bool, 'Indica si se exige doble factor.', 'invalid_data', 400)
+            rules.require_2fa = value
+            continue
         if field == 'unit_prices':
             continue
         require(type(value) is int and 0 <= value <= 32767, 'Los ajustes deben ser enteros no negativos.', 'invalid_data', 400)

@@ -21,11 +21,11 @@ import { cn } from '@/lib/utils'
 // Consola del dueño, fuera del POS (planes O y Q): lo del negocio y lo de la organización, agrupado por para qué sirve, y
 // la puerta al POS de cada restaurante. Solo entra el dueño, con su propia cuenta.
 const GROUPS: [string, [string, string, KitIcon][]][] = [
-  ['Negocio', [['/organizacion', 'Resumen', 'dashboard'], ['/organizacion/ventas', 'Ventas', 'sales'], ['/organizacion/cuadres', 'Cuadres de caja', 'scale'], ['/organizacion/devoluciones', 'Devoluciones', 'refresh'], ['/organizacion/consumo', 'Consumo', 'chartLine'],
+  ['Negocio', [['/organizacion', 'Resumen', 'dashboard'], ['/organizacion/ventas', 'Ventas', 'sales'], ['/organizacion/cuadres', 'Cuadres de caja', 'scale'], ['/organizacion/devoluciones', 'Devoluciones', 'refresh'], ['/organizacion/horas', 'Horas y propinas', 'clock'], ['/organizacion/consumo', 'Consumo', 'chartLine'],
     ['/organizacion/rentabilidad', 'Rentabilidad', 'coins'], ['/organizacion/retorno', 'Retorno de inversión', 'chartLine']]],
   ['Contabilidad', [['/organizacion/facturacion', 'Facturación', 'billing'], ['/organizacion/pagos', 'Pagos', 'card'], ['/organizacion/empresa', 'Empresa e impuestos', 'lock']]],
   ['Clientes y marca', [['/organizacion/clientes', 'Clientes', 'customers'], ['/organizacion/promociones', 'Promociones', 'percentage'], ['/organizacion/diseno', 'Diseño del menú', 'layout']]],
-  ['Organización', [['/organizacion/restaurantes', 'Restaurantes', 'store'], ['/organizacion/catalogo', 'Catálogo', 'bag'], ['/organizacion/equipo', 'Equipo', 'users'],
+  ['Organización', [['/organizacion/restaurantes', 'Restaurantes', 'store'], ['/organizacion/catalogo', 'Catálogo', 'bag'], ['/organizacion/equipo', 'Equipo', 'users'], ['/organizacion/historial', 'Historial de cambios', 'history'], ['/organizacion/soporte', 'Soporte de ProjectApp', 'lock'],
     ['/organizacion/integraciones', 'Integraciones IA', 'sparkles']]],
 ]
 

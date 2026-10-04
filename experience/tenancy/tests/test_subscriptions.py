@@ -62,7 +62,7 @@ def test_generate_monthly_snapshot_and_exclusions(billing):
 def test_settings_singleton_validation_and_february(billing):
     org, owner, admin, client = billing
     path = BASE + 'settings/billing'
-    assert client.get(path).json() == dict(billing_day=5, grace_days=10, suspend_after_days=15, reminder_days=3,
+    assert client.get(path).json() == dict(billing_day=5, grace_days=10, suspend_after_days=15, reminder_days=3, require_2fa=False,
                                          unit_prices={'asistente_menu.mensaje_ia': 0, 'asistente_whatsapp.pedido_asistente': 500, 'facturacion.documento': 0, 'fidelizacion.codigo_verificacion': 0})
     for invalid in ({'billing_day': 0}, {'billing_day': 32}, {'grace_days': -1}, {'grace_days': True}, {'reminder_days': 1.2}, {'otro': 1}):
         assert client.patch(path, invalid, format='json').status_code == 400

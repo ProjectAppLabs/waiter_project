@@ -1,4 +1,5 @@
 """Catálogo comercial y excepciones vigentes, sin borrar datos de operación."""
+from tenancy.audit import audited
 from contextvars import ContextVar
 from decimal import Decimal, InvalidOperation
 
@@ -110,6 +111,7 @@ def validate_dependencies(org, *, activating=False):
 
 
 @transaction.atomic
+@audited
 def set_module(actor, org, key, active, restaurant=None, ends=None, limits=None, price=None, notes=''):
     from .models import Organization, OrganizationModule
     from .services import audit
@@ -150,6 +152,7 @@ def modules_response(org):
 
 
 @transaction.atomic
+@audited
 def change_modules(actor, org, data):
     from django.utils.dateparse import parse_datetime
     from .http import payload

@@ -14,7 +14,8 @@ import { cn } from '@/lib/utils'
 // Plan T0: la consola de ProjectApp. Aquí se dan de alta los dueños que pagan por Waiter, se lleva su plan y su estado y
 // se suspende a quien no paga. Solo entra la gente de ProjectApp (`PlatformUser`), con su propia sesión. Mismo sistema de
 // diseño que la consola del dueño: aurora al fondo y un panel translúcido con el menú y el contenido.
-const SECTIONS: [string, string, KitIcon][] = [['/plataforma', 'Clientes', 'store'], ['/plataforma/metricas', 'Métricas', 'chartLine'], ['/plataforma/cobros', 'Cobros', 'coins'], ['/plataforma/precios', 'Precios', 'percentage'], ['/plataforma/equipo', 'Equipo de ProjectApp', 'users']]
+const SECTIONS: [string, string, KitIcon][] = [['/plataforma', 'Clientes', 'store'], ['/plataforma/metricas', 'Métricas', 'chartLine'], ['/plataforma/cobros', 'Cobros', 'coins'], ['/plataforma/precios', 'Precios', 'percentage'], ['/plataforma/equipo', 'Equipo de ProjectApp', 'users'], ['/plataforma/seguridad', 'Seguridad', 'lock']]
+const SECURITY = '/plataforma/seguridad'
 
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -24,16 +25,19 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
   // La página de inicio hidrata por su cuenta: el armazón no repite la pregunta al servidor.
   useEffect(() => { if (!onLogin) void hydrate() }, [hydrate, onLogin])
   useEffect(() => { if (hydrated && !user && !onLogin) router.replace('/login') }, [hydrated, user, onLogin, router])
+  // Plan Y3: quien debe tener doble factor y no lo tiene solo abre Seguridad (el servidor responde 403 en lo demás).
+  const locked = !!user?.two_factor_required && !user.two_factor
+  useEffect(() => { if (locked && !onLogin && pathname !== SECURITY) router.replace(SECURITY) }, [locked, onLogin, pathname, router])
 
   if (onLogin) return <>{children}</>
-  if (!hydrated || !user) return null
+  if (!hydrated || !user || (locked && pathname !== SECURITY)) return null
   return (
     <main className="pos-ambient h-screen p-5 flex text-ink">
       <AuroraBackground />
       <div className="flex-1 min-w-0 min-h-0 ambient-panel border border-border rounded-lg flex overflow-hidden">
         <nav aria-label="Consola de ProjectApp" className="relative w-[260px] shrink-0 border-r border-border p-4 flex flex-col gap-1 overflow-y-auto">
           <BrandMark href="/plataforma" className="px-3 pt-1 pb-5" />
-          {SECTIONS.map(([href, label, icon]) => (
+          {SECTIONS.filter(([href]) => !locked || href === SECURITY).map(([href, label, icon]) => (
             <Link key={href} href={href} aria-current={pathname === href ? 'page' : undefined}
               className={cn('flex items-center gap-3 h-11 px-3 rounded-md text-[15px] font-semibold', pathname === href ? 'bg-canvas border border-border text-ink' : 'text-soft hover:bg-muted')}>
               <Icon name={icon} size={20} /><span>{label}</span>

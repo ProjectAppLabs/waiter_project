@@ -2,7 +2,9 @@ import { coreFetch } from '@/lib/services/core/http'
 
 // Plan T0: la API de la plataforma de ProjectApp (contrato en docs/planes/2026-10-01-plan-T-sistema-propio.md).
 export type PlatformRole = 'admin' | 'operator'
-export interface PlatformUser { id: string; name: string; username: string; email: string; role: PlatformRole; status?: 'active' | 'pending'; active?: boolean }
+export interface PlatformUser { id: string; name: string; username: string; email: string; role: PlatformRole; status?: 'active' | 'pending'; active?: boolean
+  // Plan Y3: si tiene doble factor y si debe tenerlo (sin él solo puede abrir Seguridad).
+  two_factor?: boolean; two_factor_required?: boolean }
 export type OrganizationStatus = 'trial' | 'active' | 'suspended'
 export interface OrganizationOwner { name: string; email: string; username: string; status: 'pending' | 'active' }
 export interface Organization {
@@ -24,9 +26,18 @@ export interface OrganizationDetail { organization: Organization; owner: Organiz
 
 const platform = <T>(path: string, options: Parameters<typeof coreFetch>[1] = {}) => coreFetch<T>(path, { ...options, scope: 'platform' })
 
-export const platformLogin = (login: string, password: string) => platform<{ user: PlatformUser }>('auth/login', { method: 'POST', body: { login, password } })
+// Plan Y3: con doble factor el login no abre sesión; responde un desafío que se cambia por la sesión con el código.
+export type PlatformLoginResult = { user: PlatformUser } | { two_factor: true; challenge: string }
+export const platformLogin = (login: string, password: string) => platform<PlatformLoginResult>('auth/login', { method: 'POST', body: { login, password } })
+export const platformVerify2fa = (challenge: string, code: string) => platform<{ user: PlatformUser }>('auth/2fa/verify', { method: 'POST', body: { challenge, code } })
+export const setup2fa = () => platform<{ secret: string; otpauth_uri: string; qr: string }>('auth/2fa/setup', { method: 'POST' })
+export const enable2fa = (code: string) => platform<{ recovery_codes: string[] }>('auth/2fa/enable', { method: 'POST', body: { code } })
+export const disable2fa = (code: string) => platform<{ ok: true }>('auth/2fa/disable', { method: 'POST', body: { code } })
+export const resetPlatform2fa = (id: string) => platform<{ ok: true }>(`team/${id}/reset_2fa`, { method: 'POST' })
 export const platformLogout = () => platform<{ ok: true }>('auth/logout', { method: 'POST' })
-export const platformMe = () => platform<{ user: PlatformUser }>('auth/me')
+export const platformMe = () => platform<{ user: PlatformUser; two_factor?: boolean; two_factor_required?: boolean }>('auth/me')
+  // Plan Y3: los dos datos pueden venir junto a la persona o dentro de ella.
+  .then((r) => ({ user: { ...r.user, two_factor: r.user.two_factor ?? r.two_factor, two_factor_required: r.user.two_factor_required ?? r.two_factor_required } }))
 export const platformRequestCode = (login: string) => platform<{ ok: true }>('auth/request_code', { method: 'POST', body: { login } })
 export const platformActivate = (login: string, code: string, password: string) => platform<{ ok: true }>('auth/activate', { method: 'POST', body: { login, code, password } })
 

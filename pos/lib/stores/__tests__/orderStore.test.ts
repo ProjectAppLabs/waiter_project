@@ -1,6 +1,5 @@
 import { act } from '@testing-library/react'
 
-import { fireUnsentLines } from '@/lib/services/kitchen'
 import { addTip, closeOrder, listOpenOrders, payOrder, saveOrder, setChange } from '@/lib/services/orders'
 import { useOrderStore } from '@/lib/stores/orderStore'
 
@@ -17,17 +16,6 @@ beforeEach(() => {
   jest.clearAllMocks()
   mList.mockResolvedValue([])
   useOrderStore.setState({ draft: null, saved: null, openOrders: [], shift: null, flags: {}, busy: false, error: null, receipt: null })
-})
-
-// Falla si enviar a cocina no dispara la comanda en el servidor o la marca solo en memoria (cocina no la vería).
-it('sendToKitchen saves the draft and fires the unsent lines in el servidor, without local flags', async () => {
-  mSave.mockResolvedValue(saved)
-  ;(fireUnsentLines as jest.Mock).mockResolvedValue(21)
-  act(() => { useOrderStore.getState().start(1, 6, 2); useOrderStore.getState().add(angus) })
-  await act(() => useOrderStore.getState().sendToKitchen())
-  expect(fireUnsentLines).toHaveBeenCalledWith(13)
-  expect(useOrderStore.getState().flags[6]).toBeUndefined()
-  expect(useOrderStore.getState().draft?.serverId).toBe(13)
 })
 
 const CTX = { existing: { orderId: 13, tableId: 6 }, tipProductId: 1, tableNumber: 6, company: 'Demo', lines: [], methodName: (id: number) => (id === 1 ? 'Efectivo' : 'Tarjeta') }

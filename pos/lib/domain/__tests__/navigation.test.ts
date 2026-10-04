@@ -17,7 +17,7 @@ it('filters the administration row by role', () => {
 
 // Falla si una ruta de administración deja de activar la pestaña Administración.
 it('maps paths to tabs, including admin subtabs', () => {
-  expect(tabForPath('/mesas/12')).toBe('tables')
+  expect(tabForPath('/salon/12/agregar')).toBe('tables')
   expect(tabForPath('/configuracion')).toBe('admin')
   expect(tabForPath('/pedidos')).toBe('orders')
   expect(tabForPath('/loquesea')).toBeNull()
@@ -38,7 +38,7 @@ it('allowedPath follows the tabs and the admin row', () => {
 it('keeps restaurant management available without cash while blocking order operations', () => {
   // Inicio pasó a este grupo: es visión general (semanas, meses), no operación del turno.
   for (const path of ['/dashboard', '/salon', '/inventario', '/reservas', '/catalogo', '/configuracion', '/ventas', '/historial']) expect(administrationPath(path)).toBe(true)
-  for (const path of ['/pedidos', '/pedidos/nuevo', '/mesas/4', '/kds']) expect(administrationPath(path)).toBe(false)
+  for (const path of ['/pedidos', '/pedidos/nuevo', '/pago/3', '/kds']) expect(administrationPath(path)).toBe(false)
 })
 
 // Falla si el administrador vuelve a caer en Mesas al entrar (lo pidió el dueño: su pantalla es Inicio, con la visión

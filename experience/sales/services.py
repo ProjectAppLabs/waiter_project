@@ -1,5 +1,6 @@
 """Operaciones atómicas de venta; el servidor decide precios, horas y saldos."""
 
+from tenancy.audit import audited
 from collections import defaultdict
 from contextlib import contextmanager
 from datetime import date, datetime, time, timedelta
@@ -308,6 +309,7 @@ def table_for(order, pk):
     return table
 
 
+@audited
 def create_order(account, raw, *, allow_empty=False, restaurant=None):
     data = payload(
         raw,

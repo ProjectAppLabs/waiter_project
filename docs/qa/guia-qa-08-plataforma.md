@@ -193,6 +193,35 @@ las recargas no vencen.
 negativo si se quitó, contado en la zona horaria del cliente. Ninguna cuenta queda en negativo: queda en 0 y la
 diferencia aparece como «saldo a favor», que se descuenta en la cuenta siguiente («Saldo a favor aplicado»).
 
+### P-16 — Doble factor
+
+1. Entre con una cuenta que **Administra**. La consola solo deja abrir **Seguridad** y avisa que debe activar el doble
+   factor.
+2. Pulse **Activar doble factor**, escanee el QR con una app de autenticación y escriba el código.
+3. Guarde los diez códigos de respaldo. Cierre la sesión y entre de nuevo: después de la contraseña aparece
+   «Código de verificación».
+4. Escriba un código malo, luego uno bueno. Vuelva a entrar con un código de respaldo; después intente usar el mismo
+   código de respaldo otra vez.
+5. Desde otra cuenta que administra, en **Equipo de ProjectApp**, use **Restablecer doble factor** en la primera.
+
+**Resultado esperado:** sin el doble factor activado la consola no deja abrir nada más que Seguridad. Con él, la
+contraseña sola no abre sesión; el código malo dice «Código incorrecto» y tras cinco intentos o cinco minutos hay que
+volver a escribir la contraseña. Cada código de respaldo sirve una sola vez. Los códigos de respaldo se ven una sola
+vez. El restablecimiento queda en la auditoría.
+
+### P-17 — Acceso de soporte a un cliente
+
+1. En la ficha de un cliente, sección **Soporte**, escriba un motivo y pida acceso por 24 horas.
+2. Pida al dueño que lo apruebe (D-20). Recargue la ficha.
+3. Pulse **Entrar como soporte**. En la pestaña nueva, revise la franja superior y haga un cambio pequeño.
+4. Intente: cambiar la contraseña del dueño, dar otro acceso de soporte y ver las claves de la pasarela de pago.
+5. Copie el enlace de entrada y ábralo otra vez. Pida al dueño que quite el acceso y recargue la pestaña de soporte.
+
+**Resultado esperado:** sin aprobación no aparece «Entrar como soporte». La pestaña abre la consola del dueño con la
+franja «Sesión de soporte de ProjectApp · termina a las HH:MM · Salir». Las acciones del paso 4 se rechazan. El enlace
+sirve una sola vez y vence en 2 minutos. Al quitarse el acceso, la sesión de soporte deja de funcionar. Todo queda en el
+historial del cliente como soporte.
+
 ## 5. Registro de resultados
 
 | Caso | Resultado | Observaciones | Evidencia |
@@ -212,3 +241,5 @@ diferencia aparece como «saldo a favor», que se descuenta en la cuenta siguien
 | P-13 | | | |
 | P-14 | | | |
 | P-15 | | | |
+| P-16 | | | |
+| P-17 | | | |

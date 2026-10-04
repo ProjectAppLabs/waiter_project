@@ -1,5 +1,6 @@
 'use client'
 
+import { ExportMenu } from '@/components/kit/ExportMenu'
 import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
@@ -52,6 +53,7 @@ export function CustomersView() {
     <>
       <PageHeader title={t('title')} actions={<>
         <SearchInput value={query} onChange={setQuery} placeholder={t('search')} className="w-[360px]" />
+        <ExportMenu options={[{ kind: 'clientes', label: 'Exportar CSV' }]} params={{}} />
         <Button variant="primary" onClick={() => setForm({ id: null })}><Icon name="plus" size={18} />{t('new')}</Button>
       </>}>
         {FILTERS.map((f) => <Chip key={f} label={t(`filters.${f}`)} count={customers.filter((c) => pass(c, f)).length} active={filter === f} onClick={() => setFilter(f)} />)}

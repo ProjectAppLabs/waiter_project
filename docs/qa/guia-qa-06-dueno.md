@@ -180,6 +180,53 @@ secciones de módulos apagados no aparecen; si entra por la dirección, se le ex
 La pantalla explica que primero se usa lo incluido (no se acumula) y luego las recargas (no vencen), y qué pasa si se
 acaban.
 
+### D-18 — Exportar ventas, pagos, inventario y clientes en CSV
+
+1. En **Ventas**, elija «Últimos 30 días» y pulse **Exportar CSV → Ventas al detalle**; luego **Pagos**.
+2. En **Clientes**, pulse **Exportar CSV**. En el POS, en **Inventario**, exporte «Existencias de hoy» y «Movimientos».
+3. Abra cada archivo con Excel (doble clic, sin importar).
+
+**Resultado esperado:** cada archivo trae todo el periodo, no solo lo que se ve en pantalla: una fila por plato
+vendido o devuelto, una por pago, una por ingrediente o movimiento y una por cliente. Excel muestra bien las tildes y
+la «ñ», separa las columnas sin preguntar y los valores con coma decimal. El nombre dice el tipo y el periodo
+(`ventas-2026-09-03-a-2026-10-02.csv`). No aparecen datos de otra organización.
+
+### D-19 — Historial de cambios
+
+1. Cambie el precio de un plato, borre otro, haga un descuento manual en un pedido y una devolución.
+2. Abra **Historial de cambios** (grupo Organización).
+3. Filtre por persona, por tipo de cambio, por local y escriba parte del nombre del plato.
+4. Pulse una fila y revise el detalle. Exporte el CSV.
+
+**Resultado esperado:** cada cambio aparece con fecha y hora, local, quién lo hizo y un resumen en español. El detalle
+muestra cada dato con su valor antes y después. Los cambios de ProjectApp (módulos, precios, soporte) aparecen con la
+marca «ProjectApp». Los filtros se aplican también al CSV.
+
+### D-20 — Dar, aprobar y quitar el acceso de soporte
+
+**Preparación:** alguien de ProjectApp pidió acceso desde la ficha del cliente (P-17).
+
+1. Abra **Soporte de ProjectApp**. Revise el pedido: motivo, quién lo pidió y horas.
+2. Pulse **Aprobar**. Después dé un acceso sin pedido: 8 horas y un motivo.
+3. Mientras ProjectApp está dentro, pulse **Quitar** en el acceso vigente.
+4. Revise el **Historial de cambios**.
+
+**Resultado esperado:** el acceso aprobado queda «Vigente» con su hora de fin (máximo 72 horas). Al quitarlo, la sesión
+de soporte abierta se cierra al instante. En el historial, lo que hizo ProjectApp aparece como «ProjectApp · <nombre>
+(soporte)», y también la aprobación y la revocación.
+
+### D-21 — Horas y propinas por persona
+
+**Preparación:** en **Equipo**, ponga «Valor de la hora» a una mesera y deje a otra persona sin valor.
+
+1. Con la mesera, entre al POS, cree y cobre dos pedidos con propina y salga. Repita otro día.
+2. Abra **Horas y propinas** (grupo Negocio), periodo «Últimos 7 días».
+3. Cambie de local y exporte el CSV.
+
+**Resultado esperado:** la mesera tiene las horas entre sus entradas y salidas (una sesión abierta cuenta hasta ahora),
+sus turnos, sus pedidos, sus ventas y las propinas de los pedidos que ella creó. Pago estimado = horas × valor de la
+hora + propinas. Quien no tiene valor de la hora dice «Sin definir». La fila Total suma todo.
+
 ## 5. Registro de resultados
 
 | Caso | Resultado | Observaciones | Evidencia |
@@ -201,3 +248,7 @@ acaban.
 | D-15 | | | |
 | D-16 | | | |
 | D-17 | | | |
+| D-18 | | | |
+| D-19 | | | |
+| D-20 | | | |
+| D-21 | | | |

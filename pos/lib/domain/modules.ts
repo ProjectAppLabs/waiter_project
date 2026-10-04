@@ -33,7 +33,7 @@ export const ACTION_MODULE: Record<RoleAction, ModuleKey> = {
 
 // La pantalla de una dirección del POS o de la consola del dueño, y su módulo (null: del núcleo o sin módulo).
 const PATH_MODULE: [RegExp, ModuleKey][] = [
-  [/^\/(salon|mesas)(\/|$)/, 'salon'], [/^\/kds(\/|$)/, 'cocina'], [/^\/(inventario|rentabilidad)(\/|$)/, 'inventario'], [/^\/reservas(\/|$)/, 'reservas'],
+  [/^\/salon(\/|$)/, 'salon'], [/^\/kds(\/|$)/, 'cocina'], [/^\/(inventario|rentabilidad)(\/|$)/, 'inventario'], [/^\/reservas(\/|$)/, 'reservas'],
   [/^\/organizacion\/rentabilidad(\/|$)/, 'inventario'], [/^\/organizacion\/facturacion(\/|$)/, 'facturacion'], [/^\/organizacion\/pagos(\/|$)/, 'pagos_en_linea'],
   [/^\/organizacion\/(clientes|promociones)(\/|$)/, 'fidelizacion'], [/^\/organizacion\/diseno(\/|$)/, 'menu_comensal'],
   [/^\/organizacion\/integraciones(\/|$)/, 'menu_comensal'],

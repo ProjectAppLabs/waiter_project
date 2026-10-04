@@ -86,7 +86,7 @@ it('da de alta a una persona con usuario sugerido, un restaurante y su turno', a
   expect(within(dialog).getByRole('button', { name: 'Invitar' })).toBeDisabled()
   fireEvent.change(within(dialog).getByLabelText('Sale'), { target: { value: '22:30' } })
   fireEvent.click(within(dialog).getByRole('button', { name: 'Invitar' }))
-  await waitFor(() => expect(invitePerson).toHaveBeenCalledWith({ name: 'Mateo Ruiz', username: 'mateo.ruiz', email: 'mateo@x.co', role: 'waiter', configIds: [2], shiftStart: 14, shiftEnd: 22.5 }))
+  await waitFor(() => expect(invitePerson).toHaveBeenCalledWith({ name: 'Mateo Ruiz', username: 'mateo.ruiz', email: 'mateo@x.co', role: 'waiter', configIds: [2], shiftStart: 14, shiftEnd: 22.5, hourlyRate: null }))
   expect(await screen.findByRole('status')).toHaveTextContent('le llegó a mateo@x.co un código')
 })
 
@@ -116,8 +116,10 @@ it('edita, reenvía la invitación y desactiva', async () => {
   const dialog = screen.getByRole('dialog', { name: 'Editar a Sofía Mesera' })
   expect(within(dialog).getByLabelText('Usuario')).toBeDisabled()
   fireEvent.change(within(dialog).getByLabelText('Sale'), { target: { value: '23:00' } })
+  // Plan Y5: el valor de la hora viaja con el resto de la persona.
+  fireEvent.change(within(dialog).getByLabelText('Valor de la hora ($)'), { target: { value: '8500' } })
   fireEvent.click(within(dialog).getByRole('button', { name: 'Guardar' }))
-  await waitFor(() => expect(updatePerson).toHaveBeenCalledWith(7, { name: 'Sofía Mesera', email: 'sofia@x.co', role: 'waiter', configIds: [1], shiftStart: 14, shiftEnd: 23 }))
+  await waitFor(() => expect(updatePerson).toHaveBeenCalledWith(7, { name: 'Sofía Mesera', email: 'sofia@x.co', role: 'waiter', configIds: [1], shiftStart: 14, shiftEnd: 23, hourlyRate: 8500 }))
 
   fireEvent.click(within(screen.getByRole('row', { name: /^Sofía Mesera/ })).getByRole('button', { name: 'Más acciones de Sofía Mesera' }))
   fireEvent.click(screen.getByRole('menuitem', { name: 'Desactivar' }))

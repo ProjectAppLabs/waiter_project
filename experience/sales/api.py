@@ -119,7 +119,9 @@ class OrderActionView(PosView):
                 order.billing_at = None
                 order.note = reason
                 order.save()
-                order.lines.update(cancelled=True)
+                for line in order.lines.all():
+                    line.cancelled = True
+                    line.save(update_fields=["cancelled"])
                 from loyalty.services import release_points
                 release_points(order)
                 s.event(order.restaurant, "orders", "kitchen", "tables")
@@ -148,7 +150,9 @@ class OrderActionView(PosView):
                 order.state = "cancelled"
                 order.billing = False
                 order.billing_at = None
-                order.lines.update(cancelled=True)
+                for line in order.lines.all():
+                    line.cancelled = True
+                    line.save(update_fields=["cancelled"])
                 from loyalty.services import release_points
                 release_points(order)
             s.recalculate(order)

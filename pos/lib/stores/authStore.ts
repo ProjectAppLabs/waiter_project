@@ -9,6 +9,7 @@ import { openRegister as openRegisterRequest } from '@/lib/services/cashRegister
 import { toActiveEmployee, toAuthUser, toRestaurant } from '@/lib/services/core/bridge'
 import { CoreError } from '@/lib/services/core/http'
 import * as core from '@/lib/services/core/pos'
+import { enterSupport as enterSupportRequest } from '@/lib/services/core/support'
 import { type Restaurant } from '@/lib/services/restaurants'
 import type { AuthUser, PosSession } from '@/lib/services/session'
 import { getOpenSession, logout as logoutRequest } from '@/lib/services/session'
@@ -39,9 +40,12 @@ interface AuthState {
   // Plan W: módulos activos de la organización (consola del dueño) y por local. null: el servidor no los manda.
   modules: string[] | null
   restaurantModules: Record<number, string[]> | null
+  // Plan Y4: la sesión es de soporte de ProjectApp (con permiso del dueño) y vence a esta hora.
+  support: { until: string; agent: string } | null
   hydrated: boolean
   login: (login: string, password: string) => Promise<void>
   hydrate: () => Promise<void>
+  enterSupport: (token: string) => Promise<void>
   logout: () => Promise<void>
   refreshSession: () => Promise<void>
   chooseRestaurant: (restaurant: DeviceRestaurant | null) => Promise<void>
@@ -51,13 +55,13 @@ interface AuthState {
 }
 
 // Plan T: en el sistema propio entrar ya abre el turno y trae los restaurantes de la cuenta en una sola respuesta.
-function fromCore(r: core.LoginResult): Pick<AuthState, 'user' | 'restaurants' | 'restaurant' | 'employee' | 'session' | 'modules' | 'restaurantModules'> {
+function fromCore(r: core.LoginResult): Pick<AuthState, 'user' | 'restaurants' | 'restaurant' | 'employee' | 'session' | 'modules' | 'restaurantModules' | 'support'> {
   const restaurants = r.restaurants.map(toRestaurant)
   const chosen = pickRestaurant(restaurants, readDeviceRestaurant())
   const restaurant = chosen ? { id: chosen.id, name: chosen.name } : null
   if (restaurant) storeDeviceRestaurant(restaurant)
   const restaurantModules = r.restaurant_modules ? Object.fromEntries(Object.entries(r.restaurant_modules).map(([id, list]) => [Number(id), list])) : null
-  return { user: toAuthUser(r.account), restaurants, restaurant, employee: toActiveEmployee(r), session: null, modules: r.modules ?? null, restaurantModules }
+  return { user: toAuthUser(r.account), restaurants, restaurant, employee: toActiveEmployee(r), session: null, modules: r.modules ?? null, restaurantModules, support: r.support ?? null }
 }
 // Plan T2: la caja abierta del restaurante elegido en el sistema propio (null si no hay restaurante o no hay turno).
 const openShiftOf = (restaurant: { id: number } | null) => (restaurant ? getOpenSession(restaurant.id).catch(() => null) : Promise.resolve(null))
@@ -73,6 +77,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   modules: null,
   restaurantModules: null,
+  support: null,
   restaurant: null,
   restaurants: null,
   session: null,
@@ -88,8 +93,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   hydrate: async () => {
     try { const base = fromCore(await core.me()); set({ ...base, session: await openShiftOf(base.restaurant), hydrated: true }) }
-    catch { set({ user: null, session: null, employee: null, restaurants: null, restaurant: null, modules: null, restaurantModules: null, hydrated: true }) }
+    catch { set({ user: null, session: null, employee: null, restaurants: null, restaurant: null, modules: null, restaurantModules: null, support: null, hydrated: true }) }
     return
+  },
+  enterSupport: async (token) => {
+    clearStoredEmployee()
+    const base = fromCore(await enterSupportRequest(token))
+    set({ ...base, session: await openShiftOf(base.restaurant), hydrated: true })
   },
   refreshSession: async () => set({ session: await getOpenSession(get().restaurant?.id ?? null) }),
   // El encargado de varios restaurantes y el dueño cambian de restaurante sin soltar su turno: es la misma persona.
@@ -111,7 +121,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     clearStoredEmployee()
     // El bus deja de tener dueño: se cierra con la sesión, no en cada navegación.
     useBusStore.getState().stop()
-    set({ user: null, session: null, employee: null, restaurants: null, modules: null, restaurantModules: null })
+    set({ user: null, session: null, employee: null, restaurants: null, modules: null, restaurantModules: null, support: null })
   },
 }))
 
