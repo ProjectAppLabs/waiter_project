@@ -57,6 +57,7 @@ def test_other_diner_cannot_use_recommendation(selection, api_client):
 # Falla si el asistente agrega platos inactivos, agotados o con opciones pendientes.
 @pytest.mark.parametrize('patch_row', [{'attribute_line_ids': [1]}, {'type': 'combo'},
     {'is_storable': True, 'qty_available': 1}, {'active': False}])
+# Falla si se añade al carrito del agente un producto con opciones, combo, existencias insuficientes o inactivo.
 def test_rejects_options_sold_out_and_inactive(selection, api_client, patch_row):
     url, body, _, client = selection
     client.return_value.call_kw.return_value = [{**ROW, **patch_row}]

@@ -28,6 +28,7 @@ VECTORS = _load()
 
 
 @pytest.mark.parametrize('vector', VECTORS or [None], ids=lambda v: f"{v['color']}/{v['font']}/{v['radius']}" if v else 'sin-vectores')
+# Falla si el tema generado difiere de los vectores de color, fuente y radio publicados por el POS.
 def test_theme_matches_the_pos_vector(vector):
     """Atrapa una regla cambiada en un solo lado (umbral de luminancia, mezcla, redondeo de canal o del contraste)."""
     if vector is None:
@@ -35,6 +36,7 @@ def test_theme_matches_the_pos_vector(vector):
     assert theme(vector['color'], vector['font'], vector['radius']) == vector['theme'], vector
 
 
+# Falla si los vectores de marca están vacíos o solo ejercitan un color.
 def test_the_vectors_cover_more_than_one_color():
     """Atrapa un archivo de vectores vacío o de un solo color: pasaría sin vigilar nada."""
     if VECTORS is None:

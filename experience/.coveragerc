@@ -7,5 +7,5 @@ omit =
     manage.py
 
 [report]
-# Trinquete (2026-10-04): medido 95,1 % sin pruebas ni migraciones; no puede bajar sin avisar.
-fail_under = 94
+# Trinquete (2026-10-04): medido 95,9 % sin pruebas ni migraciones; no puede bajar sin avisar.
+fail_under = 95

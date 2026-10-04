@@ -27,6 +27,7 @@ def gallery_catalog():
 @pytest.mark.django_db
 @pytest.mark.parametrize('entry,args', [('entry-table', ['burger-house', 'poblado', '8H2KQ7']),
                                        ('entry-delivery', ['burger-house', 'poblado'])])
+# Falla si el menú omite o desordena las URL versionadas de la galería o altera la foto principal.
 def test_menu_exposes_ordered_gallery_urls(entry, args, api_client, table_tenant, gallery_catalog):
     categories = api_client.get(reverse(entry, args=args)).json()['carta']['categorias']
     assert categories[0]['productos'][0]['fotos'] == []
@@ -39,6 +40,7 @@ def test_menu_exposes_ordered_gallery_urls(entry, args, api_client, table_tenant
 @pytest.mark.parametrize('version,control', [('', 'public, max-age=86400, immutable'),
                                             ('20260927010204', 'public, max-age=86400, immutable'),
                                             ('antigua', 'no-store')])
+# Falla si la galería entrega contenido o cabeceras incorrectas, cachea versiones antiguas o consulta repetidamente la misma foto.
 def test_gallery_response_headers_and_cache(version, control, api_client, gallery_catalog):
     with patch('experience_app.views.photos.resolve', return_value=DELIVERY), patch(FETCH, return_value=WEBP) as fetch:
         response = api_client.get(f'{gallery_url()}?v={version}')

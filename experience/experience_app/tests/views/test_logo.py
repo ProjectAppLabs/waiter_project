@@ -89,6 +89,7 @@ def test_logo_is_404_when_the_binary_is_not_a_raster(resolve, read, fetch, api_c
 @patch(FETCH)
 @patch(READ)
 @patch(RESOLVE, return_value=DELIVERY)
+# Falla si una caída del sistema propio devuelve un error de servidor para el logo o impide recuperarlo en la siguiente petición.
 def test_logo_is_404_not_500_when_core_is_down(resolve, read, fetch, read_fails, fetch_fails, api_client):
     """Atrapa un 500 (o un 503 con JSON) en un <img>: el navegador solo entiende "no hay imagen"."""
     read.side_effect = read_fails

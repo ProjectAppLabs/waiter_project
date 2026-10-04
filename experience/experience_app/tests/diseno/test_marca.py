@@ -32,6 +32,7 @@ def test_defaults_and_legacy_tokens_fill_brand_fields():
 @pytest.mark.parametrize('fonts', [None, 'Anton', {}, [1], [True], [[]], ['Anton'] * 2,
     ['Anton', 'Oswald', 'Roboto', 'Lato'], [''], ['A'], ['anton'], ['Ánton'], [' Anton'],
     ['Anton\n'], ['A' * 41], ['Anton; color:red'], ['Anton&family=Roboto'], ['Roboto:ital']])
+# Falla si la tipografía global acepta listas o nombres de fuentes fuera del contrato.
 def test_invalid_global_fonts_are_rejected(fonts):
     with pytest.raises(design.InvalidTheme, match=r'tipografia.fuentes'):
         design.validate(typography(fuentes=fonts))
@@ -97,6 +98,7 @@ def test_surface_alone_recalculates_soft_accent_and_ignores_supplied_derivatives
 # // Falla si alguno de los cinco pares de contraste del contrato deja de validarse.
 @pytest.mark.parametrize('pair', [('tintaFondo', 'fondo'), ('tinta', 'superficie'), ('tintaSuave', 'superficie'),
                                 ('tinta', 'acentoSuave'), ('acentoTinta', 'acento')])
+# Falla si alguna pareja obligatoria de tinta y fondo admite un contraste inferior a 4,5.
 def test_every_contrast_pair_is_required(pair):
     colors = design.defaults()['fundamentos']['colores']
 
@@ -110,6 +112,7 @@ def test_every_contrast_pair_is_required(pair):
 # // Falla si tintaFondo deja de exigir hexadecimal o banners acepta variantes no declaradas.
 @pytest.mark.parametrize('body', [{'fundamentos': {'colores': {'tintaFondo': '#fff'}}},
     {'fundamentos': {'colores': {'tintaFondo': None}}}, {'variantes': {'banners': 'violet'}}, {'variantes': {'banners': True}}])
+# Falla si el tema acepta colores de marca inválidos o variantes de banner no admitidas.
 def test_invalid_brand_colors_and_banners(body):
     with pytest.raises(design.InvalidTheme):
         design.validate(body)
@@ -176,6 +179,7 @@ def test_brand_utilities_and_empty_bar_are_accepted():
 # // Falla si ds-barra permite colar atributos activos o exime del contrato obligatorio del componente.
 @pytest.mark.parametrize('html', ['<div class="ds-barra"></div>', '<span class="ds-barra" style="color:red"></span>',
                                 '<span class="ds-barra" onclick="alert(1)"></span>'])
+# Falla si una barra vacía permite etiquetas, estilos o eventos prohibidos en una plantilla.
 def test_empty_bar_does_not_relax_template_safety(html):
     with pytest.raises(plantillas.InvalidTemplate):
         plantillas.compile_html('plato', html)

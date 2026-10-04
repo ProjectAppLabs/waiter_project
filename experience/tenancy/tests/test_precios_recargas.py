@@ -317,6 +317,7 @@ def test_recarga_pendiente_no_suspende_servicio():
     {'modules': {'inventado': 1}}, {'whatsapp_plans': None}, {'recharge_packs': [{}]},
     {'on_exhausted': 'permitir'}, {'whatsapp_plans': [{'key': 'x', 'name': 'X', 'monthly_price': 1, 'included': {'pedido_asistente': -1}}]},
 ])
+# Falla si la lista de precios acepta importes, módulos, planes, paquetes o reglas de agotamiento inválidos.
 def test_validacion_de_lista(data):
     client = platform_client(platform_user())
     assert client.patch(BASE + 'settings/pricing', data, format='json').status_code == 400

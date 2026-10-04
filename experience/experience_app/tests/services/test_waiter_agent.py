@@ -21,6 +21,7 @@ VALID = {'accion': 'cotizar', 'pregunta': 'ninguna', 'lineas': [{'producto': 7, 
     {**VALID, 'lineas': VALID['lineas'] * 2},
     {**VALID, 'accion': 'humano'}, {**VALID, 'lineas': []},
 ])
+# Falla si el agente acepta acciones, productos, cantidades o campos fuera de la propuesta permitida.
 def test_rejects_unsafe_proposals(plan):
     with pytest.raises(ValueError):
         validate_plan(plan, PRODUCTS)
@@ -33,6 +34,7 @@ def response(plan=VALID, **overrides):
 
 
 @patch('experience_app.services.waiter_agent.requests.post')
+# Falla si el mensaje del cliente suplanta instrucciones o la petición expone secretos, habilita herramientas, almacenamiento o redirecciones.
 def test_untrusted_content_and_credentials_separated(post, settings):
     settings.OPENAI_API_KEY = 'test-placeholder'
     settings.WA_AGENT_MODEL = 'test-model'
@@ -52,6 +54,7 @@ def test_untrusted_content_and_credentials_separated(post, settings):
                                    response(output=[{'type': 'function_call', 'name': 'confirmar'}]),
                                    Mock(status_code=429)])
 @patch('experience_app.services.waiter_agent.requests.post')
+# Falla si una respuesta incompleta, inválida o fallida del proveedor se acepta como propuesta del agente.
 def test_provider_failures_fail_closed(post, reply, settings):
     settings.OPENAI_API_KEY = 'test-placeholder'
     settings.WA_AGENT_MODEL = 'test-model'
@@ -61,6 +64,7 @@ def test_provider_failures_fail_closed(post, reply, settings):
 
 
 @patch('experience_app.services.waiter_agent.requests.post')
+# Falla si el agente reintenta tras un tiempo de espera agotado o expone el texto sensible del proveedor.
 def test_timeout_has_no_retry_or_sensitive_error(post, settings):
     settings.OPENAI_API_KEY = 'test-placeholder'
     settings.WA_AGENT_MODEL = 'test-model'
@@ -72,6 +76,7 @@ def test_timeout_has_no_retry_or_sensitive_error(post, settings):
 
 
 @patch('experience_app.services.waiter_agent.requests.post')
+# Falla si el agente contacta al proveedor sin tener configurada la clave.
 def test_missing_configuration_makes_no_request(post, settings):
     settings.OPENAI_API_KEY = ''
     with pytest.raises(AgentUnavailable):
@@ -83,11 +88,13 @@ def test_missing_configuration_makes_no_request(post, settings):
     ('Me gusta, añádelo', True), ('Agrega dos al pedido', True), ('Ponme uno', True),
     ('No añadas nada', False), ('Me gusta ese plato', False), ('Tengo sed', False),
 ])
+# Falla si se autoriza agregar sin una petición explícita o se ignora una orden afirmativa de agregar.
 def test_explicit_add_gate(message, expected):
     from experience_app.services.agent_chat import explicit_add
     assert explicit_add(message) is expected
 
 
+# Falla si se rechazan opciones válidas o se aceptan más de cuatro opciones o notas de más de 200 caracteres.
 def test_choices_and_notes_are_bounded():
     from experience_app.services.waiter_agent import validate_plan
     plan = {'accion': 'preguntar', 'pregunta': 'preferencia', 'lineas': [], 'opciones': ['Frutal', 'Cremosa']}
@@ -99,6 +106,7 @@ def test_choices_and_notes_are_bounded():
 
 
 @patch('experience_app.services.waiter_agent.requests.post')
+# Falla si responder un filtro permite iniciar otro o modifica el esquema compartido para futuras conversaciones.
 def test_filter_answer_cannot_start_another_filter(post, settings):
     settings.OPENAI_API_KEY = 'test-placeholder'
     settings.WA_AGENT_MODEL = 'test-model'

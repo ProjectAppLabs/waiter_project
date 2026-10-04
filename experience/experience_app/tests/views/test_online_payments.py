@@ -222,6 +222,7 @@ def test_new_merchant_endpoint_uses_header_not_url():
     ('CARD',{'token':'tok_test_12345678','installments':3},{'type':'CARD','token':'tok_test_12345678','installments':3}),
     ('BANCOLOMBIA_TRANSFER',{}, {'type':'BANCOLOMBIA_TRANSFER','payment_description':'Cuenta restaurante','user_type':'PERSON','ecommerce_url':'https://menu.example/pago/'}),
 ])
+# Falla si Nequi, tarjeta o transferencia recibe campos de otro medio de pago.
 def test_each_native_method_has_its_own_payload(setup,method,extra,expected):
     p=attempt(setup);p.method=method
     with patch.object(wompi,'api',return_value={'id':'tx'}) as api:

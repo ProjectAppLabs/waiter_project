@@ -186,6 +186,7 @@ def test_contrato_plataforma_y_permisos():
     ('inventario', 'reports/profitability'), ('facturacion', 'documents'),
     ('facturacion', 'billing/settings'), ('fidelizacion', 'customers'), ('reservas', 'reservations'),
 ])
+# Falla si una vista de un módulo desactivado no devuelve 403 con la identificación del módulo.
 def test_guardas_de_vistas_por_modulo(modulo, ruta):
     from .helpers import account, pos_client
     org = organization()

@@ -6,6 +6,7 @@ from experience_app.utils.errors import NotOwner
 
 
 @pytest.mark.django_db
+# Falla si el carrito calcula mal el total con impuestos o atribuye platos e importes al comensal equivocado.
 def test_cart_totals_cover_all_three_payment_modes(two_diners):
     """Atrapa un total de mesa o de "lo mío" mal atribuido: pagar lo mío y dividir salen de aquí."""
     session, ana, beto = two_diners
@@ -20,6 +21,7 @@ def test_cart_totals_cover_all_three_payment_modes(two_diners):
 
 
 @pytest.mark.django_db
+# Falla si otro comensal puede modificar una línea o su dueño no puede actualizarla.
 def test_only_the_owner_can_change_a_line(two_diners):
     """Atrapa que un comensal edite o borre lo que pidió otro."""
     session, ana, beto = two_diners
