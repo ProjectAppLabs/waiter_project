@@ -107,3 +107,7 @@ POS ─▶ experience (billing) ──HTTP interno firmado──▶ fiscal ─�
 ## Estado
 
 - 2026-10-03: plan escrito. Esperando el certificado y la habilitación de ProjectApp para empezar Z0.
+- 2026-10-03: estudio de viabilidad, operación y beneficio económico publicado en el gestor documental de ProjectApp
+  (carpeta «Waiter SaaS», documento 233). Equilibrio frente a un proveedor: unos 9 a 27 locales según su precio.
+  ProjectApp es persona natural: el facturador de pruebas puede ser el dueño (si está inscrito como facturador) o la
+  SAS de un amigo, con autorización escrita.
