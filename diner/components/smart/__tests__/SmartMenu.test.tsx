@@ -12,6 +12,7 @@ const initial = useDinerStore.getState()
 const dish = { id: 3, nombre: 'Hamburguesa Angus', precio: 30000, agotado: false, categorias: [1], descripcion: 'Con queso y cebolla' }
 const entry: Entry = { contexto: { restaurante: { slug: 'demo', nombre: 'Demo' }, sede: { slug: 'salon', nombre: 'Salón' }, mesa: { numero: 8, token: 'mesa8' }, marca: { nombre: 'Demo', logo: null } as never }, carta: { restaurante: 'Demo', categorias: [{ id: 1, nombre: 'Hamburguesas', productos: [dish] }, { id: 2, nombre: 'Bebidas', productos: [{ ...dish, id: 4, nombre: 'Limonada', categorias: [2] }] }] } }
 beforeEach(() => { useDinerStore.setState(initial, true); useDinerStore.setState({ keys: { rest: 'demo', venue: 'salon', token: 'mesa8' }, entry, template: DEFAULT_TEMPLATE }); push.mockClear() })
+// Falla si la búsqueda no filtra los platos o si guardar un favorito sin cuenta lleva al registro sin la mesa.
 it('searches dishes and keeps table context when opening account for favorites', () => {
   render(<SmartBrowse entry={entry}/>)
   fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'limonada' } })
@@ -19,6 +20,7 @@ it('searches dishes and keeps table context when opening account for favorites',
   fireEvent.click(screen.getByRole('button', { name: 'Guardar en favoritos: Limonada' }))
   expect(push).toHaveBeenCalledWith('/demo/salon/t/mesa8/cuenta/registro')
 })
+// Falla si «Favoritos» muestra platos que el comensal no marcó o no marca como activos los suyos.
 it('uses personal favorites and the account name, independently of restaurant recommendations', () => {
   useDinerStore.setState({ account: { id: 'a', nombre: 'Camila Rojas' } as never, favorites: [4] })
   render(<SmartBrowse entry={entry} favoritesOnly/>)
@@ -38,6 +40,7 @@ it('sends real quantity and does not report success when the request fails', asy
   await waitFor(() => expect(add).toHaveBeenCalledWith(3, 2, ''))
   expect(screen.queryByText('Agregado a tu pedido')).not.toBeInTheDocument()
 })
+// Falla si el registro no exige aceptar los términos, si marca novedades por defecto o no avisa que es de demostración.
 it('requires consent and clearly identifies the demo registration', () => {
   render(<SmartSignup/>)
   expect(screen.getByRole('checkbox', { name: /Acepto/ })).toBeRequired()
@@ -45,11 +48,13 @@ it('requires consent and clearly identifies the demo registration', () => {
   expect(screen.getByText(/Registro de demostración/)).toBeInTheDocument()
 })
 
+// Falla si «Ir al menú» pierde la mesa o si vuelve a aparecer el enlace al asistente retirado.
 it('keeps table context and removes the retired assistant link', () => {
   render(<SmartHome entry={entry}/>)
   expect(screen.getByRole('link', {name: /Ir al menú/})).toHaveAttribute('href', '/demo/salon/t/mesa8/carta')
   expect(screen.queryByRole('link', {name: /Elige con el asistente/})).not.toBeInTheDocument()
 })
+// Falla si el asistente no completa sus pasos, no guarda las preferencias, no filtra platos reales o no las borra.
 it('completes eight assistant steps, persists preferences and filters actual dishes', () => {
   localStorage.clear()
   const view = render(<SmartAssistant entry={entry}/>)
@@ -66,11 +71,13 @@ it('completes eight assistant steps, persists preferences and filters actual dis
   fireEvent.click(screen.getByRole('button', {name:'Borrar preferencias'}))
   expect(screen.queryByText('Tengo hambre')).not.toBeInTheDocument()
 })
+// Falla si el asistente recomienda platos agotados o no prioriza los que coinciden con lo elegido.
 it('excludes sold-out recommendations and ranks catalog metadata without inventing dishes', () => {
   const chicken = {...dish,id:5,nombre:'Pollo asado'}
   expect(rankDishes([dish,{...chicken,id:6,agotado:true},chicken],[['🍗 Pollo']]).map(d=>d.id)).toEqual([5,3])
 })
 
+// Falla si la categoría muestra platos de otra o si la búsqueda ignora la categoría elegida.
 it('keeps category selection scoped to its products and combines it with search', () => {
   render(<SmartBrowse entry={entry}/>)
   fireEvent.click(within(screen.getByRole('navigation', { name: 'Categorías del menú' })).getByRole('button', { name: 'Bebidas' }))
@@ -80,6 +87,7 @@ it('keeps category selection scoped to its products and combines it with search'
   expect(screen.getByRole('heading', { name: 'No encontramos ese plato' })).toBeInTheDocument()
 })
 
+// Falla si el historial muestra un pedido ya servido como «Enviado» en vez de «Entregado».
 it('does not relabel a delivered historical order as sent', () => {
   useDinerStore.setState({ account: {id:'a',nombre:'Camila'} as never, loadAccount: jest.fn().mockResolvedValue(undefined), accountOrders:[{id:'42',fecha:'2026-09-12T12:00:00Z',local:'Demo',mesa:null,items:1,total:30000,estado:'servido',descuento:0,lineas:[]}] })
   render(<SmartHistory/>)
@@ -87,6 +95,7 @@ it('does not relabel a delivered historical order as sent', () => {
   expect(screen.queryByText('Enviado',{exact:true})).not.toBeInTheDocument()
 })
 
+// Falla si una alergia elegida en el asistente se toma como gusto y recomienda platos con ese alérgeno.
 it('does not promote allergy selections and excludes explicitly declared allergens', () => {
   const answers = Array.from({length:8}, () => [] as string[])
   answers[5] = ['🥚 Huevo']
@@ -94,6 +103,7 @@ it('does not promote allergy selections and excludes explicitly declared allerge
   expect(rankDishes([egg,dish],answers).map(d=>d.id)).toEqual([3])
 })
 
+// Falla si el extra se agrega aparte del plato, con otra cantidad o sin la nota que lo liga a él.
 it('adds configured extras atomically with the displayed quantity', async () => {
   const addBundle = jest.fn().mockResolvedValue(undefined)
   useDinerStore.setState({addBundle,error:null})

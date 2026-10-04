@@ -21,6 +21,7 @@ beforeEach(() => {
   useCatalogStore.setState({ catalog })
 })
 
+// Falla si cada pedido o cada sondeo de pedidos vuelve a leer el plano del piso.
 it('shares one floor read across orders and does not refetch on every order poll', async () => {
   jest.mocked(readPlan).mockResolvedValue({ id: 1, name: 'Terraza', revision: 0, walls: [], tables: [], zones: [] })
   const { result, rerender } = renderHook(({ rows }) => useOrderLocations(rows), { initialProps: { rows: orders } })
@@ -31,6 +32,7 @@ it('shares one floor read across orders and does not refetch on every order poll
   expect(readPlan).toHaveBeenCalledTimes(1)
 })
 
+// Falla si al fallar el plano se pierde el piso conocido o la zona se reporta como sin asignar.
 it('keeps the known floor and reports unavailable rather than unassigned when the plan fails', async () => {
   jest.mocked(readPlan).mockRejectedValue(new Error('offline'))
   const { result } = renderHook(() => useOrderLocations(orders))

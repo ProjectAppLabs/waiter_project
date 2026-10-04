@@ -45,6 +45,7 @@ it('lists each dish with status, additions, note, price and quantity', async () 
   expect(item).toHaveTextContent('x2')
 })
 
+// Falla si una mesa sin pedido abierto no lo dice o no deja crear un pedido nuevo.
 it('shows an honest empty state for a table without an open order', () => {
   wrap(null)
   expect(screen.getByText('Sin pedido abierto')).toBeInTheDocument()
@@ -52,6 +53,7 @@ it('shows an honest empty state for a table without an open order', () => {
 })
 
 
+// Falla si un pedido sin enviar se muestra en progreso o si tras un fallo no se puede reintentar el envío.
 it('shows an unsent order honestly and can retry its dispatch without leaving the table', async () => {
   const unsent = { ...detail([line(1, 'unsent')]), sent: 0 }
   const load = jest.fn().mockResolvedValue(unsent)
@@ -78,6 +80,7 @@ it('shows an unsent order honestly and can retry its dispatch without leaving th
 })
 
 
+// Falla si «Entregar todo» no entrega todos los platos listos o si el detalle no se refresca tras entregar.
 it('delivers all ready dishes from the detail and immediately refreshes their status', async () => {
   const load = jest.fn().mockResolvedValue(detail([line(1, 'ready'), line(2, 'ready')]))
   const serve = jest.fn().mockImplementation(async () => { load.mockResolvedValue(detail([line(1, 'served'), line(2, 'served')])) })
@@ -90,6 +93,7 @@ it('delivers all ready dishes from the detail and immediately refreshes their st
   await waitFor(() => expect(screen.queryByRole('button', { name: 'Entregar todo' })).not.toBeInTheDocument())
 })
 
+// Falla si el llamado de una mesa sin pedido no se muestra o no se puede marcar como atendido.
 it('shows and attends calls even when a table has no order', async () => {
   const attend = jest.fn().mockResolvedValue(undefined)
   render(<NextIntlClientProvider locale="es" messages={messages}>

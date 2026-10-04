@@ -35,6 +35,7 @@ it('allowedPath follows the tabs and the admin row', () => {
   expect(allowedPath('cashier', '/kit')).toBe(false)
 })
 
+// Falla si la gestión del restaurante exige caja abierta o si pedidos, cobro o cocina se abren sin caja.
 it('keeps restaurant management available without cash while blocking order operations', () => {
   // Inicio pasó a este grupo: es visión general (semanas, meses), no operación del turno.
   for (const path of ['/dashboard', '/salon', '/inventario', '/reservas', '/catalogo', '/configuracion', '/ventas', '/historial']) expect(administrationPath(path)).toBe(true)
@@ -74,6 +75,7 @@ it('Administración del POS solo trae lo del restaurante', () => {
 })
 
 
+// Falla si la política de roles guardada no se aplica a pestañas y rutas, o si da acciones que no otorga.
 it('uses the saved policy for links, direct routes and action routes', () => {
   const policy = JSON.parse(JSON.stringify(DEFAULT_ROLE_POLICY))
   policy.waiter.views.push('orders', 'history')

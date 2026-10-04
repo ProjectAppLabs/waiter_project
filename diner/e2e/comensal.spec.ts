@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 
 const TABLE = '/burger-house/poblado/t/Z2XUVG/'
 
+// Falla si el comensal no puede buscar, agregar con nota, enviar a cocina o pedir la cuenta desde la mesa.
 // @flow: diner-orders-from-table  @outcome: success
 test('a diner at the table browses, orders with a note, sends to the kitchen and asks for the bill', async ({ page }) => {
   const note = `sin hielo ${Date.now()}`

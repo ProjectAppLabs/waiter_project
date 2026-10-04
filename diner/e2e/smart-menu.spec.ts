@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 
 const base = '/burger-house/poblado'
 
+// Falla si se rompe el recorrido de cuenta (registro, clave, favoritos, pedido, historial, opinión) o hay errores.
 test('Smart Menu: registro, nombre, favoritos persistentes, carrito, pedido e historial', async ({ page }) => {
   test.setTimeout(360_000)
   const email = `smart-menu-e2e-${Date.now()}@example.invalid`
@@ -102,6 +103,7 @@ test('Smart Menu: registro, nombre, favoritos persistentes, carrito, pedido e hi
   expect(errors).toEqual([])
 })
 
+// Falla si la carta se desborda a lo ancho en móvil, tablet o escritorio, o si la vista previa escribe en la API.
 test('Smart Menu se adapta a móvil, tablet y escritorio; la vista previa no escribe pedidos', async ({ page }) => {
   test.setTimeout(120_000)
   const mutations: string[] = []

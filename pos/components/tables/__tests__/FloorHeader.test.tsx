@@ -8,7 +8,7 @@ import { messages } from '@/lib/i18n/messages'
 const floor = (id: number, name: string) => ({ id, name, tableIds: [], hasBackground: false })
 const wrap = (ui: React.ReactElement) => render(<NextIntlClientProvider locale="es" messages={messages}>{ui}</NextIntlClientProvider>)
 
-// El nombre del piso se muestra sin el sufijo técnico del tipo.
+// Falla si el nombre del piso muestra el sufijo técnico del tipo («· Exterior») o si elegir otro piso no avisa.
 it('shows floor names without the type suffix', async () => {
   const onChange = jest.fn()
   wrap(<FloorSwitcher floors={[floor(1, 'Terraza'), floor(2, 'Piso 2 · Exterior')]} activeId={1} onChange={onChange} />)

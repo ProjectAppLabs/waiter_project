@@ -24,18 +24,21 @@ beforeEach(() => {
   ;(useAuthStore as unknown as jest.Mock).mockReturnValue(auth)
   ;(useCatalogStore as unknown as jest.Mock).mockImplementation((select) => select({ load, status: 'ready', error: null, catalog: { settings: { rolePermissions: DEFAULT_ROLE_POLICY } } }))
 })
+// Falla si el administrador no puede entrar al inventario con la caja cerrada o si no se carga el catálogo.
 it('allows administrator inventory access with cash closed', () => {
   render(<PosLayout><p>Inventario editable</p></PosLayout>)
   expect(screen.getByText('Inventario editable')).toBeInTheDocument()
   expect(load).toHaveBeenCalledWith(null)
   expect(replace).not.toHaveBeenCalled()
 })
+// Falla si un administrador puede crear pedidos sin caja abierta en vez de ser enviado a /caja.
 it('requires cash for operations even for administrators', () => {
   pathname = '/pedidos/nuevo'
   render(<PosLayout><p>Crear pedido</p></PosLayout>)
   expect(screen.queryByText('Crear pedido')).toBeNull()
   expect(replace).toHaveBeenCalledWith('/caja')
 })
+// Falla si el PIN de un mesero o cajero hereda en una terminal de administrador el acceso sin caja.
 it.each(['waiter', 'cashier'])('does not grant closed-cash administration to a %s PIN on an admin terminal', (role) => {
   ;(useAuthStore as unknown as jest.Mock).mockReturnValue({ ...auth, employee: { role } })
   render(<PosLayout><p>Inventario editable</p></PosLayout>)

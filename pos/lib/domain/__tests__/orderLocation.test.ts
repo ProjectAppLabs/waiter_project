@@ -13,11 +13,13 @@ const plan: FloorDocument = {
   zones: [{ id: 'ventanas', name: 'Ventanas', x: 0, y: 0, width: 300, height: 300, color: '#447DFC' }],
 }
 
+// Falla si dos mesas con el mismo número no se distinguen por su piso y su zona guardada.
 it('distinguishes tables with the same number using their floor and saved zone', () => {
   expect(orderLocation(20, catalog, plan)).toEqual({ floorId: 2, zoneId: 'ventanas', floor: 'Terraza', zone: 'Ventanas', zoneStatus: 'ready' })
   expect(orderLocation(10, catalog, plan)).toEqual({ floorId: 1, zoneId: null, floor: 'Salón', zone: null, zoneStatus: 'unavailable' })
 })
 
+// Falla si una zona aún cargando o un plano que no se pudo leer se reportan como «sin zona asignada».
 it('distinguishes an unassigned zone from loading or a failed read', () => {
   expect(orderLocation(20, catalog, undefined).zoneStatus).toBe('loading')
   expect(orderLocation(20, catalog, null).zoneStatus).toBe('unavailable')
@@ -26,6 +28,7 @@ it('distinguishes an unassigned zone from loading or a failed read', () => {
   expect(orderLocation(999, catalog, plan)).toEqual({ floorId: null, zoneId: null, floor: null, zone: null, zoneStatus: 'unavailable' })
 })
 
+// Falla si el filtro por piso o zona mezcla mesas de igual número o zonas de igual nombre en pisos distintos.
 it('filters by floor and zone ids without mixing repeated table numbers or zone names', () => {
   const terrace = orderLocation(20, catalog, plan)
   const indoor = { ...terrace, floorId: 1, floor: 'Salón' }
@@ -35,6 +38,7 @@ it('filters by floor and zone ids without mixing repeated table numbers or zone 
   expect(matchesLocation(10, indoor, 'all', locationZoneKey(terrace))).toBe(false)
 })
 
+// Falla si el filtro confunde pedidos sin mesa, mesas sin zona asignada y ubicaciones que no se pudieron leer.
 it('distinguishes orders without tables, unassigned zones and unavailable locations', () => {
   const unknown = orderLocation(20, catalog, null)
   const unassigned = orderLocation(20, catalog, { ...plan, tables: [{ ...plan.tables[0], zone: '' }] })

@@ -15,6 +15,7 @@ beforeEach(()=>{
  HTMLDialogElement.prototype.close=function(){this.removeAttribute('open')}
 })
 afterEach(()=>jest.restoreAllMocks())
+// Falla si se agradece la opinión cuando el servidor la rechazó o si no se envían el comentario y las notas por plato.
 it('saves feedback only after the server accepts the selected dishes and comment',async()=>{
  jest.spyOn(http,'get').mockResolvedValue({data:{feedback:null,items:[{product_id:3,name:'Plato',qty:1}]}})
  const put=jest.spyOn(http,'put').mockRejectedValueOnce(new Error('Sin conexión')).mockResolvedValueOnce({data:{}})
@@ -32,6 +33,7 @@ it('saves feedback only after the server accepts the selected dishes and comment
  await screen.findByText('¡Gracias por compartir!')
  expect(put).toHaveBeenLastCalledWith('/api/v1/pedidos/order/opinion/',{rating:3,comment:'Llegó frío',dishes:{3:2}})
 })
+// Falla si el inicio de sesión no usa la API, no instala la cuenta autenticada o no lleva a la cuenta.
 it('logs in with the API and installs the authenticated account and history',async()=>{
  const account={id:'verified',nombre:'Ana',correo:'ana@example.invalid',verificada:true}
  const post=jest.spyOn(http,'post').mockResolvedValue({data:{cuenta:account,pedidos:[]}})
@@ -43,6 +45,7 @@ it('logs in with the API and installs the authenticated account and history',asy
  expect(post).toHaveBeenCalledWith('/api/v1/cuenta/entrar/',{correo:account.correo,clave:'Una clave privada 42'})
  expect(useDinerStore.getState().account?.id).toBe('verified')
 })
+// Falla si la billetera de prueba guarda el número completo o el CVV, o si no permite eliminar la tarjeta.
 it('stores only demonstration card metadata, never PAN or CVV, and can remove it',async()=>{
  render(<SmartWallet/>)
  fireEvent.click(screen.getByRole('button',{name:'Añadir tarjeta de prueba'}))
@@ -72,6 +75,7 @@ it('allows clearing a dish rating before saving',async()=>{
  expect(put).toHaveBeenCalledWith('/api/v1/pedidos/order/opinion/',{rating:5,comment:'',dishes:{}})
 })
 
+// Falla si se muestra el formulario de nueva contraseña sin verificar antes el correo con un enlace.
 it('requires an email verification link before displaying a new-password form',async()=>{
  const post=jest.spyOn(http,'post').mockResolvedValue({data:{ok:true}})
  render(<SmartPassword/>)

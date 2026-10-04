@@ -36,6 +36,7 @@ it('edita la lista de precios estándar', async () => {
   expect(saved.whatsapp_plans[1]).toEqual({ key: 'pro_whatsapp', name: 'Pro WhatsApp', monthly_price: 0, included: { pedido_asistente: 500 } })
   expect(saved.recharge_packs).toEqual(book.recharge_packs)
 })
+// Falla si un operador de la plataforma puede editar o guardar la lista de precios.
 it('solo lectura para quien opera', async () => {
   usePlatformStore.setState({ user: { id: '1', name: 'Ana', username: 'ana', email: '', role: 'operator' } })
   render(<PriceBookView />)

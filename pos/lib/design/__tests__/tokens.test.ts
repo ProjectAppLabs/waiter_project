@@ -18,6 +18,7 @@ it('dark theme defines every token with a distinct background', () => {
   expect(contrast(KIT_DARK.canvas, KIT_DARK.ink)).toBeGreaterThanOrEqual(4.5)
 })
 
+// Falla si el kit pierde uno de sus modos de tema (sistema, claro, oscuro) o cambia su orden en el selector.
 it('exposes the three theme modes of the kit', () => {
   expect(THEME_MODES).toEqual(['system', 'light', 'dark'])
 })

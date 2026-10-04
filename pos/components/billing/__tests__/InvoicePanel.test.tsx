@@ -36,6 +36,7 @@ it('shows an issued invoice with its state pills and the PDF link', async () => 
   expect(screen.getByRole('link', { name: /Ver PDF/ })).toHaveAttribute('href', '/pdf/3')
 })
 
+// Falla si se puede crear la factura contable cuando la revisión contable reporta un problema de configuración.
 it('blocks posting when accounting review detects a configuration issue', async () => {
   jest.mocked(reviewOrder).mockResolvedValueOnce({ company: 'Restaurante', journal: 'Ventas', currency: 'COP', tip: 9000, issues: ['Configura la propina en un pasivo.'], ready: false })
   const onIssue = jest.fn()
@@ -45,6 +46,7 @@ it('blocks posting when accounting review detects a configuration issue', async 
   expect(onIssue).not.toHaveBeenCalled()
 })
 
+// Falla si una venta general exige un cliente con nombre o no se emite con cliente nulo.
 it('accounts a general sale without looking up or creating a named customer', async () => {
   const onIssue = jest.fn().mockResolvedValue({ id: 4, name: 'INV/4' })
   wrap(<InvoicePanel selection={{ kind: 'order', order }} tableNumber={5} onIssue={onIssue} />)
