@@ -14,7 +14,7 @@ from tenancy.models import Organization
 from .models import SalesEvent
 
 
-def stream(organization_id, restaurant_id, after, iterations=None):
+def stream(organization_id, restaurant_id, after, iterations=None, support_session_id=None):
     started = time.monotonic()
     heartbeat = started
     iteration = 0
@@ -23,6 +23,14 @@ def stream(organization_id, restaurant_id, after, iterations=None):
         # a quien la abrió (en las pruebas, la transacción de cada prueba sobre PostgreSQL).
         if iterations is None and not connection.in_atomic_block:
             close_old_connections()
+        if support_session_id is not None:
+            from accounts.models import Session
+            from django.utils import timezone
+            if not Session.objects.filter(pk=support_session_id, expires__gt=timezone.now(),
+                    support_grant__state='vigente', support_grant__since__lte=timezone.now(),
+                    support_grant__until__gt=timezone.now(), support_agent__active=True).exists():
+                yield 'event: session_expired\ndata: {"error":"unauthenticated","message":"El acceso de soporte terminó."}\n\n'
+                return
         # También se detienen las conexiones abiertas antes de la suspensión.
         if Organization.objects.filter(pk=organization_id, status='suspended').exists():
             yield 'event: organization_suspended\ndata: {"error":"organization_suspended","message":"Este restaurante no está disponible"}\n\n'
@@ -63,7 +71,8 @@ class EventsView(PosView):
         after = request.query_params.get("after", "0")
         valid(after.isdecimal() and len(after) <= 19)
         response = StreamingHttpResponse(
-            stream(self.org.pk, restaurant.pk, int(after), getattr(settings, "SALES_SSE_TEST_ITERATIONS", None)),
+            stream(self.org.pk, restaurant.pk, int(after), getattr(settings, "SALES_SSE_TEST_ITERATIONS", None),
+                   getattr(getattr(self.account, "_support_session", None), "pk", None)),
             content_type="text/event-stream",
         )
         response["Cache-Control"] = "no-cache"

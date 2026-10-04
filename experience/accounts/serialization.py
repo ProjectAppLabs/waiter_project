@@ -8,6 +8,7 @@ def account_dict(account, status=False):
     result['restaurant_ids'] = list(account.restaurants.order_by('id').values_list('id', flat=True))
     result['shift'] = None if account.shift_start is None or account.shift_end is None else {'from': account.shift_start, 'to': account.shift_end}
     if status:
+        result['hourly_rate'] = json_value(account.hourly_rate)
         result['status'] = 'active' if account.activated else 'pending'
     return result
 
@@ -15,8 +16,9 @@ def account_dict(account, status=False):
 def session_dict(session, attendance=None):
     from tenancy.modules import active_modules
     account = session.account
-    attendance = attendance or account.attendances.filter(check_out__isnull=True).first()
-    return {'modules': active_modules(account.organization),
+    attendance = None if session.support_grant_id else (attendance or account.attendances.filter(check_out__isnull=True).first())
+    return {'support': {'until': json_value(session.support_grant.until), 'agent': session.support_agent.name} if session.support_grant_id else None,
+            'modules': active_modules(account.organization),
             'restaurant_modules': {str(r.pk): active_modules(account.organization, r) for r in restaurants_for(account)},
             'account': account_dict(account), 'attendance_id': attendance.id if attendance else None,
             'session_ends': json_value(session.expires),

@@ -1,4 +1,5 @@
 """Escrituras del catálogo: validación, aislamiento y revisión transaccional."""
+from tenancy.audit import audited
 from contextlib import contextmanager
 from decimal import Decimal, InvalidOperation
 
@@ -144,6 +145,7 @@ def attributes(product, data):
     return data
 
 
+@audited
 def set_recipe(product, data):
     valid(product.kind == 'dish' and not product.diner_attributes.get('combo'), 'Selecciona un plato individual.')
     data = payload(data, ('yield_qty', 'lines'), ('yield_qty', 'lines'))
@@ -164,7 +166,8 @@ def set_recipe(product, data):
         recipe = Recipe.objects.create(product=product, yield_qty=yield_qty)
         for line in normalized:
             line.recipe = recipe
-        RecipeLine.objects.bulk_create(normalized)
+        for line in normalized:
+            line.save()
 
 
 COMMON = ('name', 'image', 'image_origin')
@@ -172,6 +175,7 @@ DISH = ('category_ids', 'price', 'tax_ids', 'description', 'diner_attributes', '
 INGREDIENT = ('unit_id', 'pantry_category', 'cost', 'supplier_id', 'initial_stock', 'min', 'max', 'track_stock')
 
 
+@audited
 def save_product(account, raw, product=None):
     owner(account)
     valid(isinstance(raw, dict))
@@ -251,6 +255,7 @@ def change_unit(product, unit, explicit_cost=False):
     product.unit = unit
 
 
+@audited
 def archive(product):
     require(not (product.kind == 'ingredient' and RecipeLine.objects.filter(ingredient=product, recipe__product__active=True).exists()),
             'Retira el ingrediente de las recetas activas antes de archivarlo.', 'in_recipe', 409)

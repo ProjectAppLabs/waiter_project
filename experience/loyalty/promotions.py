@@ -1,5 +1,6 @@
 """Configuración de promociones y banners con las formas JSON heredadas del POS."""
 
+from tenancy.audit import audited
 import base64
 import binascii
 from datetime import date
@@ -93,6 +94,7 @@ def benefits_settings(org):
     }
 
 
+@audited
 def save_benefits(org, raw):
     data = payload(raw, ("coupon", "loyalty", "action"))
     if data.get("coupon") is not None:
@@ -249,6 +251,7 @@ def banner_image(value):
         raise Problem("invalid_data", "Usa una imagen PNG, JPG o WebP de hasta 500 KB y 4096 px.") from exc
 
 
+@audited
 def save_banners(org, raw, *, dry_run=False):
     valid(isinstance(raw, list) and len(raw) <= 8, "Puedes publicar hasta ocho banners.")
     existing = {image_url(b, org): b.image.name for b in Banner.objects.filter(organization=org) if b.image}

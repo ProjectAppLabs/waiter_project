@@ -27,4 +27,10 @@ urlpatterns += [
 ]
 urlpatterns += [path('settings/pricing', PricingSettingsView.as_view()),
                 path('organizations/<slug:slug>/credits', CreditsView.as_view(http_method_names=['get', 'head', 'post', 'options']))]
+from .two_factor import TwoFactorView, ResetTwoFactorView
+urlpatterns += [path(f'auth/2fa/{action}', TwoFactorView.as_view(action=action)) for action in ('setup', 'enable', 'disable', 'verify')]
+urlpatterns += [path('team/<int:pk>/reset_2fa', ResetTwoFactorView.as_view())]
+from .support import SupportView
+urlpatterns += [path('organizations/<slug:slug>/support', SupportView.as_view(platform=True)),
+                path('organizations/<slug:slug>/support/enter', SupportView.as_view(platform=True, action='enter', http_method_names=['post', 'options']))]
 urlpatterns += [re_path(r'^.*$', NotFoundView.as_view())]

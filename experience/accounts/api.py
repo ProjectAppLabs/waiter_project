@@ -34,6 +34,11 @@ class AuthView(ContractView):
             return set_cookie(Response(session_dict(session, attendance)), 'waiter_sid', token, session.expires)
         if self.action in ('request_code', 'activate'):
             org = resolve_organization(request)
+            from .models import Session
+            from .services import digest
+            require(not Session.objects.filter(token_hash=digest(request.COOKIES.get('waiter_sid', '')),
+                account__organization=org, support_grant__isnull=False).exists(),
+                'Soporte no puede solicitar ni cambiar contraseñas del equipo.')
             queryset = Account.objects.filter(organization=org)
             if self.action == 'activate':
                 activate(queryset, request.data)
@@ -44,6 +49,11 @@ class AuthView(ContractView):
                     invitation(user, reset=True)
             return Response({'ok': True})
         session = pos_session(request)
+        if self.action == 'logout' and session.support_grant_id:
+            session.delete()
+            response = Response({'ok': True, 'worked_hours': 0})
+            response.delete_cookie('waiter_sid', samesite='Lax')
+            return response
         if self.action == 'logout':
             with transaction.atomic():
                 account = Account.objects.select_for_update().get(pk=session.account_id)
@@ -55,6 +65,7 @@ class AuthView(ContractView):
             response.delete_cookie('waiter_sid', samesite='Lax')
             return response
         if self.action == 'change_password':
+            require(not session.support_grant_id, 'Soporte no puede cambiar la contraseña del dueño.')
             data = payload(request.data, ('current', 'next'), ('current', 'next'))
             with transaction.atomic():
                 account = Account.objects.select_for_update().get(pk=session.account_id)
@@ -102,6 +113,8 @@ class TeamView(ContractView):
         person = Account.objects.filter(organization=actor.organization, pk=pk).first()
         require(person, 'No encontramos esta persona.', 'not_found', 404)
         people_authority(actor, person)
+        require(not getattr(actor, '_support_session', None) or person.role != 'owner',
+                'Soporte no puede modificar las credenciales del dueño.')
         return person
 
     def get(self, request):

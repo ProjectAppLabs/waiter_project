@@ -1,4 +1,5 @@
 """Invitaciones, horarios, sesiones y administración de personas del plan P."""
+from tenancy.audit import audited
 from datetime import datetime, time, timedelta, timezone as datetime_timezone
 import hashlib
 import math
@@ -125,6 +126,11 @@ def activate(queryset, data):
 def revoke(user, now=None):
     now = now or timezone.now()
     user.sessions.all().delete()
+    if isinstance(user, PlatformUser):
+        from tenancy.models import TwoFactorChallenge, SupportToken
+        TwoFactorChallenge.objects.filter(user=user).delete()
+        SupportToken.objects.filter(agent=user).delete()
+        Session.objects.filter(support_agent=user).delete()
     if isinstance(user, Account):
         user.attendances.filter(check_out__isnull=True).update(check_out=now)
 
@@ -214,26 +220,34 @@ def people_authority(actor, person=None):
 
 
 @transaction.atomic
+@audited
 def save_person(actor, data, person=None):
     # La organización serializa altas, propuestas de usuario y asignaciones.
     from tenancy.models import Organization
     org = Organization.objects.select_for_update().get(pk=actor.organization_id)
     require(org.status != 'suspended', 'La cuenta de tu organización está suspendida. Escribe a ProjectApp.', 'organization_suspended')
+    support = bool(getattr(actor, '_support_session', None))
     actor = Account.objects.get(pk=actor.pk)
     require(actor.active, 'La cuenta no está disponible.', 'unauthenticated', 401)
     if person is not None:
         person = Account.objects.select_for_update().get(pk=person.pk)
     allowed = people_authority(actor, person)
-    fields = {'name', 'email', 'role', 'restaurant_ids', 'shift_start', 'shift_end'}
+    fields = {'name', 'email', 'role', 'restaurant_ids', 'shift_start', 'shift_end', 'hourly_rate'}
     if person is None:
         fields.add('username')
     data = payload(data, fields, () if person else ('name', 'email', 'role', 'restaurant_ids'))
+    if 'hourly_rate' in data:
+        require(actor.role == 'owner')
+        if data['hourly_rate'] is not None:
+            from sales.services import money
+            data['hourly_rate'] = money(data['hourly_rate'])
     creating = person is None
     person = person or Account(organization=actor.organization)
     ids = data.pop('restaurant_ids', list(person.restaurants.values_list('id', flat=True)) if person.pk else [])
     require(isinstance(ids, list) and all(type(i) is int and i > 0 for i in ids), 'Indica una lista de restaurantes.', 'invalid_data', 400)
     ids = set(ids)
     role = data.get('role', person.role)
+    require(not support or (role != 'owner' and person.role != 'owner'), 'Soporte no puede conceder ni modificar el acceso del dueño.')
     require(allowed is None or (role != 'owner' and ids <= allowed), 'El encargado solo puede asignar sus restaurantes y no puede conceder el rol de dueño.')
     require((role in ('waiter', 'cashier') and len(ids) == 1) or (role == 'admin' and len(ids) >= 1) or (role == 'owner' and not ids),
             'Meseros y cajeros necesitan un restaurante; encargados, uno o más; el dueño no lleva asignaciones.', 'invalid_data', 400)
@@ -263,6 +277,7 @@ def save_person(actor, data, person=None):
 
 
 @transaction.atomic
+@audited
 def deactivate_person(actor, person):
     people_authority(actor, person)
     require(actor.pk != person.pk, 'No puedes desactivar tu propia cuenta.', 'invalid_data', 400)

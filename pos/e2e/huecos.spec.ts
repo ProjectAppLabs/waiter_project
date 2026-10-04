@@ -34,11 +34,18 @@ test('exportes CSV al detalle para el dueño, no para el mesero', async ({ page,
     expect(r.disposition, kind).toMatch(new RegExp(`attachment; filename="${kind}-`))
   }
   expect((await csv(page, `exports/ventas?from=2024-01-01&to=${today()}`)).status).toBe(400)
-  const waiter = await (await browser.newContext()).newPage()
-  await signIn(waiter, USERS.waiter)
-  await waiter.waitForURL(/salon|caja|pedidos/)
-  expect((await csv(waiter, `exports/ventas?from=${daysAgo(7)}&to=${today()}`)).status).toBe(403)
-  await waiter.context().close()
+  // Los meseros y cajeros de prueba solo entran en su turno: se usa a quien esté en turno ahora (si nadie, lo cubre pytest).
+  const hour = Number(new Date().toLocaleString('en-US', { timeZone: 'America/Bogota', hour: 'numeric', hourCycle: 'h23' }))
+  type Person = { username: string; role: string; shift: { from: number; to: number } | null }
+  const staff = (await api<{ people: Person[] }>(page, 'team')).people
+    .find((p) => ['sofia.mesera', 'mateo.mesero', 'carlos.cajero'].includes(p.username) && (!p.shift || (p.shift.from <= hour && hour < p.shift.to)))
+  if (staff) {
+    const waiter = await (await browser.newContext()).newPage()
+    await signIn(waiter, { login: staff.username, password: USERS.waiter.password })
+    await waiter.waitForURL(/salon|caja|pedidos/)
+    expect((await csv(waiter, `exports/ventas?from=${daysAgo(7)}&to=${today()}`)).status).toBe(403)
+    await waiter.context().close()
+  }
 })
 
 // Falla si un cambio de precio no queda en el Historial de cambios con quién lo hizo y el antes y después (plan Y2).
@@ -65,6 +72,7 @@ test('el cambio de precio queda en el historial de cambios', async ({ page }) =>
 // Falla si ProjectApp entra sin aprobación, si el dueño no puede aprobar, si la sesión de soporte no se marca con la
 // franja, si el enlace sirve dos veces o si la sesión sobrevive a la revocación (plan Y4).
 test('acceso de soporte: pedir, aprobar, entrar y revocar', async ({ page, browser }) => {
+  const reason = `Prueba e2e de soporte ${Date.now()}`
   const admin = await (await browser.newContext()).newPage()
   await signInPlatform(admin)
   // Lo que quede vigente de otra corrida se revoca primero desde el dueño.
@@ -72,9 +80,9 @@ test('acceso de soporte: pedir, aprobar, entrar y revocar', async ({ page, brows
   await page.waitForURL(/\/organizacion/)
   for (const g of (await api<{ grants: { id: number; state: string }[] }>(page, 'support')).grants.filter((g) => g.state === 'vigente' || g.state === 'pedido')) await api(page, `support/${g.id}/revoke`, { method: 'POST' })
   await expect(platform(admin, 'organizations/burger-house/support/enter', { method: 'POST' })).rejects.toThrow(/40[03]/)
-  await platform(admin, 'organizations/burger-house/support', { method: 'POST', data: { reason: 'Prueba e2e de soporte', hours: 2 } })
+  await platform(admin, 'organizations/burger-house/support', { method: 'POST', data: { reason, hours: 2 } })
   await page.goto('/organizacion/soporte')
-  const asked = page.getByRole('row', { name: /Prueba e2e de soporte/ })
+  const asked = page.getByRole('row', { name: new RegExp(reason) })
   await expect(asked).toContainText('Pedido, sin aprobar')
   await asked.getByRole('button', { name: 'Aprobar' }).click()
   await expect(asked).toContainText('Vigente')
@@ -85,7 +93,7 @@ test('acceso de soporte: pedir, aprobar, entrar y revocar', async ({ page, brows
   await expect(support.getByRole('status', { name: 'Sesión de soporte' })).toContainText('Sesión de soporte de ProjectApp')
   const again = await (await browser.newContext()).newPage()
   await again.goto(url)
-  await expect(again.getByRole('alert')).toBeVisible()
+  await expect(again.getByRole('alert').filter({ hasText: /acceso|enlace|token/i })).toBeVisible()
   await asked.getByRole('button', { name: 'Quitar' }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Quitar' }).click()
   await expect(asked).toContainText('Revocado')

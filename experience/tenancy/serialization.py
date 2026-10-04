@@ -35,6 +35,7 @@ def user_dict(user, team=False):
     if team:
         result.update(model_dict(user, ('active', 'activated', 'invite_expires', 'invite_attempts', 'invite_sent_at', 'last_login')))
         result['status'] = 'active' if user.activated else 'pending'
+        result['two_factor'] = user.two_factor
     return result
 
 

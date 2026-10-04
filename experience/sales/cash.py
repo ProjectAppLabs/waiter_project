@@ -1,5 +1,6 @@
 """Esperado, cierre y avisos de diferencia de caja."""
 
+from tenancy.audit import audited
 from decimal import Decimal
 
 from django.db.models import Q
@@ -78,6 +79,7 @@ def closing(shift):
     }
 
 
+@audited
 def close(shift, account, data):
     require(shift.state == "open", "La caja ya está cerrada.", "shift_closed", 409)
     summary = closing(shift)

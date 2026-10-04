@@ -11,6 +11,7 @@ from django.db.migrations.executor import MigrationExecutor
 @pytest.mark.django_db(transaction=True)
 def test_migracion_real_conserva_acuerdos_y_cuentas():
     executor = MigrationExecutor(connection)
+    actuales = executor.loader.graph.leaf_nodes()
     previous = [('tenancy', '0009_precios_por_unidad_y_lineas_de_cobro')]
     latest = [('tenancy', '0011_conservar_precios_y_abrir_intervalos')]
     try:
@@ -38,4 +39,4 @@ def test_migracion_real_conserva_acuerdos_y_cuentas():
         assert usage.overage == 2 and usage.unit_price == 500
         assert new.get_model('tenancy', 'RecurringPeriod').objects.filter(organization=migrated, component__startswith='local:').count() == 1
     finally:
-        MigrationExecutor(connection).migrate(latest)
+        MigrationExecutor(connection).migrate(actuales)

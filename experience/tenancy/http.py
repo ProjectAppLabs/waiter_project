@@ -66,6 +66,32 @@ class ContractView(APIView):
     authentication_classes = ()
     permission_classes = ()
 
+    def dispatch(self, request, *args, **kwargs):
+        from .audit import _context
+        token = _context.set(None)
+        try:
+            # Serializa cualquier escritura de soporte con la revocación del permiso.
+            # La vista vuelve a autenticar después del bloqueo; no basta la lectura preliminar.
+            if request.path.startswith('/api/pos/v1/') and request.method not in ('GET', 'HEAD', 'OPTIONS') and request.COOKIES.get('waiter_sid'):
+                from accounts.models import Session
+                from accounts.services import digest
+                from .models import Organization
+                from django.db import transaction
+                organization_id = Session.objects.filter(
+                    token_hash=digest(request.COOKIES['waiter_sid']), support_grant__isnull=False,
+                    account__organization__slug=request.headers.get('X-Waiter-Org', '')
+                ).values_list('account__organization_id', flat=True).first()
+                if organization_id:
+                    with transaction.atomic():
+                        Organization.objects.select_for_update().get(pk=organization_id)
+                        response = super().dispatch(request, *args, **kwargs)
+                        if response.status_code >= 400:
+                            transaction.set_rollback(True)
+                        return response
+            return super().dispatch(request, *args, **kwargs)
+        finally:
+            _context.reset(token)
+
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
         # Las cookies no autorizan escrituras desde un origen ajeno, incluidos otros subdominios.

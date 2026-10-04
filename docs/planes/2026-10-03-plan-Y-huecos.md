@@ -121,3 +121,91 @@ Base para la nómina, sin liquidarla.
 ## Estado
 
 - 2026-10-03: plan escrito. Y6: árboles viejos quitados.
+
+- **Servidor (Codex) · 2026-10-03: Y1–Y5 implementados en `experience/`.** Sin cambios en `pos/`, `diner/`,
+  `deploy/` ni `.env`; sin commits ni servidores levantados.
+  - **Y1:** las siete rutas `exports/ventas`, `pagos`, `inventario`, `movimientos`, `clientes`, `historial` y `equipo`
+    exportan desde la base, sin el límite de filas de las pantallas: CSV con BOM, `;`, coma decimal y nombre de
+    descarga pactado. Filtran organización, locales autorizados, periodo y módulos; neutralizan fórmulas en textos
+    destinados a Excel. Las devoluciones salen como filas negativas identificadas con «Devuelto».
+  - **Y2:** `OrganizationAudit` conserva identidad, fecha, ámbito, resumen y estados anterior/posterior. Los servicios
+    instrumentados y sus señales escriben dentro de la transacción del cambio, incluidas relaciones, recetas,
+    operaciones de caja, inventario, descuentos, devoluciones, equipo, configuración y cambios de ProjectApp.
+    `audit`, `audit/actions` y su CSV comparten los filtros y el alcance. Los secretos y contraseñas no se guardan
+    en el historial; una modificación de credenciales de pasarela conserva únicamente la huella de su versión cifrada.
+  - **Y3:** TOTP con `hmac`/`hashlib`, secreto Fernet, QR PNG local, diez respaldos con hash, desafíos de cinco minutos
+    con cinco intentos y consumo único. No se crea sesión al entregar el desafío. La obligación predeterminada para
+    administradores permite únicamente consultar `auth/me`, salir y configurar el segundo factor. Restablecerlo
+    deja auditoría e invalida sesiones y desafíos, incluidos tokens y sesiones de soporte. El inicio único conserva
+    la secuencia login del restaurante → login de ProjectApp → verificación del desafío.
+  - **Y4:** solicitud con notificación y correo al dueño, concesión/aprobación/revocación, token de entrada de dos
+    minutos y un solo uso y `POST /api/pos/v1/auth/support {"token"}` con la respuesta del login y cookie HttpOnly.
+    `auth/me` incluye `support: {until, agent}` (`agent` es el nombre de la persona) o `null`. La sesión vence con el
+    permiso, no abre asistencia ni cierra la del dueño al salir; la revocación se comprueba en cada petición y en
+    eventos SSE. Sus cambios se atribuyen a «ProjectApp · nombre (soporte)». No administra accesos de soporte ni
+    solicita/cambia contraseñas; tampoco modifica o concede cuentas de dueño. Las escrituras se serializan con la
+    revocación del permiso.
+  - **Y5:** tarifa horaria opcional en Equipo, editable solo por el dueño, `reports/team` y CSV. Horas tomadas de
+    asistencias y recortadas al periodo; abiertas hasta ahora. Pedidos, ventas sin propina y propinas atribuidos al
+    creador del pedido, con cálculos monetarios en `Decimal`.
+  - **Decisiones donde el plan no fijaba detalles, para integrar el POS:**
+    - Restablecer 2FA: `POST /api/platform/v1/team/<id>/reset_2fa` → `{"ok": true}`; solo otro administrador.
+      `auth/me` agrega `two_factor` y `two_factor_required` al nivel raíz. `require_2fa` se consulta/cambia también
+      en `settings/billing`; cuando está activo exige 2FA a administradores, y los operadores pueden activarlo
+      voluntariamente. Un intervalo TOTP ya utilizado tampoco se puede reutilizar.
+    - Crear o pedir soporte devuelve `201 {"grant": {...}}`; aprobar/revocar devuelve `200 {"grant": {...}}`.
+      Cada acceso contiene `id`, `reason`, `hours`, `since`, `until`, `state`, `created_at`,
+      `requested_by: {id, name} | null` y `approved_by: {id, name} | null`. En estado `pedido`, `since` y `until`
+      son `null`; la vigencia empieza al aprobar. El vencimiento se deriva de `until` al consultar y autenticar.
+      Una solicitud aprobada autoriza a quien la pidió; una concesión espontánea del dueño autoriza al personal
+      activo de ProjectApp. La URL de entrada toma el subdominio de la organización sobre `POS_URL`.
+    - Los periodos usan la zona de la organización, con ambos días incluidos, y por omisión el día actual.
+      En ventas, «Descuento» es el porcentaje de la línea y los impuestos conservan el nombre y valor históricos.
+      Inventario y clientes son instantáneas; en clientes el gasto/visitas del encargado solo suma sus locales y
+      solo se listan clientes con pedidos en ellos. El dueño ve todos los clientes, incluido el consumidor final.
+      Los cambios globales del historial quedan para el dueño; el encargado ve cambios de sus locales y del equipo
+      cuyas asignaciones anteriores y nuevas están íntegramente dentro de su alcance, sin acciones de ProjectApp.
+    - `reports/team` y `exports/equipo` son exclusivos del dueño. Horas con cuatro decimales, pago a centavos;
+      sin tarifa, `hourly_rate` y `estimated_pay` son `null`. Los totales suman horas, turnos, pedidos, ventas,
+      propinas y pagos calculables. Las propinas son las originales de los pedidos cobrados; no se infiere un
+      reparto de nómina ni se descuentan devoluciones, que el plan no definió para este informe.
+    - Las claves de acciones se entregan en `audit/actions`, con nombres en español; las entidades usan el nombre
+      del modelo y los identificadores se serializan como texto. No se agregaron rutas nuevas de descuentos:
+      se instrumentó también el servicio existente que aplica descuentos al pedido del comensal.
+    - **Desviaciones respecto de las formas de respuesta fijadas por el plan: ninguna.** Las formas anteriores
+      concretan únicamente partes no especificadas.
+  - **Archivos cambiados:** núcleo nuevo en `tenancy/{audit,audit_api,two_factor,support,apps}.py` y
+    `reports/{exports,team}.py`; modelos, autenticación, servicios y serialización de `accounts/`; modelos,
+    API, rutas, HTTP, módulos, suscripciones y servicios de `tenancy/`; rutas de `reports/`; instrumentación en
+    `catalog/services.py`, `inventory/services.py`, `loyalty/promotions.py`, `sales/{api,services,cash,refunds}.py`,
+    `billing/company.py`, `experience_app/adapters/core/pos.py` y `experience_app/services/payment_settings.py`;
+    revocación SSE en `realtime/api.py`. Migraciones descriptivas: `accounts/0004`, `accounts/0005` y
+    `tenancy/0012`, todas `historial_seguridad_soporte_y_tarifa`, sin índices únicos parciales y con tokens exactos.
+    Pruebas nuevas en `tenancy/tests/test_seguridad_y_soporte.py` y
+    `reports/tests/test_exportes_historial_equipo.py`; ajustes en las fábricas y las pruebas de aislamiento,
+    suscripciones y migración de `tenancy/tests/`.
+  - **Ajustes intencionales de pruebas existentes:** la fábrica de cliente de plataforma desactiva la obligación
+    de 2FA para los escenarios anteriores de negocio; las pruebas nuevas ejercen el valor predeterminado activo y
+    el flujo HTTP real. La respuesta de ajustes incluye `require_2fa`. La prueba de migración de X restaura todas
+    las migraciones actuales al terminar, en lugar de dejar el esquema antiguo; la matriz de aislamiento incluye
+    las rutas nuevas y recursos de soporte de otra organización.
+  - **Verificación final:** suite completa **2099 pruebas aprobadas en 223,30 s** con
+    `PYTHON_DOTENV_DISABLED=1 DJANGO_DB_ENGINE=django.db.backends.sqlite3 venv/bin/pytest -q --tb=short` desde
+    `experience/`. `manage.py makemigrations --check`: **sin cambios**; `manage.py check`: **sin incidencias**;
+    Ruff en los módulos y pruebas nuevos y `git diff --check`: correctos. Validación ejecutada en SQLite, sin
+    cargar `.env`, MySQL ni Docker. Las 21 funciones de prueba nuevas (31 casos parametrizados) tienen nombres
+    en español y comentario `# Falla si …`.
+- **POS y consolas (Claude) · 2026-10-03:** Y1 botones «Exportar CSV» (Ventas y pagos, Inventario y movimientos,
+  Clientes) que descargan del servidor; Y2 «Historial de cambios» en la consola del dueño con filtros, detalle antes y
+  después y CSV; Y3 paso «Código de verificación» en el inicio único, «Seguridad» (QR, códigos de respaldo,
+  desactivar), consola bloqueada en Seguridad mientras falte el doble factor exigido y «Restablecer doble factor» en
+  Equipo de ProjectApp; Y4 «Soporte» en la ficha del cliente (pedir, estado, entrar en otra pestaña), «Soporte de
+  ProjectApp» en la consola del dueño (dar, aprobar, quitar), `/soporte?token=` y la franja fija de sesión de soporte;
+  Y5 «Horas y propinas» (grupo Negocio) y «Valor de la hora» en Equipo. Y6 hecho.
+- **Integración · 2026-10-03:** dos ajustes al servidor: un desafío vencido o agotado responde `challenge_expired`
+  (antes `invalid_code`, igual que un código mal escrito) para que el inicio vuelva a la contraseña, y el equipo de
+  ProjectApp trae `two_factor` para ofrecer el restablecimiento. Las pruebas de punta a punta de ProjectApp entran con
+  doble factor real: la primera vez lo activan y guardan el secreto en `pos/e2e/.estado/` (ignorado).
+  Verificación: pytest en MySQL 2099, jest del POS 660 y del comensal 508, e2e 24 pasan y 1 omitida por diseño
+  (emergencia, que necesita compilación de producción). Casos de QA E-16, D-18 a D-21, P-16 y P-17 publicados.
+

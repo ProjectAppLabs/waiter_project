@@ -1,3 +1,4 @@
+from tenancy.audit import audited
 import re
 
 from django.conf import settings
@@ -27,6 +28,7 @@ def view(restaurant, venue):
 
 
 @transaction.atomic
+@audited
 def save(restaurant, venue, data):
     allowed = {'environment', 'enabled', 'public_key', 'payment_method_id', *SECRET_FIELDS}
     if not isinstance(data, dict) or set(data) - allowed or data.get('environment') not in ('test', 'prod'):
