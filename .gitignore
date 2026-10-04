@@ -99,6 +99,7 @@ Thumbs.db
 /pos/out/
 /pos/.env.local
 /pos/coverage/
+/diner/coverage/
 /pos/test-results/
 /pos/playwright-report/
 /pos/e2e-results/
