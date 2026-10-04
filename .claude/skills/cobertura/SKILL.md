@@ -46,7 +46,7 @@ Produce un informe de estado con huecos priorizados. No cambia código salvo que
    desactualizadas. No republiques sin que lo pidan.
 7. **Umbrales.** `pos/jest.config.cjs` y `diner/jest.config.*` tienen `coverageThreshold`. Si la cobertura medida
    supera el umbral por más de 5 puntos, propón subirlo a un par de puntos por debajo de lo medido (trinquete: la
-   cobertura no puede bajar). Para experience, propón `--cov-fail-under` con el mismo criterio.
+   cobertura no puede bajar). Para experience, el mínimo está en `experience/.coveragerc` (`fail_under`), con el mismo criterio.
 
 ## 4. Informe
 
