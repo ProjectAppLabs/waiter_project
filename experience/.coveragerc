@@ -1,0 +1,11 @@
+# Cobertura de experience (skill /cobertura). Solo se aplica al correr pytest con --cov.
+[run]
+omit =
+    */tests/*
+    */migrations/*
+    venv/*
+    manage.py
+
+[report]
+# Trinquete (2026-10-04): medido 95,1 % sin pruebas ni migraciones; no puede bajar sin avisar.
+fail_under = 94
