@@ -101,10 +101,12 @@ devoluciones, como exige la DIAN a los restaurantes en Colombia.
 - Los estados del documento (pendiente, emitido, rechazado, contingencia) y el reintento ya existen.
 - Las notas crédito de las devoluciones (plan U) se arman igual y pasan por el mismo proveedor.
 
+**Decisión (2026-10-03):** microservicio propio en Django, `fiscal/`, aparte de experience. Se descartó comprar
+APIDIAN (Factura Latam) por fallas de seguridad en su código y un proveedor en la nube por costo y dependencia. El
+detalle está en `docs/planes/2026-10-03-plan-Z-facturacion-propia.md`.
+
 **Alcance del sprint:**
-- Elegir el proveedor tecnológico autorizado por la DIAN (por ejemplo Alegra, Siigo, Facture, The Factory HKA o
-  Carvajal) o la emisión directa con certificado propio. La recomendación es un proveedor con API: firma, envío y
-  validación previa quedan de su lado.
+- Construir `fiscal` (plan Z): firma, envío a la DIAN y validación previa quedan de nuestro lado.
 - Implementar su adaptador detrás de `BillingProvider`: emitir factura, documento equivalente POS y nota crédito;
   consultar el estado; descargar el XML firmado y el PDF.
 - Habilitación de cada organización ante la DIAN: set de pruebas, resolución de numeración real, clave técnica y
