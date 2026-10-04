@@ -26,11 +26,13 @@ const customJestConfig = {
   ],
   coverageProvider: 'v8',
   coverageThreshold: {
+    // Trinquete (2026-10-04): un par de puntos por debajo de lo medido, para que la cobertura no baje sin avisar.
+    // Súbelos cuando la cobertura mejore (skill /cobertura).
     global: {
-      branches: 50,
-      functions: 50,
-      lines: 50,
-      statements: 50,
+      branches: 81,
+      functions: 60,
+      lines: 75,
+      statements: 75,
     },
   },
   coverageReporters: ['text-summary', 'text', 'lcov', 'html', 'json-summary'],
