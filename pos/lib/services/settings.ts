@@ -6,7 +6,7 @@ import * as sales from '@/lib/services/core/sales'
 import * as coreTables from '@/lib/services/core/tables'
 import type { Settings } from '@/lib/types'
 
-export interface CompanyInfo { id: number; name: string; vat: string; phone: string; email: string; street: string; city: string; waiter_latitude?: string; waiter_longitude?: string }
+export interface CompanyInfo { id: number; name: string; vat: string; phone: string; email: string; street: string; city: string }
 export interface FloorInfo { id: number; name: string; tables: { id: number; number: number; seats: number; active: boolean }[] }
 export interface PaymentMethodInfo { id: number; name: string; type: string }
 export interface TaxInfo { id: number; name: string; amount: number }
@@ -14,7 +14,7 @@ export interface TaxInfo { id: number; name: string; amount: number }
 export async function getCompany(): Promise<CompanyInfo> {
   // Plan T4: en el sistema propio la empresa es la organización, con sus datos de emisor.
   const c = await coreBusiness.company()
-  return { id: 0, name: c.legal_name || c.name, vat: c.tax_id ? `${c.tax_id}${c.tax_id_dv ? '-' + c.tax_id_dv : ''}` : '', phone: c.phone, email: c.email, street: c.address, city: c.city, waiter_latitude: '', waiter_longitude: '' }
+  return { id: 0, name: c.legal_name || c.name, vat: c.tax_id ? `${c.tax_id}${c.tax_id_dv ? '-' + c.tax_id_dv : ''}` : '', phone: c.phone, email: c.email, street: c.address, city: c.city }
 }
 
 export async function saveCompany(c: CompanyInfo): Promise<void> {

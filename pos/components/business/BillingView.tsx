@@ -84,7 +84,7 @@ export function BillingView() {
             {catalog?.paymentMethods.map((method) => <option key={method.id} value={method.id}>{method.name}</option>)}
           </Select></span>
         </label>}
-        {catalog?.settings?.configId && <BillingSettings key={catalog.settings.configId} configId={catalog.settings.configId} onSaved={() => { setSelection(null); setRefresh((n) => n + 1) }} />}
+        {catalog?.settings?.configId && <BillingSettings key={catalog.settings.configId} configId={catalog.settings.configId} />}
         <Button size="compact" onClick={() => setRefresh((n) => n + 1)} disabled={loading} className="ml-auto">{t('refresh')}</Button>
       </div>
       <div className="flex-1 min-h-0 flex gap-4 px-5 pb-5">
