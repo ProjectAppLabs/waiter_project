@@ -40,6 +40,7 @@ it('marks one dish ready and shows the ones already on the pass', () => {
   expect(onReadyDish).toHaveBeenCalledWith(1)
 })
 
+// Falla si cocina puede marcar listos platos de una comanda recibida sin iniciar su preparación.
 it('requires preparation before marking received dishes ready', () => {
   const onStart = jest.fn()
   wrap(<TicketCard ticket={{ ...ticket, preparationAt: null }} tableNumber={7} now={NOW} onStart={onStart} onReady={jest.fn()} onReadyDish={jest.fn()} />)

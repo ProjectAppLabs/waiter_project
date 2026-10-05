@@ -30,6 +30,7 @@ const createRawDefinitionsFile = (raw: string) => {
 };
 
 describe('e2e module list helpers', () => {
+  // Falla si la lista de módulos sale desordenada, repetida o con espacios sobrantes en el nombre.
   it('loadModules returns sorted unique module list', () => {
     const { filePath, cleanup } = createDefinitionsFile({
       version: '1.0.0',
@@ -48,6 +49,7 @@ describe('e2e module list helpers', () => {
     }
   });
 
+  // Falla si un archivo de flujos sin flujos rompe el listado en vez de devolver una lista vacía.
   it('loadModules returns empty list when flows missing', () => {
     const { filePath, cleanup } = createDefinitionsFile({
       version: '1.0.0',
@@ -62,6 +64,7 @@ describe('e2e module list helpers', () => {
     }
   });
 
+  // Falla si un JSON de flujos dañado se acepta en silencio en vez de lanzar «Invalid JSON».
   it('loadModules throws for invalid JSON', () => {
     const { filePath, cleanup } = createRawDefinitionsFile('{ invalid');
 
@@ -72,6 +75,7 @@ describe('e2e module list helpers', () => {
     }
   });
 
+  // Falla si el listado no imprime cada módulo, una vez y en orden.
   it('printModules logs each module name', () => {
     const logger = {
       log: jest.fn(),
@@ -86,10 +90,12 @@ describe('e2e module list helpers', () => {
 });
 
 describe('e2e module runner helpers', () => {
+  // Falla si el nombre del módulo conserva la etiqueta «@module:» y el filtro no encuentra pruebas.
   it('normalizeModuleName strips module tag', () => {
     expect(e2eModule.normalizeModuleName('@module:auth')).toBe('auth');
   });
 
+  // Falla si --module no se lee o si los demás argumentos no pasan intactos a Playwright.
   it('parseArgs reads module from --module flag', () => {
     expect(e2eModule.parseArgs(['--module', 'auth', '--project=Desktop Chrome'])).toEqual({
       moduleName: 'auth',
@@ -97,10 +103,12 @@ describe('e2e module runner helpers', () => {
     });
   });
 
+  // Falla si correr sin módulo no avisa y termina corriendo toda la suite.
   it('resolveOptions throws when module missing', () => {
     expect(() => e2eModule.resolveOptions([])).toThrow('Module name is required.');
   });
 
+  // Falla si un módulo conocido se rechaza o no se devuelve la lista de módulos disponibles.
   it('validateModuleName returns modules for known module', () => {
     const { filePath, cleanup } = createDefinitionsFile({
       version: '1.0.0',
@@ -118,6 +126,7 @@ describe('e2e module runner helpers', () => {
     }
   });
 
+  // Falla si un módulo desconocido se acepta y la corrida no filtra nada.
   it('validateModuleName throws for unknown module', () => {
     const { filePath, cleanup } = createDefinitionsFile({
       version: '1.0.0',
@@ -136,6 +145,7 @@ describe('e2e module runner helpers', () => {
     }
   });
 
+  // Falla si la corrida por módulo no pasa --grep @module:<nombre> a «npm run e2e» con los demás argumentos.
   it('buildModuleArgs includes grep filter', () => {
     expect(e2eModule.buildModuleArgs('auth', ['--project=Desktop Chrome'])).toEqual([
       'run',
@@ -149,6 +159,7 @@ describe('e2e module runner helpers', () => {
 });
 
 describe('e2e module report helpers', () => {
+  // Falla si el informe por módulo no usa «e2e:coverage» con el filtro --grep del módulo.
   it('buildCoverageArgs targets module report script', () => {
     expect(e2eModuleReport.buildCoverageArgs('auth', ['--project=Desktop Chrome'])).toEqual([
       'run',
@@ -160,6 +171,7 @@ describe('e2e module report helpers', () => {
     ]);
   });
 
+  // Falla si el informe de cobertura acepta un módulo desconocido.
   it('report validateModuleName throws for unknown module', () => {
     const { filePath, cleanup } = createDefinitionsFile({
       version: '1.0.0',

@@ -99,6 +99,7 @@ def test_parse_builds_a_normalized_tree():
     ('<p>Mira https://x.com</p>' + MINIMAL, 'direcciones web'),
     ('<p>' + 'x' * 20_001 + '</p>', '20 000 caracteres'),
 ])
+# Falla si el compilador acepta HTML inseguro o fuera del contrato, o no identifica el motivo del rechazo.
 def test_invalid_templates_are_rejected_with_a_useful_message(html, message):
     with pytest.raises(plantillas.InvalidTemplate, match=message):
         compile(html)
@@ -113,6 +114,7 @@ def test_invalid_templates_are_rejected_with_a_useful_message(html, message):
     ('<div/>', 'envía'),
     ({'version': 1, 'html': '<b>x</b>'}, 'tema.componentes.plato: etiqueta no admitida'),
 ])
+# Falla si el tema acepta componentes con versión, estructura o HTML inválidos, o no restablece los componentes nulos.
 def test_theme_layer_validates_component_templates(value, message):
     with pytest.raises(design.InvalidTheme, match=message):
         design.validate({'componentes': {'plato': value}})
@@ -284,6 +286,7 @@ def test_component_tools_read_prepare_verify_and_gate_confirmation(client, owner
     ("import time; time.sleep(3)", 'tiempo máximo'),
     ("import json, sys; sys.stdout.write(json.dumps({'ok': None, 'problemas': ['la verificación falló: CDP caído']})); sys.exit(1)", 'no pudo medir'),
 ])
+# Falla si un fallo de infraestructura del verificador permite confirmar el borrador o se atribuye a la plantilla y expone rutas internas.
 def test_verifier_infrastructure_failures_are_reported_as_errors(client, owner, settings, tmp_path, script, expected):
     _, raw = owner
     draft = call(client, raw, 'preparar_componente', {'componente': 'plato', 'html': MINIMAL})['structuredContent']

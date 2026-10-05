@@ -13,6 +13,7 @@ const order: KitOrder = {
 }
 const ui = (node: React.ReactNode) => render(<NextIntlClientProvider locale="es" messages={messages}>{node}</NextIntlClientProvider>)
 
+// Falla si un pedido de mesa no muestra piso y zona o si uno para llevar muestra una zona que no tiene.
 it('shows the floor and zone for table orders, but not for takeout', () => {
   const location = { floor: 'Terraza', zone: 'Ventanas', zoneStatus: 'ready' as const }
   const { unmount } = ui(<OrderCard order={order} location={location} status="in_progress" percent={0} />)

@@ -45,6 +45,7 @@ test('a 409 on confirm reopens a fresh session and keeps the message for the din
   expect(state.error).toMatch(/ya se pagó/)
 })
 
+// Falla si cualquier error al confirmar (no solo el 409) descarta la sesión del comensal y abre otra.
 test('other errors do not touch the session', async () => {
   useDinerStore.setState({ keys, session: { id: 'old' } as never })
   api.openSession.mockClear()
@@ -181,6 +182,7 @@ test('failed confirmation prevents payment and concurrent taps are ignored', asy
   expect(useDinerStore.getState().payState).toBe('idle')
 })
 
+// Falla si salir del pago borra el aviso de demostración de la visita o deja el resultado del pago anterior.
 test('demo notice survives leaving payment but stays tied to the visit', async () => {
   useDinerStore.setState({ demoSession: 's1', payState: 'paid', payResult: { demo: true } as never })
   useDinerStore.getState().resetPay()
@@ -189,6 +191,7 @@ test('demo notice survives leaving payment but stays tied to the visit', async (
 })
 
 
+// Falla si refrescar la cuenta llama al mesero, confirma el pedido o conserva un total viejo.
 test('refreshBill reads a fresh personal split without calling the waiter or confirming', async () => {
   useDinerStore.setState({ keys, session: { id: 's1' } as never, bill: { total: 99999 } as never })
   api.quoteBill.mockResolvedValue({ total: 20000, mio: 5000, partes: 4, porParte: 5000 })
@@ -199,6 +202,7 @@ test('refreshBill reads a fresh personal split without calling the waiter or con
   expect(api.confirmOrder).not.toHaveBeenCalled()
 })
 
+// Falla si dos pedidos simultáneos de sesión abren dos sesiones y la segunda reemplaza la cookie de la cuenta.
 test('deduplicates concurrent session requests so the account cookie is not replaced', async () => {
   useDinerStore.setState({ keys, session: null })
   api.openSession.mockResolvedValue({ sesion: { id: 'one-session' } })
@@ -207,6 +211,7 @@ test('deduplicates concurrent session requests so the account cookie is not repl
   expect(api.openSession).toHaveBeenCalledTimes(1)
 })
 
+// Falla si en la vista previa se puede agregar, confirmar un pedido o simular un pago contra la API.
 test('preview cannot send a command, register an account or simulate a payment', async () => {
   useDinerStore.setState({ keys, preview: DEFAULT_TEMPLATE })
   await useDinerStore.getState().add(3, 1, '')

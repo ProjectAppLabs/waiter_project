@@ -18,6 +18,7 @@ it('modal is a dialog that closes with Escape and with its close button', async 
   expect(onClose).toHaveBeenCalledTimes(2)
 })
 
+// Falla si el modal cerrado sigue en el DOM como diálogo y tapa o confunde la pantalla.
 it('modal renders nothing when closed', () => {
   wrap(<Modal open={false} onClose={() => undefined}>cuerpo</Modal>)
   expect(screen.queryByRole('dialog')).toBeNull()

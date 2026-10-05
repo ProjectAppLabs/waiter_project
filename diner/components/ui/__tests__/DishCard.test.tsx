@@ -16,6 +16,7 @@ test('a sold-out dish keeps its photo at 55% with the badge on top and no add bu
   expect(screen.queryByRole('button', { name: /Agregar/ })).toBeNull()
 })
 
+// Falla si un plato disponible sale atenuado, con la insignia de agotado o sin el botón de agregar.
 test('an available dish shows the photo at full opacity and the add button', () => {
   wrap(<DishCard dish={base} onOpen={() => {}} onAdd={() => {}} />)
   expect(screen.getByRole('presentation')).not.toHaveClass('opacity-55')

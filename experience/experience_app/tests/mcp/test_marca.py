@@ -122,6 +122,7 @@ def test_font_failure_rejects_draft_without_writes(client, owner, channel, failu
     ('preparar_componente', {'componente': 'plato', 'html': None}),
     ('restablecer_tema', {'capa': 'variantes'}),
 ])
+# Falla si se prepara un borrador sin validar las fuentes globales existentes cuando falla su consulta de red.
 def test_all_draft_preparations_check_existing_global_fonts(client, owner, tool, arguments):
     _, raw, get = owner
     templates.save('burger-house', 'poblado', {'plantilla': 'S1', 'tema': {'fundamentos': {'tipografia': FONTS}}})

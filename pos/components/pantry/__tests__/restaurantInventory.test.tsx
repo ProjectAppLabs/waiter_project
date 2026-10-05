@@ -11,6 +11,7 @@ const recipe={id:2,bom_id:3,yield:1,lines:[{ingredientId:1,qty:.2,uomId:10}],ser
 const inventory={stock:2,pending:.6,cost:20000,min:1,max:5,uom:'kg',history:[]}
 const wrap=(ui:React.ReactElement)=>render(<NextIntlClientProvider locale="es" messages={messages}>{ui}</NextIntlClientProvider>)
 beforeEach(()=>{jest.clearAllMocks();(getRecipe as jest.Mock).mockResolvedValue(recipe);(getInventory as jest.Mock).mockResolvedValue(inventory)})
+// Falla si no se ve el ingrediente que limita las porciones o si editar la receta crea otro plato.
 it('shows the limiting ingredient and edits quantities for a batch without making a new dish',async()=>{
  const refresh=jest.fn().mockResolvedValue(undefined)
  ;(updateRecipe as jest.Mock).mockResolvedValue({...recipe,yield:10})
@@ -24,6 +25,7 @@ it('shows the limiting ingredient and edits quantities for a batch without makin
  await waitFor(()=>expect(refresh).toHaveBeenCalled())
  expect(updateRecipe).toHaveBeenCalledWith(2,[{ingredientId:1,qty:2,uomId:10}],10,3)
 })
+// Falla si se registra un movimiento sin motivo o si el reintento tras un fallo usa otra clave y lo duplica.
 it('requires a movement reason and reuses the request key after a failed response',async()=>{
  ;(moveInventory as jest.Mock).mockRejectedValueOnce(new Error('Se perdió la conexión')).mockResolvedValue({...inventory,stock:3})
  wrap(<InventoryControl ingredient={ingredient} mayEdit onClose={jest.fn()} onSaved={jest.fn().mockResolvedValue(undefined)}/> )

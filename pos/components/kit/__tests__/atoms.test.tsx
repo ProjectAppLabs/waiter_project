@@ -25,6 +25,7 @@ it('status pill maps tones to kit colors', () => {
   expect(screen.getByText('Servido')).toHaveClass('bg-success-soft', 'text-success-ink')
 })
 
+// Falla si el interruptor deja de anunciarse como switch o no informa el valor nuevo al cambiar.
 it('toggle is a switch that reports the new value', async () => {
   const onChange = jest.fn()
   render(<Toggle checked={false} onChange={onChange} label="Sonido" />)
@@ -32,6 +33,7 @@ it('toggle is a switch that reports the new value', async () => {
   expect(onChange).toHaveBeenCalledWith(true)
 })
 
+// Falla si la tarjeta pierde su título o su acción, o si el estado vacío no muestra su texto.
 it('card renders title, action and body; empty state renders icon and copy', () => {
   render(<Card title="Mesas disponibles" action={<button>Ver</button>}>cuerpo</Card>)
   expect(screen.getByText('Mesas disponibles')).toBeInTheDocument()

@@ -5,6 +5,7 @@ PAYLOAD = {'restaurante': 'burger-house', 'sede': 'poblado', 'token': '8H2KQ7'}
 
 
 @pytest.mark.django_db
+# Falla si la API del carrito no refleja el alta, la cantidad actualizada o la eliminación de una línea propia.
 def test_add_patch_and_delete_a_line_through_the_api(api_client, table_tenant, catalog_stub):
     """Atrapa un carrito que no refleja alta, cambio y baja de una línea del propio comensal."""
     sid = api_client.post(reverse('open-session'), PAYLOAD, format='json').json()['sesion']['id']
@@ -16,6 +17,7 @@ def test_add_patch_and_delete_a_line_through_the_api(api_client, table_tenant, c
 
 
 @pytest.mark.django_db
+# Falla si la cookie de otro comensal permite borrar una línea ajena sin devolver 403.
 def test_another_diner_cannot_touch_my_line(api_client, table_tenant, catalog_stub):
     """Atrapa que la cookie de otro comensal edite mis platos."""
     sid = api_client.post(reverse('open-session'), PAYLOAD, format='json').json()['sesion']['id']

@@ -87,12 +87,14 @@ it('loads each google font once and skips the ones the layout already ships', ()
   expect(loadGoogleFonts(['Bebas Neue'], undefined)).toEqual([])
 })
 
+// Falla si las iniciales del avatar toman más de dos palabras, salen en minúscula o tropiezan con espacios sobrantes.
 it('builds avatar initials from the first two words', () => {
   expect(initials('Camila Ruiz')).toBe('CR')
   expect(initials('  ana ')).toBe('A')
   expect(initials('Juan Pablo Pérez')).toBe('JP')
 })
 
+// Falla si la vista previa deja texto ilegible sobre el acento o no deriva el color suave del fondo oscuro elegido.
 test('preview derives readable accent ink and soft color over the chosen dark canvas', () => {
   const dark = applyPreview(DEFAULT_TEMPLATE, { paleta: { acento: '#000000', fondo: '#202020' } })
   expect(dark.tokens.acentoTinta).toBe('#FFFFFF')

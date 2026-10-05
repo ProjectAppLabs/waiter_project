@@ -119,6 +119,7 @@ def test_manual_charge_and_payment_idempotency(billing):
 @pytest.mark.parametrize('body', [{'method': 'tarjeta'}, {'method': 'nequi', 'paid_at': '2026-01-01'},
     {'method': 'nequi', 'paid_at': '2099-01-01T00:00:00Z'}, {'method': 'nequi', 'paid_at': 3},
     {'method': 'nequi', 'reference': []}, {'method': 'nequi', 'notes': 'a' * 5001}, {'method': ['nequi']}])
+# Falla si se acepta un reporte de pago inválido o deja de estar pendiente el cobro rechazado.
 def test_invalid_payment(billing, body):
     org, owner, admin, client = billing
     row = charge(org)

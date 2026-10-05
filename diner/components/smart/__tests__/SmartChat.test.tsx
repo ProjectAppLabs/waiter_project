@@ -24,6 +24,7 @@ beforeEach(() => {
   jest.mocked(getChat).mockResolvedValue({ disponible: true, mensajes: [] })
 })
 
+// Falla si el chat no envía el mensaje, si la recomendación enlaza sin la mesa o si no se puede cerrar.
 it('opens chat, sends a message and links recommendations to the current table', async () => {
   jest.mocked(sendChat).mockResolvedValue(turn as never)
   render(<SmartChat entry={entry} rest="demo" venue="salon" token="mesa8"/>)
@@ -38,6 +39,7 @@ it('opens chat, sends a message and links recommendations to the current table',
   expect(screen.getByRole('button', { name: /Mi mesero/ })).toHaveAttribute('aria-expanded', 'false')
 })
 
+// Falla si un envío fallido borra el texto o si el reintento usa otra referencia y duplica el mensaje.
 it('keeps the same message reference on a failed send and allows retry', async () => {
   jest.mocked(sendChat).mockRejectedValueOnce(new Error('Sin conexión')).mockResolvedValueOnce(turn as never)
   render(<SmartChat entry={entry} rest="demo" venue="salon" token={null}/>)
@@ -52,6 +54,7 @@ it('keeps the same message reference on a failed send and allows retry', async (
   expect(jest.mocked(sendChat).mock.calls[0][1]).toBe(jest.mocked(sendChat).mock.calls[1][1])
 })
 
+// Falla si el chat no disponible deja escribir o si la vista previa llama a la API del chat.
 it('shows unavailable honestly and does not consume API in preview', async () => {
   jest.mocked(getChat).mockResolvedValue({ disponible: false, mensajes: [] })
   const view = render(<SmartChat entry={entry} rest="demo" venue="salon" token={null}/>)
@@ -68,6 +71,7 @@ it('shows unavailable honestly and does not consume API in preview', async () =>
   expect(getChat).not.toHaveBeenCalled()
 })
 
+// Falla si la recomendación se añade sin cantidad o nota, no actualiza el carrito o no queda marcada.
 it('adds a recommendation with quantity and note, updates cart and marks it selected', async () => {
   jest.mocked(getChat).mockResolvedValue({ disponible: true, mensajes: [turn as never] })
   const cart = { lineas: [], mio: 45000 } as never
@@ -85,6 +89,7 @@ it('adds a recommendation with quantity and note, updates cart and marks it sele
   expect(screen.getByRole('link', {name: /Ver mi pedido/})).toHaveAttribute('href', '/demo/salon/t/mesa8/pedido')
 })
 
+// Falla si las tarjetas de una categoría no van en carrusel, si «Otro» envía algo o si una opción no se envía.
 it('groups same-category cards horizontally and lets Other focus free text', async () => {
   const menu = { ...entry, carta: { categorias: [{id: 1, nombre: 'Bebidas', productos: [
     {id: 7, nombre: 'Limonada', precio: 12000, categorias: [1]}, {id: 8, nombre: 'Jugo', precio: 10000, categorias: [1]},
@@ -104,6 +109,7 @@ it('groups same-category cards horizontally and lets Other focus free text', asy
   await waitFor(() => expect(sendChat).toHaveBeenCalledWith('session', expect.any(String), 'Frutal'))
 })
 
+// Falla si «Nueva conversación» toca el carrito o deja mensajes de la conversación anterior.
 it('starts a fresh conversation without changing the cart', async () => {
   const cart = {lineas: [], mio: 45000} as never
   useDinerStore.setState({cart})

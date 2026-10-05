@@ -60,6 +60,7 @@ def test_verification_is_required_by_default(monkeypatch):
 @pytest.mark.parametrize('existing', [False, True])
 @pytest.mark.parametrize('state, message', [('pendiente', 'Falta'), ('no_disponible', 'configurada'),
                                          ('error', 'error'), ('problemas', 'problemas'), ('ok', None)])
+# Falla si se aplica un borrador MCP cuyo último estado de verificación no es aprobado.
 def test_strict_mcp_requires_latest_green(client, owner, settings, tmp_path, state, message, existing):
     if existing:
         templates.save('burger-house', 'poblado', BODY)
@@ -139,6 +140,7 @@ def invalidate_draft(change, reason):
 # // Falla si se ejecuta el verificador sin clave interna, fuera de la sede, con tokens inválidos o borradores no vigentes.
 @pytest.mark.parametrize('reason', ['sin-clave', 'otra-organizacion', 'otro-restaurante', 'caducado', 'aplicado',
                                   'revocado', 'otro-kind', 'confirmacion', 'invalido', 'desconocido'])
+# Falla si se ejecuta el verificador sin autorización o para un borrador ajeno, inválido o no vigente.
 def test_internal_verification_authorization_and_scope(api_client, owner, reason):
     draft = prepare(api_client)
     change = McpPendingChange.objects.get(preview_token=draft['borrador'])
@@ -155,6 +157,7 @@ def test_internal_verification_authorization_and_scope(api_client, owner, reason
 @pytest.mark.parametrize('reason', ['ausente', 'invalido', 'desconocido', 'otra-organizacion', 'otro-restaurante', 'caducado',
                                   'aplicado', 'revocado', 'otro-kind', 'confirmacion', 'sin-verificar', 'error',
                                   'problemas', 'no_disponible', 'otro-tema', 'verde-anterior', 'verde-ajeno', 'ok-texto'])
+# Falla si se guarda un tema con un borrador inválido, ajeno o sin aprobación vigente para ese contenido.
 def test_put_rejects_unverified_or_mismatched_drafts(api_client, owner, settings, tmp_path, reason):
     draft = prepare(api_client)
     settings.DESIGN_VERIFIER_CMD = verifier(tmp_path, 'True')

@@ -120,6 +120,7 @@ def test_draft_scope_and_lifetime(client, owner, reason):
     {'distribucion': {'pago': 'oculto'}}, {'fundamentos': {'texto': .5}}, {'fundamentos': {'texto': True}},
     {'fundamentos': {'colores': {'acentoTinta': '#FFFFFF'}}}, {'version': 3},
     {'fundamentos': {'colores': {'tinta': '#FFFFFF'}}}])
+# Falla si un tema parcial inválido crea un borrador MCP en vez de devolver un error.
 def test_invalid_partial_themes_do_not_create_drafts(client, owner, theme):
     assert call(client, owner[1], 'preparar_tema', {'tema': theme})['isError']
     assert not McpPendingChange.objects.exists()

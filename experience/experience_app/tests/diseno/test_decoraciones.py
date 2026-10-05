@@ -58,6 +58,7 @@ def key_header(settings):
     ('Hoja', b64(png(64, 64, filler=decoraciones.MAX_BYTES)), 'KB'),
     ('Hoja', b64(b'\x89PNG\r\n\x1a\n' + b'\x00' * 8), 'dimensiones'),
 ])
+# Falla si una decoración con nombre, codificación, formato, dimensiones o peso inválidos se guarda o pierde el mensaje específico.
 def test_invalid_uploads_are_rejected(name, image, message):
     with pytest.raises(decoraciones.InvalidDecoration, match=message):
         decoraciones.create('burger-house', 'poblado', name, image)

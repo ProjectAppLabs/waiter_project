@@ -12,6 +12,7 @@ const account = { id: 'a', nombre: 'Ana', correo: 'ana@example.com', verificada:
 const wrap = (ui: React.ReactNode) => render(<NextIntlClientProvider locale="es" messages={messages}>{ui}</NextIntlClientProvider>)
 afterEach(cleanup)
 
+// Falla si alguna plantilla no resta el descuento verificado del total o invita a registrarse a quien ya tiene cuenta.
 it.each(['A', 'B', 'C', 'D', 'E', 'F', 'generic'])('%s: verified projected discount reduces the gross cart without inviting registration', (family) => {
   useDinerStore.setState({ account, entry: null })
   const Layout = family === 'generic' ? GenericCart : (CART_LAYOUTS[family as TemplateFamily] ?? GenericCart)
@@ -24,6 +25,7 @@ it.each(['A', 'B', 'C', 'D', 'E', 'F', 'generic'])('%s: verified projected disco
   expect(screen.queryByRole('link', { name: /Regístrate/ })).toBeNull()
 })
 
+// Falla si el ahorro acumulado se suma como porcentaje o se trunca en vez de mostrarse en pesos.
 it('adds savings as money, including amounts larger than 100', () => {
   wrap(<AccountHome account={account} orders={[{ id: 'o', fecha: '', local: 'Local', mesa: 1, items: 1, total: 83430.9, estado: 'pagado', descuento: 4391.1 }]} discountPct={5} discountUsed onSignup={jest.fn()} onLogout={jest.fn()} busy={false} />)
   expect(screen.getByText('$ 4.391')).toBeInTheDocument()

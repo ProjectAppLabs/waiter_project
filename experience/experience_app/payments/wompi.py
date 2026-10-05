@@ -96,6 +96,9 @@ def safe_extras(data):
     if not isinstance(qr, str) or len(qr) > 250000 or not re.fullmatch(r'[A-Za-z0-9+/=\s]*', qr):
         qr = ''
     url = extra.get('async_payment_url', '')
+    # Lo que la pasarela mande que no sea texto (un número, una lista) no es un enlace: se descarta como uno inseguro.
+    if not isinstance(url, str):
+        return qr, ''
     try:
         parsed = urlsplit(url)
         if len(url) > 2048 or parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password:

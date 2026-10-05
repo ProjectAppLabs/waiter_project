@@ -234,6 +234,7 @@ def test_all_registered_pos_routes(isolated, method, route):
 # Falla si las fotos, planos, banners o anticipos ignoran ?org= y sirven recursos del otro cliente.
 @pytest.mark.parametrize('route', ['photos/<int:pk>', 'photos/gallery/<int:pk>', 'floors/<int:pk>/background',
     'floors/<int:pk>/images/<str:image_id>', 'banners/<int:pk>/image', 'public/reservations/<str:token>'])
+# Falla si un recurso público expone datos de otra organización o bloquea a su propia organización.
 def test_public_resources_query_organization(isolated, route):
     s = isolated
     path, _, _, _ = scenario(s, 'get', route)

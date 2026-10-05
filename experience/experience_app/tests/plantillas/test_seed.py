@@ -19,6 +19,7 @@ def catalog_dir(tmp_path):
 
 
 @pytest.mark.django_db
+# Falla si repetir la siembra duplica plantillas, omite actualizaciones o borra otras del catálogo.
 def test_seed_upserts_without_duplicating_or_deleting(catalog_dir):
     """Atrapa una siembra que duplique filas al repetirse, que no actualice un JSON corregido, o que borre lo que ya no está."""
     before = MenuTemplate.objects.count()
@@ -32,6 +33,7 @@ def test_seed_upserts_without_duplicating_or_deleting(catalog_dir):
 
 
 @pytest.mark.django_db
+# Falla si el comando no siembra el catálogo real o no informa las plantillas ya existentes.
 def test_seed_templates_command_reports_what_it_did():
     """Atrapa un comando que no exista o no siembre el catálogo real del repo."""
     out = StringIO()
@@ -40,6 +42,7 @@ def test_seed_templates_command_reports_what_it_did():
     assert 'B1' in out.getvalue()
 
 
+# Falla si la búsqueda de miniaturas admite rutas fuera del catálogo o códigos inexistentes.
 def test_thumbnail_path_only_resolves_files_inside_the_folder():
     """Atrapa una miniatura leída con un código que sea una ruta (../) o un archivo que no sea una plantilla."""
     assert seed.thumbnail_path('B1') is not None

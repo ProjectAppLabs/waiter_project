@@ -16,6 +16,7 @@ it('exposes a label as an accessible image when given', () => {
   expect(getByRole('img', { name: 'Buscar' })).toBeInTheDocument()
 })
 
+// Falla si algún nombre de la lista de iconos del kit no tiene su SVG y la pantalla muestra un hueco.
 it('every kit icon name resolves', () => {
   for (const name of KIT_ICON_NAMES) expect(render(<Icon name={name} />).container.querySelector('svg')).not.toBeNull()
 })

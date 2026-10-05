@@ -26,6 +26,7 @@ function setup() {
 }
 
 
+// Falla si los pendientes de una mesa se parten en varias tarjetas, se entrega desde la barra o no abre la mesa.
 it('groups all ready dishes, pending rounds and a call into a single table card', async () => {
   const { onOpenTable } = setup()
   expect(screen.getAllByRole('listitem')).toHaveLength(1)
@@ -40,6 +41,7 @@ it('groups all ready dishes, pending rounds and a call into a single table card'
   expect(onOpenTable).toHaveBeenCalledWith(1)
 })
 
+// Falla si mesas con el mismo número en pisos distintos se mezclan o si el filtro por tipo de pendiente no filtra.
 it('keeps repeated table numbers on different floors separate and filters by pending type', async () => {
   setup()
   await userEvent.selectOptions(screen.getByRole('combobox'), 'all')

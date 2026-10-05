@@ -48,6 +48,7 @@ def test_defaults_preserve_j1_and_do_not_share_mutable_state():
     (theme(colores={'tintaSuave': '#BBBBBB'}), 'tintaSuave sobre superficie'),
     (theme(colores={'superficie': '#32324D'}), 'tinta sobre superficie'),
 ])
+# Falla si el tema admite tipos, campos, valores, fuentes o contrastes inválidos sin explicar el rechazo.
 def test_invalid_themes_are_rejected(body, message):
     with pytest.raises(design.InvalidTheme, match=message):
         design.validate(body)

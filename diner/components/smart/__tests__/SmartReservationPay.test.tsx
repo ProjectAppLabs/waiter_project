@@ -58,6 +58,7 @@ it.each([[{deposit_state:'paid'},'Tu anticipo ya está pagado'],[{state:'cancell
  expect(createReservationPayment).not.toHaveBeenCalled()
 })
 
+// Falla si un enlace de pago sin token consulta la API en vez de mostrarse como inválido.
 it('rejects a link without a token without calling the API',()=>{
  render(<SmartReservationPay entry={entry} rest="demo" venue="salon" token={null}/>)
  expect(screen.getByRole('alert')).toHaveTextContent('Este enlace de pago no es válido.')

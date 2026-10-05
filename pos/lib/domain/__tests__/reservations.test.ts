@@ -69,12 +69,14 @@ describe('offscreenReservations', () => {
   const card = (id: number, timeStart: number) => ({ id, timeStart, timeEnd: timeStart + 1.5, label: `${timeStart}` }) as never
   const tables = [{ id: 1, reservations: [card(1, 10), card(2, 12), card(5, 15)] }, { id: 2, reservations: [card(5, 15), card(3, 19), card(4, 20.5)] }] as never
 
+  // Falla si los globitos cuentan mal las reservas fuera de la vista, cuentan dos veces una de grupo o no señalan la más cercana.
   it('counts what is hidden on each side and points at the nearest one', () => {
     // Se ven de las 14:00 a las 18:00 (franjas de 100 px): 10:00 y 12:00 quedan antes; 19:00 y 20:30, después.
     const { left, right } = offscreenReservations(tables, slots, { start: 800, end: 1600 }, 100)
     expect([left?.count, left?.nearest.id, left?.x]).toEqual([2, 2, 400])
     expect([right?.count, right?.nearest.id, right?.x]).toEqual([2, 3, 1800])
   })
+  // Falla si aparece un aviso de reservas fuera de la vista cuando todas caben en ella.
   it('says nothing when every reservation fits in view', () => {
     expect(offscreenReservations(tables, slots, { start: 0, end: 2400 }, 100)).toEqual({ left: null, right: null })
   })

@@ -40,6 +40,7 @@ def test_each_declared_variant_resolves_without_changing_tokens(layer, key, valu
     ({'distribucion': {'pago': 'oculto'}}, 'desconocido'),
     ({'distribucion': None}, 'tema.distribucion'),
 ])
+# Falla si se aceptan variantes o distribuciones inválidas sin señalar el campo que falla.
 def test_unknown_variants_are_rejected(body, path):
     with pytest.raises(design.InvalidTheme, match=path):
         design.validate(body)

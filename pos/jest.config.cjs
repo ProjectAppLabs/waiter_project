@@ -29,10 +29,10 @@ const customJestConfig = {
     // Trinquete (2026-10-04): un par de puntos por debajo de lo medido, para que la cobertura no baje sin avisar.
     // Súbelos cuando la cobertura mejore (skill /cobertura).
     global: {
-      branches: 81,
+      branches: 82,
       functions: 60,
-      lines: 75,
-      statements: 75,
+      lines: 80,
+      statements: 80,
     },
   },
   coverageReporters: ['text-summary', 'text', 'lcov', 'html', 'json-summary'],

@@ -12,6 +12,7 @@ const order = { id: 12, reference: 'P12', date: '2026-09-14 04:27:00', total: 90
   payments: [{ methodId: 1, method: 'Efectivo', amount: 50000 }, { methodId: 2, method: 'Tarjeta', amount: 40000 }] }
 beforeEach(() => { jest.clearAllMocks(); jest.mocked(listPaidOrders).mockResolvedValue([order]); jest.mocked(listInvoices).mockResolvedValue([]) })
 
+// Falla si la venta no muestra todos sus medios de pago y total, o si filtrar emite o cambia un documento.
 it('shows complete sales and filters only the query, without issuing or changing a document', async () => {
   mount()
   expect(await screen.findByRole('button', { name: 'Revisar venta P12' })).toBeVisible()
@@ -22,6 +23,7 @@ it('shows complete sales and filters only the query, without issuing or changing
   expect(invoiceOrder).not.toHaveBeenCalled()
 })
 
+// Falla si con más de una página de ventas no se ofrece «Siguiente» o no se pide el siguiente lote.
 it('offers pagination beyond the first batch instead of silently dropping older sales', async () => {
   jest.mocked(listPaidOrders).mockResolvedValue(Array.from({ length: 21 }, (_, i) => ({ ...order, id: i, reference: `P${i}` })))
   mount()
@@ -30,6 +32,7 @@ it('offers pagination beyond the first batch instead of silently dropping older 
   await waitFor(() => expect(listPaidOrders).toHaveBeenLastCalledWith(21, expect.objectContaining({ offset: 20 })))
 })
 
+// Falla si un error al cargar se muestra como lista vacía, como si todo estuviera facturado.
 it('shows a load failure instead of claiming every sale has been invoiced', async () => {
   jest.mocked(listPaidOrders).mockRejectedValue(new Error('offline'))
   mount()

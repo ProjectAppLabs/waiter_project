@@ -5,7 +5,7 @@ import { ReservationTimeline, TimelineSkeleton } from '@/components/reservations
 import { FloorSwitcher } from '@/components/tables/FloorHeader'
 import { messages } from '@/lib/i18n/messages'
 
-// El piso debe poder cambiarse también mientras carga, cuando no tiene mesas o si falla la petición.
+// Falla si el selector de piso desaparece o deja de responder mientras carga, sin mesas o tras un error.
 it.each(['loading', 'empty', 'error'] as const)('keeps floor navigation available in the %s state', (state) => {
   const change = jest.fn()
   const floorSelector = <FloorSwitcher stacked floors={[{ id: 1, name: 'Interior' }, { id: 2, name: 'Terraza' }]} activeId={1} onChange={change} />
