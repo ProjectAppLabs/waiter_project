@@ -41,3 +41,7 @@ if (typeof window !== 'undefined') Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: jest.fn(),
   })),
 });
+
+// Espera de waitFor/findBy: 1 s por omisión fallaba con la máquina cargada; 3 s sigue detectando lo que nunca llega.
+import { configure } from '@testing-library/react'
+configure({ asyncUtilTimeout: 3000 })

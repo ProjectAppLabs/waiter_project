@@ -57,15 +57,10 @@ export function invoicePdfUrl(invoiceId: number): string {
 
 export interface BillingSettings {
   company: string; journal: string; currency: string; tipProduct: string
-  tipAccountId: number | null; tipAccount: string; accounts: { id: number; name: string }[]
+  tipAccount: string
 }
 export function billingSettings(configId: number): Promise<BillingSettings> {
   void configId
-  return coreBusiness.billingSettings<RawCoreSettings>().then(toBillingSettings)
-}
-export function setTipAccount(configId: number, accountId: number): Promise<BillingSettings> {
-  void configId
-  void accountId
   return coreBusiness.billingSettings<RawCoreSettings>().then(toBillingSettings)
 }
 
@@ -77,4 +72,4 @@ function toDocument(d: coreBusiness.CoreDocumentRow): Invoice {
 type RawCoreDetail = Omit<AccountingDetail, 'companyCurrency'> & { company_currency: string }
 const camelDetail = (d: RawCoreDetail): AccountingDetail => ({ ...d, companyCurrency: d.company_currency })
 interface RawCoreSettings { company: string; journal: string; currency: string; tip_label: string; send_email: boolean; default_kind: string }
-const toBillingSettings = (r: RawCoreSettings): BillingSettings => ({ company: r.company, journal: r.journal, currency: r.currency, tipProduct: r.tip_label, tipAccountId: null, tipAccount: 'Propina recibida para terceros (no gravada)', accounts: [] })
+const toBillingSettings = (r: RawCoreSettings): BillingSettings => ({ company: r.company, journal: r.journal, currency: r.currency, tipProduct: r.tip_label, tipAccount: 'Propina recibida para terceros (no gravada)' })

@@ -44,7 +44,10 @@ export default function HistorialPage() {
   useEffect(() => { if (catalog) void reload() }, [catalog, reload])
   useEffect(() => {
     if (selectedId === null) return
-    void getKitOrderLines(selectedId).then((l) => setLines({ orderId: selectedId, lines: l }))
+    // Si el cajero cambia de pedido antes de que lleguen las líneas, la respuesta vieja no pisa la cuenta del nuevo.
+    let alive = true
+    void getKitOrderLines(selectedId).then((l) => { if (alive) setLines({ orderId: selectedId, lines: l }) })
+    return () => { alive = false }
   }, [selectedId])
 
   const visible = useMemo(() => filterHistory(orders.filter((o) => matchesOrderSearch(o, query)), filter), [orders, query, filter])

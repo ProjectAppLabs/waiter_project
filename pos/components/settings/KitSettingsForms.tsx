@@ -7,7 +7,6 @@ import { Chip } from '@/components/kit/Chip'
 import { Toggle } from '@/components/kit/Toggle'
 import { Icon } from '@/components/kit/Icon'
 import { StatusPill } from '@/components/kit/StatusPill'
-import { MapsLinkField, type MapsStatus } from '@/components/settings/MapsLinkField'
 import { SaveBar, useSaveState } from '@/components/settings/SettingsForms'
 import { Select, TextInput } from '@/components/ui/Field'
 import { play, setStation, type SoundId, type Station } from '@/lib/audio/sounds'
@@ -25,22 +24,20 @@ const SOUNDS: SoundId[] = ['tap', 'ticket', 'listo', 'demora', 'critico', 'llama
 const readLocal = (key: string, fallback: string) => { try { return localStorage.getItem(key) ?? fallback } catch { return fallback } }
 const writeLocal = (key: string, value: string) => { try { localStorage.setItem(key, value) } catch { /* sin almacenamiento: no pasa nada */ } }
 const box = 'rounded-md border border-border p-4 flex flex-col gap-3'
+// Vacío estable para el selector: un `[]` nuevo en cada lectura hace que zustand vea un cambio y repinte sin fin.
+const NO_CATEGORIES: { station: string | null }[] = []
 
 export function CompanyForm({ initial }: { initial: CompanyInfo }) {
   const t = useTranslations('pos.settings.restaurant')
   const [c, setC] = useState(initial)
   const [state, save] = useSaveState()
-  const [maps, setMaps] = useState<MapsStatus>('empty')
-  const initialPoint = c.waiter_latitude && c.waiter_longitude ? { lat: Number(c.waiter_latitude), lng: Number(c.waiter_longitude) } : null
-  const [start] = useState(initialPoint && Number.isFinite(initialPoint.lat) && Number.isFinite(initialPoint.lng) ? initialPoint : null)
   const field = (key: keyof CompanyInfo, label: string) => <TextInput key={key} label={label} value={String(c[key] ?? '')} onChange={(e) => setC((v) => ({ ...v, [key]: e.target.value }))} />
-  const mapsBlocks = maps === 'resolving' || maps === 'invalid' || maps === 'noPoint' || maps === 'unreachable'
   return (
     <div className="flex flex-col gap-4 max-w-3xl">
       <div className="grid grid-cols-2 gap-4">{field('name', t('name'))}{field('vat', t('vat'))}{field('phone', t('phone'))}{field('email', t('email'))}{field('street', t('street'))}{field('city', t('city'))}</div>
       <p className="text-sm text-soft">{t('addressHint')}</p>
-      <MapsLinkField initial={start} onChange={(point, status) => { setMaps(status); if (status === 'found' || status === 'empty') setC((v) => ({ ...v, waiter_latitude: point ? String(point.lat) : '', waiter_longitude: point ? String(point.lng) : '' })) }} />
-      <SaveBar state={state} onSave={() => save(() => saveCompany(c))} disabled={!c.name.trim() || mapsBlocks} />
+      {/* La ubicación en el mapa es de cada local (Restaurantes → datos del local), no de la empresa. */}
+      <SaveBar state={state} onSave={() => save(() => saveCompany(c))} disabled={!c.name.trim()} />
     </div>
   )
 }
@@ -115,7 +112,7 @@ export function DisplayForm() {
 function PrintSettingsBox() {
   const t = useTranslations('admin.settings.display.print')
   const [settings, setSettings] = useState<PrintSettings>(() => readPrintSettings())
-  const categories = useCatalogStore((s) => s.catalog?.categories ?? [])
+  const categories = useCatalogStore((s) => s.catalog?.categories ?? NO_CATEGORIES)
   const stations = [...new Set(categories.map((c) => c.station).filter((s): s is string => !!s))]
   const update = (patch: Partial<PrintSettings>) => setSettings((current) => { const next = { ...current, ...patch }; writePrintSettings(next); return next })
   const toggleStation = (station: string) => update({ stations: settings.stations.includes(station) ? settings.stations.filter((s) => s !== station) : [...settings.stations, station] })

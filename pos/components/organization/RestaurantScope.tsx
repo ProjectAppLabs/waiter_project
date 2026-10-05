@@ -26,6 +26,8 @@ export function RestaurantScope({ label, children }: { label: string; children: 
     void (async () => {
       try {
         if (current?.id !== selected.id) await chooseRestaurant({ id: selected.id, name: selected.name })
+        // Elegir el restaurante cambia `current` y relanza este efecto: esa segunda pasada carga la carta, no esta.
+        if (!alive) return
         await loadCatalog(useAuthStore.getState().session?.id ?? null)
       } catch (e) { if (alive) setError(e instanceof Error ? e.message : 'No se pudo cargar el restaurante.') }
     })()

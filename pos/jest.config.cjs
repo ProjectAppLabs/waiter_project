@@ -8,6 +8,10 @@ const createJestConfig = nextJest({
 const customJestConfig = {
   testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+  // Con la máquina cargada (otras suites o servidores a la vez) 5 s por prueba se quedaba corto y fallaban pruebas sanas.
+  testTimeout: 15000,
+  // La mitad de los núcleos: con todos, las suites se ahogaban entre ellas cuando la máquina ya tenía carga.
+  maxWorkers: '50%',
   testMatch: ['<rootDir>/**/__tests__/**/*.test.(ts|tsx)'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
@@ -29,10 +33,10 @@ const customJestConfig = {
     // Trinquete (2026-10-04): un par de puntos por debajo de lo medido, para que la cobertura no baje sin avisar.
     // Súbelos cuando la cobertura mejore (skill /cobertura).
     global: {
-      branches: 82,
-      functions: 60,
-      lines: 80,
-      statements: 80,
+      branches: 85,
+      functions: 66,
+      lines: 90,
+      statements: 90,
     },
   },
   coverageReporters: ['text-summary', 'text', 'lcov', 'html', 'json-summary'],

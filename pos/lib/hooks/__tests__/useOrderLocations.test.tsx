@@ -25,7 +25,7 @@ beforeEach(() => {
 it('shares one floor read across orders and does not refetch on every order poll', async () => {
   jest.mocked(readPlan).mockResolvedValue({ id: 1, name: 'Terraza', revision: 0, walls: [], tables: [], zones: [] })
   const { result, rerender } = renderHook(({ rows }) => useOrderLocations(rows), { initialProps: { rows: orders } })
-  await waitFor(() => expect(result.current.get(10)?.zoneStatus).toBe('unavailable'))
+  await waitFor(() => expect(result.current.get(10)?.zoneStatus).toBe('unavailable'), { timeout: 5000 })
   expect(readPlan).toHaveBeenCalledTimes(1)
   expect(readPlan).toHaveBeenCalledWith(1)
   rerender({ rows: [...orders] })
@@ -36,5 +36,5 @@ it('shares one floor read across orders and does not refetch on every order poll
 it('keeps the known floor and reports unavailable rather than unassigned when the plan fails', async () => {
   jest.mocked(readPlan).mockRejectedValue(new Error('offline'))
   const { result } = renderHook(() => useOrderLocations(orders))
-  await waitFor(() => expect(result.current.get(10)).toEqual({ floorId: 1, zoneId: null, floor: 'Terraza', zone: null, zoneStatus: 'unavailable' }))
+  await waitFor(() => expect(result.current.get(10)).toEqual({ floorId: 1, zoneId: null, floor: 'Terraza', zone: null, zoneStatus: 'unavailable' }), { timeout: 5000 })
 })

@@ -25,8 +25,14 @@ export function Account({ rest, venue, token }: { entry: Entry; rest: string; ve
   const discountUsed = account?.descuentoDisponible === false || orders.some((o) => o.descuento > 0)
   const History = HISTORY_PATTERNS[template.layouts?.historial] ?? GenericHistory
   // Volver a pedir: las mismas líneas al carrito de esta mesa, una a una (el servidor recalcula), y se abre el pedido.
+  // Si el restaurante rechaza un plato (agotado, cerrado), se para ahí y no navega: el comensal ve el aviso en vez de
+  // llegar a un carrito incompleto como si todo hubiera salido bien.
   const reorder = async (order: AccountOrder) => {
-    for (const l of order.lineas ?? []) await add(l.producto_id, l.cantidad, '')
+    useDinerStore.setState({ error: null })
+    for (const l of order.lineas ?? []) {
+      await add(l.producto_id, l.cantidad, '')
+      if (useDinerStore.getState().error) return
+    }
     go('pedido')
   }
   return (

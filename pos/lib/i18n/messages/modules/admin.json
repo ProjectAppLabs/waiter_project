@@ -316,18 +316,11 @@
       "title": "Configuración contable",
       "loading": "Consultando configuración…",
       "loadError": "No pudimos consultar la configuración.",
-      "saveError": "No pudimos guardar la cuenta.",
       "retry": "Reintentar",
       "noJournal": "Diario de ventas pendiente",
       "taxHint": "Los impuestos y las cuentas provienen de la configuración de la empresa y de sus productos. IVA e INC dependen de las responsabilidades de cada restaurante.",
-      "currentTip": "Cuenta actual de propinas: {account}",
-      "tipAccount": "Pasivo para propinas del personal",
-      "chooseAccount": "Selecciona una cuenta contable",
-      "tipHint": "Se aplicará a nuevos asientos de este producto en la empresa. Conserva los asientos históricos; las correcciones se realizan por separado.",
       "noTip": "Este POS no tiene producto de propinas configurado.",
-      "saving": "Guardando…",
-      "save": "Guardar cuenta",
-      "saved": "Cuenta guardada. Puedes volver a revisar la venta."
+      "tipTreatment": "Las propinas se registran como «{account}»: no hacen parte de los ingresos ni de la base de IVA o INC."
     }
   },
   "settings": {

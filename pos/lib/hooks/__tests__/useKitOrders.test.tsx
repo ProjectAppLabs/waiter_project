@@ -16,7 +16,7 @@ jest.mock('@/lib/services/tables', () => ({ ...jest.requireActual('@/lib/service
 const kit = (id: number, over: Partial<KitOrder> = {}): KitOrder => ({ id, number: `DI-0${id}`, type: 'dineIn', state: 'draft', tableId: id, tableNumber: id, customer: '', startedAt: '', total: 1000, tax: 0,
   lines: [{ id: id * 10, uuid: `l${id}`, productId: 1, name: 'Plato', qty: 1, unitPrice: 1000, subtotal: 1000, total: 1000, note: '', courseId: id, readyAt: null, servedAt: null, options: [] }],
   courses: [{ id, fired: true, readyAt: null, servedAt: null }], tracking: null, ...over } as KitOrder)
-const emergency = (localId: number, over: Partial<EmergencyOrder>): EmergencyOrder => ({ uuid: `e${localId}`, localId, number: `E-${-localId}`, type: 'takeAway', tableId: null, tableNumber: null, customer: '', createdAt: '', lines: [], total: 5000, tax: 0, paid: false, fired: false, ...over })
+const emergency = (localId: number, over: Partial<EmergencyOrder>): EmergencyOrder => ({ uuid: `e${localId}`, localId, number: `E-${-localId}`, type: 'takeout', tableId: null, tableNumber: null, customer: '', createdAt: '', lines: [], total: 5000, tax: 0, paid: false, fired: false, ...over })
 let sessionId = 100
 const signIn = () => useAuthStore.setState({ session: { id: ++sessionId, configId: 1, state: 'opened' } })
 

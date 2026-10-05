@@ -16,7 +16,7 @@ jest.mock('@/components/organization/SubscriptionNotice', () => ({ SubscriptionN
 
 const owner = { user: { uid: 1, name: 'Dueña', companyId: 1, role: 'owner' }, employee: { role: 'owner', name: 'Dueña' } }
 function as(who: typeof owner | { user: object; employee: object }, modules: string[] | null) {
-  useAuthStore.setState({ ...(who as never), hydrated: true, hydrate: jest.fn(async () => undefined), logout: jest.fn(async () => undefined), modules })
+  useAuthStore.setState({ ...(who as Record<string, unknown>), hydrated: true, hydrate: jest.fn(async () => undefined), logout: jest.fn(async () => undefined), modules })
 }
 beforeEach(() => { jest.clearAllMocks(); pathname = '/organizacion' })
 
