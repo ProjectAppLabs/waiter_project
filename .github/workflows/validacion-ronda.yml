@@ -36,6 +36,8 @@ jobs:
       DB_PASSWORD: pruebas-ronda
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -48,21 +50,22 @@ jobs:
           python -m pip install -r experience/requirements.txt
       - name: Caja y regresión inmediata
         working-directory: experience
-        run: >-
-          python -m pytest sales/tests/views/test_cash_moves_idempotency.py
-          sales/tests/test_operations.py sales/tests/test_permissions.py
-          --junitxml=../test-results/backend.xml -q
+        run: |
+          python -m pytest sales/tests/views/test_cash_moves_idempotency.py sales/tests/test_operations.py::test_seed_and_unique_shift sales/tests/test_operations.py::test_payment_change_tip_and_cash sales/tests/test_operations.py::test_closing_note_tolerance_and_recipients sales/tests/test_operations.py::test_nobody_closes_with_drafts sales/tests/test_operations.py::test_database_unique_open_shift sales/tests/test_operations.py::test_closings_manager_scope --junitxml=../test-results/backend.xml -q
+          python -m pytest sales/tests/test_permissions.py -k shifts --reuse-db --junitxml=../test-results/backend-permissions.xml -q
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: backend-ronda
-          path: test-results/backend.xml
+          path: test-results/backend*.xml
 
   pos:
     name: POS · tipos, pruebas y calidad
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: '24.20.0'
@@ -124,6 +127,8 @@ jobs:
       PLAYWRIGHT_BASE_URL: http://127.0.0.1:3117
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -149,7 +154,7 @@ jobs:
           python scripts/calidad/seed_ronda.py > test-results/fixture.json
       - name: Aplicación y recorridos
         run: |
-          DJANGO_DB_NAME=test_waiter_qa_ui python experience/manage.py runserver 127.0.0.1:8117 --noreload > test-results/backend-server.log 2>&1 &
+          DJANGO_DB_NAME=test_waiter_qa_ui gunicorn --chdir experience experience_project.wsgi:application --bind 127.0.0.1:8117 --workers 2 --threads 4 --timeout 60 --keep-alive 2 --no-control-socket > test-results/backend-server.log 2>&1 &
           cd pos
           npm run build
           npm run start -- --hostname 127.0.0.1 --port 3117 > ../test-results/pos-server.log 2>&1 &

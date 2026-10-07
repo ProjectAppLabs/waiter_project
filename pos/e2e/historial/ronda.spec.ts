@@ -9,8 +9,8 @@ for (const viewport of RONDA_VIEWPORTS) {
   test(`historial deja abrir devolución de $ 38.900 en ${viewport.alias}`, {
     tag: ['@flow:pos-history-review', '@flow:pos-history-refund', '@outcome:display', `@viewport:${viewport.alias}`],
   }, async ({ page }) => {
-    await page.setViewportSize(viewport)
     await signInAsQaOperator(page)
+    await page.setViewportSize(viewport)
     const order = await createPaidHistory(page, viewport.alias)
 
     const historyLink = page.getByRole('link', { name: 'Historial', exact: true })

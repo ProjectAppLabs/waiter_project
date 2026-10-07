@@ -9,8 +9,8 @@ for (const viewport of RONDA_VIEWPORTS) {
   test(`cobro en efectivo conserva $ 38.900 en ${viewport.alias}`, {
     tag: ['@flow:pos-payment-checkout', '@outcome:success', `@viewport:${viewport.alias}`],
   }, async ({ page }) => {
-    await page.setViewportSize(viewport)
     await signInAsQaOperator(page)
+    await page.setViewportSize(viewport)
     const order = await createPendingCheckout(page, viewport.alias)
 
     const ordersLink = page.getByRole('link', { name: 'Pedidos', exact: true })

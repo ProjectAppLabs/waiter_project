@@ -33,7 +33,7 @@ export async function qaApi<T>(page: Page, path: string, init: ApiInit = {}): Pr
   }, [path, init] as const) as Promise<T>
 }
 
-// El acceso siempre pasa por la pantalla de login; cada prueba abre su propio contexto con esta misma cuenta serializada.
+// El acceso siempre pasa por la pantalla de login y por la selección visible de sede; cada prueba abre su propio contexto serializado.
 export async function signInAsQaOperator(page: Page) {
   await page.goto('/login')
   const submit = page.getByRole('button', { name: 'Entrar', exact: true })
@@ -43,7 +43,17 @@ export async function signInAsQaOperator(page: Page) {
     await expect(submit).toBeEnabled({ timeout: 1_000 })
   }).toPass({ timeout: 60_000 })
   await submit.click()
-  await expect(page).not.toHaveURL(/\/login(?:$|[?#])/, { timeout: 60_000 })
+  await expect(page).toHaveURL(/\/organizacion$/, { timeout: 60_000 })
+
+  const organizationNav = page.getByRole('navigation', { name: 'Consola de la organización', exact: true })
+  const restaurantsLink = organizationNav.getByRole('link', { name: 'Restaurantes', exact: true })
+  await restaurantsLink.click()
+  await expect(page).toHaveURL(/\/organizacion\/restaurantes$/)
+  const restaurants = page.getByRole('list', { name: 'Restaurantes', exact: true })
+  const localQa = restaurants.getByRole('listitem').filter({ hasText: RESTAURANT_NAME })
+  await expect(localQa.getByRole('heading', { name: RESTAURANT_NAME, exact: true })).toHaveText(RESTAURANT_NAME)
+  await localQa.getByRole('button', { name: 'Entrar al POS', exact: true }).click()
+  await expect(page).toHaveURL(/\/dashboard$/)
 }
 
 function fixtureName(kind: 'Pago' | 'Historial', viewport: string) {

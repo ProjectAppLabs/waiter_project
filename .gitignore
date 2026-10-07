@@ -70,6 +70,8 @@ test-reports/
 /backend
 # Next regenera este archivo en dev, build y typegen.
 /pos/next-env.d.ts
+# Coordinación temporal de QA; el engine la retira tras validar.
+/.qa-gate-pending
 
 # IDE & tooling
 .windsurf/plans/
