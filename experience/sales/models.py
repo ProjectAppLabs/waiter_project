@@ -56,11 +56,16 @@ class CashMove(models.Model):
     kind = models.CharField(max_length=3, choices=[("in", "Entrada"), ("out", "Salida")])
     amount = money()
     reason = models.CharField(max_length=200)
+    # Los movimientos anteriores no tienen clave; NULL conserva su historial sin inventar un reintento.
+    request_key = ExactCharField(max_length=80, null=True, blank=True, default=None)
     account = models.ForeignKey("accounts.Account", on_delete=models.PROTECT)
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        constraints = [models.CheckConstraint(condition=models.Q(amount__gt=0), name="cash_move_positive")]
+        constraints = [
+            models.CheckConstraint(condition=models.Q(amount__gt=0), name="cash_move_positive"),
+            models.UniqueConstraint(fields=["shift", "request_key"], name="cash_move_shift_key_unique"),
+        ]
 
 
 class Order(models.Model):

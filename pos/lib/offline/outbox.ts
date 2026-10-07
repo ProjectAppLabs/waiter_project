@@ -10,7 +10,7 @@ import * as sales from '@/lib/services/core/sales'
 
 // Plan U2: la cola de salida del modo sin conexión. Cada operación que no pudo llegar al servidor se guarda en orden,
 // en el navegador, con los identificadores que la hacen segura de repetir (el `uuid` del pedido y de cada línea, la
-// `request_key` de cada pago). Al volver la red se envían una por una; si una respuesta se perdió, repetirla no duplica
+// `request_key` de cada pago y movimiento de caja). Al volver la red se envían una por una; si una respuesta se perdió, repetirla no duplica
 // nada en el servidor.
 export type OrderRef = { uuid: string } | { id: number }
 interface Base { id: string; at: string; label: string }
@@ -23,7 +23,7 @@ export type OutboxEntry = Base & (
   // `expected` y `cash`: lo que el equipo calculó y si fue efectivo, para el arqueo provisional (plan V).
   | { kind: 'payment'; order: OrderRef; methodId: number; amount: number | 'balance'; received: number | null; reference: string; requestKey: string; expected?: number; cash?: boolean }
   | { kind: 'pay'; order: OrderRef; paidAt?: string }
-  | { kind: 'cash_move'; shiftId: number; type: 'in' | 'out'; amount: number; reason: string }
+  | { kind: 'cash_move'; shiftId: number; type: 'in' | 'out'; amount: number; reason: string; requestKey: string }
 )
 type NewEntry = OutboxEntry extends infer E ? E extends OutboxEntry ? Omit<E, 'id' | 'at'> : never : never
 export interface FailedEntry { entry: OutboxEntry; error: string }
@@ -32,10 +32,19 @@ const sessionExpired = (e: unknown) => e instanceof CoreError && (e.status === 4
 
 const key = () => `waiter.outbox:${currentOrg() ?? '-'}`
 interface Saved { entries: OutboxEntry[]; failed: FailedEntry[]; ids: Record<string, number> }
+const cashMoveNeedsReview = (entry: OutboxEntry) => entry.kind === 'cash_move' && (typeof entry.requestKey !== 'string' || !entry.requestKey.trim())
+const CASH_MOVE_REVIEW_MESSAGE = 'Revisa este movimiento en el historial de caja antes de volver a registrarlo: se guardó sin identificador y pudo haberse aplicado.'
 function load(): Saved {
   try {
     const raw = JSON.parse(localStorage.getItem(key()) ?? '{}') as Partial<Saved>
-    return { entries: raw.entries ?? [], failed: raw.failed ?? [], ids: raw.ids ?? {} }
+    const entries: OutboxEntry[] = []
+    const failed = [...(raw.failed ?? [])]
+    for (const entry of raw.entries ?? []) {
+      // No puede saberse si el servidor aceptó un POST antiguo cuya respuesta se perdió.
+      if (cashMoveNeedsReview(entry)) failed.push({ entry, error: CASH_MOVE_REVIEW_MESSAGE })
+      else entries.push(entry)
+    }
+    return { entries, failed, ids: raw.ids ?? {} }
   } catch { return { entries: [], failed: [], ids: {} } }
 }
 function save(state: Saved): void {
@@ -89,13 +98,18 @@ export const useOutboxStore = create<OutboxState>((set, get) => {
         return
       }
       case 'pay': await sales.payOrder(resolve(entry.order), entry.paidAt); return
-      case 'cash_move': await sales.cashMove(entry.shiftId, entry.type, entry.amount, entry.reason); return
+      case 'cash_move': {
+        // También protege las entradas antiguas que ya estaban cargadas cuando se actualizó la aplicación.
+        if (cashMoveNeedsReview(entry)) throw new CoreError(409, 'cash_move_review_required', CASH_MOVE_REVIEW_MESSAGE)
+        await sales.cashMove(entry.shiftId, entry.type, entry.amount, entry.reason, entry.requestKey)
+        return
+      }
     }
   }
   return {
     entries: [], failed: [], ids: {}, syncing: false, needsLogin: false, loaded: false,
     resumeAfterLogin: () => { if (get().needsLogin) { set({ needsLogin: false }); void get().sync() } },
-    hydrate: () => { if (!get().loaded) set({ ...load(), loaded: true }) },
+    hydrate: () => { if (!get().loaded) { set({ ...load(), loaded: true }); persist() } },
     enqueue: (input) => {
       get().hydrate()
       const entry = { ...input, id: uuid(), at: new Date().toISOString() } as OutboxEntry
@@ -112,15 +126,16 @@ export const useOutboxStore = create<OutboxState>((set, get) => {
       try {
         while (get().entries.length > 0) {
           const entry = get().entries[0]
-          const ref = entry.kind === 'create_order' ? entry.uuid : entry.kind === 'cash_move' ? `caja-${entry.shiftId}` : refOf(entry.order)
+          // Los movimientos de una caja son independientes; un rechazo no cancela los siguientes.
+          const ref = entry.kind === 'create_order' ? entry.uuid : entry.kind === 'cash_move' ? null : refOf(entry.order)
           try {
-            if (broken.has(ref)) throw new CoreError(409, 'depends_on_failed', 'No se envió porque falló una operación anterior de este pedido.')
+            if (ref !== null && broken.has(ref)) throw new CoreError(409, 'depends_on_failed', 'No se envió porque falló una operación anterior de este pedido.')
             await run(entry)
             set((s) => ({ entries: s.entries.slice(1) }))
           } catch (e) {
             if (unreachable(e)) break
             if (sessionExpired(e)) { set({ needsLogin: true }); break }
-            broken.add(ref)
+            if (ref !== null) broken.add(ref)
             const error = e instanceof Error ? e.message : String(e)
             set((s) => ({ entries: s.entries.slice(1), failed: [...s.failed, { entry, error }] }))
           }

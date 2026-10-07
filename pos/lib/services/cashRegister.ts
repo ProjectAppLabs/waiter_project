@@ -1,3 +1,4 @@
+import { uuid } from '@/lib/domain/uuid'
 import { useOutboxStore } from '@/lib/offline/outbox'
 import { CoreError } from '@/lib/services/core/http'
 import * as sales from '@/lib/services/core/sales'
@@ -34,11 +35,13 @@ export async function closeRegister(sessionId: number, countedCash: number, note
 
 // Plan V: sin conexión la entrada o salida de efectivo queda en la cola y cuenta en el arqueo provisional.
 export async function cashInOut(sessionId: number, type: 'in' | 'out', amount: number, reason: string): Promise<void> {
+  // La misma clave viaja desde el primer POST hasta el reintento, incluso si se perdió una respuesta exitosa.
+  const requestKey = `cash-move-${uuid()}`
   try {
-    await sales.cashMove(sessionId, type, amount, reason)
+    await sales.cashMove(sessionId, type, amount, reason, requestKey)
   } catch (e) {
     if (!(e instanceof CoreError && e.code === 'unreachable')) throw e
-    useOutboxStore.getState().enqueue({ kind: 'cash_move', shiftId: sessionId, type, amount, reason, label: reason })
+    useOutboxStore.getState().enqueue({ kind: 'cash_move', shiftId: sessionId, type, amount, reason, requestKey, label: reason })
   }
 }
 

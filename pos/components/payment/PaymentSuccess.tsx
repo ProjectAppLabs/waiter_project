@@ -17,8 +17,8 @@ export function PaymentSuccess({ summary, onPrint, onDone }: { summary: PaidSumm
   const t = useTranslations('payment')
   const hasChange = summary.change > 0
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-overlay/60 p-6">
-      <div role="dialog" aria-modal="true" aria-label={t('successTitle')} className="w-[480px] max-w-full bg-surface rounded-xl shadow-xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/60 p-6">
+      <div role="dialog" aria-modal="true" aria-label={t('successTitle')} className="w-full min-w-0 max-w-[480px] max-h-[calc(100dvh-3rem)] bg-surface rounded-xl shadow-xl overflow-y-auto">
         <div className="px-6 pt-8 pb-5 flex flex-col items-center gap-2 text-center">
           <span className="w-[76px] h-[76px] rounded-full bg-primary text-primary-ink grid place-items-center"><Icon name="check" size={38} /></span>
           <p className="mt-2 text-[20px] font-semibold text-ink">{t('successTitle')}</p>

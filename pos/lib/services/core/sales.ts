@@ -67,8 +67,8 @@ export const createShift = (restaurantId: number, openingCash: number, notes: st
   coreFetch<{ shift: CoreShift }>('shifts', { method: 'POST', body: { restaurant_id: restaurantId, opening_cash: openingCash, notes } }).then((r) => r.shift)
 export const listShifts = (restaurantId: number, limit = 12) => coreFetch<{ shifts: CoreShift[] }>(`shifts?${q({ restaurant_id: restaurantId, limit })}`).then((r) => r.shifts)
 export const shiftClosing = (shiftId: number) => coreFetch<CoreClosing>(`shifts/${shiftId}/closing`)
-export const cashMove = (shiftId: number, kind: 'in' | 'out', amount: number, reason: string) =>
-  coreFetch<{ expected_cash: number }>(`shifts/${shiftId}/moves`, { method: 'POST', body: { kind, amount, reason } })
+export const cashMove = (shiftId: number, kind: 'in' | 'out', amount: number, reason: string, requestKey: string) =>
+  coreFetch<{ expected_cash: number }>(`shifts/${shiftId}/moves`, { method: 'POST', body: { kind, amount, reason, request_key: requestKey } })
 export const closeShift = (shiftId: number, countedCash: number, notes: string) =>
   coreFetch<{ shift: CoreShift }>(`shifts/${shiftId}/close`, { method: 'POST', body: { counted_cash: countedCash, notes } }).then((r) => r.shift)
 export const cashClosings = (from: string, to: string, restaurantIds: number[] | null, onlyDifferences: boolean) =>
