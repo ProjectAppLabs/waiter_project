@@ -8,17 +8,24 @@ import pytest
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
+from freezegun import freeze_time
 
 from accounts.models import Account
 from sales.models import CashMove, CashShift, Order, Payment, Refund, RefundPayment
+from sales.tests.helpers import BASE, call, cash_method
 from tenancy.tests.helpers import account, organization, restaurant
-
-from .helpers import BASE, call, cash_method
 
 pytestmark = pytest.mark.django_db
 
 # Medido en MySQL: el historial y los controles de acceso usan seis consultas, sin crecer por turno.
 MAX_SHIFT_LIST_QUERIES = 6
+
+
+@pytest.fixture(autouse=True)
+def reloj_congelado():
+    """Mantiene la sesión y las fechas del historial en el mismo instante de prueba."""
+    with freeze_time("2026-10-08T15:00:00Z"):
+        yield
 
 
 def turno(s, restaurant=None, **changes):
@@ -57,6 +64,7 @@ def pedido(shift, state="paid", total="12000.42", tip="1200.11"):
 
 
 def test_lista_vacia_y_turno_sin_ventas_devuelven_cero(setup):
+    """Una caja sin pedidos cobrados conserva el cero monetario."""
     # Falla si una sede sin turnos pierde la lista vacía o los borradores se cuentan como ventas.
     s = setup
     path = f"shifts?restaurant_id={s['r1'].pk}"
@@ -70,14 +78,15 @@ def test_lista_vacia_y_turno_sin_ventas_devuelven_cero(setup):
 
     assert response.status_code == 200
     row = response.data["shifts"][0]
-    assert row["id"] == shift.pk and row["orders"] == 0
-    assert row["total"] == Decimal("0") and isinstance(row["total"], Decimal)
+    assert (row["id"], row["orders"], row["total"]) == (shift.pk, 0, Decimal("0"))
+    assert isinstance(row["total"], Decimal)
     assert type(row["orders"]) is int
-    assert row["closed_by"] is None and row["closed_at"] is None
+    assert (row["closed_by"], row["closed_at"]) == (None, None)
     assert response.json()["shifts"][0]["total"] == 0
 
 
 def test_resumen_coincide_con_arqueo_sin_propinas_ni_duplicar_pagos(setup):
+    """La lista muestra las ventas cobradas sin propina aun con devoluciones."""
     # Falla si se suman propinas o borradores, se restan devoluciones o los pagos multiplican pedidos.
     s = setup
     shift = CashShift.objects.create(restaurant=s["r1"], opened_by=s["person"])
@@ -109,11 +118,13 @@ def test_resumen_coincide_con_arqueo_sin_propinas_ni_duplicar_pagos(setup):
 
     assert row["total"] == report["orders_total"] == Decimal("21600.62")
     assert row["orders"] == report["orders_count"] == 2
-    assert isinstance(row["total"], Decimal) and type(row["orders"]) is int
+    assert isinstance(row["total"], Decimal)
+    assert type(row["orders"]) is int
     assert set(row) == {"id", "state", "opened_at", "closed_at", "opened_by", "closed_by", "total", "orders"}
 
 
 def test_lista_y_suma_permanecen_en_la_sede_solicitada(setup):
+    """Cada historial informa sólo las ventas de la sede autorizada."""
     # Falla si el historial o sus importes incluyen turnos de otra sede u organización.
     s = setup
     own = turno(s)
@@ -132,10 +143,13 @@ def test_lista_y_suma_permanecen_en_la_sede_solicitada(setup):
 
     assert [(row["id"], row["orders"], row["total"]) for row in own_rows] == [(own.pk, 1, Decimal("10800.31"))]
     assert [(row["id"], row["orders"], row["total"]) for row in local_rows] == [(other_local.pk, 1, Decimal("5500.00"))]
-    assert forbidden.status_code == 404 and "shifts" not in forbidden.data
+    assert forbidden.status_code == 404
+    assert "shifts" not in forbidden.data
 
 
+@freeze_time("2026-10-08T15:00:00Z")
 def test_consultas_constantes_con_uno_doce_y_cincuenta_turnos(setup, record_testsuite_property):
+    """Ampliar el historial conserva las cifras y el presupuesto de consultas."""
     # Falla si listar más turnos repite el arqueo o consulta por cada persona, perdiendo orden o cifras.
     s = setup
     shifts = []
