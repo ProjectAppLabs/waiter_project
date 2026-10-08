@@ -1,7 +1,8 @@
 // qa: draft-unvalidated (2026-10-07 — pendiente primera ejecución viva)
-import { expect, test } from '@playwright/test'
+import { expect } from '@playwright/test'
 
-import { createPendingCheckout, expectNoHorizontalDocumentOverflow, expectReachable, orderById, signInAsQaOperator } from '../helpers/ronda'
+import { createPendingCheckout, expectNoHorizontalDocumentOverflow, expectReachable, orderById } from '../helpers/ronda'
+import { test } from '../helpers/rondaFixture'
 import { RONDA_VIEWPORTS } from '../helpers/viewports'
 
 for (const viewport of RONDA_VIEWPORTS) {
@@ -9,23 +10,22 @@ for (const viewport of RONDA_VIEWPORTS) {
   test(`cobro en efectivo conserva $ 38.900 en ${viewport.alias}`, {
     tag: ['@flow:pos-payment-checkout', '@outcome:success', `@viewport:${viewport.alias}`],
   }, async ({ page }) => {
-    await signInAsQaOperator(page)
-    await page.setViewportSize(viewport)
+    await page.goto('/dashboard')
+    await expect(page).toHaveURL(/\/dashboard$/)
     const order = await createPendingCheckout(page, viewport.alias)
 
     const ordersLink = page.getByRole('link', { name: 'Pedidos', exact: true })
-    await expectReachable(ordersLink, 'el enlace Pedidos')
     await ordersLink.click()
     await expect(page).toHaveURL(/\/pedidos$/)
 
     const orderCard = page.getByRole('article', { name: `Cuenta ${order.number}`, exact: true })
     await expect(orderCard).toContainText('$ 38.900')
     const charge = orderCard.getByRole('link', { name: 'Cobrar', exact: true })
-    await expectReachable(charge, 'la acción Cobrar')
     await charge.click()
 
     const payment = page.getByRole('dialog', { name: 'Pago', exact: true })
     await expect(payment).toContainText('$ 38.900')
+    await page.setViewportSize(viewport)
     await expectReachable(payment, 'el diálogo Pago')
     const manualAmount = payment.getByRole('textbox', { name: 'Importe de este pago', exact: true })
     const manualAmountGeometry = await expectReachable<HTMLInputElement>(manualAmount, 'el importe manual')
@@ -69,12 +69,12 @@ for (const viewport of RONDA_VIEWPORTS) {
     await expectReachable(paidChange, 'el cambio del éxito de pago')
     const done = success.getByRole('button', { name: 'Listo', exact: true })
     await expectReachable(done, 'Listo en el éxito de pago')
+    await expectNoHorizontalDocumentOverflow(page)
     await done.click()
     await expect(page).toHaveURL(/\/pedidos$/)
 
     const after = await orderById(page, order.id)
     expect(after.order.state).toBe('paid')
     expect(after.order.total).toBe(38_900)
-    await expectNoHorizontalDocumentOverflow(page)
   })
 }

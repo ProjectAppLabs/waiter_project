@@ -14,7 +14,8 @@ condicionales se expresan mediante columnas calculadas nullable
 seleccionan el motor; el default SQLite no demuestra compatibilidad MySQL.
 
 El clon principal es el checkout de servicio. Se trabaja en una rama de sesión
-y un worktree; se entrega PR abierto con CI verde, sin merge. No ejecutar
+y un worktree; se entrega PR abierto con CI verde. Si el operador autoriza la
+integración, merge-queue la realiza desde su propio worktree. No ejecutar
 `manage.py migrate` desde el worktree ni enlazar una base viva para pruebas.
 
 Para la ronda se usa MySQL aislado y nombres `test_waiter_qa_backend` y

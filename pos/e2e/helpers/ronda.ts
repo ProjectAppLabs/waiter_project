@@ -33,7 +33,7 @@ export async function qaApi<T>(page: Page, path: string, init: ApiInit = {}): Pr
   }, [path, init] as const) as Promise<T>
 }
 
-// El acceso siempre pasa por la pantalla de login y por la selección visible de sede; cada prueba abre su propio contexto serializado.
+// El acceso pasa por login y selección visible de sede; la fixture conserva esa sesión real y cada prueba abre un contexto independiente.
 export async function signInAsQaOperator(page: Page) {
   await page.goto('/login')
   const submit = page.getByRole('button', { name: 'Entrar', exact: true })
@@ -128,8 +128,8 @@ export type Geometry = {
 
 // Mide el control ya desplazado al viewport y revisa cada ancestro que puede recortarlo; scrollWidth por sí solo no detecta modales estrechos.
 export async function expectReachable<T extends HTMLElement = HTMLElement>(locator: Locator, name: string): Promise<Geometry> {
-  await locator.scrollIntoViewIfNeeded()
   const geometry = await locator.evaluate<Geometry, undefined, T>((element) => {
+    element.scrollIntoView({ behavior: 'instant', block: 'nearest', inline: 'nearest' })
     const target = element
     const rect = target.getBoundingClientRect()
     const clippingAncestors: string[] = []

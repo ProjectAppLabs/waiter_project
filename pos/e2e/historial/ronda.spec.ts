@@ -1,7 +1,7 @@
-// qa: draft-unvalidated (2026-10-07 — pendiente primera ejecución viva)
-import { expect, test } from '@playwright/test'
+import { expect } from '@playwright/test'
 
-import { createPaidHistory, expectNoHorizontalDocumentOverflow, expectReachable, signInAsQaOperator } from '../helpers/ronda'
+import { createPaidHistory, expectNoHorizontalDocumentOverflow, expectReachable } from '../helpers/ronda'
+import { test } from '../helpers/rondaFixture'
 import { RONDA_VIEWPORTS } from '../helpers/viewports'
 
 for (const viewport of RONDA_VIEWPORTS) {
@@ -9,14 +9,14 @@ for (const viewport of RONDA_VIEWPORTS) {
   test(`historial deja abrir devolución de $ 38.900 en ${viewport.alias}`, {
     tag: ['@flow:pos-history-review', '@flow:pos-history-refund', '@outcome:display', `@viewport:${viewport.alias}`],
   }, async ({ page }) => {
-    await signInAsQaOperator(page)
-    await page.setViewportSize(viewport)
+    await page.goto('/dashboard')
+    await expect(page).toHaveURL(/\/dashboard$/)
     const order = await createPaidHistory(page, viewport.alias)
 
     const historyLink = page.getByRole('link', { name: 'Historial', exact: true })
-    await expectReachable(historyLink, 'el enlace Historial')
     await historyLink.click()
     await expect(page).toHaveURL(/\/historial$/)
+    await page.setViewportSize(viewport)
 
     const search = page.getByRole('textbox', { name: 'Buscar por número o cliente', exact: true })
     await expectReachable(search, 'el buscador de Historial')

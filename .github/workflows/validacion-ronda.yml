@@ -86,7 +86,7 @@ jobs:
         run: |
           npx next typegen
           npm run typecheck
-          JEST_JUNIT_OUTPUT_DIR=../test-results npm run test:ci -- --runInBand lib/services/__tests__/cashRegister.test.ts lib/offline/__tests__/cashMoves.test.ts lib/offline/__tests__/offline.test.ts lib/offline/__tests__/emergency.test.ts components/payment/__tests__/PaymentModal.test.tsx 'app/(pos)/historial/__tests__/page.test.tsx' components/history/__tests__/BillInfo.test.tsx --json --outputFile=../test-results/pos.json --reporters=default --reporters=../test-results/junit/node_modules/jest-junit
+          JEST_JUNIT_OUTPUT_DIR=../test-results npm run test:ci -- --runInBand --runTestsByPath lib/services/__tests__/cashRegister.test.ts lib/offline/__tests__/cashMoves.test.ts lib/offline/__tests__/offline.test.ts lib/offline/__tests__/emergency.test.ts components/payment/__tests__/PaymentModal.test.tsx 'app/(pos)/historial/__tests__/page.test.tsx' components/history/__tests__/BillInfo.test.tsx --json --outputFile=../test-results/pos.json --reporters=default --reporters=../test-results/junit/node_modules/jest-junit
       - name: Gate canónico sobre las pruebas de la ronda
         run: |
           python -m pip install PyYAML==6.0.1 ruff==0.16.4
@@ -154,7 +154,7 @@ jobs:
           python scripts/calidad/seed_ronda.py > test-results/fixture.json
       - name: Aplicación y recorridos
         run: |
-          DJANGO_DB_NAME=test_waiter_qa_ui gunicorn --chdir experience experience_project.wsgi:application --bind 127.0.0.1:8117 --workers 2 --threads 4 --timeout 60 --keep-alive 2 --no-control-socket > test-results/backend-server.log 2>&1 &
+          DJANGO_DB_NAME=test_waiter_qa_ui gunicorn --chdir experience experience_project.wsgi:application --bind 127.0.0.1:8117 --workers 2 --threads 4 --timeout 60 --keep-alive 0 --no-control-socket > test-results/backend-server.log 2>&1 &
           cd pos
           npm run build
           npm run start -- --hostname 127.0.0.1 --port 3117 > ../test-results/pos-server.log 2>&1 &
