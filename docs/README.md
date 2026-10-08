@@ -7,14 +7,22 @@ prueba que su integración externa exista.
 
 ## Arquitectura actual
 
-- Odoo Community 19 es el motor operativo. `pos/` es nuestra interfaz para salón,
-  cocina y administración; `registry/` resuelve restaurantes, sedes, mesas y credenciales.
-- `experience/` es el backend del comensal y dueño de catálogo de plantillas, ajustes
-  por sede, cuentas, carrito y confirmación. `diner/` renderiza los datos de esa API.
-- La marca sigue en Odoo (Plan G); la plantilla elegida y su personalización viven en
-  experience (Plan H). El POS escribe mediante una pasarela autorizada del addon.
-- H tiene descuento real y pago simulado: confirma y manda a cocina, pero el cobro real
-  sigue en el POS. No hay proveedor de OTP, pasarela móvil ni facturación DIAN integrada.
+- `experience/` es el sistema propio: Django y DRF sobre MySQL 8.4. Contiene organizaciones,
+  acceso, catálogo, inventario, salón, pedidos, cocina, caja, fidelización, reservas e informes,
+  además de la experiencia del comensal y el diseño de su menú.
+- `pos/` es la aplicación Next.js del operador y contiene las consolas del dueño y de
+  ProjectApp. Habla con las APIs propias del POS y de la plataforma; `diner/` sirve el menú
+  del comensal y habla con la API de `experience/`.
+- La organización y sus restaurantes se resuelven en el sistema propio. La marca, las
+  plantillas y sus ajustes viven allí; los eventos en vivo llegan por SSE desde Django.
+- Odoo y `registry/` se retiraron después de migrar y conciliar Burger House. El cliente de
+  migración que queda en `tenancy/odoo_migration/` conserva esa historia, no es el motor operativo.
+- La implementación de una integración no acredita su activación externa: el menú conserva
+  pagos demo y las credenciales, pruebas de proveedor y habilitación real se documentan por separado.
+
+El [Estado del plan T](planes/2026-10-01-plan-T-sistema-propio.md#estado) es la fuente de
+verdad para el corte, MySQL y el acceso actual. El [README raíz](../README.md) describe el
+entorno de desarrollo; [deploy/README.md](../deploy/README.md), el despliegue preparado.
 
 ## Guía de QA
 
@@ -25,16 +33,22 @@ vivo: cada plan que se termina añade o corrige casos. Se publica en el gestor d
 
 ## Orden de lectura
 
-**Multirrestaurante (en curso):** un dueño con muchos restaurantes; una base de Odoo por organización y un
-`pos.config` por restaurante. Ver el [Plan O](planes/2026-09-28-plan-O-multirrestaurante.md), su
-[inventario](inventario/2026-09-28-inventario-multirrestaurante.md) y la
-[decisión](decisiones/2026-09-28-una-base-por-organizacion.md).
+**Sistema vigente:** empezar por el [plan T](planes/2026-10-01-plan-T-sistema-propio.md),
+sus contratos y su Estado. Un dueño puede operar muchos restaurantes dentro de su organización;
+la base propia identifica la organización y la sede de los datos.
 
 **Integraciones pendientes para un sprint propio al final:** autenticación con la API de WhatsApp (también para el
 asistente), Bold, Wompi real y una IA de decisiones de código abierto para guiar a las personas. Ver el [sprint de integraciones pendientes](planes/2026-09-28-sprint-integraciones-pendientes.md).
 
 La integración de WhatsApp comienza por el [puente de pedidos al POS](planes/2026-09-14-whatsapp-pos.md).
 El [chat del menú](planes/2026-09-14-chat-menu.md) ya utiliza un núcleo de conversación compartido. Meta y la pasarela siguen pendientes.
+
+**Antecedentes de arquitectura y diseño:** los siguientes documentos explican decisiones
+de su fecha. Las referencias a Odoo, `registry/` y `pos.config` son históricas. El
+[Plan O](planes/2026-09-28-plan-O-multirrestaurante.md), su
+[inventario](inventario/2026-09-28-inventario-multirrestaurante.md) y la
+[decisión de una base Odoo por organización](decisiones/2026-09-28-una-base-por-organizacion.md)
+preceden al sistema propio. `docs/traspaso/` conserva los traspasos de esa etapa.
 
 1. [Arquitectura modular](arquitectura/2026-09-04-arquitectura-modular.md) y
    [API del bloque 3](arquitectura/2026-09-04-bloque-3-experiencia.md).
