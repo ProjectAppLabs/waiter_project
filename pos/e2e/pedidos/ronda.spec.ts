@@ -125,7 +125,7 @@ test('el asistente y la ronda conservan el precio final de $ 11.900', {
   const account = page.getByRole('article', { name: `Cuenta ${order.number}`, exact: true })
   await expect(account).toContainText(customer)
   await expect(account).toContainText('$ 11.900')
-  await page.getByRole('link', { name: 'Salón', exact: true }).click()
+  await page.getByRole('link', { name: 'Mesas', exact: true }).click()
   await page.getByRole('combobox', { name: 'Cambiar de piso', exact: true }).selectOption({ label: 'Salón QA r3' })
   await page.getByRole('button', { name: /^Mesa 931:/ }).click()
   await page.getByRole('toolbar', { name: 'Mesa seleccionada:', exact: true }).getByRole('button', { name: 'Detalle de mesa', exact: true }).click()
