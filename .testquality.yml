@@ -14,5 +14,5 @@ backend_test_roots:
 py_test_file_glob: test_*.py
 frontend_unit_dir: .
 frontend_e2e_dir: e2e
-frontend_e2e_allowed_folders: [pago, historial, helpers]
+frontend_e2e_allowed_folders: [pago, historial, acceso, pedidos, helpers]
 responsive_widths: [compact=412x915, portrait=835x1194, landscape=1195x835, desktop=1440x900, wide=2560x1440]

@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   backend:
-    name: Caja · MySQL 8.4
+    name: Caja y turnos · MySQL 8.4
     runs-on: ubuntu-24.04
     services:
       mysql:
@@ -48,11 +48,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y default-libmysqlclient-dev pkg-config
           python -m pip install -r experience/requirements.txt
-      - name: Caja y regresión inmediata
-        working-directory: experience
+      - name: Caja, turnos y regresión inmediata
         run: |
-          python -m pytest sales/tests/views/test_cash_moves_idempotency.py sales/tests/test_operations.py::test_seed_and_unique_shift sales/tests/test_operations.py::test_payment_change_tip_and_cash sales/tests/test_operations.py::test_closing_note_tolerance_and_recipients sales/tests/test_operations.py::test_nobody_closes_with_drafts sales/tests/test_operations.py::test_database_unique_open_shift sales/tests/test_operations.py::test_closings_manager_scope --junitxml=../test-results/backend.xml -q
-          python -m pytest sales/tests/test_permissions.py -k shifts --reuse-db --junitxml=../test-results/backend-permissions.xml -q
+          python scripts/calidad/validar_ronda.py backend
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -87,11 +85,11 @@ jobs:
           npx next typegen
           npm run typecheck
           npx eslint e2e/helpers/ronda.ts e2e/helpers/rondaFixture.ts e2e/helpers/setupRonda.ts e2e/helpers/viewports.ts --format json --output-file ../test-results/helpers-eslint.json
-          JEST_JUNIT_OUTPUT_DIR=../test-results npm run test:ci -- --runInBand --runTestsByPath lib/services/__tests__/cashRegister.test.ts lib/offline/__tests__/cashMoves.test.ts lib/offline/__tests__/offline.test.ts lib/offline/__tests__/emergency.test.ts components/payment/__tests__/PaymentModal.test.tsx 'app/(pos)/historial/__tests__/page.test.tsx' components/history/__tests__/BillInfo.test.tsx --json --outputFile=../test-results/pos.json --reporters=default --reporters=../test-results/junit/node_modules/jest-junit
+          JEST_JUNIT_OUTPUT_DIR=../test-results python ../scripts/calidad/validar_ronda.py pos
       - name: Gate canónico sobre las pruebas de la ronda
         run: |
           python -m pip install PyYAML==6.0.1 ruff==0.16.4
-          python scripts/calidad/gate_ronda.py --include-file experience/sales/tests/views/test_cash_moves_idempotency.py --include-file pos/lib/services/__tests__/cashRegister.test.ts --include-file pos/lib/offline/__tests__/cashMoves.test.ts --include-file pos/lib/offline/__tests__/emergency.test.ts --include-file pos/e2e/pago/ronda.spec.ts --include-file pos/e2e/historial/ronda.spec.ts --semantic-rules strict --junk-severity error --external-lint run --report-path test-results/gate.json --json-only
+          python scripts/calidad/validar_ronda.py gate
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -99,7 +97,7 @@ jobs:
           path: test-results/
 
   navegador:
-    name: Pago e Historial · cinco tamaños
+    name: Acceso y POS · cinco tamaños
     runs-on: ubuntu-24.04
     services:
       mysql:
