@@ -54,6 +54,21 @@ it('cierra con el botón y devuelve el foco al control de apertura', async () =>
   expect(trigger).toHaveFocus()
 })
 
+// Falla si Tab o Shift+Tab desde los extremos envían el foco al fondo o a la barra del navegador.
+it('recorre circularmente los controles del menú en ambos sentidos', async () => {
+  render(fixture())
+  await userEvent.click(screen.getByRole('button', { name: 'Abrir menú' }))
+  const drawer = screen.getByRole('dialog', { name: 'Consola de la organización' })
+  const close = within(drawer).getByRole('button', { name: 'Cerrar menú' })
+  const logout = within(drawer).getByRole('button', { name: 'Cerrar sesión' })
+  // El doble nativo no aplica autofocus: partimos del foco inicial que Chromium comprueba en el E2E.
+  close.focus()
+  await userEvent.keyboard('{Shift>}{Tab}{/Shift}')
+  expect(logout).toHaveFocus()
+  await userEvent.keyboard('{Tab}')
+  expect(close).toHaveFocus()
+})
+
 // Falla si Escape, el evento cancel del diálogo nativo, deja la navegación tapando el contenido.
 it('cierra ante Escape y devuelve el foco al control que abrió el menú', async () => {
   render(fixture())

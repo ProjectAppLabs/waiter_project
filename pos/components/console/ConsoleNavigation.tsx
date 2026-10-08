@@ -6,7 +6,7 @@ import { BrandMark } from '@/components/kit/BrandMark'
 import { Icon } from '@/components/kit/Icon'
 import { Button } from '@/components/ui/Button'
 
-// En tableta vertical el menú no reserva ancho: el diálogo nativo retiene el foco y deja inerte el fondo.
+// En tableta vertical el menú no reserva ancho: el diálogo nativo deja inerte el fondo.
 // El contenido se recibe ya filtrado por el layout, de modo que ambas variantes conservan los mismos permisos.
 export function ConsoleNavigation({ label, brandHref, pathname, children }: {
   label: string
@@ -45,6 +45,19 @@ export function ConsoleNavigation({ label, brandHref, pathname, children }: {
       <dialog ref={dialog} id={dialogId} aria-label={label}
         onCancel={(event) => { event.preventDefault(); close() }}
         onClose={() => { setOpen(false); trigger.current?.focus() }}
+        onKeyDown={(event) => {
+          if (event.key !== 'Tab') return
+          const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('a[href], button:not([disabled])'))
+            .filter((element) => element.tabIndex >= 0 && !element.closest('[hidden], [inert]'))
+          const first = controls[0], last = controls.at(-1)
+          // El diálogo nativo permite saltar a la barra del navegador al superar sus extremos.
+          // Cerramos ese recorrido para que Tab y Shift+Tab mantengan el foco dentro del menú.
+          if (document.activeElement === (event.shiftKey ? first : last)) {
+            event.preventDefault()
+            const target = event.shiftKey ? last : first
+            target?.focus()
+          }
+        }}
         onClick={(event) => {
           const bounds = event.currentTarget.getBoundingClientRect()
           if (event.target === event.currentTarget && (event.clientX < bounds.left || event.clientX > bounds.right
