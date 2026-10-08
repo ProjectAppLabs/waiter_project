@@ -1,0 +1,90 @@
+codebase: waiter_project
+instances: []
+last_run: 2026-10-08
+runs: 1
+shape:
+  layers:
+  - backend
+  - frontend-unit
+  - e2e
+  db: mysql
+  lineage: Django propio y clientes Next.js; Odoo retirado
+  unit_dirs:
+  - pos
+  - diner
+  e2e_dir: pos/e2e
+  tag_idiom: '@flow:<id> y @outcome:<clase>; @viewport para matriz responsive'
+  env_decider: DJANGO_ENV; DJANGO_DB_ENGINE y variables DB seleccionan motor
+  selector_convention: role y nombre accesible
+  ci_shape: validacion-ronda.yml; MySQL, POS tipos/unitarios/gate y lint de helpers,
+    build y E2E aislado del mismo SHA
+  landing: worktree propio y PR con CI verde; merge-queue sólo con autorización explícita
+    del operador
+  verified_at:
+    branch: fix/07102026-improvement-x0
+    date: 2026-10-08
+  anchors:
+    package_json_sha256: f17e5ffe214a30f2850492c1fa9eb6de95a0b69767ea171dfb4eb4bdca6ebd75
+    testquality_yml_sha256: 6605ca48ef79d8ed6411105bed96dce15b1218c36ec0f8e3eafb65dbd590e5b5
+quirks:
+- id: registro-fleet-ausente
+  fact: El proyecto no está en projects.yml; no asumir host, DB ni coordenada por
+    defaults del engine.
+  evidence: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  layer: all
+- id: monorepo-rutas-reales
+  fact: Backend en experience, clientes en pos y diner; el gate de la ronda usa roots
+    explícitos y alias temporales sin copiar tests.
+  evidence: scripts/calidad/gate_ronda.py y .testquality.yml en la rama de sesión
+  layer: all
+- id: sesion-unica
+  fact: Cada login revoca la sesión anterior de la cuenta; los navegadores de qa-x0
+    se ejecutan serialmente.
+  evidence: experience/accounts/services.py y pos/e2e/helpers/ronda.ts
+  layer: e2e
+- id: propietario-entra-por-consola
+  fact: El propietario inicia en Organización; el recorrido entra por Restaurantes,
+    Local QA y Entrar al POS antes de usar su navegación.
+  evidence: pos/e2e/helpers/ronda.ts y reporte de la ronda
+  layer: e2e
+- id: mysql-clave-exacta
+  fact: Claves idempotentes usan ExactCharField; colación binaria y NULL histórico
+    requieren MySQL real.
+  evidence: experience/tenancy/fields.py y experience/sales/tests/views/test_cash_moves_idempotency.py
+  layer: backend
+- id: fixtures-sin-ids-fijos
+  fact: La fixture se crea con el test runner; los specs descubren sede y plato por
+    API en qa-x0, sin IDs de respaldo.
+  evidence: scripts/calidad/seed_ronda.py y pos/e2e/helpers/ronda.ts
+  layer: e2e
+- id: fonts-pago-selector
+  fact: La etiqueta real del importe manual es «Importe de este pago»; «Importe a
+    cobrar» no es el selector de esta UI.
+  evidence: pos/components/payment/PaymentModal.tsx:272
+  layer: e2e
+- id: responsive-pago-completo
+  fact: Medir el aviso de éxito, importes y Listo además del diálogo inicial; scrollWidth
+    puede ocultar recortes.
+  evidence: pos/components/payment/PaymentSuccess.tsx y guion del reporte de ronda
+  layer: e2e
+- id: sesion-ui-por-worker
+  fact: La preparación entra por login y selección de sede una vez por worker; captura
+    estado en memoria y cierra el contexto temporal antes de restaurarlo en contextos
+    nuevos por caso.
+  evidence: pos/e2e/helpers/rondaFixture.ts y reporte de ronda
+  layer: e2e
+- id: callback-fixture-lint-react
+  fact: El callback de Playwright se llama provide para que ESLint de Next/React no
+    trate use como un hook; CI comprueba explícitamente los cuatro helpers.
+  evidence: pos/e2e/helpers/rondaFixture.ts y validacion-ronda.yml
+  layer: e2e
+watchlist:
+- id: cobertura-mapa-acotada
+  fact: USER_FLOW_MAP y flow-definitions sólo abarcan Pago e Historial; no certifican
+    POS entero ni comensal.
+  evidence: docs/USER_FLOW_MAP.md
+- id: riesgos-fuera-del-cupo
+  fact: Los candidatos restantes de seguridad/rendimiento/responsividad siguen abiertos
+    en improvement-ledger; releer evidencia antes de seleccionar.
+  evidence: config/improvement-ledger/waiter_project.yml
+unvalidated_specs: []

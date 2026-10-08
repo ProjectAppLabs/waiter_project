@@ -169,20 +169,20 @@ export function PaymentModal({ orderId, onClose, onPaid }: { orderId: number; on
   const reference = order ? (presetType ? displayReference(presetType, order.trackingNumber) : order.trackingNumber) : ''
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-overlay/60 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/60 p-4" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-label={t('title')} onClick={(e) => e.stopPropagation()}
-        className="w-[798px] max-w-full h-[700px] max-h-[94vh] bg-surface rounded-xl shadow-xl flex flex-col overflow-hidden">
-        <header className="h-[68px] px-6 flex items-center justify-between border-b border-border shrink-0">
-          <h2 className="text-[20px] font-semibold text-ink">{t('title')}</h2>
-          <button type="button" onClick={onClose} aria-label={t('close')} className="w-10 h-10 rounded-md bg-ink text-surface grid place-items-center"><Icon name="close" size={20} /></button>
+        className="w-full min-w-0 max-w-[798px] h-[700px] max-h-[calc(100dvh-2rem)] bg-surface rounded-xl shadow-xl flex flex-col overflow-hidden">
+        <header className="min-h-[68px] px-6 py-3 flex items-center justify-between gap-3 border-b border-border shrink-0">
+          <h2 className="min-w-0 break-words text-[20px] font-semibold text-ink">{t('title')}</h2>
+          <button type="button" onClick={onClose} aria-label={t('close')} className="w-11 h-11 shrink-0 rounded-md bg-ink text-surface grid place-items-center"><Icon name="close" size={20} /></button>
         </header>
 
         {!order ? (
           <p className="flex-1 grid place-items-center text-[15px] text-soft">{loadFailed ? t('notFound') : t('loading')}</p>
         ) : (
-          <div className="flex-1 min-h-0 flex">
+          <div className="flex-1 min-h-0 flex flex-col overflow-y-auto lg:flex-row lg:overflow-hidden [&_input]:text-base [&_select]:text-base">
             {/* Izquierda: cliente, socio y detalle del pedido */}
-            <div className="w-[396px] shrink-0 border-r border-border flex flex-col min-h-0">
+            <div className="w-full shrink-0 border-b border-border flex flex-col lg:w-[396px] lg:min-h-0 lg:border-b-0 lg:border-r">
               <div className="px-5 pt-4 pb-3 flex flex-col gap-3 border-b border-dashed border-border">
                 <span className="text-[14px] text-soft">{t('customerInformation')}</span>
                 <div className="flex items-start gap-3">
@@ -219,7 +219,7 @@ export function PaymentModal({ orderId, onClose, onPaid }: { orderId: number; on
               </div>
 
               <p className="px-5 py-3 text-[16px] font-semibold text-ink border-b border-border">{t('orderDetails')}</p>
-              <ul className="flex-1 min-h-0 overflow-auto px-5 py-3 flex flex-col gap-3">
+              <ul className="shrink-0 px-5 py-3 flex flex-col gap-3 lg:flex-1 lg:min-h-0 lg:overflow-auto">
                 {order.lines.map((l) => (
                   <li key={l.uuid} className="flex justify-between gap-3">
                     <span className="min-w-0">
@@ -244,7 +244,7 @@ export function PaymentModal({ orderId, onClose, onPaid }: { orderId: number; on
             </div>
 
             {/* Derecha: métodos de pago */}
-            <div className="flex-1 min-w-0 flex flex-col min-h-0">
+            <div className="w-full min-w-0 shrink-0 flex flex-col lg:w-auto lg:flex-1 lg:min-h-0">
               <div role="tablist" aria-label={t('method')} className="m-5 mb-0 p-1 rounded-lg bg-muted flex shrink-0">
                 {PAY_KINDS.map((k) => (
                   <button key={k} type="button" role="tab" aria-selected={kind === k} onClick={() => { setKind(k); setMethodId(null); setCardStage('idle') }}
@@ -260,15 +260,15 @@ export function PaymentModal({ orderId, onClose, onPaid }: { orderId: number; on
               {grand > 0 && (
                 <div className="mx-5 mt-3 flex flex-wrap items-end gap-3 shrink-0">
                   {sameKind.length > 1 && (
-                    <label className="flex flex-col gap-1">
+                    <label className="w-full flex flex-col gap-1 lg:w-auto">
                       <span className="text-[13px] text-soft">{t('methodName')}</span>
                       <select aria-label={t('methodName')} value={method?.id ?? ''} onChange={(e) => setMethodId(Number(e.target.value))}
-                        className="h-11 px-3 rounded-md border border-border bg-surface text-[15px] text-ink">
+                        className="w-full h-11 px-3 rounded-md border border-border bg-surface text-[15px] text-ink lg:w-auto">
                         {sameKind.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
                       </select>
                     </label>
                   )}
-                  <label className="flex flex-col gap-1">
+                  <label className="w-full flex flex-col gap-1 lg:w-auto">
                     <span className="text-[13px] text-soft">{t('amountToCharge')}</span>
                     <input aria-label={t('amountToCharge')} inputMode="numeric" value={partial === null ? '' : partial}
                       placeholder={String(Math.round(due))} disabled={busy}
@@ -276,7 +276,7 @@ export function PaymentModal({ orderId, onClose, onPaid }: { orderId: number; on
                         const digits = e.target.value.replace(/\D/g, '')
                         setPartial(digits === '' ? null : Math.min(Number(digits), Math.round(left)))
                       }}
-                      className="h-11 w-36 px-3 rounded-md border border-border bg-surface text-[15px] text-ink tabular-nums" />
+                      className="h-11 w-full px-3 rounded-md border border-border bg-surface text-[15px] text-ink tabular-nums lg:w-36" />
                   </label>
                   {partial !== null && (
                     <button type="button" onClick={() => setPartial(null)} className="h-11 text-[14px] font-semibold text-primary">{t('wholeRemaining')}</button>
@@ -285,7 +285,7 @@ export function PaymentModal({ orderId, onClose, onPaid }: { orderId: number; on
                 </div>
               )}
 
-              <div className="flex-1 min-h-0 overflow-auto flex flex-col">
+              <div className="shrink-0 flex flex-col lg:flex-1 lg:min-h-0 lg:overflow-auto">
                 {/* Los puntos pueden cubrir el pedido entero: entonces no hay nada que cobrar, solo cerrarlo. */}
                 {grand === 0 ? (
                   <div className="px-6 py-5 flex flex-col gap-4">
@@ -310,7 +310,7 @@ export function PaymentModal({ orderId, onClose, onPaid }: { orderId: number; on
                 {error && <p role="alert" className="px-6 pb-2 text-[14px] text-danger-ink">{error}</p>}
 
                 <div className="px-6 pb-5">
-                  <button type="button" aria-expanded={options} onClick={() => setOptions((v) => !v)} className="h-10 flex items-center gap-1.5 text-[14px] font-semibold text-soft">
+                  <button type="button" aria-expanded={options} onClick={() => setOptions((v) => !v)} className="min-h-11 flex items-center gap-1.5 text-[14px] font-semibold text-soft">
                     <Icon name={options ? 'chevronDown' : 'chevronRight'} size={16} />{t('moreOptions')}
                   </button>
                   {options && (
@@ -320,7 +320,7 @@ export function PaymentModal({ orderId, onClose, onPaid }: { orderId: number; on
                         <div className="flex gap-2 flex-wrap">
                           {(['none', 'suggested', 'custom'] as TipMode[]).map((m) => (
                             <button key={m} type="button" aria-pressed={tipMode === m} onClick={() => setTipMode(m)}
-                              className={cn('h-10 px-3.5 rounded-md border text-[14px] font-semibold', tipMode === m ? 'bg-primary-soft border-primary/40 text-primary' : 'bg-surface border-border text-soft')}>
+                              className={cn('min-h-11 px-3.5 rounded-md border text-[14px] font-semibold', tipMode === m ? 'bg-primary-soft border-primary/40 text-primary' : 'bg-surface border-border text-soft')}>
                               {m === 'none' ? t('tipNone') : m === 'suggested' ? t('tipSuggested', { amount: `$ ${formatCop(suggestedTip(base))}` }) : t('tipCustom')}
                             </button>
                           ))}
@@ -333,9 +333,9 @@ export function PaymentModal({ orderId, onClose, onPaid }: { orderId: number; on
                       <div className="flex flex-col gap-2">
                         <span className="text-[14px] text-soft">{t('split')}</span>
                         <div className="flex items-center gap-3">
-                          <button type="button" aria-label={t('fewerParts')} onClick={() => setParts((p) => Math.max(1, p - 1))} className="w-10 h-10 rounded-sm bg-muted text-ink grid place-items-center"><Icon name="minus" size={18} /></button>
+                          <button type="button" aria-label={t('fewerParts')} onClick={() => setParts((p) => Math.max(1, p - 1))} className="w-11 h-11 shrink-0 rounded-sm bg-muted text-ink grid place-items-center"><Icon name="minus" size={18} /></button>
                           <span className="min-w-8 text-center text-[16px] font-semibold text-ink tabular-nums">{parts}</span>
-                          <button type="button" aria-label={t('moreParts')} onClick={() => setParts((p) => Math.min(8, p + 1))} className="w-10 h-10 rounded-sm border border-border bg-surface text-ink grid place-items-center"><Icon name="plus" size={18} /></button>
+                          <button type="button" aria-label={t('moreParts')} onClick={() => setParts((p) => Math.min(8, p + 1))} className="w-11 h-11 shrink-0 rounded-sm border border-border bg-surface text-ink grid place-items-center"><Icon name="plus" size={18} /></button>
                           <span className="text-[14px] text-soft">{parts > 1 ? t('partsOf', { n: parts, amount: `$ ${formatCop(splitEqual(grand, parts)[0])}` }) : t('noSplit')}</span>
                         </div>
                       </div>
@@ -346,7 +346,7 @@ export function PaymentModal({ orderId, onClose, onPaid }: { orderId: number; on
                               <span className="text-ink">{methods.find((m) => m.id === p.methodId)?.name}</span>
                               <span className="flex items-center gap-3">
                                 <span className="text-ink tabular-nums">$ {formatCop(p.amount)}</span>
-                                <button type="button" aria-label={t('removePayment')} onClick={() => setPayments((ps) => ps.filter((_, j) => j !== i))} className="text-soft"><Icon name="close" size={16} /></button>
+                                <button type="button" aria-label={t('removePayment')} onClick={() => setPayments((ps) => ps.filter((_, j) => j !== i))} className="w-11 h-11 shrink-0 text-soft grid place-items-center"><Icon name="close" size={16} /></button>
                               </span>
                             </li>
                           ))}

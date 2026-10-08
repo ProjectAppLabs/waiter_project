@@ -250,27 +250,49 @@ class ShiftsView(PosView):
                 s.event(restaurant, "cash")
             else:
                 shift = get_shift(self.account, pk, True)
-                require(shift.state == "open", "La caja ya está cerrada.", "shift_closed", 409)
                 if self.mode == "close":
+                    require(shift.state == "open", "La caja ya está cerrada.", "shift_closed", 409)
                     data = payload(request.data, ("counted_cash", "notes"), ("counted_cash",))
                     close(shift, self.account, data)
                 elif self.mode == "moves":
-                    data = payload(request.data, ("kind", "amount", "reason"), ("kind", "amount", "reason"))
-                    valid(data["kind"] in ("in", "out"))
-                    move = CashMove.objects.create(
-                        shift=shift,
-                        kind=data["kind"],
-                        amount=s.money(data["amount"], True),
-                        reason=s.text(data["reason"], 200, True),
-                        account=self.account,
+                    data = payload(
+                        request.data, ("kind", "amount", "reason", "request_key"), ("kind", "amount", "reason")
                     )
-                    s.event(shift.restaurant, "cash")
+                    valid(data["kind"] in ("in", "out"))
+                    amount = s.money(data["amount"], True)
+                    reason = s.text(data["reason"], 200, True)
+                    key = None
+                    if "request_key" in data:
+                        key = s.text(data["request_key"], 80, True)
+                        valid(len(key) >= 16)
+                    # Un reintento conserva su resultado aunque el turno haya cerrado después del primer envío.
+                    move = CashMove.objects.filter(shift=shift, request_key=key).first() if key is not None else None
+                    if move:
+                        require(
+                            move.kind == data["kind"] and move.amount == amount and move.reason == reason,
+                            "El identificador ya se usó para otro movimiento de caja.",
+                            "request_key_conflict",
+                            409,
+                        )
+                    else:
+                        require(shift.state == "open", "La caja ya está cerrada.", "shift_closed", 409)
+                        move = CashMove.objects.create(
+                            shift=shift,
+                            kind=data["kind"],
+                            amount=amount,
+                            reason=reason,
+                            request_key=key,
+                            account=self.account,
+                        )
+                        s.event(shift.restaurant, "cash")
                     return Response(
                         {
                             "move": fields(move, "id kind amount reason created_at"),
                             "expected_cash": closing(shift)["expected_cash"],
                         }
                     )
+                else:
+                    require(shift.state == "open", "La caja ya está cerrada.", "shift_closed", 409)
         return Response({"shift": shift_dict(shift)}, status=201 if pk is None else 200)
 
 

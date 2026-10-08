@@ -1,0 +1,169 @@
+name: Validación de la ronda
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ronda-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Caja · MySQL 8.4
+    runs-on: ubuntu-24.04
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: pruebas-ronda
+          MYSQL_ROOT_HOST: '%'
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -ppruebas-ronda"
+          --health-interval=10s --health-timeout=5s --health-retries=12
+    env:
+      DJANGO_DB_ENGINE: django.db.backends.mysql
+      DJANGO_DB_NAME: waiter_qa_source
+      DJANGO_TEST_DB_NAME: test_waiter_qa_backend
+      DB_HOST: 127.0.0.1
+      DB_PORT: '3306'
+      DB_USER: root
+      DB_PASSWORD: pruebas-ronda
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: experience/requirements.txt
+      - name: Dependencias del backend
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y default-libmysqlclient-dev pkg-config
+          python -m pip install -r experience/requirements.txt
+      - name: Caja y regresión inmediata
+        working-directory: experience
+        run: |
+          python -m pytest sales/tests/views/test_cash_moves_idempotency.py sales/tests/test_operations.py::test_seed_and_unique_shift sales/tests/test_operations.py::test_payment_change_tip_and_cash sales/tests/test_operations.py::test_closing_note_tolerance_and_recipients sales/tests/test_operations.py::test_nobody_closes_with_drafts sales/tests/test_operations.py::test_database_unique_open_shift sales/tests/test_operations.py::test_closings_manager_scope --junitxml=../test-results/backend.xml -q
+          python -m pytest sales/tests/test_permissions.py -k shifts --reuse-db --junitxml=../test-results/backend-permissions.xml -q
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-ronda
+          path: test-results/backend*.xml
+
+  pos:
+    name: POS · tipos, pruebas y calidad
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.20.0'
+          cache: npm
+          cache-dependency-path: pos/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Dependencias del POS
+        working-directory: pos
+        run: |
+          npm install --global npm@11.19.0
+          npm ci --ignore-scripts --no-audit --no-fund
+      - name: Reporter de pruebas
+        run: npm install --prefix test-results/junit --no-save --no-audit --no-fund jest-junit@16.0.0
+      - name: Tipos y regresión del POS
+        working-directory: pos
+        run: |
+          npx next typegen
+          npm run typecheck
+          npx eslint e2e/helpers/ronda.ts e2e/helpers/rondaFixture.ts e2e/helpers/setupRonda.ts e2e/helpers/viewports.ts --format json --output-file ../test-results/helpers-eslint.json
+          JEST_JUNIT_OUTPUT_DIR=../test-results npm run test:ci -- --runInBand --runTestsByPath lib/services/__tests__/cashRegister.test.ts lib/offline/__tests__/cashMoves.test.ts lib/offline/__tests__/offline.test.ts lib/offline/__tests__/emergency.test.ts components/payment/__tests__/PaymentModal.test.tsx 'app/(pos)/historial/__tests__/page.test.tsx' components/history/__tests__/BillInfo.test.tsx --json --outputFile=../test-results/pos.json --reporters=default --reporters=../test-results/junit/node_modules/jest-junit
+      - name: Gate canónico sobre las pruebas de la ronda
+        run: |
+          python -m pip install PyYAML==6.0.1 ruff==0.16.4
+          python scripts/calidad/gate_ronda.py --include-file experience/sales/tests/views/test_cash_moves_idempotency.py --include-file pos/lib/services/__tests__/cashRegister.test.ts --include-file pos/lib/offline/__tests__/cashMoves.test.ts --include-file pos/lib/offline/__tests__/emergency.test.ts --include-file pos/e2e/pago/ronda.spec.ts --include-file pos/e2e/historial/ronda.spec.ts --semantic-rules strict --junk-severity error --external-lint run --report-path test-results/gate.json --json-only
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pos-ronda
+          path: test-results/
+
+  navegador:
+    name: Pago e Historial · cinco tamaños
+    runs-on: ubuntu-24.04
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: pruebas-ronda
+          MYSQL_ROOT_HOST: '%'
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -ppruebas-ronda"
+          --health-interval=10s --health-timeout=5s --health-retries=12
+    env:
+      DJANGO_DB_ENGINE: django.db.backends.mysql
+      DJANGO_DB_NAME: waiter_qa_source
+      DJANGO_TEST_DB_NAME: test_waiter_qa_ui
+      DB_HOST: 127.0.0.1
+      DB_PORT: '3306'
+      DB_USER: root
+      DB_PASSWORD: pruebas-ronda
+      POS_URL: http://127.0.0.1:3117
+      PLATFORM_URL: http://127.0.0.1:3117
+      EXPERIENCE_ORIGIN: http://127.0.0.1:8117
+      NEXT_PUBLIC_DEFAULT_ORG: qa-x0
+      NEXT_TELEMETRY_DISABLED: '1'
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:3117
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: experience/requirements.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.20.0'
+          cache: npm
+          cache-dependency-path: pos/package-lock.json
+      - name: Dependencias y navegador
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y default-libmysqlclient-dev pkg-config
+          python -m pip install -r experience/requirements.txt
+          npm install --global npm@11.19.0
+          npm ci --prefix pos --ignore-scripts --no-audit --no-fund
+          cd pos
+          npx playwright install --with-deps chromium
+      - name: Fixture de pruebas aislada
+        run: |
+          mkdir -p test-results
+          python scripts/calidad/seed_ronda.py > test-results/fixture.json
+      - name: Aplicación y recorridos
+        run: |
+          DJANGO_DB_NAME=test_waiter_qa_ui gunicorn --chdir experience experience_project.wsgi:application --bind 127.0.0.1:8117 --workers 2 --threads 4 --timeout 60 --keep-alive 0 --no-control-socket > test-results/backend-server.log 2>&1 &
+          cd pos
+          npm run build
+          npm run start -- --hostname 127.0.0.1 --port 3117 > ../test-results/pos-server.log 2>&1 &
+          npx playwright test --config=playwright.ronda.config.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: navegador-ronda
+          path: |
+            test-results/
+            pos/test-results/

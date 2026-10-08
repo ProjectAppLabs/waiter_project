@@ -55,17 +55,17 @@ export default function HistorialPage() {
 
   return (
     <>
-      <div className="flex-1 min-h-0 grid grid-cols-[1fr_400px] gap-4 p-4">
-        <div className="min-h-0 flex flex-col gap-4">
-          <div className="flex items-center gap-4">
+      <div className="flex-1 min-h-0 grid grid-cols-1 auto-rows-max gap-4 p-4 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_400px] lg:auto-rows-auto lg:overflow-hidden max-lg:[&_.truncate]:whitespace-normal max-lg:[&_.truncate]:break-words">
+        <div className="min-w-0 min-h-0 flex flex-col gap-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
             <PageTitle>{t('title')}</PageTitle>
-            <label className="ml-auto w-[360px] h-11 px-3 rounded-md border border-border bg-surface flex items-center gap-2 text-dim">
+            <label className="w-full min-w-0 h-11 px-3 rounded-md border border-border bg-surface flex items-center gap-2 text-dim lg:ml-auto lg:w-[360px]">
               <Icon name="search" size={20} />
-              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('search')} aria-label={t('search')} className="flex-1 min-w-0 bg-transparent outline-none text-[15px] text-ink placeholder:text-dim" />
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('search')} aria-label={t('search')} className="flex-1 min-w-0 bg-transparent outline-none text-base text-ink placeholder:text-dim lg:text-[15px]" />
             </label>
           </div>
           <div className="flex-1 min-h-0 rounded-lg border border-border ambient-panel flex flex-col">
-            <div className="p-2 flex items-center gap-2 border-b border-border shrink-0">
+            <div className="p-2 flex flex-wrap items-center gap-2 border-b border-border shrink-0">
               {FILTERS.map((f) => <Chip key={f} label={t(`filters.${f}`)} active={f === filter} onClick={() => setFilter(f)} />)}
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto p-2 flex flex-col gap-2">

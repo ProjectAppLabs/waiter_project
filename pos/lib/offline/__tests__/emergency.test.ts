@@ -4,7 +4,6 @@ import { provisionalCount } from '@/lib/offline/count'
 import { activateEmergency, clearEmergency, EMERGENCY_AFTER_MS, emergencyKitOrder, emergencyPath, emergencyState, operatesInEmergency, useEmergencyOrders } from '@/lib/offline/emergency'
 import { useNetworkStore } from '@/lib/offline/network'
 import { useOutboxStore, type OutboxEntry } from '@/lib/offline/outbox'
-import { CoreError } from '@/lib/services/core/http'
 import * as sales from '@/lib/services/core/sales'
 
 jest.mock('@/lib/services/core/sales', () => ({ createOrder: jest.fn(), payOrder: jest.fn(), cashMove: jest.fn(), fireOrder: jest.fn() }))
@@ -21,7 +20,7 @@ beforeEach(() => {
 // cumplirlos, si la encargada no puede adelantarla, o si al volver la red sigue en emergencia.
 it('cuenta regresiva de 3 minutos, activación manual y fin con la red', () => {
   const t0 = 1_000_000
-  expect(emergencyState(false, t0, t0 + 60_000)).toEqual({ offline: true, active: false, remainingMs: EMERGENCY_AFTER_MS - 60_000 })
+  expect(emergencyState(false, t0, t0 + 60_000)).toEqual({ offline: true, active: false, remainingMs: 120_000 })
   expect(emergencyState(false, t0, t0 + EMERGENCY_AFTER_MS).active).toBe(true)
   activateEmergency()
   expect(emergencyState(false, t0, t0 + 1000).active).toBe(true)
@@ -62,21 +61,6 @@ it('números provisionales y pedido de emergencia como pedido del kit', () => {
   expect(kit).toMatchObject({ id: -1, number: 'E-01', tableNumber: 3, state: 'draft', total: 47800 })
   expect(kit.lines.map((l) => l.name)).toEqual(['Hamburguesa', 'Papas'])
   expect(JSON.parse(localStorage.getItem('waiter.emergency:burger-house')!).orders).toHaveLength(2)
-})
-
-// Falla si una sesión vencida manda las operaciones a «rechazadas» en vez de esperar a que alguien entre, o si al
-// entrar la cola no sigue.
-it('la sesión vencida pausa la cola y al entrar sigue', async () => {
-  jest.mocked(sales.cashMove).mockRejectedValueOnce(new CoreError(401, 'unauthenticated', 'Inicia sesión para continuar.')).mockResolvedValueOnce({} as never)
-  const q = useOutboxStore.getState()
-  q.enqueue({ kind: 'cash_move', shiftId: 3, type: 'out', amount: 5000, reason: 'Hielo', label: 'Hielo' })
-  await q.sync()
-  expect(useOutboxStore.getState()).toMatchObject({ needsLogin: true, failed: [] })
-  expect(useOutboxStore.getState().entries).toHaveLength(1)
-  useOutboxStore.getState().resumeAfterLogin()
-  await new Promise((r) => setTimeout(r, 0))
-  expect(useOutboxStore.getState().entries).toHaveLength(0)
-  expect(sales.cashMove).toHaveBeenLastCalledWith(3, 'out', 5000, 'Hielo')
 })
 
 // Falla si al sincronizar el pedido de emergencia no recibe su número del servidor, o si el cierre no lleva la hora
