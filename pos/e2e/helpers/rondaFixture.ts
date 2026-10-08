@@ -8,7 +8,7 @@ export const test = base.extend<
   { storageState: QaStorageState },
   { qaPosStorageState: QaStorageState }
 >({
-  qaPosStorageState: [async ({ browser }, use, workerInfo) => {
+  qaPosStorageState: [async ({ browser }, provide, workerInfo) => {
     const context = await browser.newContext({
       baseURL: workerInfo.project.use.baseURL,
       locale: workerInfo.project.use.locale,
@@ -22,9 +22,9 @@ export const test = base.extend<
     } finally {
       await context.close()
     }
-    await use(state)
+    await provide(state)
   }, { scope: 'worker' }],
-  storageState: async ({ qaPosStorageState }, use) => {
-    await use(qaPosStorageState)
+  storageState: async ({ qaPosStorageState }, provide) => {
+    await provide(qaPosStorageState)
   },
 })

@@ -86,6 +86,7 @@ jobs:
         run: |
           npx next typegen
           npm run typecheck
+          npx eslint e2e/helpers/ronda.ts e2e/helpers/rondaFixture.ts e2e/helpers/setupRonda.ts e2e/helpers/viewports.ts --format json --output-file ../test-results/helpers-eslint.json
           JEST_JUNIT_OUTPUT_DIR=../test-results npm run test:ci -- --runInBand --runTestsByPath lib/services/__tests__/cashRegister.test.ts lib/offline/__tests__/cashMoves.test.ts lib/offline/__tests__/offline.test.ts lib/offline/__tests__/emergency.test.ts components/payment/__tests__/PaymentModal.test.tsx 'app/(pos)/historial/__tests__/page.test.tsx' components/history/__tests__/BillInfo.test.tsx --json --outputFile=../test-results/pos.json --reporters=default --reporters=../test-results/junit/node_modules/jest-junit
       - name: Gate canónico sobre las pruebas de la ronda
         run: |
