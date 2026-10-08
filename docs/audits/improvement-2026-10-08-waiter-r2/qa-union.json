@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "kind": "improvement-qa",
+  "round_id": "2026-10-08-waiter-r2-union",
+  "codebase": "waiter_project",
+  "candidate_ids": [
+    "I-P-73bff8fb3577",
+    "I-R-6ef846671bd6",
+    "I-M-ccd28b260166"
+  ],
+  "commit": "099b1046f8167981cbbd430fb34d5e4c1f1341a1",
+  "report": "test-results/improvement/2026-10-08-waiter-r2/qa-final.md",
+  "executions": [
+    {
+      "layer": "backend",
+      "command": "python scripts/calidad/validar_ronda.py backend",
+      "exit_code": 0,
+      "executed": true,
+      "report": "test-results/improvement/2026-10-08-waiter-r2/qa-final.md",
+      "artifact": "test-results/improvement/2026-10-08-waiter-r2/ci-final/backend-ronda/backend.xml",
+      "format": "junit",
+      "candidate_ids": [
+        "I-P-73bff8fb3577",
+        "I-M-ccd28b260166"
+      ]
+    },
+    {
+      "layer": "frontend-unit",
+      "command": "JEST_JUNIT_OUTPUT_DIR=../test-results python ../scripts/calidad/validar_ronda.py pos",
+      "exit_code": 0,
+      "executed": true,
+      "report": "test-results/improvement/2026-10-08-waiter-r2/qa-final.md",
+      "artifact": "test-results/improvement/2026-10-08-waiter-r2/ci-final/pos-ronda/junit.xml",
+      "format": "junit",
+      "candidate_ids": [
+        "I-R-6ef846671bd6"
+      ]
+    },
+    {
+      "layer": "e2e",
+      "command": "npx playwright test --config=playwright.ronda.config.ts",
+      "exit_code": 0,
+      "executed": true,
+      "report": "test-results/improvement/2026-10-08-waiter-r2/qa-final.md",
+      "artifact": "test-results/improvement/2026-10-08-waiter-r2/ci-final/navegador-ronda/test-results/improvement/2026-10-08-waiter-r2/playwright.json",
+      "format": "playwright-json",
+      "candidate_ids": [
+        "I-R-6ef846671bd6"
+      ],
+      "live": true
+    },
+    {
+      "layer": "gate",
+      "command": "python scripts/calidad/validar_ronda.py gate",
+      "exit_code": 0,
+      "executed": true,
+      "report": "test-results/improvement/2026-10-08-waiter-r2/qa-final.md",
+      "artifact": "test-results/improvement/2026-10-08-waiter-r2/ci-final/pos-ronda/gate.json",
+      "format": "gate-json"
+    }
+  ]
+}

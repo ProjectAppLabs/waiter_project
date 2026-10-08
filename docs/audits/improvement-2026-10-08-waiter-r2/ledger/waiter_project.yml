@@ -90,82 +90,119 @@ candidates:
   problem: La cookie de identidad se emite sin Secure también en producción.
   paths:
   - experience/experience_app/views/sessions.py
-  evidence:
+  evidence: &id001
   - experience/accounts/authentication.py:66
   - experience/experience_app/views/sessions.py:47
   front: security
   severity: mayor
-  confidence: inferred
-  report: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  confidence: measured
+  report: docs/audits/improvement-2026-10-08-waiter-r2/README.md
   regression_pending: false
-  required_pending: true
+  required_pending: false
   obligation_open: false
   id: I-S-c16a297c8802
-  status: candidate
+  status: verified
   depends_on: []
-  tests_declared: []
-  value_assessment:
-    benefit: material
-    effort: S
-    change_risk: low
-    mandatory: true
-    reason: Evitar el envío de la cookie de identidad por HTTP conservando el desarrollo local.
-    evidence:
-    - experience/accounts/authentication.py:66
-    - experience/experience_app/views/sessions.py:47
-    cosmetic_only: false
+  tests_declared:
+  - experience/experience_app/tests/views/test_entry_and_sessions.py
   value_decision:
     policy_version: 1.0.0
     required: true
     decision: proceed
     reason: a requirement, blocking risk or regression cannot be deferred for ROI
-  context_fingerprint: 9fcd877ecbc6edf9531e3108102a49fff0916ca3ea3d401654ea33f473706581
+  context_fingerprint: 465700974311c5829d2e0889d9d142adfc84e1e6fc86136eef4ab458ae892205
   first_seen: '2026-10-07T21:52:14Z'
-  updated_at: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-08T14:43:49Z'
+  value_assessment:
+    benefit: material
+    effort: S
+    change_risk: low
+    mandatory: true
+    reason: La causa y su efecto se comprobaron en código, pruebas o navegador aislado; la corrección queda acotada y exige
+      QA combinada.
+    evidence: *id001
+    cosmetic_only: false
+  qa:
+    status: verified
+    round_id: 2026-10-08-waiter-r2-seguridad
+    commit: 099b1046f8167981cbbd430fb34d5e4c1f1341a1
+    report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+    reason: exact round, commit, passing test artifacts and live E2E where required are verified
+    recorded_at: '2026-10-08T14:43:49Z'
+    executions:
+    - layer: backend
+      report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+      artifact: test-results/improvement/2026-10-08-waiter-r2/ci-final/backend-ronda/backend.xml
+      format: junit
+      candidate_ids:
+      - I-S-c16a297c8802
+      - I-S-af7de5335058
+      - I-O-258297f610e6
+    - layer: gate
+      report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+      artifact: test-results/improvement/2026-10-08-waiter-r2/ci-final/pos-ronda/gate.json
+      format: gate-json
 - module: mcp-access-log
   root_cause: mcp-url-token-access-log
   process: registrar peticiones MCP con clave en URL
   problem: El registro de acceso configurado conserva la clave de autenticación dentro de la ruta.
   paths:
   - deploy/experience.Dockerfile
-  - experience/experience_app/mcp/views.py
-  - experience/experience_app/urls/__init__.py
-  evidence:
+  - experience/experience_project/gunicorn_conf.py
+  evidence: &id002
   - deploy/experience.Dockerfile:22
   - experience/experience_app/mcp/README.md:18
   - experience/experience_app/mcp/views.py:35
   - experience/experience_app/urls/__init__.py:35
   front: security
   severity: mayor
-  confidence: inferred
-  report: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  confidence: measured
+  report: docs/audits/improvement-2026-10-08-waiter-r2/README.md
   regression_pending: false
-  required_pending: true
+  required_pending: false
   obligation_open: false
   id: I-S-af7de5335058
-  status: candidate
+  status: verified
   depends_on: []
-  tests_declared: []
-  value_assessment:
-    benefit: material
-    effort: S
-    change_risk: low
-    mandatory: true
-    reason: Evitar copiar credenciales en el registro de acceso manteniendo clientes y diagnóstico.
-    evidence:
-    - deploy/experience.Dockerfile:22
-    - experience/experience_app/mcp/README.md:18
-    - experience/experience_app/mcp/views.py:35
-    - experience/experience_app/urls/__init__.py:35
-    cosmetic_only: false
+  tests_declared:
+  - experience/experience_app/tests/utils/test_access_logging.py
   value_decision:
     policy_version: 1.0.0
     required: true
     decision: proceed
     reason: a requirement, blocking risk or regression cannot be deferred for ROI
-  context_fingerprint: 0b65fa133205a8f835a5c7b6a917e805d1a823e7231ae36ef4e1df976fdc5d3b
+  context_fingerprint: f99bcb1a3529e22c40e3f853edfedaef940f85d0639c6f436d0aa0768415c098
   first_seen: '2026-10-07T21:52:14Z'
-  updated_at: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-08T14:43:49Z'
+  value_assessment:
+    benefit: material
+    effort: S
+    change_risk: low
+    mandatory: true
+    reason: La causa y su efecto se comprobaron en código, pruebas o navegador aislado; la corrección queda acotada y exige
+      QA combinada.
+    evidence: *id002
+    cosmetic_only: false
+  qa:
+    status: verified
+    round_id: 2026-10-08-waiter-r2-seguridad
+    commit: 099b1046f8167981cbbd430fb34d5e4c1f1341a1
+    report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+    reason: exact round, commit, passing test artifacts and live E2E where required are verified
+    recorded_at: '2026-10-08T14:43:49Z'
+    executions:
+    - layer: backend
+      report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+      artifact: test-results/improvement/2026-10-08-waiter-r2/ci-final/backend-ronda/backend.xml
+      format: junit
+      candidate_ids:
+      - I-S-c16a297c8802
+      - I-S-af7de5335058
+      - I-O-258297f610e6
+    - layer: gate
+      report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+      artifact: test-results/improvement/2026-10-08-waiter-r2/ci-final/pos-ronda/gate.json
+      format: gate-json
 - front: observability
   module: sales/offline
   root_cause: cash-move-retry-without-stable-identity
@@ -273,7 +310,7 @@ candidates:
     y sincronización.
   paths:
   - pos/lib/services/core/http.ts
-  evidence: &id001
+  evidence: &id003
   - diner/lib/services/api.ts:7
   - pos/lib/offline/outbox.ts:118
   - pos/lib/services/core/http.ts:37
@@ -295,7 +332,7 @@ candidates:
     mandatory: false
     reason: Un límite completo permite salir del estado pendiente; las escrituras conservan resultado incierto y necesitan
       identidades seguras para cualquier reenvío.
-    evidence: *id001
+    evidence: *id003
     cosmetic_only: false
   value_decision:
     policy_version: 1.0.0
@@ -390,40 +427,58 @@ candidates:
   problem: Cualquier excepción del envío termina en false sin señal local que permita distinguir una indisponibilidad de correo.
   paths:
   - experience/accounts/services.py
-  evidence:
+  evidence: &id004
   - experience/accounts/services.py:93
   - experience/accounts/services.py:96
   - experience/tenancy/tests/test_platform.py:63
   severity: mayor
-  confidence: inferred
-  report: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  confidence: measured
+  report: docs/audits/improvement-2026-10-08-waiter-r2/README.md
   regression_pending: false
   required_pending: false
   obligation_open: false
   id: I-O-258297f610e6
-  status: candidate
+  status: verified
   depends_on: []
-  tests_declared: []
-  value_assessment:
-    benefit: material
-    effort: S
-    change_risk: low
-    mandatory: false
-    reason: Un evento local estable y saneado hace diagnosticable la falta de acceso, conservando el alta y la respuesta pública
-      que evita enumerar cuentas.
-    evidence:
-    - experience/accounts/services.py:93
-    - experience/accounts/services.py:96
-    - experience/tenancy/tests/test_platform.py:63
-    cosmetic_only: false
+  tests_declared:
+  - experience/accounts/tests/views/test_invitations.py
   value_decision:
     policy_version: 1.0.0
     required: false
     decision: proceed
     reason: material benefit is supported by evidence
-  context_fingerprint: d81384c390821f1143adb1960bbc8b3c4c32d2020357b8f2a93d7da603132617
+  context_fingerprint: ada628e39809fdc1f411d71bd322094c6c31ebe9eb5b9752e923b8b85e218633
   first_seen: '2026-10-07T21:52:14Z'
-  updated_at: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-08T14:43:49Z'
+  value_assessment:
+    benefit: material
+    effort: S
+    change_risk: low
+    mandatory: false
+    reason: La causa y su efecto se comprobaron en código, pruebas o navegador aislado; la corrección queda acotada y exige
+      QA combinada.
+    evidence: *id004
+    cosmetic_only: false
+  qa:
+    status: verified
+    round_id: 2026-10-08-waiter-r2-seguridad
+    commit: 099b1046f8167981cbbd430fb34d5e4c1f1341a1
+    report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+    reason: exact round, commit, passing test artifacts and live E2E where required are verified
+    recorded_at: '2026-10-08T14:43:49Z'
+    executions:
+    - layer: backend
+      report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+      artifact: test-results/improvement/2026-10-08-waiter-r2/ci-final/backend-ronda/backend.xml
+      format: junit
+      candidate_ids:
+      - I-S-c16a297c8802
+      - I-S-af7de5335058
+      - I-O-258297f610e6
+    - layer: gate
+      report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+      artifact: test-results/improvement/2026-10-08-waiter-r2/ci-final/pos-ronda/gate.json
+      format: gate-json
 - front: observability
   module: experience_app/payments
   root_cause: payment-reconciliation-failures-collapsed-to-review-flag
@@ -433,7 +488,7 @@ candidates:
   paths:
   - experience/experience_app/management/commands/reconcile_payments.py
   - experience/experience_app/services/online_payments.py
-  evidence: &id002
+  evidence: &id005
   - experience/experience_app/management/commands/reconcile_payments.py:39
   - experience/experience_app/services/online_payments.py:162
   - experience/experience_app/services/online_payments.py:188
@@ -455,7 +510,7 @@ candidates:
     mandatory: false
     reason: Clasificar localmente resultado rechazado, error de negocio y fallo de base permite decidir entre reintentar o
       revisar, sin repetir el cobro ni publicar datos privados.
-    evidence: *id002
+    evidence: *id005
     cosmetic_only: false
   value_decision:
     policy_version: 1.0.0
@@ -473,7 +528,7 @@ candidates:
     conflicto después de que el primer pago se guardó.
   paths:
   - pos/lib/offline/outbox.ts
-  evidence: &id003
+  evidence: &id006
   - experience/sales/api.py:163
   - experience/sales/api.py:170
   - experience/sales/services.py:410
@@ -496,7 +551,7 @@ candidates:
     mandatory: false
     reason: Hay un mecanismo concreto de identidad estable con contenido variable; falta reproducir el fallo de sincronización
       para valorar y seleccionar su corrección.
-    evidence: *id003
+    evidence: *id006
     cosmetic_only: false
   value_decision:
     policy_version: 1.0.0
@@ -513,43 +568,74 @@ candidates:
   paths:
   - pos/app/organizacion/layout.tsx
   - pos/app/plataforma/layout.tsx
-  evidence:
+  evidence: &id007
   - pos/app/organizacion/layout.tsx:65
   - pos/app/organizacion/layout.tsx:91
   - pos/app/plataforma/layout.tsx:38
   - pos/app/plataforma/layout.tsx:51
   severity: bloqueante
-  confidence: inferred
+  confidence: measured
   process: Usar layout-consolas en pantallas estrechas
-  report: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  report: docs/audits/improvement-2026-10-08-waiter-r2/README.md
   regression_pending: false
-  required_pending: true
+  required_pending: false
   obligation_open: false
   id: I-R-6ef846671bd6
-  status: candidate
+  status: verified
   depends_on: []
-  tests_declared: []
-  value_assessment:
-    benefit: unknown
-    effort: M
-    change_risk: medium
-    mandatory: true
-    reason: La hipótesis está trazada en código; falta evidencia de navegador requerida por el estándar para confirmar el
-      beneficio y la severidad funcional.
-    evidence:
-    - pos/app/organizacion/layout.tsx:65
-    - pos/app/organizacion/layout.tsx:91
-    - pos/app/plataforma/layout.tsx:38
-    - pos/app/plataforma/layout.tsx:51
-    cosmetic_only: false
+  tests_declared:
+  - pos/components/console/__tests__/ConsoleLayouts.test.tsx
+  - pos/components/console/__tests__/ConsoleNavigation.test.tsx
+  - pos/e2e/consolas/ronda.spec.ts
   value_decision:
     policy_version: 1.0.0
     required: true
-    decision: needs-evidence
-    reason: benefit has not been demonstrated
-  context_fingerprint: b2e089526ed2f438f6cadb6a8c11694b0b8b93b573c2cc7eab3e277e1da7ebc2
+    decision: proceed
+    reason: a requirement, blocking risk or regression cannot be deferred for ROI
+  context_fingerprint: 9d7f687e7d28ac69ddcabc019251697c721397f73aa44b012a9ee8c50c3eafa6
   first_seen: '2026-10-07T21:52:14Z'
-  updated_at: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-08T14:43:50Z'
+  value_assessment:
+    benefit: material
+    effort: M
+    change_risk: medium
+    mandatory: false
+    reason: El navegador confirmó la fuga de foco del modal nativo; su dueño corrigió los extremos de tabulación y preservó
+      el recorrido y las medidas.
+    evidence: *id007
+    cosmetic_only: false
+  qa:
+    status: verified
+    round_id: 2026-10-08-waiter-r2-union
+    commit: 099b1046f8167981cbbd430fb34d5e4c1f1341a1
+    report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+    reason: exact round, commit, passing test artifacts and live E2E where required are verified
+    recorded_at: '2026-10-08T14:43:50Z'
+    executions:
+    - layer: backend
+      report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+      artifact: test-results/improvement/2026-10-08-waiter-r2/ci-final/backend-ronda/backend.xml
+      format: junit
+      candidate_ids:
+      - I-P-73bff8fb3577
+      - I-M-ccd28b260166
+    - layer: frontend-unit
+      report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+      artifact: test-results/improvement/2026-10-08-waiter-r2/ci-final/pos-ronda/junit.xml
+      format: junit
+      candidate_ids:
+      - I-R-6ef846671bd6
+    - layer: e2e
+      report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+      artifact: test-results/improvement/2026-10-08-waiter-r2/ci-final/navegador-ronda/test-results/improvement/2026-10-08-waiter-r2/playwright.json
+      format: playwright-json
+      live: true
+      candidate_ids:
+      - I-R-6ef846671bd6
+    - layer: gate
+      report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+      artifact: test-results/improvement/2026-10-08-waiter-r2/ci-final/pos-ronda/gate.json
+      format: gate-json
 - front: responsive
   module: pago
   root_cause: panel396-en-modal-compact
@@ -655,7 +741,7 @@ candidates:
   problem: La ficha conserva sidebar de 220 px, campos en varias columnas e imagen de 320 px independientemente del ancho.
   paths:
   - pos/components/catalog/ProductForm.tsx
-  evidence: &id004
+  evidence: &id008
   - pos/components/catalog/ProductForm.tsx:107
   - pos/components/catalog/ProductForm.tsx:170
   - pos/components/catalog/ProductForm.tsx:70
@@ -679,7 +765,7 @@ candidates:
     mandatory: true
     reason: La hipótesis está trazada en código; falta evidencia de navegador requerida por el estándar para confirmar el
       beneficio y la severidad funcional.
-    evidence: *id004
+    evidence: *id008
     cosmetic_only: false
   value_decision:
     policy_version: 1.0.0
@@ -791,7 +877,7 @@ candidates:
   paths:
   - pos/app/(pos)/operacion/page.tsx
   - pos/components/ops/ShiftTable.tsx
-  evidence: &id005
+  evidence: &id009
   - pos/app/(pos)/operacion/page.tsx:74
   - pos/app/(pos)/operacion/page.tsx:82
   - pos/components/ops/ShiftTable.tsx:19
@@ -814,7 +900,7 @@ candidates:
     mandatory: true
     reason: La hipótesis está trazada en código; falta evidencia de navegador requerida por el estándar para confirmar el
       beneficio y la severidad funcional.
-    evidence: *id005
+    evidence: *id009
     cosmetic_only: false
   value_decision:
     policy_version: 1.0.0
@@ -831,7 +917,7 @@ candidates:
     16 px.
   paths:
   - diner/components/smart/smart-menu.css
-  evidence: &id006
+  evidence: &id010
   - diner/components/smart/SmartBenefits.tsx:46
   - diner/components/smart/smart-menu.css:1690
   - diner/components/smart/smart-tokens.css:10
@@ -853,7 +939,7 @@ candidates:
     mandatory: true
     reason: La hipótesis está trazada en código; falta evidencia de navegador requerida por el estándar para confirmar el
       beneficio y la severidad funcional.
-    evidence: *id006
+    evidence: *id010
     cosmetic_only: false
   value_decision:
     policy_version: 1.0.0
@@ -946,39 +1032,71 @@ candidates:
   problem: Cada cliente carga sus ventas y consulta consentimiento individual.
   paths:
   - experience/reports/exports.py
-  evidence:
+  evidence: &id011
   - experience/reports/exports.py:260
   - experience/reports/exports.py:264
   - experience/reports/exports.py:266
   severity: mayor
-  confidence: inferred
-  report: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  confidence: measured
+  report: docs/audits/improvement-2026-10-08-waiter-r2/README.md
   regression_pending: false
   required_pending: false
   obligation_open: false
   id: I-P-73bff8fb3577
-  status: candidate
+  status: verified
   depends_on: []
-  tests_declared: []
-  value_assessment:
-    benefit: unknown
-    effort: S
-    change_risk: low
-    mandatory: false
-    reason: La causa está trazada; faltan mediciones aisladas y perfil confirmado para determinar el beneficio y el presupuesto.
-    evidence:
-    - experience/reports/exports.py:260
-    - experience/reports/exports.py:264
-    - experience/reports/exports.py:266
-    cosmetic_only: false
+  tests_declared:
+  - experience/reports/tests/views/test_customer_export_queries.py
+  - experience/reports/tests/views/test_exportes_historial_equipo.py
   value_decision:
     policy_version: 1.0.0
     required: false
-    decision: needs-evidence
-    reason: benefit has not been demonstrated
-  context_fingerprint: ceddc77ca3d98aaf8a512360a82e076afc33671ff81260a8bb82e07181404b83
+    decision: proceed
+    reason: material benefit is supported by evidence
+  context_fingerprint: ef6dc365c688b88708f8ec4db88fe3528c28d0fdcf475613a982fa62608f2402
   first_seen: '2026-10-07T21:52:14Z'
-  updated_at: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-08T14:43:50Z'
+  value_assessment:
+    benefit: material
+    effort: M
+    change_risk: medium
+    mandatory: false
+    reason: La causa y su efecto se comprobaron en código, pruebas o navegador aislado; la corrección queda acotada y exige
+      QA combinada.
+    evidence: *id011
+    cosmetic_only: false
+  qa:
+    status: verified
+    round_id: 2026-10-08-waiter-r2-union
+    commit: 099b1046f8167981cbbd430fb34d5e4c1f1341a1
+    report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+    reason: exact round, commit, passing test artifacts and live E2E where required are verified
+    recorded_at: '2026-10-08T14:43:50Z'
+    executions:
+    - layer: backend
+      report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+      artifact: test-results/improvement/2026-10-08-waiter-r2/ci-final/backend-ronda/backend.xml
+      format: junit
+      candidate_ids:
+      - I-P-73bff8fb3577
+      - I-M-ccd28b260166
+    - layer: frontend-unit
+      report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+      artifact: test-results/improvement/2026-10-08-waiter-r2/ci-final/pos-ronda/junit.xml
+      format: junit
+      candidate_ids:
+      - I-R-6ef846671bd6
+    - layer: e2e
+      report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+      artifact: test-results/improvement/2026-10-08-waiter-r2/ci-final/navegador-ronda/test-results/improvement/2026-10-08-waiter-r2/playwright.json
+      format: playwright-json
+      live: true
+      candidate_ids:
+      - I-R-6ef846671bd6
+    - layer: gate
+      report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+      artifact: test-results/improvement/2026-10-08-waiter-r2/ci-final/pos-ronda/gate.json
+      format: gate-json
 - front: performance
   module: reports/summary
   root_cause: summary-materializes-every-order-and-refund
@@ -986,7 +1104,7 @@ candidates:
   problem: Carga ventas y devoluciones completas de ambos periodos para sumar cifras.
   paths:
   - experience/reports/api.py
-  evidence: &id007
+  evidence: &id012
   - experience/reports/api.py:37
   - experience/reports/api.py:44
   - experience/reports/api.py:63
@@ -1006,7 +1124,7 @@ candidates:
     change_risk: low
     mandatory: false
     reason: La causa está trazada; faltan mediciones aisladas y perfil confirmado para determinar el beneficio y el presupuesto.
-    evidence: *id007
+    evidence: *id012
     cosmetic_only: false
   value_decision:
     policy_version: 1.0.0
@@ -1023,7 +1141,7 @@ candidates:
   problem: Acumula el CSV completo en memoria y copia a bytes; ventas carga todas las filas y relaciones.
   paths:
   - experience/reports/exports.py
-  evidence: &id008
+  evidence: &id013
   - experience/reports/exports.py:139
   - experience/reports/exports.py:170
   - experience/reports/exports.py:320
@@ -1044,7 +1162,7 @@ candidates:
     change_risk: medium
     mandatory: false
     reason: La causa está trazada; faltan mediciones aisladas y perfil confirmado para determinar el beneficio y el presupuesto.
-    evidence: *id008
+    evidence: *id013
     cosmetic_only: false
   value_decision:
     policy_version: 1.0.0
@@ -1062,7 +1180,7 @@ candidates:
   paths:
   - experience/catalog/reading.py
   - experience/reports/api.py
-  evidence: &id009
+  evidence: &id014
   - experience/catalog/reading.py:32
   - experience/catalog/reading.py:89
   - experience/reports/api.py:79
@@ -1082,7 +1200,7 @@ candidates:
     change_risk: medium
     mandatory: false
     reason: La causa está trazada; faltan mediciones aisladas y perfil confirmado para determinar el beneficio y el presupuesto.
-    evidence: *id009
+    evidence: *id014
     cosmetic_only: false
   value_decision:
     policy_version: 1.0.0
@@ -1099,7 +1217,7 @@ candidates:
   problem: Intervalo, eventos y actualización manual inician lecturas simultáneas sin deduplicación.
   paths:
   - pos/lib/hooks/useKitOrders.ts
-  evidence: &id010
+  evidence: &id015
   - pos/lib/hooks/useKitOrders.ts:36
   - pos/lib/hooks/useKitOrders.ts:41
   - pos/lib/hooks/useKitOrders.ts:56
@@ -1120,7 +1238,7 @@ candidates:
     change_risk: medium
     mandatory: false
     reason: La causa está trazada; faltan mediciones aisladas y perfil confirmado para determinar el beneficio y el presupuesto.
-    evidence: *id010
+    evidence: *id015
     cosmetic_only: false
   value_decision:
     policy_version: 1.0.0
@@ -1238,7 +1356,7 @@ candidates:
   paths:
   - docs/USER_FLOW_MAP.md
   - scripts/calidad/validar_ronda.py
-  evidence: &id011
+  evidence: &id016
   - docs/USER_FLOW_MAP.md:45
   - scripts/calidad/validar_ronda.py:14
   severity: mayor
@@ -1248,25 +1366,59 @@ candidates:
   required_pending: false
   obligation_open: false
   id: I-M-ccd28b260166
-  status: candidate
+  status: verified
   depends_on: []
-  tests_declared: []
-  value_assessment:
-    benefit: material
-    effort: S
-    change_risk: low
-    mandatory: false
-    reason: Evitar un verde sin ejecutar los entregables exigidos para cada rama y conservar referencias vigentes.
-    evidence: *id011
-    cosmetic_only: false
+  tests_declared:
+  - experience/experience_app/tests/utils/test_round_validation.py
   value_decision:
     policy_version: 1.0.0
     required: false
     decision: proceed
     reason: material benefit is supported by evidence
-  context_fingerprint: aa3dc0ab9d3c26b7fe24d1b79de7cd0cdfdf693ba28d96c5698dd1df1960f107
+  context_fingerprint: bf4405441aa2eb6aaea68d0b0e4c91444a81862de5f423e093dfd20659482fac
   first_seen: '2026-10-08T13:14:54Z'
-  updated_at: '2026-10-08T13:14:54Z'
+  updated_at: '2026-10-08T14:43:50Z'
+  value_assessment:
+    benefit: material
+    effort: S
+    change_risk: low
+    mandatory: false
+    reason: La causa y su efecto se comprobaron en código, pruebas o navegador aislado; la corrección queda acotada y exige
+      QA combinada.
+    evidence: *id016
+    cosmetic_only: false
+  qa:
+    status: verified
+    round_id: 2026-10-08-waiter-r2-union
+    commit: 099b1046f8167981cbbd430fb34d5e4c1f1341a1
+    report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+    reason: exact round, commit, passing test artifacts and live E2E where required are verified
+    recorded_at: '2026-10-08T14:43:50Z'
+    executions:
+    - layer: backend
+      report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+      artifact: test-results/improvement/2026-10-08-waiter-r2/ci-final/backend-ronda/backend.xml
+      format: junit
+      candidate_ids:
+      - I-P-73bff8fb3577
+      - I-M-ccd28b260166
+    - layer: frontend-unit
+      report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+      artifact: test-results/improvement/2026-10-08-waiter-r2/ci-final/pos-ronda/junit.xml
+      format: junit
+      candidate_ids:
+      - I-R-6ef846671bd6
+    - layer: e2e
+      report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+      artifact: test-results/improvement/2026-10-08-waiter-r2/ci-final/navegador-ronda/test-results/improvement/2026-10-08-waiter-r2/playwright.json
+      format: playwright-json
+      live: true
+      candidate_ids:
+      - I-R-6ef846671bd6
+    - layer: gate
+      report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+      artifact: test-results/improvement/2026-10-08-waiter-r2/ci-final/pos-ronda/gate.json
+      format: gate-json
 scopes: []
 rounds:
 - id: 2026-10-07-waiter-x0
@@ -1425,3 +1577,96 @@ rounds:
       artifact: test-results/improvement/2026-10-08-waiter-w0/ci-combinado/pos-ronda/gate.json
       format: gate-json
       candidate_ids: []
+- id: 2026-10-08-waiter-r2-seguridad
+  commit: 099b1046f8167981cbbd430fb34d5e4c1f1341a1
+  candidates:
+  - I-S-c16a297c8802
+  - I-S-af7de5335058
+  - I-O-258297f610e6
+  fronts:
+  - security
+  - observability
+  module: r2
+  report: docs/audits/improvement-2026-10-08-waiter-r2/README.md
+  e2e_required: false
+  required_layers:
+  - backend
+  - gate
+  codebase: waiter_project
+  status: verified
+  created_at: '2026-10-08T14:05:38Z'
+  updated_at: '2026-10-08T14:40:37Z'
+  qa:
+    status: verified
+    round_id: 2026-10-08-waiter-r2-seguridad
+    commit: 099b1046f8167981cbbd430fb34d5e4c1f1341a1
+    report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+    reason: exact round, commit, passing test artifacts and live E2E where required are verified
+    recorded_at: '2026-10-08T14:43:49Z'
+    executions:
+    - layer: backend
+      report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+      artifact: test-results/improvement/2026-10-08-waiter-r2/ci-final/backend-ronda/backend.xml
+      format: junit
+      candidate_ids:
+      - I-S-c16a297c8802
+      - I-S-af7de5335058
+      - I-O-258297f610e6
+    - layer: gate
+      report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+      artifact: test-results/improvement/2026-10-08-waiter-r2/ci-final/pos-ronda/gate.json
+      format: gate-json
+- id: 2026-10-08-waiter-r2-union
+  commit: 099b1046f8167981cbbd430fb34d5e4c1f1341a1
+  candidates:
+  - I-P-73bff8fb3577
+  - I-R-6ef846671bd6
+  - I-M-ccd28b260166
+  fronts:
+  - performance
+  - responsive
+  - maintainability
+  module: r2
+  report: docs/audits/improvement-2026-10-08-waiter-r2/README.md
+  e2e_required: true
+  required_layers:
+  - backend
+  - e2e
+  - frontend-unit
+  - gate
+  codebase: waiter_project
+  status: verified
+  created_at: '2026-10-08T14:05:39Z'
+  updated_at: '2026-10-08T14:40:38Z'
+  qa:
+    status: verified
+    round_id: 2026-10-08-waiter-r2-union
+    commit: 099b1046f8167981cbbd430fb34d5e4c1f1341a1
+    report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+    reason: exact round, commit, passing test artifacts and live E2E where required are verified
+    recorded_at: '2026-10-08T14:43:50Z'
+    executions:
+    - layer: backend
+      report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+      artifact: test-results/improvement/2026-10-08-waiter-r2/ci-final/backend-ronda/backend.xml
+      format: junit
+      candidate_ids:
+      - I-P-73bff8fb3577
+      - I-M-ccd28b260166
+    - layer: frontend-unit
+      report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+      artifact: test-results/improvement/2026-10-08-waiter-r2/ci-final/pos-ronda/junit.xml
+      format: junit
+      candidate_ids:
+      - I-R-6ef846671bd6
+    - layer: e2e
+      report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+      artifact: test-results/improvement/2026-10-08-waiter-r2/ci-final/navegador-ronda/test-results/improvement/2026-10-08-waiter-r2/playwright.json
+      format: playwright-json
+      live: true
+      candidate_ids:
+      - I-R-6ef846671bd6
+    - layer: gate
+      report: test-results/improvement/2026-10-08-waiter-r2/qa-final.md
+      artifact: test-results/improvement/2026-10-08-waiter-r2/ci-final/pos-ronda/gate.json
+      format: gate-json
