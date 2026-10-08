@@ -23,7 +23,7 @@ from django.test.utils import setup_databases
 from rest_framework.test import APIClient
 
 from accounts.models import Account
-from catalog.models import Product, Tax
+from catalog.models import Category, Product, Tax
 from catalog.services import seed_organization
 from sales.models import PaymentMethod
 from tables.models import Floor, Table
@@ -67,6 +67,10 @@ def main():
         organization=org, name='Plato gravado QA r3',
         defaults={'kind': 'dish', 'price': 10000, 'active': True, 'available_in_pos': True})
     taxed_dish.taxes.set([excluded_tax])
+    round_category, _ = Category.objects.update_or_create(
+        organization=org, name='Platos QA r3',
+        defaults={'active': True, 'sequence': 0})
+    taxed_dish.categories.set([round_category])
     client = APIClient()
     client.credentials(HTTP_X_WAITER_ORG=org.slug, HTTP_HOST='127.0.0.1')
 
@@ -97,6 +101,7 @@ def main():
          'shift_id': shift['id'], 'pending_id': pending['id'], 'paid_id': paid['id'],
          'product_id': dish.pk, 'total': pending['total'],
          'taxed_product_id': taxed_dish.pk, 'taxed_total': 11900,
+         'round_category_id': round_category.pk,
          'round_table_id': table.pk, 'round_table_number': table.number}, ensure_ascii=False))
 
 
