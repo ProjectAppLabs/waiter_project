@@ -36,12 +36,12 @@ it('attribute groups are single choice and required; combos toggle many', () => 
   expect(chosen.filter((c) => c.kind === 'combo')).toHaveLength(0)
 })
 
-// Falla si el sobreprecio de la adición no entra en el subtotal o el IVA deja de salir de account.tax.
-it('totals add price_extra per unit and the real tax rate', () => {
+// Falla si el asistente vuelve a gravar el precio final o pierde la adición al agrupar dos platos iguales.
+it('suma la adición al precio final y conserva la base y el nombre del impuesto', () => {
   const lines = addLine(addLine([], newLine(angus, 1, '', [bbq])), newLine(angus, 1, '', [bbq]))
   expect(lines).toHaveLength(1)
   expect(lines[0].qty).toBe(2)
-  expect(cartTotals(lines, [iva])).toEqual({ subtotal: 77800, tax: 14782, total: 92582, taxNames: ['19%'] })
+  expect(cartTotals(lines, [iva])).toEqual({ subtotal: 65378.15, tax: 12421.85, total: 77800, taxNames: ['19%'] })
   expect(fullProductName(lines[0])).toBe('Hamburguesa Angus (BBQ)')
 })
 

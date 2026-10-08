@@ -1,4 +1,4 @@
-import { type CartLine, type KitOrderPayload } from '@/lib/domain/orderWizard'
+import { lineSubtotal, lineUnitPrice, type CartLine, type KitOrderPayload } from '@/lib/domain/orderWizard'
 import { tablePlace } from '@/lib/offline/comanda'
 import { useEmergencyOrders } from '@/lib/offline/emergency'
 import { useOutboxStore } from '@/lib/offline/outbox'
@@ -37,7 +37,7 @@ export async function createKitOrder(payload: KitOrderPayload, lines: CartLine[]
       uuid: payload.uuid, type: input.service, tableId: payload.tableId || null, tableNumber: place.kind === 'table' ? place.number : null,
       customer: payload.name, total: offline.total, tax: offline.tax,
       lines: lines.map((l) => ({ uuid: l.uuid, productId: l.productId, name: l.name, qty: l.qty, note: l.note, options: l.options.map((o) => o.name),
-        unitPrice: l.unitPrice + l.options.reduce((sum, o) => sum + o.priceExtra, 0), total: (l.unitPrice + l.options.reduce((sum, o) => sum + o.priceExtra, 0)) * l.qty })),
+        unitPrice: lineUnitPrice(l), total: lineSubtotal(l) })),
     })
     // La nota lleva el número provisional: así, ya en el servidor, el pedido se reconoce en Historial.
     const body = { ...input, created_at: order.createdAt, note: [`Emergencia ${order.number}`, input.note].filter(Boolean).join(' · ') }

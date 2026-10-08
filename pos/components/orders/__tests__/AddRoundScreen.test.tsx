@@ -4,7 +4,7 @@ import { NextIntlClientProvider } from 'next-intl'
 import { AddRoundScreen } from '@/components/orders/AddRoundScreen'
 import { messages } from '@/lib/i18n/messages'
 import type { KitOrder } from '@/lib/domain/orderState'
-import { addRound } from '@/lib/services/ordersKit'
+import { addRound, listTaxes } from '@/lib/services/ordersKit'
 import { useOrderStore } from '@/lib/stores/orderStore'
 import { toast } from '@/lib/stores/toastStore'
 import type { Product } from '@/lib/types'
@@ -26,7 +26,27 @@ jest.mock('@/lib/stores/toastStore', () => ({ toast: jest.fn() }))
 jest.mock('@/lib/audio/sounds', () => ({ play: jest.fn() }))
 
 const wrap = (ui: React.ReactElement) => render(<NextIntlClientProvider locale="es" messages={messages}>{ui}</NextIntlClientProvider>)
-beforeEach(() => { jest.clearAllMocks(); kit = { orders: [order], loaded: true }; useOrderStore.getState().discard() })
+beforeEach(() => {
+  jest.clearAllMocks()
+  kit = { orders: [order], loaded: true }
+  catalog.products = [product(1, 'Hamburguesa', 20000), product(2, 'Limonada', 6000, [2]), product(3, 'Propina', 0, [])]
+  jest.mocked(listTaxes).mockResolvedValue([])
+  useOrderStore.getState().discard()
+})
+
+// Falla si Nueva ronda muestra 14.161 al agregar un plato cuyo precio final ya contiene el IVA excluido del 19 %.
+it('muestra la base, el IVA y el precio final sin volver a gravarlo', async () => {
+  catalog.products = [{ ...product(4, 'Plato gravado', 11900), taxIds: [19] }]
+  jest.mocked(listTaxes).mockResolvedValue([{ id: 19, amount: 19, priceInclude: false }])
+  wrap(<AddRoundScreen orderId={40} returnTo="/pedidos" />)
+  const add = within(screen.getByRole('article', { name: 'Plato gravado' })).getByRole('button')
+  await waitFor(() => expect(add).toBeEnabled())
+  fireEvent.click(add)
+  const cart = screen.getByRole('complementary', { name: 'Nueva ronda' })
+  await waitFor(() => expect(within(cart).getByText('Subtotal').nextSibling).toHaveTextContent('$ 10.000'))
+  expect(within(cart).getByText('Impuestos').nextSibling).toHaveTextContent('$ 1.900')
+  expect(within(cart).getByText('Total a pagar').nextSibling).toHaveTextContent('$ 11.900')
+})
 
 // Falla si la ronda no se arma con lo que se toca en la carta (sumar, cambiar cantidad, quitar), si se envía al pedido
 // equivocado o sin sus líneas, o si al enviar no vuelve a la pantalla de origen. También si un producto sin categoría

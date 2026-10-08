@@ -12,7 +12,7 @@ const mCreate = createKitOrder as jest.Mock
 const angus = { id: 3, templateId: 3, name: 'Hamburguesa Angus', price: 36900, categoryIds: [1], taxIds: [55], favorite: true, storable: false, soldOut: false, hasImage: true }
 const labels = { babyChair: '[Silla de bebé]', delivery: (a: string, p: string) => `[Domicilio: ${a} · ${p}]` }
 
-beforeEach(() => { jest.clearAllMocks(); useOrderWizardStore.getState().reset() })
+beforeEach(() => { jest.clearAllMocks(); useOrderWizardStore.getState().reset(); useOrderWizardStore.setState({ taxes: [] }) })
 
 // Falla si cambiar de tipo no vuelve al primer paso o si los pasos no siguen al tipo elegido.
 it('steps follow the order type and changing type restarts the wizard', () => {
@@ -64,11 +64,15 @@ it('sin conexión el envío a cocina queda en la cola e imprime la comanda', asy
   const { CoreError } = jest.requireActual('@/lib/services/core/http') as typeof import('@/lib/services/core/http')
   localStorage.setItem('waiter.print', JSON.stringify({ autoComanda: true }))
   useOutboxStore.setState({ entries: [], failed: [], ids: {}, loaded: true })
-  mCreate.mockResolvedValue({ id: -1, reference: '', trackingNumber: '', total: 36900, tax: 2733, offline: true })
-  act(() => { useOrderWizardStore.getState().setInfo({ type: 'takeAway', name: 'Ana' }); useOrderWizardStore.getState().add(newLine(angus, 2, 'sin cebolla', [])) })
+  mCreate.mockResolvedValue({ id: -1, reference: '', trackingNumber: '', total: 23800, tax: 3800, offline: true })
+  act(() => {
+    useOrderWizardStore.setState({ taxes: [{ id: 55, name: 'IVA 19 %', amount: 19, amountType: 'percent', priceInclude: false }] })
+    useOrderWizardStore.getState().setInfo({ type: 'takeAway', name: 'Ana' })
+    useOrderWizardStore.getState().add(newLine({ ...angus, price: 11900 }, 2, 'sin cebolla', []))
+  })
   const created = await act(() => useOrderWizardStore.getState().createOrder(16, labels))
   expect(created?.offline).toBe(true)
-  expect(mCreate.mock.calls[0][2]).toMatchObject({ total: expect.any(Number), label: 'Ana' })
+  expect(mCreate.mock.calls[0][2]).toEqual({ total: 23800, tax: 3800, label: 'Ana' })
   await act(() => useOrderWizardStore.getState().fireKitchen(-1))
   expect(fireUnsentLines).not.toHaveBeenCalled()
   expect(useOutboxStore.getState().entries).toMatchObject([{ kind: 'fire', order: { uuid: useOrderWizardStore.getState().requestUuid } }])

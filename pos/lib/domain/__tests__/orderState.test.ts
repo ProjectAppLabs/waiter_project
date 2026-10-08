@@ -94,10 +94,10 @@ it('sorts by latest, oldest and type; filters history by type', () => {
   expect(filterHistory([a, b, c], 'takeout').map((o) => o.id)).toEqual([1])
 })
 
-// Falla si el IVA del 19 % no incluido se suma mal o si un impuesto incluido en el precio se cobra dos veces.
-it('computes cart totals with real el servidor tax rates and greets by hour', () => {
+// Falla si la ronda vuelve a sumar el IVA al precio final o pierde la base de un impuesto incluido.
+it('descompone los precios finales de la ronda y conserva el saludo por hora', () => {
   const taxes = [{ id: 55, amount: 19, priceInclude: false }, { id: 9, amount: 19, priceInclude: true }]
-  expect(cartTotals([{ unitPrice: 36900, qty: 2, taxIds: [55] }], taxes)).toEqual({ subtotal: 73800, tax: 14022, total: 87822 })
+  expect(cartTotals([{ unitPrice: 43911, qty: 2, taxIds: [55] }], taxes)).toEqual({ subtotal: 73800, tax: 14022, total: 87822 })
   expect(cartTotals([{ unitPrice: 11900, qty: 1, taxIds: [9] }], taxes)).toEqual({ subtotal: 10000, tax: 1900, total: 11900 })
   expect(greetingFor(9)).toBe('morning')
   expect(greetingFor(15)).toBe('afternoon')
