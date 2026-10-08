@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "scope": "Acceso offline, Pedidos, Pago, Historial y navegación de consolas; rondas x0, w0 y r2",
+  "scope": "Acceso offline, Pedidos, Pago, Historial y navegación de consolas; rondas x0, w0, r2 y contratos de r3 pendientes de QA final",
   "flows": {
     "pos-payment-checkout": {
       "name": "Cobrar un pedido pendiente",
@@ -11,7 +11,7 @@
         "waiter con charge_orders"
       ],
       "priority": "P1",
-      "description": "El personal autorizado llega al cobro desde el pedido, ve detalle, total y métodos; cobra en efectivo, tarjeta o QR. Puede fijar un importe parcial, elegir método, dividir pagos y agregar propina. Éxito muestra total, método y cambio reales; efectivo insuficiente o QR no configurado muestra rechazo visible; un rechazo del servidor deja el error visible sin mostrar éxito. Contrato responsive: recorrido y controles alcanzables sin recorte en 835x1194, 412x915, 1195x835, 1440x900 y 2560x1440.",
+      "description": "El personal autorizado llega al cobro desde el pedido, ve detalle, total y métodos; cobra en efectivo, tarjeta o QR. Puede fijar un importe parcial, elegir método, dividir pagos y agregar propina. Éxito muestra total, método y cambio reales; efectivo insuficiente o QR no configurado muestra rechazo visible; un rechazo del servidor deja el error visible sin mostrar éxito. Contrato responsive: recorrido y controles alcanzables sin recorte en 835x1194, 412x915, 1195x835, 1440x900 y 2560x1440. En un pago en cola, la pérdida de respuesta conserva la incertidumbre: al volver la conexión y recargar se reintenta con la misma clave y el importe fijado antes del primer envío, aunque el saldo haya cambiado. El resultado confirmado contiene un único pago; un fallo de almacenamiento impide enviar un pago cuyo importe no quedó guardado.",
       "outcomes": [
         "success",
         "error",
@@ -123,13 +123,13 @@
       ]
     },
     "pos-order-create": {
-      "name": "Abrir el asistente de creación de pedido",
+      "name": "Crear un pedido con el precio final de la carta",
       "module": "pos-pedidos",
       "roles": [
         "roles con orders habilitado"
       ],
       "priority": "P1",
-      "description": "Desde Pedidos, pulsar Crear pedido y llegar al diálogo que permite elegir mesa o para llevar/domicilio. El alcance responsive valida esta entrada, sin confirmar ni enviar un pedido.",
+      "description": "Desde Pedidos, pulsar Crear pedido, elegir mesa o para llevar/domicilio y seleccionar platos y opciones. El detalle y el resumen conservan el precio final de la carta, desglosan los impuestos sin cobrarlos otra vez y aplican los sobreprecios por cantidad. Confirmar guarda el pedido y permite contrastar su importe con el servidor. La regresión r3 compara un plato gravado de 11900 en carta, resumen y pedido confirmado; el recorrido inicial responsive sólo abría el asistente.",
       "outcomes": [
         "success",
         "display"
@@ -160,6 +160,53 @@
       ],
       "priority": "P1",
       "description": "Una persona autenticada navega a Métricas y ve la fila real de Waiter QA x0. Sin sesión vuelve a login; un admin obligado a configurar doble factor sólo abre Seguridad; un fallo de métricas muestra alerta. El recorrido correcto, foco, cierres y área útil se comprueban en los cinco tamaños canónicos.",
+      "outcomes": [
+        "success",
+        "error",
+        "failure",
+        "display"
+      ]
+    },
+    "pos-order-add-round": {
+      "name": "Agregar una ronda a un pedido existente",
+      "module": "pos-pedidos",
+      "roles": [
+        "roles con create_orders y pedido editable"
+      ],
+      "priority": "P1",
+      "description": "Desde un pedido existente abrir Agregar platos, seleccionar el plato de la carta y comprobar el detalle de la nueva ronda. Su precio final no vuelve a gravarse: el plato gravado de 11900 conserva ese total antes de enviar y en las líneas guardadas. Enviar agrega la ronda al pedido; un pedido no editable o un rechazo conserva el error sin anunciar envío correcto.",
+      "outcomes": [
+        "success",
+        "error",
+        "failure",
+        "display"
+      ]
+    },
+    "pos-emergency-order": {
+      "name": "Crear y cobrar un pedido durante la emergencia",
+      "module": "pos-pedidos",
+      "roles": [
+        "owner",
+        "admin",
+        "cashier"
+      ],
+      "priority": "P1",
+      "description": "Con la carta previamente cargada, al caer la conexión y activarse la emergencia el personal de caja crea el pedido y cobra por la UI. Conserva el precio final de 11900, el efectivo recibido de 20000 y el cambio de 8100, sin volver a sumar impuestos. Las operaciones quedan pendientes y al reconectar se contrastan con el pedido del servidor. Un mesero no opera la caja de emergencia; errores de cobro no producen un pago exitoso.",
+      "outcomes": [
+        "success",
+        "error",
+        "failure",
+        "display"
+      ]
+    },
+    "pos-payment-reconcile": {
+      "name": "Revisar y conciliar un pago de resultado ambiguo",
+      "module": "pos-pago",
+      "roles": [
+        "personal autorizado para consultar y cobrar el pedido"
+      ],
+      "priority": "P1",
+      "description": "Desde Revisar en el aviso de operaciones pendientes, abrir el pago ambiguo y consultar el pedido y sus pagos mediante una lectura fresca del servidor. Mostrar importe, clave y resultado disponible. Sólo una prueba concluyente habilita confirmar la operación ya aplicada y reanudar las dependientes. Una entrada antigua sin importe fiable o sin prueba suficiente se conserva, con reenvío prohibido. Un error o caída de la consulta no confirma ni elimina la operación; un saldo pendiente impide cerrar el pedido como pagado.",
       "outcomes": [
         "success",
         "error",
