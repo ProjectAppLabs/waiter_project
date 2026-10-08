@@ -12,7 +12,7 @@ export interface CoreLine {
   ready_at: string | null; served_at: string | null; cancelled: boolean
 }
 export interface CoreCourse { id: number; index: number; fired_at: string; preparation_at: string | null; ready_at: string | null; served_at: string | null }
-export interface CorePayment { id: number; method_id: number; method: string; amount: number; received: number | null; reference: string; created_at: string }
+export interface CorePayment { id: number; method_id: number; method: string; amount: number; received: number | null; reference: string; created_at: string; request_key: string | null }
 export interface CoreOrder {
   id: number; uuid: string; number: string; tracking: number; service: Service; state: OrderState; origin: Origin; channel: 'pos' | 'menu' | 'whatsapp'
   table_id: number | null; table_number: number | null; guests: number; baby_chair: boolean; customer_name: string; delivery_address: string; delivery_phone: string
@@ -81,7 +81,7 @@ export const assignShiftZones = (shiftId: number, floorId: number, assignments: 
 // Pedidos
 export const listOrders = (restaurantId: number, state: 'open' | 'paid', extra: { from?: string; to?: string; limit?: number } = {}) =>
   coreFetch<{ orders: CoreOrder[] }>(`orders?${q({ restaurant_id: restaurantId, state, ...extra })}`).then((r) => r.orders)
-export const getOrder = (id: number) => coreFetch<{ order: CoreOrder }>(`orders/${id}`).then((r) => r.order)
+export const getOrder = (id: number, options: { offlineFallback?: boolean } = {}) => coreFetch<{ order: CoreOrder }>(`orders/${id}`, options).then((r) => r.order)
 export const createOrder = (input: OrderInput) => coreFetch<{ order: CoreOrder }>('orders', { method: 'POST', body: input }).then((r) => r.order)
 export const addLines = (id: number, lines: LineInput[], fire: boolean) => coreFetch<{ order: CoreOrder }>(`orders/${id}/lines`, { method: 'POST', body: { lines, fire } }).then((r) => r.order)
 export const cancelLines = (id: number, lineIds: number[]) => coreFetch<{ order: CoreOrder }>(`orders/${id}/lines`, { method: 'DELETE', body: { line_ids: lineIds } }).then((r) => r.order)

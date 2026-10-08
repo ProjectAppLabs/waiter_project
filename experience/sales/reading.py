@@ -53,7 +53,8 @@ def order_dict(order):
         "lines": [line_dict(line) for line in order.lines.all()],
         "courses": [course_dict(c) for c in order.courses.all()],
         "payments": [
-            {**fields(p, "id method_id amount received reference created_at"), "method": p.method.name}
+            {**fields(p, "id method_id amount received reference created_at"), "method": p.method.name,
+             "request_key": p.request_key or None}
             for p in order.payments.all()
         ],
     }

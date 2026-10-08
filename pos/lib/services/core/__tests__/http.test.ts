@@ -125,3 +125,68 @@ it('el fallback offline también rechaza lecturas de una organización anterior'
   await expect(pending).rejects.toMatchObject({ code: 'session_changed' })
   expect(useNetworkStore.getState().online).toBe(true)
 })
+
+describe('plazo completo y resultado incierto', () => {
+  beforeEach(() => jest.useFakeTimers())
+  afterEach(() => jest.useRealTimers())
+
+  // Falla si el plazo no cancela cabeceras o cuerpo pendientes y deja una escritura esperando para siempre.
+  it.each(['cabeceras', 'cuerpo'])('cancela %s pendientes a los 15 segundos', async (stage) => {
+    if (stage === 'cabeceras') fetchMock.mockReturnValue(new Promise(() => undefined))
+    else fetchMock.mockResolvedValue({ ok: true, status: 200, text: () => new Promise(() => undefined) })
+    const result = coreFetch('orders/41/payments', { method: 'POST', body: {} }).catch((e) => e)
+    await jest.advanceTimersByTimeAsync(14_999)
+    expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(false)
+    await jest.advanceTimersByTimeAsync(1)
+    expect(await result).toMatchObject({ status: 0, code: 'unreachable', message: 'No se pudo confirmar la respuesta del servidor. La operación puede haberse aplicado.' })
+    expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(true)
+    expect(useNetworkStore.getState().online).toBe(false)
+    expect(jest.getTimerCount()).toBe(0)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  // Falla si recibir cabeceras reinicia el plazo y permite otros 15 segundos para el cuerpo.
+  it('cabeceras y cuerpo comparten el mismo plazo', async () => {
+    let headers!: (response: unknown) => void
+    fetchMock.mockReturnValue(new Promise((resolve) => { headers = resolve }))
+    const result = coreFetch('orders/41', { offlineFallback: false }).catch((e) => e)
+    await jest.advanceTimersByTimeAsync(10_000)
+    headers({ ok: true, status: 200, text: () => new Promise(() => undefined) })
+    await jest.advanceTimersByTimeAsync(5_000)
+    expect(await result).toMatchObject({ code: 'unreachable' })
+    expect(jest.getTimerCount()).toBe(0)
+  })
+
+  // Falla si una petición terminada deja un temporizador que después marca una falsa desconexión.
+  it('retira el temporizador al completar la respuesta', async () => {
+    fetchMock.mockResolvedValue(reply(200, { ok: true }))
+    await expect(coreFetch('org')).resolves.toEqual({ ok: true })
+    expect(jest.getTimerCount()).toBe(0)
+    await jest.advanceTimersByTimeAsync(15_000)
+    expect(useNetworkStore.getState().online).toBe(true)
+  })
+})
+
+// Falla si cortar el cuerpo de un POST aceptado se presenta como rechazo definitivo en vez de resultado incierto.
+it('una interrupción al leer un 200 conserva la incertidumbre de la escritura', async () => {
+  fetchMock.mockResolvedValue({ ok: true, status: 200, text: async () => { throw new TypeError('terminated') } })
+  await expect(coreFetch('orders/41/payments', { method: 'POST', body: {} })).rejects.toMatchObject({ status: 0, code: 'unreachable' })
+  expect(useNetworkStore.getState().online).toBe(false)
+})
+
+// Falla si el cuerpo ilegible de un rechazo HTTP pierde su estado y permite tratarlo como caída de conexión.
+it.each([401, 403, 409, 500])('conserva el rechazo HTTP %s aunque se interrumpa su cuerpo', async (status) => {
+  fetchMock.mockResolvedValue({ ok: false, status, text: async () => { throw new TypeError('terminated') } })
+  await expect(coreFetch('orders/41/payments', { method: 'POST', body: {} })).rejects.toMatchObject({ status, code: `http_${status}`, message: `El servidor respondió ${status}.` })
+  expect(useNetworkStore.getState().online).toBe(true)
+})
+
+// Falla si la revisión toma un pago de la caché como prueba del servidor o guarda un cuerpo cortado sobre la lectura anterior.
+it('la consulta fresca no usa fallback y el corte no reemplaza la caché vigente', async () => {
+  remember('orders/41', '{"order":{"paid":38900}}')
+  fetchMock.mockResolvedValue({ ok: true, status: 200, text: async () => { throw new TypeError('terminated') } })
+  await expect(coreFetch('orders/41', { offlineFallback: false })).rejects.toMatchObject({ code: 'unreachable' })
+  expect(fetchMock.mock.calls[0][1].cache).toBe('no-store')
+  expect(recall('orders/41')).toBe('{"order":{"paid":38900}}')
+  await expect(coreFetch('orders/41')).resolves.toEqual({ order: { paid: 38900 } })
+})

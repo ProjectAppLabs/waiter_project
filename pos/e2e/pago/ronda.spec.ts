@@ -1,6 +1,6 @@
-import { expect } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
 
-import { createPendingCheckout, expectNoHorizontalDocumentOverflow, expectReachable, orderById } from '../helpers/ronda'
+import { createPendingCheckout, expectNoHorizontalDocumentOverflow, expectReachable, orderById, qaApi } from '../helpers/ronda'
 import { test } from '../helpers/rondaFixture'
 import { RONDA_VIEWPORTS } from '../helpers/viewports'
 
@@ -77,3 +77,118 @@ for (const viewport of RONDA_VIEWPORTS) {
     expect(after.order.total).toBe(38_900)
   })
 }
+
+async function preparePaymentReview(page: Page, accepted: boolean, name: string) {
+  await page.goto('/dashboard')
+  const order = await createPendingCheckout(page, name)
+  const session = await qaApi<{ restaurants: { id: number; name: string }[] }>(page, 'auth/me')
+  const restaurant = session.restaurants.find((r) => r.name === 'Local QA')
+  if (!restaurant) throw new Error('No se encontró la sede aislada Local QA.')
+  const methods = await qaApi<{ methods: { id: number; type: string }[] }>(page, `payment-methods?restaurant_id=${restaurant.id}`)
+  const cash = methods.methods.find((m) => m.type === 'cash')
+  if (!cash) throw new Error('La sede aislada no tiene un medio de efectivo.')
+  const requestKey = `r3-review-${crypto.randomUUID()}`
+  const reference = `comprobante-${order.id}`
+  const paidAt = new Date().toISOString()
+  if (accepted) await qaApi(page, `orders/${order.id}/payments`, {
+    method: 'POST', data: { method_id: cash.id, amount: 38900, received: 50000, reference, request_key: requestKey },
+  })
+  const server = await qaApi<{ order: { id: number; state: string; paid_at: string | null; payments: { amount: number; request_key: string | null }[] } }>(page, `orders/${order.id}`)
+  await page.evaluate(({ order, methodId, requestKey, reference, paidAt, server }) => {
+    // Fixture de una versión anterior: el pago pudo llegar, pero su respuesta no quedó confirmada en el equipo.
+    localStorage.setItem('waiter.outbox:qa-x0', JSON.stringify({ entries: [
+      { id: 'review-payment', at: paidAt, label: order.number, kind: 'payment', order: { id: order.id }, methodId, amount: 'balance', received: 50000, reference, requestKey },
+      { id: 'review-closing', at: paidAt, label: order.number, kind: 'pay', order: { id: order.id }, paidAt },
+    ], failed: [], ids: {} }))
+    const version = localStorage.getItem('waiter.cache-session:qa-x0') ?? ''
+    localStorage.setItem(`waiter.cache:qa-x0:${version ? `${version}:` : ''}orders/${order.id}`, JSON.stringify(server))
+  }, { order, methodId: cash.id, requestKey, reference, paidAt, server })
+  return { ...order, requestKey, paidAt }
+}
+
+// Falla si consultar o confirmar un pago aceptado vuelve a cobrarlo, el doble clic inicia dos consultas o el cierre pierde la hora real.
+test('revisión de cobro incierto confirma el original y reanuda su cierre', {
+  tag: ['@flow:pos-payment-reconcile', '@outcome:success'],
+}, async ({ page }) => {
+  const order = await preparePaymentReview(page, true, 'revisión-confirmada')
+  const writes: { path: string; body: unknown }[] = []
+  page.on('request', (request) => {
+    if (request.method() === 'POST' && new URL(request.url()).pathname.startsWith(`/experience/api/pos/v1/orders/${order.id}/`)) {
+      writes.push({ path: new URL(request.url()).pathname, body: request.postDataJSON() })
+    }
+  })
+  await page.reload()
+  await page.getByRole('button', { name: 'Revisar (2)', exact: true }).click()
+  const review = page.getByRole('dialog', { name: 'Operaciones para revisar', exact: true })
+  const payment = review.getByRole('listitem').filter({ hasText: `Pago · ${order.number}` })
+  await expect(payment).toContainText('Importe original no disponible')
+  await expect(review.getByRole('button', { name: 'Descartar', exact: true })).toHaveCount(0)
+  let release!: () => void
+  const held = new Promise<void>((resolve) => { release = resolve })
+  let reads = 0
+  const query = `**/experience/api/pos/v1/orders/${order.id}`
+  await page.route(query, async (route) => { reads += 1; await held; await route.continue() })
+  await payment.getByRole('button', { name: 'Consultar pedido', exact: true }).dblclick()
+  await expect(payment.getByRole('button', { name: 'Consultando…', exact: true })).toBeDisabled()
+  release()
+  await expect(payment.getByLabel('Pedido consultado en el servidor', { exact: true })).toContainText('Efectivo · $ 38.900')
+  expect(reads).toBe(1)
+  await page.unroute(query)
+  await payment.getByRole('button', { name: 'Confirmar pago registrado', exact: true }).click()
+  await expect(payment).toHaveCount(0)
+  const closing = review.getByRole('listitem').filter({ hasText: `Cerrar pedido · ${order.number}` })
+  await closing.getByRole('button', { name: 'Consultar pedido', exact: true }).click()
+  await closing.getByRole('button', { name: 'Reanudar cierre', exact: true }).click()
+  await expect.poll(async () => (await orderById(page, order.id)).order.state).toBe('paid')
+  const final = await qaApi<{ order: { paid_at: string; payments: { amount: number; request_key: string | null }[] } }>(page, `orders/${order.id}`)
+  expect(final.order.payments).toHaveLength(1)
+  expect(final.order.payments[0]).toMatchObject({ amount: 38900, request_key: order.requestKey })
+  expect(Date.parse(final.order.paid_at)).toBe(Date.parse(order.paidAt))
+  expect(writes).toEqual([{ path: `/experience/api/pos/v1/orders/${order.id}/pay`, body: { paid_at: order.paidAt } }])
+  await page.reload()
+  await expect(page.getByRole('button', { name: /^Revisar \(/ })).toHaveCount(0)
+})
+
+// Falla si una entrada antigua sin prueba concluyente se reenvía o desaparece al consultar o recargar.
+test('revisión conserva el cobro antiguo sin prueba y su cierre dependiente', {
+  tag: ['@flow:pos-payment-reconcile', '@outcome:error'],
+}, async ({ page }) => {
+  const order = await preparePaymentReview(page, false, 'revisión-sin-prueba')
+  const posts: string[] = []
+  page.on('request', (request) => { if (request.method() === 'POST') posts.push(new URL(request.url()).pathname) })
+  await page.reload()
+  await page.getByRole('button', { name: 'Revisar (2)', exact: true }).click()
+  const review = page.getByRole('dialog', { name: 'Operaciones para revisar', exact: true })
+  const payment = review.getByRole('listitem').filter({ hasText: `Pago · ${order.number}` })
+  await payment.getByRole('button', { name: 'Consultar pedido', exact: true }).click()
+  await expect(payment).toContainText('Conserva el registro y coteja el comprobante real.')
+  await expect(review.getByRole('button', { name: 'Confirmar pago registrado', exact: true })).toHaveCount(0)
+  await expect(review.getByRole('button', { name: 'Descartar', exact: true })).toHaveCount(0)
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Revisar (2)', exact: true })).toBeVisible()
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('waiter.outbox:qa-x0')!))
+  expect(saved.entries).toEqual([])
+  expect(saved.failed.map((f: { entry: { kind: string } }) => f.entry.kind)).toEqual(['payment', 'pay'])
+  expect(saved.failed[0].entry).toMatchObject({ amount: 'balance', requestKey: order.requestKey })
+  expect(posts.filter((path) => path.startsWith(`/experience/api/pos/v1/orders/${order.id}/`))).toEqual([])
+  expect((await orderById(page, order.id)).order.state).toBe('draft')
+})
+
+// Falla si una consulta sin conexión usa el pago guardado en caché como prueba y habilita la confirmación del resultado incierto.
+test('revisión exige respuesta fresca aunque exista una copia del pago aceptado', {
+  tag: ['@flow:pos-payment-reconcile', '@outcome:failure'],
+}, async ({ page }) => {
+  const order = await preparePaymentReview(page, true, 'revisión-sin-red')
+  await page.reload()
+  await page.getByRole('button', { name: 'Revisar (2)', exact: true }).click()
+  await page.route(`**/experience/api/pos/v1/orders/${order.id}`, (route) => route.abort('failed'))
+  const review = page.getByRole('dialog', { name: 'Operaciones para revisar', exact: true })
+  const payment = review.getByRole('listitem').filter({ hasText: `Pago · ${order.number}` })
+  await payment.getByRole('button', { name: 'Consultar pedido', exact: true }).click()
+  await expect(payment.getByRole('alert')).toContainText('No se pudo conectar con el servidor.')
+  await expect(payment.getByLabel('Pedido consultado en el servidor', { exact: true })).toHaveCount(0)
+  await expect(review.getByRole('button', { name: 'Confirmar pago registrado', exact: true })).toHaveCount(0)
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('waiter.outbox:qa-x0')!))
+  expect(saved.failed).toHaveLength(2)
+  expect(saved.failed[0].entry.requestKey).toBe(order.requestKey)
+})

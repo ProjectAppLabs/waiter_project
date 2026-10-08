@@ -15,9 +15,9 @@ export class CoreError extends Error {
 }
 
 export type CoreScope = 'pos' | 'platform'
-interface Options { method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; scope?: CoreScope }
+interface Options { method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; scope?: CoreScope; offlineFallback?: boolean }
 
-export async function coreFetch<T>(path: string, { method = 'GET', body, scope = 'pos' }: Options = {}): Promise<T> {
+export async function coreFetch<T>(path: string, { method = 'GET', body, scope = 'pos', offlineFallback = true }: Options = {}): Promise<T> {
   const context = captureCacheContext()
   const headers: Record<string, string> = { Accept: 'application/json' }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
@@ -39,19 +39,40 @@ export async function coreFetch<T>(path: string, { method = 'GET', body, scope =
   const unreachable = () => {
     assertCurrentRead()
     markOffline()
-    const cached = scope === 'pos' && method === 'GET' ? recall(relative, context) : null
+    const cached = offlineFallback && scope === 'pos' && method === 'GET' ? recall(relative, context) : null
     if (cached !== null) return JSON.parse(cached) as T
-    throw new CoreError(0, 'unreachable', 'No se pudo conectar con el servidor. Revisa la conexión de este dispositivo.')
+    throw new CoreError(0, 'unreachable', method === 'GET'
+      ? 'No se pudo conectar con el servidor. Revisa la conexión de este dispositivo.'
+      : 'No se pudo confirmar la respuesta del servidor. La operación puede haberse aplicado.')
   }
-  let response: Response
+  let response: Response | undefined
+  const controller = new AbortController()
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => { controller.abort(); reject(new Error('Plazo de conexión agotado.')) }, 15_000)
+  })
+  let text: string
   try {
-    response = await fetch(url, { method, headers, credentials: 'include', body: body === undefined ? undefined : JSON.stringify(body) })
+    // Un solo plazo cubre las cabeceras y el cuerpo. Cancelar un POST no demuestra que el servidor lo haya rechazado.
+    text = await Promise.race([deadline, (async () => {
+      response = await fetch(url, { method, headers, credentials: 'include', signal: controller.signal,
+        ...(offlineFallback === false && { cache: 'no-store' }), body: body === undefined ? undefined : JSON.stringify(body) })
+      if (response.status >= 502 && response.status <= 504) return ''
+      return await response.text()
+    })()])
   } catch {
+    assertCurrentRead()
+    // Si ya llegó un rechazo HTTP, el corte del cuerpo no lo transforma en un pago incierto.
+    if (response && !response.ok && !(response.status >= 502 && response.status <= 504)) {
+      markOnline()
+      throw new CoreError(response.status, `http_${response.status}`, `El servidor respondió ${response.status}.`)
+    }
     return unreachable()
+  } finally {
+    if (timer !== undefined) clearTimeout(timer)
   }
   // El proxy responde 502–504 cuando el servidor no está: es lo mismo que no tener red.
-  if (response.status >= 502 && response.status <= 504) return unreachable()
-  const text = await response.text()
+  if (!response || (response.status >= 502 && response.status <= 504)) return unreachable()
   assertCurrentRead()
   markOnline()
   if (response.ok && scope === 'pos' && method === 'GET') remember(relative, text, context)
