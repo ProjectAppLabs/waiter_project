@@ -26,8 +26,11 @@ beforeEach(() => {
   }
 })
 
-// Falla si abrir el menú no anuncia su estado o cerrar con el botón deja el foco perdido.
-it('abre el diálogo y devuelve el foco al botón al cerrarlo', async () => {
+// Restaura también el spy de geometría si falla una aserción antes de terminar la prueba.
+afterEach(() => { jest.restoreAllMocks() })
+
+// Falla si abrir el menú no anuncia su estado ni relaciona el botón con las secciones disponibles.
+it('abre el diálogo y anuncia el menú disponible', async () => {
   render(fixture())
   const trigger = screen.getByRole('button', { name: 'Abrir menú' })
   expect(trigger).toHaveAttribute('aria-expanded', 'false')
@@ -37,6 +40,14 @@ it('abre el diálogo y devuelve el foco al botón al cerrarlo', async () => {
   expect(trigger).toHaveAttribute('aria-expanded', 'true')
   expect(trigger).toHaveAttribute('aria-controls', drawer.id)
   expect(within(drawer).getAllByRole('link').map((link) => link.textContent)).toEqual(['Restaurantes', 'Equipo'])
+})
+
+// Falla si cerrar con el botón conserva el diálogo abierto o deja el foco perdido.
+it('cierra con el botón y devuelve el foco al control de apertura', async () => {
+  render(fixture())
+  const trigger = screen.getByRole('button', { name: 'Abrir menú' })
+  await userEvent.click(trigger)
+  const drawer = screen.getByRole('dialog', { name: 'Consola de la organización' })
   await userEvent.click(within(drawer).getByRole('button', { name: 'Cerrar menú' }))
   expect(screen.queryByRole('dialog')).toBeNull()
   expect(trigger).toHaveAttribute('aria-expanded', 'false')
@@ -92,7 +103,7 @@ it('cierra cuando cambia la ruta del layout', async () => {
 it('cierra al recuperar la navegación lateral de escritorio', async () => {
   let onChange: (() => void) | undefined
   const media = { matches: false, addEventListener: jest.fn((_name: string, listener: () => void) => { onChange = listener }), removeEventListener: jest.fn() }
-  const matchMedia = jest.spyOn(window, 'matchMedia').mockReturnValue(media as unknown as MediaQueryList)
+  jest.spyOn(window, 'matchMedia').mockReturnValue(media as unknown as MediaQueryList)
   const { unmount } = render(fixture())
   const trigger = screen.getByRole('button', { name: 'Abrir menú' })
   await userEvent.click(trigger)
@@ -103,5 +114,4 @@ it('cierra al recuperar la navegación lateral de escritorio', async () => {
   expect(trigger).toHaveAttribute('aria-expanded', 'false')
   unmount()
   expect(media.removeEventListener).toHaveBeenCalledWith('change', onChange)
-  matchMedia.mockRestore()
 })
