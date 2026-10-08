@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
 import { AuroraBackground } from '@/components/kit/Aurora'
+import { ConsoleNavigation } from '@/components/console/ConsoleNavigation'
 import { BrandMark } from '@/components/kit/BrandMark'
 import { Icon, type KitIcon } from '@/components/kit/Icon'
 import { Button } from '@/components/ui/Button'
@@ -32,10 +33,10 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
   if (onLogin) return <>{children}</>
   if (!hydrated || !user || (locked && pathname !== SECURITY)) return null
   return (
-    <main className="pos-ambient h-screen p-5 flex text-ink">
+    <main className="pos-ambient h-dvh p-4 lg:p-5 flex text-ink">
       <AuroraBackground />
-      <div className="flex-1 min-w-0 min-h-0 ambient-panel border border-border rounded-lg flex overflow-hidden">
-        <nav aria-label="Consola de ProjectApp" className="relative w-[260px] shrink-0 border-r border-border p-4 flex flex-col gap-1 overflow-y-auto">
+      <div className="flex-1 min-w-0 min-h-0 ambient-panel border border-border rounded-lg flex flex-col lg:flex-row overflow-hidden">
+        <ConsoleNavigation label="Consola de ProjectApp" brandHref="/plataforma" pathname={pathname}>
           <BrandMark href="/plataforma" className="px-3 pt-1 pb-5" />
           {SECTIONS.filter(([href]) => !locked || href === SECURITY).map(([href, label, icon]) => (
             <Link key={href} href={href} aria-current={pathname === href ? 'page' : undefined}
@@ -47,8 +48,8 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
             <span className="truncate">{user.name} · {user.role === 'admin' ? 'Administra' : 'Opera'}</span>
             <Button size="compact" onClick={() => { void logout().then(() => router.replace('/login')) }}>Cerrar sesión</Button>
           </div>
-        </nav>
-        <div className="relative flex-1 min-w-0 m-4 rounded-lg border border-border overflow-y-auto px-7 pt-7">{children}<div aria-hidden className="h-7" /></div>
+        </ConsoleNavigation>
+        <div data-testid="platform-console-content" className="relative flex-1 min-w-0 min-h-0 m-3 lg:m-4 rounded-lg border border-border overflow-y-auto px-4 pt-4 lg:px-7 lg:pt-7">{children}<div aria-hidden className="h-7" /></div>
       </div>
     </main>
   )
