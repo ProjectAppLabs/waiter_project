@@ -49,7 +49,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
             <Button size="compact" onClick={() => { void logout().then(() => router.replace('/login')) }}>Cerrar sesión</Button>
           </div>
         </ConsoleNavigation>
-        <div className="relative flex-1 min-w-0 min-h-0 m-3 lg:m-4 rounded-lg border border-border overflow-y-auto px-4 pt-4 lg:px-7 lg:pt-7">{children}<div aria-hidden className="h-7" /></div>
+        <div data-testid="platform-console-content" className="relative flex-1 min-w-0 min-h-0 m-3 lg:m-4 rounded-lg border border-border overflow-y-auto px-4 pt-4 lg:px-7 lg:pt-7">{children}<div aria-hidden className="h-7" /></div>
       </div>
     </main>
   )

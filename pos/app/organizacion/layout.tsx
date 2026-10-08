@@ -89,7 +89,7 @@ export default function OrganizationLayout({ children }: { children: React.React
           {/* relative: lo absoluto de adentro (textos sr-only) se recorta aquí y no estira la página. */}
           {/* Sin relleno abajo: la barra horizontal de las tablas (ScrollTable) se pega al borde de lo visible, no 28 px antes con
               una franja transparente debajo. El mismo espacio va al final del contenido. */}
-          <div className="relative flex-1 min-w-0 min-h-0 m-3 lg:m-4 rounded-lg border border-border overflow-y-auto px-4 pt-4 lg:px-7 lg:pt-7">{<SubscriptionNotice />}{pageModule && !hasModule(modules, pageModule) ? <ModuleInactive module={pageModule} /> : children}<div aria-hidden className="h-7" /></div>
+          <div data-testid="organization-console-content" className="relative flex-1 min-w-0 min-h-0 m-3 lg:m-4 rounded-lg border border-border overflow-y-auto px-4 pt-4 lg:px-7 lg:pt-7">{<SubscriptionNotice />}{pageModule && !hasModule(modules, pageModule) ? <ModuleInactive module={pageModule} /> : children}<div aria-hidden className="h-7" /></div>
         </div>
       </main>
     </OrgContext.Provider>
