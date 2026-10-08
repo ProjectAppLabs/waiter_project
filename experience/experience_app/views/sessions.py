@@ -1,4 +1,5 @@
 """Sesión de comensal (cookie HttpOnly) y carrito compartido con atribución."""
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -44,7 +45,8 @@ def open_session(request):
     if tenant.table_token and not session.orders.exists():
         sessions.table_call(tenant, session, 'ordering')
     response = Response({'sesion': {'id': str(session.id), 'estado': session.state, 'mesa': session.table_number}, 'comensal': {'id': str(diner.id)}}, status=201)
-    response.set_cookie(COOKIE, diner.key, max_age=COOKIE_MAX_AGE, httponly=True, samesite='Lax', path='/api/v1/')
+    response.set_cookie(COOKIE, diner.key, max_age=COOKIE_MAX_AGE, httponly=True, secure=settings.IS_PRODUCTION,
+                        samesite='Lax', path='/api/v1/')
     return response
 
 
