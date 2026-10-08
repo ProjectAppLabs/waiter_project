@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 
 import { AuroraBackground } from '@/components/kit/Aurora'
+import { ConsoleNavigation } from '@/components/console/ConsoleNavigation'
 import { BrandMark } from '@/components/kit/BrandMark'
 import { Icon, type KitIcon } from '@/components/kit/Icon'
 import { OrgContext } from '@/components/organization/OrgContext'
@@ -59,10 +60,10 @@ export default function OrganizationLayout({ children }: { children: React.React
       {/* El mismo sistema que el POS: una sola aurora difuminada al fondo (AuroraBackground, blur y opacidad en
           globals.css) y encima un panel translúcido (.ambient-panel) con el menú y el contenido, como Configuración. No
           se difumina cada tarjeta: el campo ya viene difuminado y así el fondo cuesta una sola capa. */}
-      <main className="pos-ambient h-screen p-5 flex text-ink">
+      <main className="pos-ambient h-dvh p-4 lg:p-5 flex text-ink">
         <AuroraBackground />
-        <div className="flex-1 min-w-0 min-h-0 ambient-panel border border-border rounded-lg flex overflow-hidden">
-          <nav aria-label="Consola de la organización" className="relative w-[260px] shrink-0 border-r border-border p-4 flex flex-col gap-1 overflow-y-auto">
+        <div className="flex-1 min-w-0 min-h-0 ambient-panel border border-border rounded-lg flex flex-col lg:flex-row overflow-hidden">
+          <ConsoleNavigation label="Consola de la organización" brandHref="/organizacion" pathname={pathname}>
             {/* La marca del producto siempre presente, como en la barra del POS y en el inicio. */}
             <BrandMark href="/organizacion" className="px-3 pt-1 pb-5" />
             <div className="px-3 pb-4 border-t border-border pt-4">
@@ -84,11 +85,11 @@ export default function OrganizationLayout({ children }: { children: React.React
               <span className="truncate">{employee?.name}</span>
               <Button size="compact" onClick={() => { void logout().then(() => router.replace('/login')) }}>Cerrar sesión</Button>
             </div>
-          </nav>
+          </ConsoleNavigation>
           {/* relative: lo absoluto de adentro (textos sr-only) se recorta aquí y no estira la página. */}
           {/* Sin relleno abajo: la barra horizontal de las tablas (ScrollTable) se pega al borde de lo visible, no 28 px antes con
               una franja transparente debajo. El mismo espacio va al final del contenido. */}
-          <div className="relative flex-1 min-w-0 m-4 rounded-lg border border-border overflow-y-auto px-7 pt-7">{<SubscriptionNotice />}{pageModule && !hasModule(modules, pageModule) ? <ModuleInactive module={pageModule} /> : children}<div aria-hidden className="h-7" /></div>
+          <div data-testid="organization-console-content" className="relative flex-1 min-w-0 min-h-0 m-3 lg:m-4 rounded-lg border border-border overflow-y-auto px-4 pt-4 lg:px-7 lg:pt-7">{<SubscriptionNotice />}{pageModule && !hasModule(modules, pageModule) ? <ModuleInactive module={pageModule} /> : children}<div aria-hidden className="h-7" /></div>
         </div>
       </main>
     </OrgContext.Provider>
