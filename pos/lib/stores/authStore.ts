@@ -5,6 +5,7 @@ import { create } from 'zustand'
 import { clearStoredEmployee, type Shift } from '@/lib/domain/employees'
 import { pickRestaurant, readDeviceRestaurant, storeDeviceRestaurant, type DeviceRestaurant } from '@/lib/domain/restaurant'
 import type { AccountRole } from '@/lib/domain/roles'
+import { cacheSessionEnded, captureCacheContext, endCacheSession, isCurrentCacheContext, startCacheSession, type CacheContext } from '@/lib/offline/cache'
 import { openRegister as openRegisterRequest } from '@/lib/services/cashRegister'
 import { toActiveEmployee, toAuthUser, toRestaurant } from '@/lib/services/core/bridge'
 import { CoreError } from '@/lib/services/core/http'
@@ -73,56 +74,107 @@ async function coreLogin(l: string, p: string): Promise<core.LoginResult> {
   }
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
-  user: null,
-  modules: null,
-  restaurantModules: null,
-  support: null,
-  restaurant: null,
-  restaurants: null,
-  session: null,
-  employee: null,
-  hydrated: false,
-  // Plan P: cada persona entra con su cuenta y en el mismo paso abre su turno; no hay cuenta del terminal ni PIN.
-  login: async (l, p) => {
-    clearStoredEmployee()
-    set({ employee: null })
-    const base = fromCore(await coreLogin(l, p))
-    set({ ...base, session: await openShiftOf(base.restaurant), hydrated: true })
-    return
-  },
-  hydrate: async () => {
-    try { const base = fromCore(await core.me()); set({ ...base, session: await openShiftOf(base.restaurant), hydrated: true }) }
-    catch { set({ user: null, session: null, employee: null, restaurants: null, restaurant: null, modules: null, restaurantModules: null, support: null, hydrated: true }) }
-    return
-  },
-  enterSupport: async (token) => {
-    clearStoredEmployee()
-    const base = fromCore(await enterSupportRequest(token))
-    set({ ...base, session: await openShiftOf(base.restaurant), hydrated: true })
-  },
-  refreshSession: async () => set({ session: await getOpenSession(get().restaurant?.id ?? null) }),
-  // El encargado de varios restaurantes y el dueño cambian de restaurante sin soltar su turno: es la misma persona.
-  chooseRestaurant: async (restaurant) => {
-    storeDeviceRestaurant(restaurant)
-    set({ restaurant, session: restaurant ? await getOpenSession(restaurant.id) : null })
-  },
-  openRegister: async (configId, cash, notes) => set({ session: await openRegisterRequest(configId, cash, notes) }),
-  renewShift: async () => set({ employee: toActiveEmployee(await core.me()) }),
-  endShift: async () => {
-    // En el sistema propio la asistencia la cierra el propio logout.
+const anonymous = { user: null, session: null, employee: null, restaurants: null, restaurant: null, modules: null, restaurantModules: null, support: null, hydrated: true }
 
+export const useAuthStore = create<AuthState>((set, get) => {
+  let revision = 0
+  let restaurantRevision = 0
+  const operation = () => ({ revision, context: captureCacheContext() })
+  const current = (request: { revision: number; context: CacheContext }) =>
+    request.revision === revision && isCurrentCacheContext(request.context)
+  const active = (request: ReturnType<typeof operation>) => current(request) && !cacheSessionEnded(request.context)
+  const beginAccess = () => {
+    revision += 1
+    endCacheSession()
     clearStoredEmployee()
-    set({ employee: null })
-  },
-  logout: async () => {
-    await get().endShift()
-    await logoutRequest().catch(() => undefined)
-    clearStoredEmployee()
-    // El bus deja de tener dueño: se cierra con la sesión, no en cada navegación.
     useBusStore.getState().stop()
-    set({ user: null, session: null, employee: null, restaurants: null, modules: null, restaurantModules: null, support: null })
-  },
-}))
+    set(anonymous)
+    return operation()
+  }
+  const restore = async (result: core.LoginResult, request: ReturnType<typeof operation>) => {
+    if (!active(request)) return
+    const base = fromCore(result)
+    const session = await openShiftOf(base.restaurant)
+    if (active(request)) set({ ...base, session, hydrated: true })
+  }
+  return {
+    user: null,
+    modules: null,
+    restaurantModules: null,
+    support: null,
+    restaurant: null,
+    restaurants: null,
+    session: null,
+    employee: null,
+    hydrated: false,
+    // Plan P: cada persona entra con su cuenta y en el mismo paso abre su turno; no hay cuenta del terminal ni PIN.
+    login: async (l, p) => {
+      const request = beginAccess()
+      const result = await coreLogin(l, p)
+      if (!current(request)) return
+      startCacheSession()
+      await restore(result, operation())
+    },
+    hydrate: async () => {
+      revision += 1
+      const request = operation()
+      // Tras una salida, solo un acceso explícito puede abrir otra sesión; ni la caché ni una cookie sin cerrar bastan.
+      if (cacheSessionEnded(request.context)) { set(anonymous); return }
+      try { await restore(await core.me(), request) }
+      catch { if (current(request)) set(anonymous) }
+    },
+    enterSupport: async (token) => {
+      const request = beginAccess()
+      const result = await enterSupportRequest(token)
+      if (!current(request)) return
+      startCacheSession()
+      await restore(result, operation())
+    },
+    refreshSession: async () => {
+      const request = operation()
+      if (!active(request)) return
+      const restaurantId = get().restaurant?.id ?? null
+      const session = await getOpenSession(restaurantId)
+      if (active(request) && restaurantId === (get().restaurant?.id ?? null)) set({ session })
+    },
+    // El encargado de varios restaurantes y el dueño cambian de restaurante sin soltar su turno: es la misma persona.
+    chooseRestaurant: async (restaurant) => {
+      const request = operation()
+      if (!active(request)) return
+      const choice = ++restaurantRevision
+      storeDeviceRestaurant(restaurant)
+      const session = restaurant ? await getOpenSession(restaurant.id) : null
+      if (active(request) && choice === restaurantRevision) set({ restaurant, session })
+    },
+    openRegister: async (configId, cash, notes) => {
+      const request = operation()
+      if (!active(request)) return
+      const session = await openRegisterRequest(configId, cash, notes)
+      if (active(request)) set({ session })
+    },
+    renewShift: async () => {
+      const request = operation()
+      if (!active(request)) return
+      const result = await core.me()
+      if (active(request)) set({ employee: toActiveEmployee(result) })
+    },
+    endShift: async () => {
+      // En el sistema propio la asistencia la cierra el propio logout.
+
+      clearStoredEmployee()
+      set({ employee: null })
+    },
+    logout: async () => {
+      // Se invalida antes de esperar al servidor: una respuesta tardía ya no puede devolverle dueño al dispositivo.
+      revision += 1
+      endCacheSession()
+      clearStoredEmployee()
+      // El bus deja de tener dueño: se cierra con la sesión, no en cada navegación.
+      useBusStore.getState().stop()
+      set(anonymous)
+      await logoutRequest().catch(() => undefined)
+    },
+  }
+})
 
 export const activeEmployeeId = (): number | null => useAuthStore.getState().employee?.id ?? null
