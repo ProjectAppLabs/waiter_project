@@ -17,7 +17,7 @@ NEW_TESTS = {
         'pos/lib/services/core/__tests__/realtime.test.ts',
         'pos/e2e/acceso/ronda.spec.ts',
     ],
-    'improve/rendimiento': ['experience/sales/tests/test_shift_list_queries.py'],
+    'improve/rendimiento': ['experience/sales/tests/views/test_shift_list_queries.py'],
     'improve/responsividad': ['pos/e2e/pedidos/ronda.spec.ts'],
 }
 BACKEND = [
