@@ -8,11 +8,14 @@ import { useEffect, useRef, useState } from 'react'
 import { Icon } from '@/components/kit/Icon'
 import { Modal } from '@/components/kit/Modal'
 import { effectiveRole } from '@/lib/domain/roles'
+import { formatCop } from '@/lib/domain/money'
+import { captureCacheContext, isCurrentCacheContext } from '@/lib/offline/cache'
 import { activateEmergency, clearEmergency, operatesInEmergency, useEmergency, useEmergencyOrders } from '@/lib/offline/emergency'
 import { markOffline, useNetworkStore } from '@/lib/offline/network'
-import { useOutboxStore, type OutboxEntry } from '@/lib/offline/outbox'
+import { useOutboxStore, type OutboxEntry, type PaymentReview } from '@/lib/offline/outbox'
 import { coreFetch } from '@/lib/services/core/http'
 import { useAuthStore } from '@/lib/stores/authStore'
+import { useCatalogStore } from '@/lib/stores/catalogStore'
 import { cn } from '@/lib/utils'
 
 const PROBE_MS = 8_000
@@ -81,6 +84,7 @@ function OfflineStatus() {
   const caja = operatesInEmergency(role)
   const [open, setOpen] = useState(false)
   const n = entries.length
+  const context = captureCacheContext()
   const text = needsLogin ? t('needsLogin', { n })
     : emergency.active ? t('emergency', { n })
     : emergency.offline ? t('countdown', { time: clock(emergency.remainingMs), n })
@@ -105,13 +109,76 @@ function OfflineStatus() {
         <ul className="mt-3 flex flex-col gap-2">
           {failed.map(({ entry, error }) => (
             <li key={entry.id} className="rounded-md border border-border p-3 flex items-start gap-3">
-              <div className="flex-1 min-w-0"><p className="text-[15px] font-semibold text-ink">{describe(t, entry)}</p><p className="text-[14px] text-danger-ink">{error}</p></div>
-              <button type="button" onClick={() => discard(entry.id)} className="h-9 px-3 rounded-sm border border-border text-[14px] font-semibold">{t('discard')}</button>
+              {entry.kind === 'payment' || entry.kind === 'pay' ? (
+                <PaymentReviewRow key={`${entry.id}:${user?.uid}:${context.organization}:${context.version}`} entry={entry} error={error} />
+              ) : <>
+                <div className="flex-1 min-w-0"><p className="text-[15px] font-semibold text-ink">{describe(t, entry)}</p><p className="text-[14px] text-danger-ink">{error}</p></div>
+                <button type="button" onClick={() => discard(entry.id)} className="h-9 px-3 rounded-sm border border-border text-[14px] font-semibold">{t('discard')}</button>
+              </>}
             </li>
           ))}
         </ul>
       </Modal>
     </>
+  )
+}
+
+function PaymentReviewRow({ entry, error }: { entry: Extract<OutboxEntry, { kind: 'payment' | 'pay' }>; error: string }) {
+  const t = useTranslations('pos.offline')
+  const [result, setResult] = useState<PaymentReview | null>(null)
+  const [message, setMessage] = useState('')
+  const [busy, setBusy] = useState(false)
+  const inFlight = useRef(false)
+  const generation = useRef(0)
+  const mounted = useRef(true)
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; generation.current += 1 } }, [])
+  const orderId = useOutboxStore((s) => s.serverId(entry.order))
+  const accountId = useAuthStore((s) => s.user?.uid ?? null)
+  const method = useCatalogStore((s) => entry.kind === 'payment' ? s.catalog?.paymentMethods.find((m) => m.id === entry.methodId)?.name : null)
+  const run = async (confirm: boolean) => {
+    if (inFlight.current) return
+    inFlight.current = true
+    const revision = ++generation.current
+    const context = captureCacheContext()
+    setBusy(true)
+    setResult(null)
+    setMessage('')
+    const current = () => mounted.current && revision === generation.current && isCurrentCacheContext(context)
+      && accountId === (useAuthStore.getState().user?.uid ?? null)
+    try {
+      const state = useOutboxStore.getState()
+      const fresh = await (confirm ? state.confirmReview(entry.id) : state.review(entry.id))
+      if (current()) setResult(fresh)
+    } catch (e) {
+      if (current()) setMessage(e instanceof Error ? e.message : t('reviewUnavailable'))
+    } finally {
+      inFlight.current = false
+      if (current()) setBusy(false)
+    }
+  }
+  return (
+    <div className="flex-1 min-w-0 flex flex-col gap-2">
+      <p className="text-[15px] font-semibold text-ink">{describe(t, entry)}</p>
+      <p className="text-[14px] text-soft">{t('reviewOrder', { id: orderId ?? ('uuid' in entry.order ? entry.order.uuid : entry.order.id) })}</p>
+      {entry.kind === 'payment' && <>
+        <p className="text-[14px] text-soft">{method || t('reviewMethod', { id: entry.methodId })} · {t('reviewReference', { reference: entry.reference || t('reviewNoReference') })}</p>
+        <p className="text-[14px] text-soft">{typeof entry.amount === 'number' ? t('reviewAmount', { amount: formatCop(entry.amount) }) : t('reviewUnknownAmount')}</p>
+      </>}
+      <p className="text-[14px] text-danger-ink">{error}</p>
+      <p className="text-[14px] text-soft">{t('reviewProofHint')}</p>
+      {result && <div className="rounded-md bg-muted p-2 text-[14px] flex flex-col gap-1" aria-label={t('reviewServer')}>
+        <p>{t('reviewServerOrder', { number: result.order.number, balance: formatCop(Math.max(0, result.order.total - result.order.paid)) })}</p>
+        {result.order.payments.map((payment) => <p key={payment.id}>{payment.method} · $ {formatCop(payment.amount)} · {payment.reference || t('reviewNoReference')}</p>)}
+        {!result.canConfirm && <p>{t('reviewNoProof')}</p>}
+      </div>}
+      {message && <p role="alert" className="text-[14px] text-danger-ink">{message}</p>}
+      <div className="flex flex-wrap gap-2">
+        <button type="button" disabled={busy} onClick={() => void run(false)} className="min-h-11 px-3 rounded-sm border border-border text-[14px] disabled:opacity-50">{busy ? t('reviewBusy') : t('reviewConsult')}</button>
+        {result?.canConfirm && <button type="button" disabled={busy} onClick={() => void run(true)} className="min-h-11 px-3 rounded-sm bg-primary text-primary-ink text-[14px] disabled:opacity-50">
+          {entry.kind === 'payment' ? t('reviewConfirm') : result.order.state === 'paid' ? t('reviewResolveClosing') : t('reviewResumeClosing')}
+        </button>}
+      </div>
+    </div>
   )
 }
 
