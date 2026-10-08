@@ -1,3 +1,4 @@
+"""Contrato HTTP de entrada a mesa y protección de la cookie del comensal."""
 from unittest.mock import patch
 
 import pytest
@@ -40,21 +41,26 @@ def test_everyone_who_taps_the_table_shares_one_session_and_keeps_their_cookie(a
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('production', [False, True])
-def test_diner_cookie_is_secure_in_production_and_keeps_identity(api_client, table_tenant, settings, production):
-    # Falla si la cookie viaja por HTTP en producción, pierde sus límites o cambia la identidad al volver a la mesa.
-    settings.IS_PRODUCTION = production
+def test_diner_cookie_uses_secure_in_production(api_client, table_tenant, monkeypatch, production):
+    """Usa HTTPS en producción y permite el HTTP del entorno de desarrollo."""
+    # Falla si producción permite enviar la cookie por HTTP o desarrollo exige HTTPS.
+    monkeypatch.setattr('django.conf.settings.IS_PRODUCTION', production)
     payload = {'restaurante': 'burger-house', 'sede': 'poblado', 'token': '8H2KQ7'}
-    first = api_client.post(reverse('open-session'), payload, format='json', secure=production)
-    assert first.status_code == 201
-    cookie = first.cookies['waiter_diner']
+    response = api_client.post(reverse('open-session'), payload, format='json', secure=production)
+    assert response.status_code == 201
+    cookie = response.cookies['waiter_diner']
     assert bool(cookie['secure']) is production
+
+
+@pytest.mark.django_db
+def test_diner_cookie_preserves_browser_limits(api_client, table_tenant):
+    """Limita el acceso del navegador, su duración y las rutas que reciben la cookie."""
+    # Falla si el script puede leer la identidad o cambian SameSite, sus doce horas o la ruta de envío.
+    payload = {'restaurante': 'burger-house', 'sede': 'poblado', 'token': '8H2KQ7'}
+    response = api_client.post(reverse('open-session'), payload, format='json')
+    assert response.status_code == 201
+    cookie = response.cookies['waiter_diner']
     assert cookie['httponly'] is True
     assert cookie['samesite'] == 'Lax'
     assert cookie['max-age'] == 43200
     assert cookie['path'] == '/api/v1/'
-
-    again = api_client.post(reverse('open-session'), payload, format='json', secure=production)
-    assert again.status_code == 201
-    assert again.cookies['waiter_diner'].value == cookie.value
-    assert again.json()['comensal'] == first.json()['comensal']
-    assert again.json()['sesion'] == first.json()['sesion']
