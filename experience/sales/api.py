@@ -1,6 +1,7 @@
 """Rutas T2 de pedidos y caja con permisos y alcance por restaurante."""
 
-from django.db.models import Q
+from django.db.models import Count, DecimalField, F, Q, Sum, Value
+from django.db.models.functions import Cast, Coalesce
 from django.utils import timezone
 from rest_framework.response import Response
 
@@ -207,16 +208,23 @@ class ShiftsView(PosView):
             shift = qs.filter(state="open").first()
             return Response({"shift": shift_dict(shift) if shift else None})
         permit(self.account, "sales")
+        # El historial necesita ventas, sin cargar el arqueo de pagos, movimientos y devoluciones.
+        qs = qs.annotate(
+            orders_count=Count("orders", filter=Q(orders__state="paid")),
+            orders_total=Coalesce(
+                Sum(F("orders__total") - F("orders__tip"), filter=Q(orders__state="paid")),
+                Cast(Value(0), DecimalField(max_digits=16, decimal_places=2)),
+            ),
+        )
         result = []
         for shift in qs.order_by("-id")[: limit(request, 12)]:
-            report = closing(shift)
             result.append(
                 {
                     **fields(shift, "id state opened_at closed_at"),
                     "opened_by": person(shift.opened_by),
                     "closed_by": person(shift.closed_by),
-                    "total": report["orders_total"],
-                    "orders": report["orders_count"],
+                    "total": shift.orders_total,
+                    "orders": shift.orders_count,
                 }
             )
         return Response({"shifts": result})
