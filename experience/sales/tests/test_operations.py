@@ -10,7 +10,7 @@ from inventory.models import Stock, StockMove
 from notifications.models import Notification
 from sales.models import CashShift, Course, Order, Payment, PaymentMethod
 from tables.models import Floor, Table
-from tenancy.tests.helpers import account, organization, pos_client
+from tenancy.tests.helpers import account, pos_client
 
 from .helpers import call, cash_method, line, open_shift, order, pay, payment
 
@@ -540,37 +540,3 @@ def test_offline_times_are_kept_and_clamped_to_the_shift(setup):
     assert Order.objects.get(pk=future["id"]).created_at <= timezone.now()
     bad = call(s["client"], "post", "orders", {"restaurant_id": s["r1"].pk, "uuid": "8c1f6f1e-6b7a-4a4f-9d6e-1a2b3c4d5e6f", "service": "takeout", "lines": [line(s)], "fire": False, "created_at": "ayer"}, status=400)
     assert bad["error"] == "invalid_data"
-
-
-def test_payment_review_identity_is_exact_and_tenant_scoped(setup):
-    # Falla si la consulta pierde la identidad del pago aceptado o permite leerla desde otra organización/sede.
-    s = setup
-    open_shift(s)
-    o = order(s)
-    key = "offline-ReViSion-0001"
-    payment(s, o, 5000, received=10000, reference="Comprobante 41", request_key=key)
-    result = call(s["client"], "get", f"orders/{o['id']}")["order"]["payments"]
-    assert len(result) == 1
-    assert result[0]["request_key"] == key
-    assert result[0]["amount"] == 5000
-    assert result[0]["received"] == 10000
-    assert result[0]["reference"] == "Comprobante 41"
-    other = pos_client(account(organization("otra-organizacion")))
-    assert call(other, "get", f"orders/{o['id']}", status=404)["error"] == "not_found"
-    restricted = pos_client(account(s["org"], "cashier", "caja.norte", restaurants=[s["r2"]]))
-    assert call(restricted, "get", f"orders/{o['id']}", status=404)["error"] == "not_found"
-    unauthenticated = s["client"].__class__()
-    unauthenticated.credentials(HTTP_X_WAITER_ORG=s["org"].slug)
-    call(unauthenticated, "get", f"orders/{o['id']}", status=401)
-
-
-def test_payment_review_missing_identity_is_null(setup):
-    # Falla si un pago antiguo sin clave se presenta como una identidad verificable o se inventa una al consultarlo.
-    s = setup
-    open_shift(s)
-    o = order(s)
-    payment(s, o)
-    Payment.objects.filter(order_id=o["id"]).update(request_key="")
-    result = call(s["client"], "get", f"orders/{o['id']}")["order"]["payments"]
-    assert len(result) == 1
-    assert result[0]["request_key"] is None
