@@ -13,6 +13,7 @@ from freezegun import freeze_time
 
 from accounts.models import Attendance
 from catalog.services import save_product
+from experience_app.models import DinerAccount
 from inventory.models import StockMove
 from loyalty.models import Customer, LoyaltyCard
 from reports.tests.test_reports import sale
@@ -127,11 +128,50 @@ def test_clientes_sin_filtrar_por_fecha_con_ambito_del_encargado(setup):
         pedido.customer = cliente
         pedido.save()
     Customer.objects.create(organization=s["org"], name="Sin visitas")
+    solo_borrador = Customer.objects.create(organization=s["org"], name="Solo borrador")
+    borrador = sale(s, state="draft")
+    borrador.customer = solo_borrador
+    borrador.save(update_fields=["customer"])
     encargado = pos_client(account(s["org"], "admin", "encargado", restaurants=[s["r1"]]))
     _, filas = csv_filas(encargado, "clientes", "?from=2020-01-01&to=2020-01-01")
-    assert len(filas) == 2 and filas[1][0] == "María"
+    assert [fila[0] for fila in filas[1:]] == ["María", "Solo borrador"]
     assert filas[1][5:8] == ["12,000000", "1", "1234,56"]
-    assert len(csv_filas(s["client"], "clientes")[1]) == 4
+    assert filas[2][5:] == ["0", "0", "0", "", "No"]
+    _, organizacion = csv_filas(s["client"], "clientes")
+    assert [fila[0] for fila in organizacion[1:]] == ["Consumidor final", "María", "Sin visitas", "Solo borrador"]
+    assert organizacion[2][6:8] == ["2", "2469,12"]
+    assert organizacion[3][5:] == ["0", "0", "0", "", "No"]
+    assert csv_filas(s["client"], "clientes", f"?restaurant_id={s['r1'].pk}")[1] == filas
+
+
+def test_clientes_consentimiento_por_organizacion_y_sin_cuenta(setup):
+    # Falla si el consentimiento se toma de otra organización, se impone sin marcarlo o se pierde el CSV completo.
+    s = setup
+    for nombre, ambito, acepta in (
+        ("Acepta", s["org"].slug, True),
+        ("Cuenta ajena", "otra-empresa", True),
+        ("No acepta", s["org"].slug, False),
+    ):
+        comensal = DinerAccount.objects.create(
+            organization_slug=ambito, name=nombre, email=f"{uuid4().hex}@ejemplo.co", marketing=acepta
+        )
+        Customer.objects.create(
+            organization=s["org"], name=nombre, diner_key=comensal.pk, email="cliente@ejemplo.co", phone="3001234",
+            id_type="CE", vat="12345",
+        )
+    Customer.objects.create(organization=s["org"], name="Sin cuenta", diner_key=uuid4())
+    ajena = organization("otra-empresa")
+    Customer.objects.create(organization=ajena, name="Cliente ajeno")
+    _, filas = csv_filas(s["client"], "clientes")
+    assert filas[0] == [
+        "Nombre", "Tipo de documento", "Número de documento", "Correo", "Teléfono", "Puntos", "Visitas",
+        "Total gastado", "Última visita", "Acepta novedades",
+    ]
+    assert [fila[0] for fila in filas[1:]] == [
+        "Acepta", "Consumidor final", "Cuenta ajena", "No acepta", "Sin cuenta"
+    ]
+    assert filas[1] == ["Acepta", "CE", "12345", "cliente@ejemplo.co", "3001234", "0", "0", "0", "", "Sí"]
+    assert all(fila[-1] == "No" for fila in filas[2:])
 
 
 def test_precio_archivo_actor_antes_despues_y_transaccion(setup):
