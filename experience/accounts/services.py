@@ -2,6 +2,7 @@
 from tenancy.audit import audited
 from datetime import datetime, time, timedelta, timezone as datetime_timezone
 import hashlib
+import logging
 import math
 import re
 import secrets
@@ -20,6 +21,8 @@ from django.utils.html import escape, strip_tags
 from tenancy.http import Problem, payload, require, save_valid
 from tenancy.models import PlatformUser, Restaurant
 from .models import Account, Attendance, Session
+
+logger = logging.getLogger(__name__)
 
 
 def digest(value):
@@ -93,8 +96,10 @@ def invitation(user, reset=False):
             if not mail.send(using='waiter'):
                 raise RuntimeError('No se pudo enviar el correo.')
         return True
-    except Exception:
+    except Exception as error:
         # El alta debe sobrevivir incluso a una indisponibilidad del servidor de correo.
+        # La clase identifica la causa sin exponer el mensaje, destinatario, enlace ni código.
+        logger.warning('invitation_send_failed exception_type=%s', type(error).__name__)
         return False
 
 

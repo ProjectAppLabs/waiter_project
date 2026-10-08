@@ -36,3 +36,25 @@ def test_everyone_who_taps_the_table_shares_one_session_and_keeps_their_cookie(a
     assert first['sesion']['id'] == again['sesion']['id'] == other['sesion']['id']
     assert first['comensal']['id'] == again['comensal']['id']
     assert other['comensal']['id'] != first['comensal']['id']
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('production', [False, True])
+def test_diner_cookie_is_secure_in_production_and_keeps_identity(api_client, table_tenant, settings, production):
+    # Falla si la cookie viaja por HTTP en producción, pierde sus límites o cambia la identidad al volver a la mesa.
+    settings.IS_PRODUCTION = production
+    payload = {'restaurante': 'burger-house', 'sede': 'poblado', 'token': '8H2KQ7'}
+    first = api_client.post(reverse('open-session'), payload, format='json', secure=production)
+    assert first.status_code == 201
+    cookie = first.cookies['waiter_diner']
+    assert bool(cookie['secure']) is production
+    assert cookie['httponly'] is True
+    assert cookie['samesite'] == 'Lax'
+    assert cookie['max-age'] == 43200
+    assert cookie['path'] == '/api/v1/'
+
+    again = api_client.post(reverse('open-session'), payload, format='json', secure=production)
+    assert again.status_code == 201
+    assert again.cookies['waiter_diner'].value == cookie.value
+    assert again.json()['comensal'] == first.json()['comensal']
+    assert again.json()['sesion'] == first.json()['sesion']

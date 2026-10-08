@@ -1,5 +1,7 @@
+import logging
 import re
 from datetime import timedelta
+from smtplib import SMTPException
 from unittest.mock import patch
 
 import pytest
@@ -93,3 +95,62 @@ def test_reset_revokes_existing_session():
     invitation(person, reset=True)
     assert client.post('/api/pos/v1/auth/activate', {'login': person.username, 'code': code(), 'password': 'nueva-contraseña'}, format='json').status_code == 200
     assert client.get('/api/pos/v1/auth/me').status_code == 401
+
+
+@pytest.mark.parametrize('platform', [False, True])
+@pytest.mark.parametrize('failure, exception_type', [('exception', 'SMTPException'), ('no_delivery', 'RuntimeError')])
+def test_mail_failure_logs_only_safe_diagnosis_and_preserves_retry(platform, failure, exception_type, settings, caplog):
+    # Falla si el correo falla sin diagnóstico, revela datos privados, borra el código anterior o impide reintentar.
+    settings.POS_URL = 'https://pos.example.test'
+    settings.PLATFORM_URL = 'https://plataforma.example.test'
+    person, client, base = setup_identity(platform)
+    person.name = 'Nombre privado de invitación'
+    person.email = 'invitacion.privada@example.test'
+    person.username = 'usuario.privado.invite'
+    person.save(update_fields=['name', 'email', 'username'])
+    with patch('accounts.services.secrets.randbelow', return_value=654321):
+        assert invitation(person)
+    person.refresh_from_db()
+    retry_at = person.invite_sent_at
+    person.invite_sent_at -= timedelta(minutes=2)
+    person.invite_attempts = 2
+    person.save(update_fields=['invite_sent_at', 'invite_attempts'])
+    fields = ('invite_code_hash', 'invite_expires', 'invite_attempts', 'invite_sent_at', 'password')
+    previous = {field: getattr(person, field) for field in fields}
+    link = (settings.PLATFORM_URL if platform else settings.POS_URL) + '/login?codigo=' + person.username
+    private_values = (person.name, person.email, person.username, '123456', link, 'detalle sensible del servidor')
+
+    with (
+        caplog.at_level(logging.WARNING, logger='accounts.services'),
+        patch('accounts.services.secrets.randbelow', return_value=123456),
+        patch('accounts.services.timezone.now', return_value=retry_at),
+    ):
+        with patch('accounts.services.EmailMultiAlternatives.send') as send:
+            if failure == 'exception':
+                send.side_effect = SMTPException(' | '.join(private_values))
+            else:
+                send.return_value = 0
+            response = client.post(base+'/request_code', {'login': person.username}, format='json')
+        assert response.status_code == 200 and response.data == {'ok': True}
+        person.refresh_from_db()
+        assert {field: getattr(person, field) for field in fields} == previous
+        assert person.active and not person.activated
+        assert len(mail.outbox) == 1
+
+        assert invitation(person, reset=True)
+        person.refresh_from_db()
+        assert len(mail.outbox) == 2 and code() == '123456'
+        assert person.invite_code_hash != previous['invite_code_hash']
+        assert person.invite_attempts == 0
+        assert person.invite_sent_at == retry_at
+        assert person.invite_expires == retry_at+timedelta(minutes=30)
+
+    records = [record for record in caplog.records if record.name == 'accounts.services']
+    assert len(records) == 1
+    record = records[0]
+    assert record.levelno == logging.WARNING
+    assert record.getMessage() == f'invitation_send_failed exception_type={exception_type}'
+    assert record.exc_info is None and record.stack_info is None
+    captured = caplog.text + repr(record.__dict__)
+    for private_value in private_values:
+        assert private_value not in captured
