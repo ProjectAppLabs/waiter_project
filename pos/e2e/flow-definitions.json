@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "scope": "Acceso offline, Pedidos, Pago e Historial del POS; rondas 2026-10-07-waiter-x0 y 2026-10-08-waiter-w0",
+  "scope": "Acceso offline, Pedidos, Pago, Historial y navegación de consolas; rondas x0, w0 y r2",
   "flows": {
     "pos-payment-checkout": {
       "name": "Cobrar un pedido pendiente",
@@ -132,6 +132,38 @@
       "description": "Desde Pedidos, pulsar Crear pedido y llegar al diálogo que permite elegir mesa o para llevar/domicilio. El alcance responsive valida esta entrada, sin confirmar ni enviar un pedido.",
       "outcomes": [
         "success",
+        "display"
+      ]
+    },
+    "organization-console-navigation": {
+      "name": "Navegar la consola de la organización",
+      "module": "consola-organizacion",
+      "roles": [
+        "owner"
+      ],
+      "priority": "P1",
+      "description": "El dueño usa la barra lateral desde lg y abre/cierra el diálogo debajo. Navega a Restaurantes, ve Local QA y entra al POS. Sin rol owner vuelve a login; módulos inactivos no se ofrecen; un fallo de lectura de locales deja vacío. El recorrido correcto se comprueba en los cinco tamaños canónicos.",
+      "outcomes": [
+        "success",
+        "error",
+        "failure",
+        "display"
+      ]
+    },
+    "platform-console-navigation": {
+      "name": "Navegar la consola de ProjectApp",
+      "module": "consola-plataforma",
+      "roles": [
+        "operator",
+        "admin con doble factor",
+        "admin pendiente de doble factor"
+      ],
+      "priority": "P1",
+      "description": "Una persona autenticada navega a Métricas y ve la fila real de Waiter QA x0. Sin sesión vuelve a login; un admin obligado a configurar doble factor sólo abre Seguridad; un fallo de métricas muestra alerta. El recorrido correcto, foco, cierres y área útil se comprueban en los cinco tamaños canónicos.",
+      "outcomes": [
+        "success",
+        "error",
+        "failure",
         "display"
       ]
     }

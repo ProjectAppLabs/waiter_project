@@ -46,6 +46,8 @@ export async function signInAsQaOperator(page: Page) {
   await expect(page).toHaveURL(/\/organizacion$/, { timeout: 60_000 })
 
   const organizationNav = page.getByRole('navigation', { name: 'Consola de la organización', exact: true })
+  const openMenu = page.getByRole('button', { name: 'Abrir menú', exact: true })
+  if (await openMenu.isVisible()) await openMenu.click()
   const restaurantsLink = organizationNav.getByRole('link', { name: 'Restaurantes', exact: true })
   await restaurantsLink.click()
   await expect(page).toHaveURL(/\/organizacion\/restaurantes$/)
