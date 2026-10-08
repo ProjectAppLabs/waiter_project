@@ -23,9 +23,10 @@ from django.test.utils import setup_databases
 from rest_framework.test import APIClient
 
 from accounts.models import Account
-from catalog.models import Product
+from catalog.models import Category, Product, Tax
 from catalog.services import seed_organization
 from sales.models import PaymentMethod
+from tables.models import Floor, Table
 from tenancy.models import Organization, PlatformUser, Restaurant
 
 USERNAME = 'operador.qa'
@@ -44,6 +45,11 @@ def main():
     seed_organization(org)
     restaurant, _ = Restaurant.objects.get_or_create(
         organization=org, slug='local-qa', defaults={'name': 'Local QA'})
+    floor, _ = Floor.objects.get_or_create(
+        restaurant=restaurant, name='Salón QA r3', defaults={'sequence': 0, 'active': True})
+    table, _ = Table.objects.update_or_create(
+        floor=floor, number=931,
+        defaults={'active': True, 'seats': 4, 'x': 40, 'y': 40})
     person, _ = Account.objects.get_or_create(organization=org, username=USERNAME, defaults={
         'name': 'Operador QA', 'role': 'owner', 'email': 'operador.qa@example.test',
         'activated': True, 'password': make_password(PASSWORD)})
@@ -54,6 +60,17 @@ def main():
     })
     dish, _ = Product.objects.get_or_create(organization=org, name='Hamburguesa QA',
                                            defaults={'kind': 'dish', 'price': 38900})
+    excluded_tax, _ = Tax.objects.update_or_create(
+        organization=org, name='IVA excluido QA r3',
+        defaults={'amount': 19, 'included': False, 'active': True})
+    taxed_dish, _ = Product.objects.update_or_create(
+        organization=org, name='Plato gravado QA r3',
+        defaults={'kind': 'dish', 'price': 10000, 'active': True, 'available_in_pos': True})
+    taxed_dish.taxes.set([excluded_tax])
+    round_category, _ = Category.objects.update_or_create(
+        organization=org, name='Platos QA r3',
+        defaults={'active': True, 'sequence': 0})
+    taxed_dish.categories.set([round_category])
     client = APIClient()
     client.credentials(HTTP_X_WAITER_ORG=org.slug, HTTP_HOST='127.0.0.1')
 
@@ -82,7 +99,10 @@ def main():
     call('post', f"orders/{paid['id']}/pay")
     print(json.dumps({'organization': org.slug, 'restaurant_id': restaurant.pk,
          'shift_id': shift['id'], 'pending_id': pending['id'], 'paid_id': paid['id'],
-         'product_id': dish.pk, 'total': pending['total']}, ensure_ascii=False))
+         'product_id': dish.pk, 'total': pending['total'],
+         'taxed_product_id': taxed_dish.pk, 'taxed_total': 11900,
+         'round_category_id': round_category.pk,
+         'round_table_id': table.pk, 'round_table_number': table.number}, ensure_ascii=False))
 
 
 if __name__ == '__main__':
