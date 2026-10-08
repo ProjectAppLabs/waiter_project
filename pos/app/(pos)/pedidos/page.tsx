@@ -60,15 +60,15 @@ export default function PedidosPage() {
 
   return (
     <>
-      <div className="flex-1 min-h-0 flex flex-col px-4 pt-4 gap-4">
-        <div className="flex items-center gap-4">
+      <div className="flex-1 min-h-0 min-w-0 flex flex-col px-4 pt-4 gap-4">
+        <div className="shrink-0 flex flex-wrap items-center gap-4">
           <PageTitle>{t('title')}</PageTitle>
-          <label className="ml-auto w-[440px] h-11 px-3 rounded-md border border-border bg-surface flex items-center gap-2 text-dim">
+          <label className="w-full min-w-0 min-h-11 px-3 rounded-md border border-border bg-surface flex items-center gap-2 text-dim lg:ml-auto lg:w-[440px] lg:max-w-[440px] lg:flex-1">
             <Icon name="search" size={20} />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('search')} aria-label={t('search')} className="flex-1 min-w-0 bg-transparent outline-none text-[15px] text-ink placeholder:text-dim" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('search')} aria-label={t('search')} className="h-11 flex-1 min-w-0 bg-transparent outline-none text-base text-ink placeholder:text-dim sm:text-[15px]" />
           </label>
-          <span className="w-px h-8 bg-border" />
-          {mayCreate && <Link href="/pedidos/nuevo" className="h-11 px-4 rounded-md bg-primary text-primary-ink text-[15px] font-bold inline-flex items-center gap-1.5"><Icon name="plus" size={18} />{t('createOrder')}</Link>}
+          <span className="w-px h-8 shrink-0 bg-border" />
+          {mayCreate && <Link href="/pedidos/nuevo" className="h-11 shrink-0 whitespace-nowrap px-4 rounded-md bg-primary text-primary-ink text-[15px] font-bold inline-flex items-center gap-1.5"><Icon name="plus" size={18} />{t('createOrder')}</Link>}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {FILTERS.map((f) => <Chip key={f} label={t(`filters.${f}`)} count={counts[f]} active={f === filter} onClick={() => setFilter(f)} />)}
