@@ -3,7 +3,7 @@
 La ronda `2026-10-07-waiter-x0` cubre Pago e Historial; `2026-10-08-waiter-w0` añade
 salida offline y la entrada al asistente de Pedidos. La ronda `waiter-r3-20261008` amplía
 el contrato de importes finales, las rondas, la emergencia y la conciliación de pagos;
-su ejecución queda pendiente de la QA final del contenido combinado. Este mapa no
+su ejecución sólo se acredita en el recibo de QA del SHA exacto combinado. Este mapa no
 certifica el resto del POS ni el comensal. El registro vive en `pos/e2e/flow-definitions.json`.
 
 ## Convenciones y roles
@@ -40,7 +40,7 @@ Los casos legados ejercen parte del pago y la devolución, pero carecen de los t
 |---|---|---|
 | pos-login-logout | Sesión válida durante caída de Django; cerrar desde Ajustes, confirmar y recargar sin servidor. Dashboard vuelve a login incluso si el cierre remoto falla. Los contextos propios de estos casos no consumen la sesión de las otras pruebas. | `pos/lib/stores/authStore.ts`; `pos/lib/offline/cache.ts`; `pos/lib/services/core/http.ts`; `pos/e2e/acceso/ronda.spec.ts` |
 | pos-orders-review | Entrar a Pedidos por la UI, buscar número y cliente de una cuenta de 38.900, filtrar Sin enviar y limpiar; verificar cuenta, importe y conteos reales. | `pos/app/(pos)/pedidos/page.tsx`; `pos/lib/hooks/useKitOrders.ts`; `pos/e2e/pedidos/ronda.spec.ts` |
-| pos-order-create | Pulsar Crear pedido, elegir servicio, seleccionar platos y opciones, comprobar precio final e impuestos en el resumen y confirmar. El guion w0 sólo abría el asistente; la ampliación r3 aún no acredita ejecución. | `pos/app/(pos)/pedidos/page.tsx`; `pos/app/(pos)/pedidos/nuevo/page.tsx`; `pos/e2e/pedidos/ronda.spec.ts` |
+| pos-order-create | Pulsar Crear pedido, elegir servicio, seleccionar platos y opciones, comprobar precio final e impuestos en el resumen y confirmar. El guion w0 sólo abría el asistente; la ejecución de r3 sólo se acredita en el recibo del SHA exacto. | `pos/app/(pos)/pedidos/page.tsx`; `pos/app/(pos)/pedidos/nuevo/page.tsx`; `pos/e2e/pedidos/ronda.spec.ts` |
 
 Pedidos usa 835×1194 primero, después 412×915, 1195×835, 1440×900 y 2560×1440. El
 guion comprueba rectángulos, recortes de ancestros, controles y desborde documental junto
@@ -68,8 +68,9 @@ El spec declara success/display en los cinco tamaños canónicos, con datos conc
 
 ## Importes finales y conciliación de pagos · ronda r3
 
-Esta ampliación describe los contratos de la ronda, no resultados de ejecución.
-QA contrasta las descripciones y los roles con el contenido combinado antes de
+Esta ampliación describe los contratos de la ronda. Los resultados sólo se
+acreditan en el [recibo de QA del SHA exacto](https://github.com/carlos18bp/vps-ops-toolkit/blob/master/docs/audits/2026-10-08-waiter_project-improvement-pass-project-r3.md);
+la existencia del mapa no declara un resultado verde. QA contrasta las descripciones y los roles con el contenido combinado antes de
 validar el SHA final. Los tags conservan los IDs anteriores para creación y cobro;
 los nuevos IDs distinguen acciones reales y se agregan a los specs ya asignados,
 sin duplicar pruebas ni abrir otra cadena de validación.
@@ -97,10 +98,13 @@ estar cubiertos en otra capa. El snapshot se guarda antes del POST: si falla el
 almacenamiento no se envía, y una entrada antigua ambigua no se migra inventando
 un importe. Una consulta de conciliación nunca usa una respuesta offline vieja.
 
-**Estado r3: pendiente de ejecución combinada.** La QA final requiere el mismo
-SHA limpio servido por backend y POS, MySQL 8.4 en una base scratch exclusiva,
-tipos, Jest con la unión exacta de archivos, gate strict sobre todos los tests
-tocados y Playwright vivo en 835×1194 primero, luego 412×915, 1195×835, 1440×900 y
-2560×1440. Los recibos de rondas anteriores permanecen como historia y no
+La QA combinada requiere el mismo SHA limpio servido por backend y POS, MySQL
+8.4 en una base scratch exclusiva, tipos, Jest con la unión exacta de archivos y
+gate strict sobre todos los tests tocados. Playwright valida las regresiones
+existentes de UI en 835×1194 primero, luego 412×915, 1195×835, 1440×900 y
+2560×1440. Los dos guiones financieros nuevos de creación/ronda y emergencia
+se ejecutan en 1440×900; los tres casos nuevos de conciliación usan el tamaño
+predeterminado de Playwright, 1280×720. La matriz de cinco tamaños no se atribuye
+a estos cinco casos nuevos, que no modifican layouts. Los recibos de rondas anteriores permanecen como historia y no
 certifican esta ampliación. No se acredita cobertura completa de permisos,
 tarjeta/QR ni de todas las clases de resultado por estos guiones.
