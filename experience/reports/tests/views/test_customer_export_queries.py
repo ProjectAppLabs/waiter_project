@@ -8,8 +8,8 @@ from django.test.utils import CaptureQueriesContext
 
 from experience_app.models import DinerAccount
 from loyalty.models import Customer, LoyaltyCard
-from reports.tests.test_exportes_historial_equipo import csv_filas
 from reports.tests.test_reports import sale
+from reports.tests.views.test_exportes_historial_equipo import csv_filas
 from sales.models import Order
 from tenancy.tests.helpers import account, pos_client
 
@@ -18,6 +18,7 @@ MAX_CUSTOMER_EXPORT_QUERIES = 2
 
 
 def crear_cliente(s, indice):
+    """Crea un cliente distinto con ventas, devolución y consentimiento propios."""
     nombre = f"Cliente {indice:02d}"
     comensal = DinerAccount.objects.create(
         organization_slug=s["org"].slug,
@@ -42,34 +43,64 @@ def crear_cliente(s, indice):
     return cliente
 
 
-@pytest.mark.parametrize("rol", ["owner", "admin"])
-def test_exporte_clientes_consultas_constantes_y_cifras(setup, rol):
-    # Falla si ventas o consentimiento añaden consultas por cliente, duplican importes o incluyen sedes ajenas.
+def cifras_esperadas(cantidad, por_sede):
+    """Devuelve el CSV concreto de los clientes sembrados en el ámbito solicitado."""
+    cifras = ["2", "2400,00", "2026-10-02T00:00:00-05:00"] if por_sede else [
+        "3", "3600,00", "2026-10-04T00:00:00-05:00"
+    ]
+    return [
+        [
+            f"Cliente {indice:02d}", "CC", "", f"cliente-{indice}@ejemplo.co", "", "2,500000", *cifras,
+            "Sí" if indice % 2 == 0 else "No",
+        ]
+        for indice in range(cantidad)
+    ]
+
+
+@pytest.fixture
+def exporte_clientes(setup, rol, por_sede):
+    """Prepara datos fuera de la captura y permite exportar tamaños crecientes."""
     s = setup
     cliente_api = s["client"] if rol == "owner" else pos_client(
         account(s["org"], "admin", "encargado", restaurants=[s["r1"]])
     )
-    consultas = []
-    consultas_datos = []
+    periodo = "?from=2020-01-01&to=2020-01-01"
+    if por_sede:
+        periodo += f"&restaurant_id={s['r1'].pk}"
+    creados = []
     tablas_exporte = [modelo._meta.db_table for modelo in (Customer, Order, DinerAccount)]
-    creados = 0
-    for cantidad in (1, 12, 50):
-        for indice in range(creados, cantidad):
-            crear_cliente(s, indice)
-        creados = cantidad
+
+    def consultar(cantidad):
+        """Obtiene CSV y conteos de una petición real después de preparar sus clientes."""
+        for indice in range(len(creados), cantidad):
+            creados.append(crear_cliente(s, indice))
         with CaptureQueriesContext(connection) as capturadas:
-            _, filas = csv_filas(
-                cliente_api, "clientes", f"?from=2020-01-01&to=2020-01-01&restaurant_id={s['r1'].pk}"
-            )
-        consultas.append(len(capturadas))
-        consultas_datos.append(sum(any(tabla in consulta["sql"] for tabla in tablas_exporte) for consulta in capturadas))
-        assert len(filas) == cantidad + 1
-        assert [fila[0] for fila in filas[1:]] == [f"Cliente {indice:02d}" for indice in range(cantidad)]
-        for indice, fila in enumerate(filas[1:]):
-            assert fila[5:] == [
-                "2,500000", "2", "2400,00", "2026-10-02T00:00:00-05:00", "Sí" if indice % 2 == 0 else "No"
-            ]
-    print(f"Consultas exporte clientes ({rol}, 1/12/50): {consultas}; datos: {consultas_datos}")
-    assert consultas == [consultas[0]] * 3
-    assert consultas_datos == [consultas_datos[0]] * 3
+            _, filas = csv_filas(cliente_api, "clientes", periodo)
+        return {
+            "filas": [fila for fila in filas[1:] if fila[0].startswith("Cliente ")],
+            "consultas": len(capturadas),
+            "datos": sum(any(tabla in consulta["sql"] for tabla in tablas_exporte) for consulta in capturadas),
+        }
+
+    return consultar
+
+
+@pytest.mark.parametrize(
+    ("rol", "por_sede"),
+    [("owner", True), ("admin", True), ("owner", False)],
+    ids=["dueno-sede", "encargado-sede", "dueno-organizacion"],
+)
+def test_exporte_clientes_consultas_constantes_y_cifras(exporte_clientes, rol, por_sede):
+    """Mantiene el presupuesto y el CSV con uno, doce y cincuenta clientes."""
+    # Falla si el exporte crece en consultas o suma mal las sedes del dueño y las visitas visibles del encargado.
+    una = exporte_clientes(1)
+    doce = exporte_clientes(12)
+    cincuenta = exporte_clientes(50)
+    consultas = [una["consultas"], doce["consultas"], cincuenta["consultas"]]
+    consultas_datos = [una["datos"], doce["datos"], cincuenta["datos"]]
+    assert consultas == [una["consultas"]] * 3
+    assert consultas_datos == [una["datos"]] * 3
     assert max(consultas_datos) <= MAX_CUSTOMER_EXPORT_QUERIES
+    assert una["filas"] == cifras_esperadas(1, por_sede)
+    assert doce["filas"] == cifras_esperadas(12, por_sede)
+    assert cincuenta["filas"] == cifras_esperadas(50, por_sede)

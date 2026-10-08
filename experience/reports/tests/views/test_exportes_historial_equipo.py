@@ -30,6 +30,7 @@ PERIODO = "?from=2026-10-01&to=2026-10-01"
 
 
 def csv_filas(cliente, tipo, periodo=PERIODO):
+    """Descarga y decodifica un exporte con su contrato de archivo CSV."""
     respuesta = cliente.get(BASE + "exports/" + tipo + periodo)
     assert respuesta.status_code == 200, getattr(respuesta, "data", respuesta.content)
     assert respuesta.content.startswith(b"\xef\xbb\xbf")
@@ -38,6 +39,7 @@ def csv_filas(cliente, tipo, periodo=PERIODO):
 
 
 def linea_venta(s, local=None, fecha="2026-10-01T05:00:00+00:00", nombre="Café con piñón"):
+    """Crea una venta con importes decimales y un nombre acentuado."""
     pedido = sale(s, fecha, rest=local, total=Decimal("1234.56"), tip=Decimal("34.56"))
     OrderLine.objects.create(
         order=pedido,
@@ -54,6 +56,7 @@ def linea_venta(s, local=None, fecha="2026-10-01T05:00:00+00:00", nombre="Café 
 
 
 def test_exporte_completo_excel_periodo_y_aislamiento(setup):
+    """Conserva el archivo completo dentro del periodo y la sede autorizados."""
     # Falla si se trunca el exporte, se pierden tildes y decimales o aparecen ventas ajenas al local o al periodo.
     s = setup
     for _ in range(205):
@@ -67,7 +70,8 @@ def test_exporte_completo_excel_periodo_y_aislamiento(setup):
     assert len(filas) == 206
     assert filas[1][7:10] == ["Café con piñón", "1,250000", "960,00"]
     assert respuesta["Content-Disposition"] == 'attachment; filename="ventas-2026-10-01-a-2026-10-01.csv"'
-    assert "ajena" not in respuesta.content.decode() and "otro local" not in respuesta.content.decode()
+    assert "ajena" not in respuesta.content.decode()
+    assert "otro local" not in respuesta.content.decode()
     assert "Fuera del periodo" not in respuesta.content.decode()
     assert encargado.get(BASE + "exports/ventas" + PERIODO + f"&restaurant_id={s['r2'].pk}").status_code == 404
     assert len(csv_filas(s["client"], "ventas")[1]) == 207
@@ -75,6 +79,7 @@ def test_exporte_completo_excel_periodo_y_aislamiento(setup):
 
 @pytest.mark.parametrize("tipo", ["ventas", "pagos", "inventario", "movimientos", "clientes", "historial", "equipo"])
 def test_exportes_rechazan_roles_y_periodos_excesivos(setup, tipo):
+    """Rechaza roles sin permiso y periodos inválidos en cada exporte."""
     # Falla si un mesero exporta datos o cualquier exporte admite más de 366 días.
     s = setup
     mesero = pos_client(account(s["org"], "waiter", "mesero", restaurants=[s["r1"]]))
@@ -84,6 +89,7 @@ def test_exportes_rechazan_roles_y_periodos_excesivos(setup, tipo):
 
 
 def test_pagos_inventario_movimientos_y_modulo_apagado(setup):
+    """Conserva importes y movimientos y respeta el módulo de inventario."""
     # Falla si faltan pagos, se pierde el cambio, el costo no es decimal o se ignora el módulo de inventario.
     s = setup
     pedido = linea_venta(s)
@@ -119,6 +125,7 @@ def test_pagos_inventario_movimientos_y_modulo_apagado(setup):
 
 
 def test_clientes_sin_filtrar_por_fecha_con_ambito_del_encargado(setup):
+    """Selecciona clientes por sede y conserva los que sólo tienen borradores."""
     # Falla si clientes pierde registros por el periodo o revela visitas y gasto de locales que el encargado no ve.
     s = setup
     cliente = Customer.objects.create(organization=s["org"], name="María", vat="123")
@@ -134,17 +141,17 @@ def test_clientes_sin_filtrar_por_fecha_con_ambito_del_encargado(setup):
     borrador.save(update_fields=["customer"])
     encargado = pos_client(account(s["org"], "admin", "encargado", restaurants=[s["r1"]]))
     _, filas = csv_filas(encargado, "clientes", "?from=2020-01-01&to=2020-01-01")
-    assert [fila[0] for fila in filas[1:]] == ["María", "Solo borrador"]
-    assert filas[1][5:8] == ["12,000000", "1", "1234,56"]
-    assert filas[2][5:] == ["0", "0", "0", "", "No"]
+    assert filas[1:] == [
+        ["María", "CC", "123", "", "", "12,000000", "1", "1234,56", "2026-10-01T00:00:00-05:00", "No"],
+        ["Solo borrador", "CC", "", "", "", "0", "0", "0", "", "No"],
+    ]
     _, organizacion = csv_filas(s["client"], "clientes")
     assert [fila[0] for fila in organizacion[1:]] == ["Consumidor final", "María", "Sin visitas", "Solo borrador"]
-    assert organizacion[2][6:8] == ["2", "2469,12"]
     assert organizacion[3][5:] == ["0", "0", "0", "", "No"]
-    assert csv_filas(s["client"], "clientes", f"?restaurant_id={s['r1'].pk}")[1] == filas
 
 
 def test_clientes_consentimiento_por_organizacion_y_sin_cuenta(setup):
+    """Obtiene consentimiento sólo de la cuenta correspondiente a la organización."""
     # Falla si el consentimiento se toma de otra organización, se impone sin marcarlo o se pierde el CSV completo.
     s = setup
     for nombre, ambito, acepta in (
@@ -175,29 +182,34 @@ def test_clientes_consentimiento_por_organizacion_y_sin_cuenta(setup):
 
 
 def test_precio_archivo_actor_antes_despues_y_transaccion(setup):
+    """Mantiene la identidad y las instantáneas y revierte la auditoría fallida."""
     # Falla si un precio o un plato archivado carece de identidad e instantáneas, o si se conserva historial de un cambio revertido.
     s = setup
     save_product(account=s["person"], raw={"price": 12000}, product=s["dish"])
     registro = OrganizationAudit.objects.filter(entity="catalog.product").latest("id")
-    assert registro.actor_id == s["person"].pk and registro.at
-    assert registro.before["price"] == 10800 and registro.after["price"] == 12000
+    assert registro.actor_id == s["person"].pk
+    assert registro.at
+    assert registro.before["price"] == 10800
+    assert registro.after["price"] == 12000
     total = OrganizationAudit.objects.count()
-    with pytest.raises(RuntimeError):
-        with transaction.atomic():
-            save_product(s["person"], {"price": 15000}, s["dish"])
-            raise RuntimeError("Reversión de prueba")
+    with pytest.raises(RuntimeError, match="^Reversión de prueba$"):
+        precio_revertido(s)
     s["dish"].refresh_from_db()
-    assert s["dish"].price == 12000 and OrganizationAudit.objects.count() == total
+    assert s["dish"].price == 12000
+    assert OrganizationAudit.objects.count() == total
     call(s["client"], "post", f"products/{s['dish'].pk}/archive")
     registro = OrganizationAudit.objects.filter(entity="catalog.product").latest("id")
-    assert registro.before["active"] and not registro.after["active"]
+    assert registro.before["active"]
+    assert not registro.after["active"]
     resultado = call(s["client"], "get", "audit")
-    assert resultado["total"] >= 2 and resultado["entries"][0]["actor"]["name"] == s["person"].name
+    assert resultado["total"] >= 2
+    assert resultado["entries"][0]["actor"]["name"] == s["person"].name
     assert call(s["client"], "get", "audit/actions")["actions"]
     assert csv_filas(s["client"], "historial", "")[1][1][5] == s["person"].name
 
 
 def test_auditoria_locales_equipo_y_projectapp(setup):
+    """Aísla la auditoría del encargado de otras sedes y de ProjectApp."""
     # Falla si el encargado ve acciones de ProjectApp, de otro local o del equipo fuera de su alcance.
     s = setup
     for local in (s["r1"], s["r2"]):
@@ -208,7 +220,8 @@ def test_auditoria_locales_equipo_y_projectapp(setup):
     )
     assert respuesta.status_code == 200
     registro = OrganizationAudit.objects.filter(entity="tenancy.organization").latest("id")
-    assert registro.actor_kind == "platform" and registro.before["name"] == "Burger House"
+    assert registro.actor_kind == "platform"
+    assert registro.before["name"] == "Burger House"
     assert registro.after["name"] == "Nuevo nombre"
     encargado = pos_client(account(s["org"], "admin", "encargado", restaurants=[s["r1"]]))
     resultado = call(encargado, "get", "audit")
@@ -218,14 +231,17 @@ def test_auditoria_locales_equipo_y_projectapp(setup):
 
 
 def test_devolucion_y_descuento_conservan_historial(setup):
+    """Registra responsable e instantáneas de devoluciones y descuentos."""
     # Falla si la devolución o el descuento de una operación pierde antes, después y persona responsable.
     s = setup
     open_shift(s)
     pedido = venta(s)
     devolver(s, pedido)
     registro = OrganizationAudit.objects.get(entity="sales.refund")
-    assert registro.actor_id == s["person"].pk and registro.after["total"] == 10800
-    assert registro.before == {} and registro.at
+    assert registro.actor_id == s["person"].pk
+    assert registro.after["total"] == 10800
+    assert registro.before == {}
+    assert registro.at
     token = _context.set((s["person"], False))
     try:
         with transaction.atomic():
@@ -235,7 +251,8 @@ def test_devolucion_y_descuento_conservan_historial(setup):
     finally:
         _context.reset(token)
     registro = OrganizationAudit.objects.filter(entity="sales.orderline").latest("id")
-    assert registro.before["discount_pct"] == 0 and registro.after["discount_pct"] == 10
+    assert registro.before["discount_pct"] == 0
+    assert registro.after["discount_pct"] == 10
     assert registro.actor_id == s["person"].pk
     _, filas = csv_filas(s["client"], "ventas", "")
     assert any(fila[-1] == "Sí" and fila[8].startswith("-") for fila in filas[1:])
@@ -243,6 +260,7 @@ def test_devolucion_y_descuento_conservan_historial(setup):
 
 @freeze_time("2026-10-02T01:00:00Z")
 def test_horas_asistencias_propinas_tarifa_y_pago_estimado(setup):
+    """Recorta horas y atribuye ventas, propinas y pago al responsable correcto."""
     # Falla si no recorta las asistencias al periodo, atribuye propinas al cajero o calcula mal el pago estimado.
     s = setup
     mesero = account(s["org"], "waiter", "mesero", restaurants=[s["r1"]], hourly_rate=Decimal("10000"))
@@ -260,11 +278,15 @@ def test_horas_asistencias_propinas_tarifa_y_pago_estimado(setup):
     pedido.save()
     resultado = call(s["client"], "get", "reports/team" + PERIODO)
     fila = next(f for f in resultado["rows"] if f["account"]["id"] == mesero.pk)
-    assert fila["hours"] == Decimal("3.5") and fila["shifts"] == 2
-    assert fila["orders"] == 1 and fila["sales"] == Decimal("1200") and fila["tips"] == Decimal("34.56")
+    assert fila["hours"] == Decimal("3.5")
+    assert fila["shifts"] == 2
+    assert fila["orders"] == 1
+    assert fila["sales"] == Decimal("1200")
+    assert fila["tips"] == Decimal("34.56")
     assert fila["estimated_pay"] == Decimal("35034.56")
     dueno = next(f for f in resultado["rows"] if f["account"]["id"] == s["person"].pk)
-    assert dueno["tips"] == 0 and dueno["estimated_pay"] is None
+    assert dueno["tips"] == 0
+    assert dueno["estimated_pay"] is None
     assert resultado["totals"]["estimated_pay"] == Decimal("35034.56")
     _, filas = csv_filas(s["client"], "equipo")
     assert next(f for f in filas[1:] if f[0] == "Mesero")[-1] == "35034,56"
@@ -274,6 +296,7 @@ def test_horas_asistencias_propinas_tarifa_y_pago_estimado(setup):
 
 
 def test_tarifa_solo_dueno_y_decimal_no_negativo(setup):
+    """Reserva la tarifa al dueño y acepta únicamente importes válidos."""
     # Falla si el encargado modifica la tarifa o se admiten valores negativos o ambiguos.
     s = setup
     mesero = account(s["org"], "waiter", "mesero", restaurants=[s["r1"]])
@@ -284,6 +307,14 @@ def test_tarifa_solo_dueno_y_decimal_no_negativo(setup):
             s["client"].patch(BASE + f"team/{mesero.pk}", {"hourly_rate": invalida}, format="json").status_code == 400
         )
     respuesta = s["client"].patch(BASE + f"team/{mesero.pk}", {"hourly_rate": 1234.56}, format="json")
-    assert respuesta.status_code == 200 and respuesta.data["person"]["hourly_rate"] == 1234.56
+    assert respuesta.status_code == 200
+    assert respuesta.data["person"]["hourly_rate"] == 1234.56
     mesero.refresh_from_db()
     assert mesero.hourly_rate == Decimal("1234.56")
+
+
+def precio_revertido(s):
+    """Simula una transacción que modifica el precio y después falla."""
+    with transaction.atomic():
+        save_product(s["person"], {"price": 15000}, s["dish"])
+        raise RuntimeError("Reversión de prueba")
