@@ -1,6 +1,8 @@
-# Mapa de flujos E2E · Pago e Historial del POS
+# Mapa de flujos E2E · Acceso, Pedidos, Pago e Historial del POS
 
-Alcance de la ronda `2026-10-07-waiter-x0`: los módulos Pago e Historial. Este mapa no certifica otros módulos del POS ni el comensal. Lo generó el Analyst desde el código real; el registro vive en `pos/e2e/flow-definitions.json`.
+La ronda `2026-10-07-waiter-x0` cubre Pago e Historial; `2026-10-08-waiter-w0` añade
+salida offline y la búsqueda/creación de Pedidos. Este mapa no certifica el resto del POS
+ni el comensal. El registro vive en `pos/e2e/flow-definitions.json`.
 
 ## Convenciones y roles
 
@@ -29,6 +31,19 @@ Cobran cashier, admin y los roles con charge_orders; Historial requiere su vista
 ## Estado inicial
 
 Los casos legados ejercen parte del pago y la devolución, pero carecen de los tags del registro nuevo y no reciben crédito automático: `pos/e2e/pedido.spec.ts:27` y `pos/e2e/devolucion.spec.ts:20`. La QA de esta ronda valida los cambios seleccionados; cualquier resultado pendiente de los demás comportamientos se conserva como deuda explícita, sin declarar cobertura completa del POS.
+
+## Acceso offline y Pedidos · ronda 2026-10-08
+
+| Flujo | Interacción y resultados | Evidencia |
+|---|---|---|
+| pos-login-logout | Sesión válida durante caída de Django; cerrar desde Ajustes, confirmar y recargar sin servidor. Dashboard vuelve a login incluso si el cierre remoto falla. Los contextos propios de estos casos no consumen la sesión de las otras pruebas. | `pos/lib/stores/authStore.ts`; `pos/lib/offline/cache.ts`; `pos/lib/services/core/http.ts`; `pos/e2e/acceso/ronda.spec.ts` |
+| pos-orders-review | Entrar a Pedidos por la UI, buscar número y cliente de una cuenta de 38.900, filtrar Sin enviar y limpiar; verificar cuenta, importe y conteos reales. | `pos/app/(pos)/pedidos/page.tsx`; `pos/lib/hooks/useKitOrders.ts`; `pos/e2e/pedidos/ronda.spec.ts` |
+| pos-order-create | Pulsar Crear pedido y ver la selección de mesa o para llevar/domicilio sin confirmar una creación. | `pos/app/(pos)/pedidos/page.tsx`; `pos/app/(pos)/pedidos/nuevo/page.tsx`; `pos/e2e/pedidos/ronda.spec.ts` |
+
+Pedidos usa 835×1194 primero, después 412×915, 1195×835, 1440×900 y 2560×1440. El
+guion comprueba rectángulos, recortes de ancestros, controles y desborde documental junto
+con la interacción. La evidencia del nuevo guion permanece pendiente hasta su ejecución
+sobre el SHA final: tags, autoría y el verde de la ronda anterior no le dan crédito.
 
 ## Índice de cobertura de la ronda
 
