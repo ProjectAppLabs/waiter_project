@@ -20,13 +20,13 @@ const show = () => render(
 )
 
 // Falla si la línea pierde la nota o la adición, si el impuesto no se llama como en la carta (un INC no es IVA) o si
-// el total deja de venir del impuesto real del servidor.
+// el total suma de nuevo un impuesto que ya viene en el precio final del catálogo.
 it('shows note, addition and the real tax total', () => {
   show()
   expect(screen.getByText('Nota: sin cebolla')).toBeInTheDocument()
   expect(screen.getByText('Adición: BBQ')).toBeInTheDocument()
   expect(screen.getByText('IVA 19%')).toBeInTheDocument()
-  expect(screen.getByText('$ 92.582')).toBeInTheDocument()
+  expect(screen.getByText('Total a pagar').nextSibling).toHaveTextContent('$ 77.800')
 })
 
 // Falla si borrar, editar o el stepper dejan de avisar al wizard.

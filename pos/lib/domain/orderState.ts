@@ -1,3 +1,4 @@
+import { cartAmounts } from '@/lib/domain/cartAmounts'
 import { serverDate } from '@/lib/domain/time'
 
 export type OrderType = 'dine_in' | 'takeout' | 'delivery'
@@ -141,14 +142,5 @@ export function greetingFor(hour: number): 'morning' | 'afternoon' | 'evening' {
 export interface TaxRate { id: number; amount: number; priceInclude: boolean }
 export interface CartLine { unitPrice: number; qty: number; taxIds: number[] }
 export function cartTotals(lines: CartLine[], taxes: TaxRate[]): { subtotal: number; tax: number; total: number } {
-  let subtotal = 0
-  let tax = 0
-  lines.forEach((l) => {
-    const rates = taxes.filter((t) => l.taxIds.includes(t.id))
-    const included = rates.filter((t) => t.priceInclude).reduce((a, t) => a + t.amount, 0)
-    const base = (l.unitPrice * l.qty) / (1 + included / 100)
-    subtotal += base
-    tax += rates.reduce((a, t) => a + (base * t.amount) / 100, 0)
-  })
-  return { subtotal: Math.round(subtotal), tax: Math.round(tax), total: Math.round(subtotal + tax) }
+  return cartAmounts(lines, taxes)
 }

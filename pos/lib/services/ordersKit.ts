@@ -1,3 +1,4 @@
+import { cartAmounts, finalLineTotal, finalUnitPrice } from '@/lib/domain/cartAmounts'
 import type { DraftLine } from '@/lib/domain/order'
 import { type KitLine, type KitOrder, type TaxRate } from '@/lib/domain/orderState'
 import * as coreCatalog from '@/lib/services/core/catalog'
@@ -66,7 +67,14 @@ export async function addRound(orderId: number, lines: DraftLine[], place?: { nu
     if (!(e instanceof CoreError && e.code === 'unreachable')) throw e
     if (orderId < 0 && !emergency) throw new CoreError(404, 'not_found', 'No encontramos este pedido de emergencia en el equipo.')
     useOutboxStore.getState().enqueue({ kind: 'add_lines', order: emergency ? { uuid: emergency.uuid } : { id: orderId }, lines: input, fire: true, label: place?.number ?? '' })
-    if (emergency) useEmergencyOrders.getState().addLines(emergency.uuid, lines.map((l) => ({ uuid: l.uuid, productId: l.productId, name: l.name, qty: l.qty, unitPrice: l.unitPrice, total: l.unitPrice * l.qty, note: l.note, options: [] })), lines.reduce((sum, l) => sum + l.unitPrice * l.qty, 0))
+    if (emergency) {
+      const extra = cartAmounts(lines, []).total
+      useEmergencyOrders.getState().update(emergency.uuid, {
+        lines: [...emergency.lines, ...lines.map((l) => ({ uuid: l.uuid, productId: l.productId, name: l.name, qty: l.qty,
+          unitPrice: finalUnitPrice(l.unitPrice), total: finalLineTotal(l), note: l.note, options: [] }))],
+        total: finalUnitPrice(emergency.total, [extra]),
+      })
+    }
     printOfflineComanda({ number: place?.number ?? '—', place: tablePlace(place?.tableId ?? null),
       lines: lines.map((l) => ({ qty: l.qty, name: l.name, options: [], note: l.note, station: stationOf(l.productId) })) })
     return null

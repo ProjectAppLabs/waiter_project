@@ -29,3 +29,29 @@ it('cancela solo las líneas seleccionadas', async () => {
  m.mockResolvedValue({ order: coreOrder() }); await cancelLines(13, [229, 230]); await cancelLines(13, [])
  expect(m.mock.calls).toEqual([['orders/13/lines', { method: 'DELETE', body: { line_ids: [229, 230] } }]])
 })
+
+// Falla si dos líneas de 0.335 se suman sin redondear y la ronda guarda 3.70 en lugar de 3.71, o cambia uuid/cantidad.
+it('conserva centavos e identidades al añadir una ronda a un pedido de emergencia', async () => {
+ const { useEmergencyOrders } = jest.requireActual('@/lib/offline/emergency') as typeof import('@/lib/offline/emergency')
+ const { useOutboxStore } = jest.requireActual('@/lib/offline/outbox') as typeof import('@/lib/offline/outbox')
+ localStorage.clear()
+ useEmergencyOrders.setState({ orders: [], seq: {}, nextLocalId: -1, loaded: true })
+ useOutboxStore.setState({ entries: [], failed: [], ids: {}, loaded: true })
+ const emergency = useEmergencyOrders.getState().register({ uuid: 'centavos-ronda', type: 'takeout', tableId: null,
+  tableNumber: null, customer: 'Centavos', total: 3.03, tax: 0,
+  lines: [{ uuid: 'original', productId: 4, name: 'Porción', qty: 3, unitPrice: 1.01, total: 3.03, note: '', options: [] }] })
+ m.mockResolvedValue({ products: [] })
+ await addRound(emergency.localId, [
+  { uuid: 'nueva-1', productId: 5, name: 'Adición', unitPrice: 0.335, qty: 1, note: '', taxIds: [] },
+  { uuid: 'nueva-2', productId: 5, name: 'Adición', unitPrice: 0.335, qty: 1, note: 'aparte', taxIds: [] },
+ ])
+ expect(useEmergencyOrders.getState().orders[0]).toMatchObject({ total: 3.71, lines: [
+  { uuid: 'original', qty: 3, unitPrice: 1.01, total: 3.03 },
+  { uuid: 'nueva-1', qty: 1, unitPrice: 0.34, total: 0.34 },
+  { uuid: 'nueva-2', qty: 1, unitPrice: 0.34, total: 0.34 },
+ ] })
+ expect(useOutboxStore.getState().entries).toMatchObject([{ kind: 'add_lines', order: { uuid: 'centavos-ronda' }, fire: true, lines: [
+  { uuid: 'nueva-1', product_id: 5, qty: 1, note: '' },
+  { uuid: 'nueva-2', product_id: 5, qty: 1, note: 'aparte' },
+ ] }])
+})
