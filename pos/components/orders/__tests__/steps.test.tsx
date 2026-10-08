@@ -48,12 +48,12 @@ it('agrega un plato con su cantidad y su nota', async () => {
   expect(props.onAdd).toHaveBeenCalledWith(expect.objectContaining({ productId: 1, qty: 2, note: 'sin cebolla', unitPrice: 20000 }))
 })
 
-// Falla si editar, cambiar la cantidad o quitar una línea del detalle no llega al carrito, o si los totales no suman el INC.
+// Falla si editar, cambiar la cantidad o quitar una línea no llega al carrito, o si se vuelve a sumar el INC al precio final.
 it('edita, cambia y quita líneas del detalle con los totales correctos', async () => {
   const line = { ...newLine(PRODUCTS[0], 1, '', []), uuid: 'l1' }
   const props = menu([line])
   const detail = screen.getByRole('region', { name: 'Detalle del pedido' })
-  expect(detail).toHaveTextContent('21.600')
+  expect(within(detail).getByText('Total a pagar').nextSibling).toHaveTextContent('20.000')
   await userEvent.click(within(detail).getByRole('button', { name: 'Más' }))
   expect(props.onQty).toHaveBeenCalledWith('l1', 2)
   await userEvent.click(within(detail).getByRole('button', { name: 'Quitar' }))
@@ -106,7 +106,7 @@ it('el resumen muestra lo que se va a crear y protege la confirmación', () => {
   expect(screen.getByText('Mesa 7')).toBeInTheDocument()
   expect(screen.getByText(/sin cebolla/)).toBeInTheDocument()
   expect(screen.getByText('x2')).toBeInTheDocument()
-  expect(screen.getByText('Total a pagar').nextSibling).toHaveTextContent('43.200')
+  expect(screen.getByText('Total a pagar').nextSibling).toHaveTextContent('40.000')
   fireEvent.click(screen.getByRole('button', { name: 'Crear pedido y enviar a cocina' }))
   expect(onConfirm).toHaveBeenCalledTimes(1)
   const again = (props: Partial<React.ComponentProps<typeof SummaryStep>>) => rerender(<NextIntlClientProvider locale="es" messages={messages}><SummaryStep info={DEFAULT_INFO} tableNumber={7} lines={lines} totals={totals} busy={false} error={null} onConfirm={onConfirm} {...props} /></NextIntlClientProvider>)

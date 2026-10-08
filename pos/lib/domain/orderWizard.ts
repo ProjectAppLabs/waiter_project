@@ -1,3 +1,4 @@
+import { cartAmounts, finalLineTotal, finalUnitPrice } from '@/lib/domain/cartAmounts'
 import { uuid } from '@/lib/domain/uuid'
 import type { Product } from '@/lib/types'
 
@@ -60,40 +61,21 @@ export function replaceLine(lines: CartLine[], lineUuid: string, patch: Pick<Car
 }
 
 export const extrasOf = (line: CartLine) => line.options.reduce((a, o) => a + o.priceExtra, 0)
-export const lineUnitPrice = (line: CartLine) => line.unitPrice + extrasOf(line)
-export const lineSubtotal = (line: CartLine) => lineUnitPrice(line) * line.qty
+export const lineUnitPrice = (line: CartLine) => finalUnitPrice(line.unitPrice, line.options.map((option) => option.priceExtra))
+export const lineSubtotal = (line: CartLine) => finalLineTotal({ ...line, extras: line.options.map((option) => option.priceExtra) })
 export const itemCount = (lines: CartLine[]) => lines.reduce((a, l) => a + l.qty, 0)
 export const additionNames = (line: CartLine) => line.options.map((o) => o.name).join(', ')
 export const fullProductName = (line: CartLine) => (line.options.length ? `${line.name} (${additionNames(line)})` : line.name)
 
-// Impuestos reales de account.tax (porcentaje o fijo, incluido o no en el precio). Sin "12 %" inventado.
+// El sistema propio entrega tasas porcentuales y precios finales; se conserva la forma del contrato del asistente.
 export interface TaxRate { id: number; name: string; amount: number; amountType: 'percent' | 'fixed' | 'division' | 'group'; priceInclude: boolean }
 export interface CartTotals { subtotal: number; tax: number; total: number; taxNames: string[] }
 
-function lineTax(line: CartLine, taxes: TaxRate[]): { tax: number; included: number } {
-  const gross = lineSubtotal(line)
-  let tax = 0
-  let included = 0
-  for (const id of line.taxIds) {
-    const rate = taxes.find((t) => t.id === id)
-    if (!rate) continue
-    if (rate.amountType === 'fixed') { tax += rate.amount * line.qty; continue }
-    if (rate.amountType !== 'percent') continue
-    if (rate.priceInclude) { const part = gross - gross / (1 + rate.amount / 100); tax += part; included += part } else tax += (gross * rate.amount) / 100
-  }
-  return { tax, included }
-}
-
 export function cartTotals(lines: CartLine[], taxes: TaxRate[]): CartTotals {
-  let subtotal = 0
-  let tax = 0
-  for (const line of lines) {
-    const { tax: t, included } = lineTax(line, taxes)
-    subtotal += lineSubtotal(line) - included
-    tax += t
-  }
+  const amounts = cartAmounts(lines.map((line) => ({ ...line, extras: line.options.map((option) => option.priceExtra) })),
+    taxes.filter((tax) => tax.amountType === 'percent'))
   const names = [...new Set(lines.flatMap((l) => l.taxIds).map((id) => taxes.find((t) => t.id === id)?.name).filter((n): n is string => Boolean(n)))]
-  return { subtotal: Math.round(subtotal), tax: Math.round(tax), total: Math.round(subtotal + tax), taxNames: names }
+  return { ...amounts, taxNames: names }
 }
 
 // La nota del pedido incluye silla de bebé y datos de domicilio para cocina.
