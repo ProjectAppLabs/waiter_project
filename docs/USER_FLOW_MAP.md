@@ -53,3 +53,12 @@ con la interacción. El guion quedó ejecutado sobre el contenido combinado de w
 | pos-history-refund · display | `pos/e2e/historial/ronda.spec.ts` | Abrir Devolver, seleccionar el total y comprobar que falta el motivo; cinco tamaños. No se confirma una devolución. |
 
 Las demás clases de resultado continúan sin prueba calificable en esta ronda; los dos flujos de impresión mantienen su exención. La presencia de un archivo o de tags no compra cobertura: el resultado de ejecución y el SHA comprobado se consultan en el reporte `2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md` del toolkit.
+
+## Navegación de consolas · ronda r2
+
+| Flujo | Comportamiento y evidencia |
+|---|---|
+| organization-console-navigation | Dueño: abrir/cerrar menú móvil con foco, Restaurantes → Local QA → POS. `pos/components/console/ConsoleNavigation.tsx:22`; `pos/app/organizacion/layout.tsx:47`; `pos/e2e/consolas/ronda.spec.ts:77`. |
+| platform-console-navigation | ProjectApp: abrir/cerrar menú y navegar a Métricas, ver Waiter QA x0 y el periodo. `pos/app/plataforma/layout.tsx:28`; `pos/e2e/consolas/ronda.spec.ts:112`. |
+
+El spec declara success/display en los cinco tamaños canónicos, con datos concretos, foco, cierres y espacio útil. La ejecución sobre el SHA combinado sigue pendiente. Los resultados error/failure de permisos, módulos, sesión, doble factor y lectura de datos no tienen E2E calificable en esta ronda; los negativos afectados del layout se contrastan en unitarias. El armazón no certifica todos los formularios o tablas de las consolas.
