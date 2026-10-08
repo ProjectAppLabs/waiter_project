@@ -11,7 +11,7 @@ pytestmark = pytest.mark.django_db
 
 
 @pytest.mark.parametrize(
-    "price,rates,extra,qty,final_price,expected",
+    ("price", "rates", "extra", "qty", "final_price", "expected"),
     [
         (10000, [], 0, 1, 10000, (10000, 0, 10000)),
         (10000, [(19, False)], 0, 1, 11900, (10000, 1900, 11900)),
@@ -24,6 +24,7 @@ pytestmark = pytest.mark.django_db
     ],
 )
 def test_final_catalog_price_and_accepted_line(setup, price, rates, extra, qty, final_price, expected):
+    """Conserva el precio final del catálogo y los importes de ventas."""
     # Falla si catálogo añade dos veces un impuesto o ventas cambia el orden de redondeo de unidades, líneas y bases.
     s = setup
     product = Product.objects.create(organization=s["org"], name="Plato de contrato", kind="dish", price=Decimal(str(price)))
