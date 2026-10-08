@@ -69,7 +69,7 @@ El spec declara success/display en los cinco tamaños canónicos, con datos conc
 ## Importes finales y conciliación de pagos · ronda r3
 
 Esta ampliación describe los contratos de la ronda. Los resultados sólo se
-acreditan en el [recibo de QA del SHA exacto](https://github.com/carlos18bp/vps-ops-toolkit/blob/master/docs/audits/2026-10-08-waiter_project-improvement-pass-project-r3.md);
+acreditan en el [recibo de QA del SHA exacto](https://github.com/ProjectAppSunset/vps-ops-toolkit/blob/master/docs/audits/2026-10-08-waiter_project-improvement-pass-project-r3.md);
 la existencia del mapa no declara un resultado verde. QA contrasta las descripciones y los roles con el contenido combinado antes de
 validar el SHA final. Los tags conservan los IDs anteriores para creación y cobro;
 los nuevos IDs distinguen acciones reales y se agregan a los specs ya asignados,
