@@ -1,27 +1,49 @@
 {
   "version": "1.0.0",
-  "scope": "Pago e Historial del POS; ronda 2026-10-07-waiter-x0",
+  "scope": "Acceso offline, Pedidos, Pago e Historial del POS; rondas 2026-10-07-waiter-x0 y 2026-10-08-waiter-w0",
   "flows": {
     "pos-payment-checkout": {
       "name": "Cobrar un pedido pendiente",
       "module": "pos-pago",
-      "roles": ["cashier", "admin", "waiter con charge_orders"],
+      "roles": [
+        "cashier",
+        "admin",
+        "waiter con charge_orders"
+      ],
       "priority": "P1",
       "description": "El personal autorizado llega al cobro desde el pedido, ve detalle, total y métodos; cobra en efectivo, tarjeta o QR. Puede fijar un importe parcial, elegir método, dividir pagos y agregar propina. Éxito muestra total, método y cambio reales; efectivo insuficiente o QR no configurado muestra rechazo visible; un rechazo del servidor deja el error visible sin mostrar éxito. Contrato responsive: recorrido y controles alcanzables sin recorte en 835x1194, 412x915, 1195x835, 1440x900 y 2560x1440.",
-      "outcomes": ["success", "error", "failure", "display"]
+      "outcomes": [
+        "success",
+        "error",
+        "failure",
+        "display"
+      ]
     },
     "pos-payment-member-benefit": {
       "name": "Buscar socio y aplicar puntos al cobro",
       "module": "pos-pago",
-      "roles": ["cashier", "admin", "waiter con charge_orders"],
+      "roles": [
+        "cashier",
+        "admin",
+        "waiter con charge_orders"
+      ],
       "priority": "P2",
       "description": "Buscar código de socio, ver sus puntos y decidir usarlos. Un socio válido ajusta el total; un código inexistente informa que no hay socio; un canje cuyo saldo cambió muestra el error y no completa el cobro.",
-      "outcomes": ["success", "error", "failure", "display"]
+      "outcomes": [
+        "success",
+        "error",
+        "failure",
+        "display"
+      ]
     },
     "pos-payment-print-receipt": {
       "name": "Imprimir cuenta tras cobrar",
       "module": "pos-pago",
-      "roles": ["cashier", "admin", "waiter con charge_orders"],
+      "roles": [
+        "cashier",
+        "admin",
+        "waiter con charge_orders"
+      ],
       "priority": "P4",
       "description": "El aviso de éxito delega la impresión al diálogo nativo del navegador; la aplicación no expone un resultado posterior observable.",
       "expectedSpecs": 0
@@ -29,26 +51,89 @@
     "pos-history-review": {
       "name": "Consultar y seleccionar una cuenta pagada",
       "module": "pos-historial",
-      "roles": ["cashier", "admin", "waiter con vista history"],
+      "roles": [
+        "cashier",
+        "admin",
+        "waiter con vista history"
+      ],
       "priority": "P2",
       "description": "Desde la pestaña Historial, buscar por número o cliente, filtrar por tipo y seleccionar un pedido pagado. Mostrar líneas, cliente, subtotal, impuestos, total y devoluciones reales. Si la lectura falla, termina el esqueleto y aparece el estado sin pedidos. Búsqueda, filtros, lista y cuenta alcanzables en 835x1194, 412x915, 1195x835, 1440x900 y 2560x1440.",
-      "outcomes": ["display", "failure"]
+      "outcomes": [
+        "display",
+        "failure"
+      ]
     },
     "pos-history-refund": {
       "name": "Devolver total o parcialmente un pedido pagado",
       "module": "pos-historial",
-      "roles": ["admin", "cashier con refund_orders", "waiter con refund_orders"],
+      "roles": [
+        "admin",
+        "cashier con refund_orders",
+        "waiter con refund_orders"
+      ],
       "priority": "P1",
       "description": "Con permiso y conexión, abrir Devolver, elegir líneas o propina, ajustar reparto, escribir motivo y confirmar. Éxito informa importe y nota crédito cuando existe, y recarga el historial. Cantidades, reparto, límites, motivo, permisos y caja cerrada generan error visible o impiden confirmar; una caída de red informa que necesita conexión.",
-      "outcomes": ["success", "error", "failure", "display"]
+      "outcomes": [
+        "success",
+        "error",
+        "failure",
+        "display"
+      ]
     },
     "pos-history-print-receipt": {
       "name": "Imprimir la cuenta seleccionada",
       "module": "pos-historial",
-      "roles": ["cashier", "admin", "waiter con vista history"],
+      "roles": [
+        "cashier",
+        "admin",
+        "waiter con vista history"
+      ],
       "priority": "P4",
       "description": "La cuenta delega la impresión al navegador, sin estado posterior verificable por la aplicación.",
       "expectedSpecs": 0
+    },
+    "pos-login-logout": {
+      "name": "Salir de la sesión y recargar sin conexión",
+      "module": "pos-acceso",
+      "roles": [
+        "owner",
+        "admin",
+        "cashier",
+        "waiter"
+      ],
+      "priority": "P1",
+      "description": "Una sesión válida conserva acceso local durante una caída del servidor. Tras Cerrar sesión y confirmar Sí, salir, la recarga y la entrada a Dashboard muestran login aunque el cierre remoto falle. Respuestas pendientes no restauran identidad ni lecturas de esa sesión. La cola de operaciones pendientes se conserva.",
+      "outcomes": [
+        "success",
+        "failure",
+        "display"
+      ]
+    },
+    "pos-orders-review": {
+      "name": "Buscar y filtrar pedidos",
+      "module": "pos-pedidos",
+      "roles": [
+        "roles con vista orders"
+      ],
+      "priority": "P2",
+      "description": "Entrar desde la navegación POS, buscar número o cliente, verificar cuenta e importe reales, aplicar estado y limpiar para recuperar lista y conteos. La búsqueda, los filtros y la creación permanecen alcanzables en los cinco tamaños canónicos.",
+      "outcomes": [
+        "display",
+        "failure"
+      ]
+    },
+    "pos-order-create": {
+      "name": "Abrir el asistente de creación de pedido",
+      "module": "pos-pedidos",
+      "roles": [
+        "roles con orders habilitado"
+      ],
+      "priority": "P1",
+      "description": "Desde Pedidos, pulsar Crear pedido y llegar al diálogo que permite elegir mesa o para llevar/domicilio. El alcance responsive valida esta entrada, sin confirmar ni enviar un pedido.",
+      "outcomes": [
+        "success",
+        "display"
+      ]
     }
   }
 }
