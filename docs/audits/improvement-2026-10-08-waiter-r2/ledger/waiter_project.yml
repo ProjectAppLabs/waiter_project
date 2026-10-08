@@ -1,0 +1,1427 @@
+schema: 1
+codebase: waiter_project
+instances:
+- waiter_project
+context:
+  requirements: Waiter propio sin Odoo; planes T/U/V; ronda transversal hasta tres causas
+  standards: IMPROVEMENT_STANDARDS canónico; RESPONSIVE_STANDARDS 1.0.0
+  compute_profile: 'fleet_default provisional: host de servicio no registrado'
+candidates:
+- module: offline-auth
+  root_cause: cached-identity-survives-explicit-logout
+  process: cerrar sesión y recargar sin red
+  problem: Reentrada local con identidad y pedidos anteriores tras cerrar sesión.
+  paths:
+  - pos/lib/offline/cache.ts
+  - pos/lib/services/core/http.ts
+  - pos/lib/stores/authStore.ts
+  evidence:
+  - pos/lib/offline/cache.ts:6
+  - pos/lib/services/core/http.ts:29
+  - pos/lib/stores/authStore.ts:118
+  front: security
+  severity: mayor
+  confidence: inferred
+  report: docs/audits/improvement-2026-10-08-waiter-w0/README.md
+  regression_pending: false
+  required_pending: false
+  obligation_open: false
+  id: I-S-f699a8c046a8
+  status: verified
+  depends_on: []
+  tests_declared: []
+  value_assessment:
+    benefit: material
+    effort: M
+    change_risk: medium
+    mandatory: true
+    reason: Aplicación revisada en el SHA combinado; pruebas propias y CI verde antes del tren. La verificación conjunta queda
+      pendiente.
+    evidence:
+    - pos/lib/offline/cache.ts:6
+    - pos/lib/services/core/http.ts:29
+    - pos/lib/stores/authStore.ts:118
+    cosmetic_only: false
+  value_decision:
+    policy_version: 1.0.0
+    required: true
+    decision: proceed
+    reason: a requirement, blocking risk or regression cannot be deferred for ROI
+  context_fingerprint: c9550a89a2f88e01307a2d35ad42926a2bf33e9cfdb8079a39072a2b0efbdd8b
+  first_seen: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-08T12:06:14Z'
+  e2e_required: true
+  qa:
+    status: verified
+    round_id: 2026-10-08-waiter-w0-core
+    commit: 2ba7475df7ce9b64aba3ca0d777090d1ac70b2f7
+    report: test-results/improvement/2026-10-08-waiter-w0/qa-verification.md
+    reason: exact round, commit, passing test artifacts and live E2E where required are verified
+    recorded_at: '2026-10-08T12:06:14Z'
+    executions:
+    - layer: backend
+      report: test-results/improvement/2026-10-08-waiter-w0/qa-verification.md
+      artifact: test-results/improvement/2026-10-08-waiter-w0/ci-combinado/backend-ronda/backend.xml
+      format: junit
+      candidate_ids:
+      - I-P-366dbded5c13
+    - layer: frontend-unit
+      report: test-results/improvement/2026-10-08-waiter-w0/qa-verification.md
+      artifact: test-results/improvement/2026-10-08-waiter-w0/ci-combinado/pos-ronda/junit.xml
+      format: junit
+      candidate_ids:
+      - I-S-f699a8c046a8
+      - I-O-a86cb584a263
+    - layer: e2e
+      report: test-results/improvement/2026-10-08-waiter-w0/qa-verification.md
+      artifact: test-results/improvement/2026-10-08-waiter-w0/ci-combinado/navegador-ronda/test-results/improvement/2026-10-08-waiter-w0/playwright.json
+      format: playwright-json
+      live: true
+      candidate_ids:
+      - I-S-f699a8c046a8
+    - layer: gate
+      report: test-results/improvement/2026-10-08-waiter-w0/qa-verification.md
+      artifact: test-results/improvement/2026-10-08-waiter-w0/ci-combinado/pos-ronda/gate.json
+      format: gate-json
+      candidate_ids: []
+- module: diner-session
+  root_cause: diner-cookie-missing-secure
+  process: identificar al comensal en producción
+  problem: La cookie de identidad se emite sin Secure también en producción.
+  paths:
+  - experience/experience_app/views/sessions.py
+  evidence:
+  - experience/accounts/authentication.py:66
+  - experience/experience_app/views/sessions.py:47
+  front: security
+  severity: mayor
+  confidence: inferred
+  report: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  regression_pending: false
+  required_pending: true
+  obligation_open: false
+  id: I-S-c16a297c8802
+  status: candidate
+  depends_on: []
+  tests_declared: []
+  value_assessment:
+    benefit: material
+    effort: S
+    change_risk: low
+    mandatory: true
+    reason: Evitar el envío de la cookie de identidad por HTTP conservando el desarrollo local.
+    evidence:
+    - experience/accounts/authentication.py:66
+    - experience/experience_app/views/sessions.py:47
+    cosmetic_only: false
+  value_decision:
+    policy_version: 1.0.0
+    required: true
+    decision: proceed
+    reason: a requirement, blocking risk or regression cannot be deferred for ROI
+  context_fingerprint: 9fcd877ecbc6edf9531e3108102a49fff0916ca3ea3d401654ea33f473706581
+  first_seen: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-07T21:52:14Z'
+- module: mcp-access-log
+  root_cause: mcp-url-token-access-log
+  process: registrar peticiones MCP con clave en URL
+  problem: El registro de acceso configurado conserva la clave de autenticación dentro de la ruta.
+  paths:
+  - deploy/experience.Dockerfile
+  - experience/experience_app/mcp/views.py
+  - experience/experience_app/urls/__init__.py
+  evidence:
+  - deploy/experience.Dockerfile:22
+  - experience/experience_app/mcp/README.md:18
+  - experience/experience_app/mcp/views.py:35
+  - experience/experience_app/urls/__init__.py:35
+  front: security
+  severity: mayor
+  confidence: inferred
+  report: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  regression_pending: false
+  required_pending: true
+  obligation_open: false
+  id: I-S-af7de5335058
+  status: candidate
+  depends_on: []
+  tests_declared: []
+  value_assessment:
+    benefit: material
+    effort: S
+    change_risk: low
+    mandatory: true
+    reason: Evitar copiar credenciales en el registro de acceso manteniendo clientes y diagnóstico.
+    evidence:
+    - deploy/experience.Dockerfile:22
+    - experience/experience_app/mcp/README.md:18
+    - experience/experience_app/mcp/views.py:35
+    - experience/experience_app/urls/__init__.py:35
+    cosmetic_only: false
+  value_decision:
+    policy_version: 1.0.0
+    required: true
+    decision: proceed
+    reason: a requirement, blocking risk or regression cannot be deferred for ROI
+  context_fingerprint: 0b65fa133205a8f835a5c7b6a917e805d1a823e7231ae36ef4e1df976fdc5d3b
+  first_seen: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-07T21:52:14Z'
+- front: observability
+  module: sales/offline
+  root_cause: cash-move-retry-without-stable-identity
+  process: registrar entradas y salidas de efectivo
+  problem: Una respuesta perdida después de guardar el movimiento provoca su reenvío y una segunda contabilización.
+  paths:
+  - experience/sales/api.py
+  - experience/sales/migrations
+  - experience/sales/models.py
+  - pos/lib/offline/outbox.ts
+  - pos/lib/services/cashRegister.ts
+  - pos/lib/services/core/sales.ts
+  evidence:
+  - experience/sales/api.py:258
+  - experience/sales/cash.py:51
+  - experience/sales/models.py:54
+  - pos/lib/offline/outbox.ts:121
+  - pos/lib/offline/outbox.ts:92
+  - pos/lib/services/cashRegister.ts:38
+  severity: bloqueante
+  confidence: measured
+  report: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  regression_pending: false
+  required_pending: false
+  obligation_open: false
+  id: I-O-5b23886c570b
+  status: verified
+  depends_on: []
+  tests_declared:
+  - experience/sales/tests/views/test_cash_moves_idempotency.py
+  - pos/lib/offline/__tests__/cashMoves.test.ts
+  - pos/lib/services/__tests__/cashRegister.test.ts
+  value_decision:
+    policy_version: 1.0.0
+    required: true
+    decision: proceed
+    reason: a requirement, blocking risk or regression cannot be deferred for ROI
+  context_fingerprint: 182229526d6f47e852b72744fd7fda8b35eadb8f96b0da29fdd3089e40ef25e0
+  first_seen: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-08T02:01:05Z'
+  value_assessment:
+    benefit: material
+    effort: M
+    change_risk: medium
+    mandatory: true
+    reason: El guion sobre MySQL real y transporte offline acredita replay, conflictos, permisos, saldo y evento únicos, concurrencia
+      y conservación de claves; la aplicación evita una segunda contabilización.
+    evidence:
+    - experience/sales/api.py:258
+    - experience/sales/cash.py:51
+    - experience/sales/models.py:54
+    - pos/lib/offline/outbox.ts:121
+    - pos/lib/offline/outbox.ts:92
+    - pos/lib/services/cashRegister.ts:38
+    cosmetic_only: false
+  qa:
+    status: verified
+    round_id: 2026-10-07-waiter-x0
+    commit: 7ba8900998635d801780abe50934fefe66ad1592
+    report: test-results/improvement/2026-10-07-waiter-x0/qa-verification-final.md
+    reason: exact round, commit, passing test artifacts and live E2E where required are verified
+    recorded_at: '2026-10-08T02:01:05Z'
+    executions:
+    - layer: backend
+      report: test-results/improvement/2026-10-07-waiter-x0/qa-verification-final.md
+      artifact: test-results/improvement/2026-10-07-waiter-x0/ci-final-v2/backend-ronda/backend.xml
+      format: junit
+      candidate_ids:
+      - I-O-5b23886c570b
+    - layer: backend
+      report: test-results/improvement/2026-10-07-waiter-x0/qa-verification-final.md
+      artifact: test-results/improvement/2026-10-07-waiter-x0/ci-final-v2/backend-ronda/backend-permissions.xml
+      format: junit
+      candidate_ids:
+      - I-O-5b23886c570b
+    - layer: frontend-unit
+      report: test-results/improvement/2026-10-07-waiter-x0/qa-verification-final.md
+      artifact: test-results/improvement/2026-10-07-waiter-x0/ci-final-v2/pos-ronda/junit.xml
+      format: junit
+      candidate_ids:
+      - I-O-5b23886c570b
+      - I-R-5c9d4cf4af07
+      - I-R-a08f89764dc5
+    - layer: e2e
+      report: test-results/improvement/2026-10-07-waiter-x0/qa-verification-final.md
+      artifact: test-results/improvement/2026-10-07-waiter-x0/ci-final-v2/navegador-ronda/test-results/improvement/2026-10-07-waiter-x0/playwright.json
+      format: playwright-json
+      live: true
+      candidate_ids:
+      - I-R-5c9d4cf4af07
+      - I-R-a08f89764dc5
+    - layer: gate
+      report: test-results/improvement/2026-10-07-waiter-x0/qa-verification-final.md
+      artifact: test-results/improvement/2026-10-07-waiter-x0/ci-final-v2/pos-ronda/gate.json
+      format: gate-json
+      candidate_ids:
+      - I-O-5b23886c570b
+      - I-R-5c9d4cf4af07
+      - I-R-a08f89764dc5
+- front: observability
+  module: pos/http
+  root_cause: unbounded-core-request-lifetime
+  process: consultar y sincronizar el POS
+  problem: El transporte no limita la espera por cabeceras o cuerpo; una petición pendiente puede mantener bloqueados carga
+    y sincronización.
+  paths:
+  - pos/lib/services/core/http.ts
+  evidence: &id001
+  - diner/lib/services/api.ts:7
+  - pos/lib/offline/outbox.ts:118
+  - pos/lib/services/core/http.ts:37
+  - pos/lib/services/core/http.ts:44
+  severity: mayor
+  confidence: inferred
+  report: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  regression_pending: false
+  required_pending: false
+  obligation_open: false
+  id: I-O-f73b95682945
+  status: candidate
+  depends_on: []
+  tests_declared: []
+  value_assessment:
+    benefit: material
+    effort: S
+    change_risk: medium
+    mandatory: false
+    reason: Un límite completo permite salir del estado pendiente; las escrituras conservan resultado incierto y necesitan
+      identidades seguras para cualquier reenvío.
+    evidence: *id001
+    cosmetic_only: false
+  value_decision:
+    policy_version: 1.0.0
+    required: false
+    decision: proceed
+    reason: material benefit is supported by evidence
+  context_fingerprint: 021c134fac95baaff8e199fc81ae5cd995eb68b264defac8fb27bc2f43502d73
+  first_seen: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-07T21:52:14Z'
+- front: observability
+  module: pos/realtime
+  root_cause: terminal-sse-events-treated-as-recoverable-disconnect
+  process: mantener los eventos en vivo del POS
+  problem: El cliente ignora suspensión y fin del acceso de soporte; reconecta después del cierre como si fuera una caída
+    transitoria.
+  paths:
+  - pos/lib/services/core/realtime.ts
+  evidence:
+  - experience/realtime/api.py:32
+  - experience/realtime/api.py:36
+  - pos/lib/services/core/realtime.ts:35
+  - pos/lib/services/core/realtime.ts:4
+  severity: mayor
+  confidence: inferred
+  report: docs/audits/improvement-2026-10-08-waiter-w0/README.md
+  regression_pending: false
+  required_pending: false
+  obligation_open: false
+  id: I-O-a86cb584a263
+  status: verified
+  depends_on: []
+  tests_declared: []
+  value_assessment:
+    benefit: material
+    effort: S
+    change_risk: low
+    mandatory: false
+    reason: Aplicación revisada en el SHA combinado; pruebas propias y CI verde antes del tren. La verificación conjunta queda
+      pendiente.
+    evidence:
+    - experience/realtime/api.py:32
+    - experience/realtime/api.py:36
+    - pos/lib/services/core/realtime.ts:35
+    - pos/lib/services/core/realtime.ts:4
+    cosmetic_only: false
+  value_decision:
+    policy_version: 1.0.0
+    required: false
+    decision: proceed
+    reason: material benefit is supported by evidence
+  context_fingerprint: 2bcb42542a6a59252fdb95347dbadba51d75d97d37487483e1d0b079f1976247
+  first_seen: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-08T12:06:14Z'
+  e2e_required: false
+  qa:
+    status: verified
+    round_id: 2026-10-08-waiter-w0-core
+    commit: 2ba7475df7ce9b64aba3ca0d777090d1ac70b2f7
+    report: test-results/improvement/2026-10-08-waiter-w0/qa-verification.md
+    reason: exact round, commit, passing test artifacts and live E2E where required are verified
+    recorded_at: '2026-10-08T12:06:14Z'
+    executions:
+    - layer: backend
+      report: test-results/improvement/2026-10-08-waiter-w0/qa-verification.md
+      artifact: test-results/improvement/2026-10-08-waiter-w0/ci-combinado/backend-ronda/backend.xml
+      format: junit
+      candidate_ids:
+      - I-P-366dbded5c13
+    - layer: frontend-unit
+      report: test-results/improvement/2026-10-08-waiter-w0/qa-verification.md
+      artifact: test-results/improvement/2026-10-08-waiter-w0/ci-combinado/pos-ronda/junit.xml
+      format: junit
+      candidate_ids:
+      - I-S-f699a8c046a8
+      - I-O-a86cb584a263
+    - layer: e2e
+      report: test-results/improvement/2026-10-08-waiter-w0/qa-verification.md
+      artifact: test-results/improvement/2026-10-08-waiter-w0/ci-combinado/navegador-ronda/test-results/improvement/2026-10-08-waiter-w0/playwright.json
+      format: playwright-json
+      live: true
+      candidate_ids:
+      - I-S-f699a8c046a8
+    - layer: gate
+      report: test-results/improvement/2026-10-08-waiter-w0/qa-verification.md
+      artifact: test-results/improvement/2026-10-08-waiter-w0/ci-combinado/pos-ronda/gate.json
+      format: gate-json
+      candidate_ids: []
+- front: observability
+  module: accounts/invitations
+  root_cause: invitation-delivery-failure-without-diagnostic-signal
+  process: enviar invitaciones y recuperación de contraseña
+  problem: Cualquier excepción del envío termina en false sin señal local que permita distinguir una indisponibilidad de correo.
+  paths:
+  - experience/accounts/services.py
+  evidence:
+  - experience/accounts/services.py:93
+  - experience/accounts/services.py:96
+  - experience/tenancy/tests/test_platform.py:63
+  severity: mayor
+  confidence: inferred
+  report: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  regression_pending: false
+  required_pending: false
+  obligation_open: false
+  id: I-O-258297f610e6
+  status: candidate
+  depends_on: []
+  tests_declared: []
+  value_assessment:
+    benefit: material
+    effort: S
+    change_risk: low
+    mandatory: false
+    reason: Un evento local estable y saneado hace diagnosticable la falta de acceso, conservando el alta y la respuesta pública
+      que evita enumerar cuentas.
+    evidence:
+    - experience/accounts/services.py:93
+    - experience/accounts/services.py:96
+    - experience/tenancy/tests/test_platform.py:63
+    cosmetic_only: false
+  value_decision:
+    policy_version: 1.0.0
+    required: false
+    decision: proceed
+    reason: material benefit is supported by evidence
+  context_fingerprint: d81384c390821f1143adb1960bbc8b3c4c32d2020357b8f2a93d7da603132617
+  first_seen: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-07T21:52:14Z'
+- front: observability
+  module: experience_app/payments
+  root_cause: payment-reconciliation-failures-collapsed-to-review-flag
+  process: conciliar un pago aprobado con ventas o reservas
+  problem: Rechazo de negocio y error de base terminan en needs_review sin contexto de causa; el comando añade un mensaje
+    genérico.
+  paths:
+  - experience/experience_app/management/commands/reconcile_payments.py
+  - experience/experience_app/services/online_payments.py
+  evidence: &id002
+  - experience/experience_app/management/commands/reconcile_payments.py:39
+  - experience/experience_app/services/online_payments.py:162
+  - experience/experience_app/services/online_payments.py:188
+  - experience/experience_app/services/online_payments.py:189
+  severity: mayor
+  confidence: inferred
+  report: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  regression_pending: false
+  required_pending: false
+  obligation_open: false
+  id: I-O-b9be73a034d6
+  status: candidate
+  depends_on: []
+  tests_declared: []
+  value_assessment:
+    benefit: material
+    effort: M
+    change_risk: low
+    mandatory: false
+    reason: Clasificar localmente resultado rechazado, error de negocio y fallo de base permite decidir entre reintentar o
+      revisar, sin repetir el cobro ni publicar datos privados.
+    evidence: *id002
+    cosmetic_only: false
+  value_decision:
+    policy_version: 1.0.0
+    required: false
+    decision: proceed
+    reason: material benefit is supported by evidence
+  context_fingerprint: afd735657e35ba5e5bd38989625b0e2cfaa13abfc70a5f7cdf91ad8c30b1dc71
+  first_seen: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-07T21:52:14Z'
+- front: observability
+  module: pos/offline-payments
+  root_cause: idempotent-payment-retry-with-mutable-payload
+  process: sincronizar un pago del saldo pendiente
+  problem: amount=balance se recalcula en cada intento bajo la misma request_key; un cambio permitido de propina puede producir
+    conflicto después de que el primer pago se guardó.
+  paths:
+  - pos/lib/offline/outbox.ts
+  evidence: &id003
+  - experience/sales/api.py:163
+  - experience/sales/api.py:170
+  - experience/sales/services.py:410
+  - pos/lib/offline/outbox.ts:83
+  - pos/lib/offline/outbox.ts:88
+  severity: mayor
+  confidence: inferred
+  report: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  regression_pending: false
+  required_pending: false
+  obligation_open: false
+  id: I-O-552be2d4b20c
+  status: candidate
+  depends_on: []
+  tests_declared: []
+  value_assessment:
+    benefit: unknown
+    effort: S
+    change_risk: medium
+    mandatory: false
+    reason: Hay un mecanismo concreto de identidad estable con contenido variable; falta reproducir el fallo de sincronización
+      para valorar y seleccionar su corrección.
+    evidence: *id003
+    cosmetic_only: false
+  value_decision:
+    policy_version: 1.0.0
+    required: false
+    decision: needs-evidence
+    reason: benefit has not been demonstrated
+  context_fingerprint: eb0df34483758f43c05b4b6a518e2188abde49a2d0769c23c56570e9d431f556
+  first_seen: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-07T21:52:14Z'
+- front: responsive
+  module: layout-consolas
+  root_cause: sidebar-fijo-sin-breakpoint
+  problem: Las consolas mantienen un sidebar de 260 px que deja menos de 600 px de contenido en tableta vertical.
+  paths:
+  - pos/app/organizacion/layout.tsx
+  - pos/app/plataforma/layout.tsx
+  evidence:
+  - pos/app/organizacion/layout.tsx:65
+  - pos/app/organizacion/layout.tsx:91
+  - pos/app/plataforma/layout.tsx:38
+  - pos/app/plataforma/layout.tsx:51
+  severity: bloqueante
+  confidence: inferred
+  process: Usar layout-consolas en pantallas estrechas
+  report: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  regression_pending: false
+  required_pending: true
+  obligation_open: false
+  id: I-R-6ef846671bd6
+  status: candidate
+  depends_on: []
+  tests_declared: []
+  value_assessment:
+    benefit: unknown
+    effort: M
+    change_risk: medium
+    mandatory: true
+    reason: La hipótesis está trazada en código; falta evidencia de navegador requerida por el estándar para confirmar el
+      beneficio y la severidad funcional.
+    evidence:
+    - pos/app/organizacion/layout.tsx:65
+    - pos/app/organizacion/layout.tsx:91
+    - pos/app/plataforma/layout.tsx:38
+    - pos/app/plataforma/layout.tsx:51
+    cosmetic_only: false
+  value_decision:
+    policy_version: 1.0.0
+    required: true
+    decision: needs-evidence
+    reason: benefit has not been demonstrated
+  context_fingerprint: b2e089526ed2f438f6cadb6a8c11694b0b8b93b573c2cc7eab3e277e1da7ebc2
+  first_seen: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-07T21:52:14Z'
+- front: responsive
+  module: pago
+  root_cause: panel396-en-modal-compact
+  problem: El modal de aproximadamente 380 px útiles en celular contiene un panel izquierdo de 396 px sin encogimiento; los
+    métodos quedan a su derecha bajo overflow-hidden.
+  paths:
+  - pos/components/payment/PaymentModal.tsx
+  - pos/components/payment/PaymentSuccess.tsx
+  evidence:
+  - pos/components/payment/PaymentModal.tsx:174
+  - pos/components/payment/PaymentModal.tsx:183
+  - pos/components/payment/PaymentModal.tsx:185
+  - pos/components/payment/PaymentModal.tsx:247
+  - pos/components/payment/PaymentSuccess.tsx:20
+  - test-results/improvement/2026-10-07-waiter-x0/responsive/baseline.json
+  - test-results/improvement/2026-10-07-waiter-x0/responsive/payment-success.json
+  - test-results/improvement/2026-10-07-waiter-x0/responsive/post.json
+  severity: bloqueante
+  confidence: measured
+  process: Usar pago en pantallas estrechas
+  report: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  regression_pending: false
+  required_pending: false
+  obligation_open: false
+  id: I-R-5c9d4cf4af07
+  status: verified
+  depends_on: []
+  tests_declared:
+  - pos/e2e/pago/ronda.spec.ts
+  value_decision:
+    policy_version: 1.0.0
+    required: true
+    decision: proceed
+    reason: a requirement, blocking risk or regression cannot be deferred for ROI
+  context_fingerprint: e5948189a29902ff628989794e84427a9975a86fabc8823529174fc4603dbb4c
+  first_seen: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-08T02:01:05Z'
+  e2e_required: true
+  value_assessment:
+    benefit: material
+    effort: S
+    change_risk: medium
+    mandatory: true
+    reason: El inventario antes/después demuestra controles e importes recuperados en compacto; la matriz viva de CI confirmó
+      el cobro y su aviso de éxito en los cinco tamaños.
+    evidence:
+    - pos/components/payment/PaymentModal.tsx:174
+    - pos/components/payment/PaymentModal.tsx:183
+    - pos/components/payment/PaymentModal.tsx:185
+    - pos/components/payment/PaymentModal.tsx:247
+    - test-results/improvement/2026-10-07-waiter-x0/responsive/baseline.json
+    - test-results/improvement/2026-10-07-waiter-x0/responsive/post.json
+    - test-results/improvement/2026-10-07-waiter-x0/responsive/payment-success.json
+    - pos/components/payment/PaymentSuccess.tsx:20
+    cosmetic_only: false
+  qa:
+    status: verified
+    round_id: 2026-10-07-waiter-x0
+    commit: 7ba8900998635d801780abe50934fefe66ad1592
+    report: test-results/improvement/2026-10-07-waiter-x0/qa-verification-final.md
+    reason: exact round, commit, passing test artifacts and live E2E where required are verified
+    recorded_at: '2026-10-08T02:01:05Z'
+    executions:
+    - layer: backend
+      report: test-results/improvement/2026-10-07-waiter-x0/qa-verification-final.md
+      artifact: test-results/improvement/2026-10-07-waiter-x0/ci-final-v2/backend-ronda/backend.xml
+      format: junit
+      candidate_ids:
+      - I-O-5b23886c570b
+    - layer: backend
+      report: test-results/improvement/2026-10-07-waiter-x0/qa-verification-final.md
+      artifact: test-results/improvement/2026-10-07-waiter-x0/ci-final-v2/backend-ronda/backend-permissions.xml
+      format: junit
+      candidate_ids:
+      - I-O-5b23886c570b
+    - layer: frontend-unit
+      report: test-results/improvement/2026-10-07-waiter-x0/qa-verification-final.md
+      artifact: test-results/improvement/2026-10-07-waiter-x0/ci-final-v2/pos-ronda/junit.xml
+      format: junit
+      candidate_ids:
+      - I-O-5b23886c570b
+      - I-R-5c9d4cf4af07
+      - I-R-a08f89764dc5
+    - layer: e2e
+      report: test-results/improvement/2026-10-07-waiter-x0/qa-verification-final.md
+      artifact: test-results/improvement/2026-10-07-waiter-x0/ci-final-v2/navegador-ronda/test-results/improvement/2026-10-07-waiter-x0/playwright.json
+      format: playwright-json
+      live: true
+      candidate_ids:
+      - I-R-5c9d4cf4af07
+      - I-R-a08f89764dc5
+    - layer: gate
+      report: test-results/improvement/2026-10-07-waiter-x0/qa-verification-final.md
+      artifact: test-results/improvement/2026-10-07-waiter-x0/ci-final-v2/pos-ronda/gate.json
+      format: gate-json
+      candidate_ids:
+      - I-O-5b23886c570b
+      - I-R-5c9d4cf4af07
+      - I-R-a08f89764dc5
+- front: responsive
+  module: catalogo-ficha
+  root_cause: ficha-comercial-columnas-rigidas
+  problem: La ficha conserva sidebar de 220 px, campos en varias columnas e imagen de 320 px independientemente del ancho.
+  paths:
+  - pos/components/catalog/ProductForm.tsx
+  evidence: &id004
+  - pos/components/catalog/ProductForm.tsx:107
+  - pos/components/catalog/ProductForm.tsx:170
+  - pos/components/catalog/ProductForm.tsx:70
+  - pos/components/catalog/ProductForm.tsx:92
+  - pos/components/catalog/ProductForm.tsx:99
+  severity: bloqueante
+  confidence: inferred
+  process: Usar catalogo-ficha en pantallas estrechas
+  report: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  regression_pending: false
+  required_pending: false
+  obligation_open: false
+  id: I-R-6031fa2affaa
+  status: candidate
+  depends_on: []
+  tests_declared: []
+  value_assessment:
+    benefit: unknown
+    effort: M
+    change_risk: medium
+    mandatory: true
+    reason: La hipótesis está trazada en código; falta evidencia de navegador requerida por el estándar para confirmar el
+      beneficio y la severidad funcional.
+    evidence: *id004
+    cosmetic_only: false
+  value_decision:
+    policy_version: 1.0.0
+    required: true
+    decision: needs-evidence
+    reason: benefit has not been demonstrated
+  context_fingerprint: 03b22cfa0b737f551b29da897c359b411ae33ca15b7af29b9ec4b177d730760a
+  first_seen: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-07T21:52:14Z'
+- front: responsive
+  module: historial
+  root_cause: cuenta400-sin-colapso
+  problem: El grid reserva 400 px para la cuenta, más 16 px de separación y 32 px de padding; necesita al menos 448 px antes
+    de disponer espacio para la lista.
+  paths:
+  - pos/app/(pos)/historial/page.tsx
+  evidence:
+  - pos/app/(pos)/historial/page.tsx:58
+  - pos/app/(pos)/historial/page.tsx:62
+  - pos/app/(pos)/historial/page.tsx:68
+  - pos/app/(pos)/historial/page.tsx:79
+  - test-results/improvement/2026-10-07-waiter-x0/responsive/baseline.json
+  - test-results/improvement/2026-10-07-waiter-x0/responsive/post.json
+  severity: bloqueante
+  confidence: measured
+  process: Usar historial en pantallas estrechas
+  report: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  regression_pending: false
+  required_pending: false
+  obligation_open: false
+  id: I-R-a08f89764dc5
+  status: verified
+  depends_on: []
+  tests_declared:
+  - pos/e2e/historial/ronda.spec.ts
+  value_decision:
+    policy_version: 1.0.0
+    required: true
+    decision: proceed
+    reason: a requirement, blocking risk or regression cannot be deferred for ROI
+  context_fingerprint: 34891740b4543103c64e425da2d7d8a6717004927a0b6c3c1030f37146ef88cc
+  first_seen: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-08T02:01:05Z'
+  e2e_required: true
+  value_assessment:
+    benefit: material
+    effort: S
+    change_risk: low
+    mandatory: true
+    reason: El inventario antes/después demuestra búsqueda, cuenta y devolución accesibles; la matriz viva de CI confirmó
+      la consulta y el display de devolución en los cinco tamaños.
+    evidence:
+    - pos/app/(pos)/historial/page.tsx:58
+    - pos/app/(pos)/historial/page.tsx:62
+    - pos/app/(pos)/historial/page.tsx:68
+    - pos/app/(pos)/historial/page.tsx:79
+    - test-results/improvement/2026-10-07-waiter-x0/responsive/baseline.json
+    - test-results/improvement/2026-10-07-waiter-x0/responsive/post.json
+    cosmetic_only: false
+  qa:
+    status: verified
+    round_id: 2026-10-07-waiter-x0
+    commit: 7ba8900998635d801780abe50934fefe66ad1592
+    report: test-results/improvement/2026-10-07-waiter-x0/qa-verification-final.md
+    reason: exact round, commit, passing test artifacts and live E2E where required are verified
+    recorded_at: '2026-10-08T02:01:05Z'
+    executions:
+    - layer: backend
+      report: test-results/improvement/2026-10-07-waiter-x0/qa-verification-final.md
+      artifact: test-results/improvement/2026-10-07-waiter-x0/ci-final-v2/backend-ronda/backend.xml
+      format: junit
+      candidate_ids:
+      - I-O-5b23886c570b
+    - layer: backend
+      report: test-results/improvement/2026-10-07-waiter-x0/qa-verification-final.md
+      artifact: test-results/improvement/2026-10-07-waiter-x0/ci-final-v2/backend-ronda/backend-permissions.xml
+      format: junit
+      candidate_ids:
+      - I-O-5b23886c570b
+    - layer: frontend-unit
+      report: test-results/improvement/2026-10-07-waiter-x0/qa-verification-final.md
+      artifact: test-results/improvement/2026-10-07-waiter-x0/ci-final-v2/pos-ronda/junit.xml
+      format: junit
+      candidate_ids:
+      - I-O-5b23886c570b
+      - I-R-5c9d4cf4af07
+      - I-R-a08f89764dc5
+    - layer: e2e
+      report: test-results/improvement/2026-10-07-waiter-x0/qa-verification-final.md
+      artifact: test-results/improvement/2026-10-07-waiter-x0/ci-final-v2/navegador-ronda/test-results/improvement/2026-10-07-waiter-x0/playwright.json
+      format: playwright-json
+      live: true
+      candidate_ids:
+      - I-R-5c9d4cf4af07
+      - I-R-a08f89764dc5
+    - layer: gate
+      report: test-results/improvement/2026-10-07-waiter-x0/qa-verification-final.md
+      artifact: test-results/improvement/2026-10-07-waiter-x0/ci-final-v2/pos-ronda/gate.json
+      format: gate-json
+      candidate_ids:
+      - I-O-5b23886c570b
+      - I-R-5c9d4cf4af07
+      - I-R-a08f89764dc5
+- front: responsive
+  module: operacion
+  root_cause: alertas400-y-tabla-rigida
+  problem: El panel permanente de alertas de 400 px estrecha una tabla cuyas columnas fijas, separaciones y padding requieren
+    572 px, más la columna Mesa.
+  paths:
+  - pos/app/(pos)/operacion/page.tsx
+  - pos/components/ops/ShiftTable.tsx
+  evidence: &id005
+  - pos/app/(pos)/operacion/page.tsx:74
+  - pos/app/(pos)/operacion/page.tsx:82
+  - pos/components/ops/ShiftTable.tsx:19
+  - pos/components/ui/DataTable.tsx:26
+  severity: bloqueante
+  confidence: inferred
+  process: Usar operacion en pantallas estrechas
+  report: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  regression_pending: false
+  required_pending: false
+  obligation_open: false
+  id: I-R-62207f50c4a8
+  status: candidate
+  depends_on: []
+  tests_declared: []
+  value_assessment:
+    benefit: unknown
+    effort: M
+    change_risk: medium
+    mandatory: true
+    reason: La hipótesis está trazada en código; falta evidencia de navegador requerida por el estándar para confirmar el
+      beneficio y la severidad funcional.
+    evidence: *id005
+    cosmetic_only: false
+  value_decision:
+    policy_version: 1.0.0
+    required: true
+    decision: needs-evidence
+    reason: benefit has not been demonstrated
+  context_fingerprint: 44140f39ce0d896b8ca22a972ea7e55455305f99586e85bd36605bf9beacb572
+  first_seen: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-07T21:52:14Z'
+- front: responsive
+  module: comensal-cupon
+  root_cause: campo-cupon-bajo16px
+  problem: El input del cupón usa 14 px multiplicados por la escala; la escala predeterminada es 1 y no existe un mínimo de
+    16 px.
+  paths:
+  - diner/components/smart/smart-menu.css
+  evidence: &id006
+  - diner/components/smart/SmartBenefits.tsx:46
+  - diner/components/smart/smart-menu.css:1690
+  - diner/components/smart/smart-tokens.css:10
+  severity: mayor
+  confidence: inferred
+  process: Usar comensal-cupon en pantallas estrechas
+  report: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  regression_pending: false
+  required_pending: false
+  obligation_open: false
+  id: I-R-23052aa818a5
+  status: candidate
+  depends_on: []
+  tests_declared: []
+  value_assessment:
+    benefit: unknown
+    effort: S
+    change_risk: low
+    mandatory: true
+    reason: La hipótesis está trazada en código; falta evidencia de navegador requerida por el estándar para confirmar el
+      beneficio y la severidad funcional.
+    evidence: *id006
+    cosmetic_only: false
+  value_decision:
+    policy_version: 1.0.0
+    required: true
+    decision: needs-evidence
+    reason: benefit has not been demonstrated
+  context_fingerprint: c09b8c2e481041e3bbe27be8cd5cf78241255345ba1ebe20ccff6c7a31c1545e
+  first_seen: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-07T21:52:14Z'
+- front: performance
+  module: sales/shifts
+  root_cause: full-closing-calculation-per-shift-list-row
+  process: listar turnos de caja
+  problem: Cada fila calcula un arqueo completo para mostrar total y cantidad.
+  paths:
+  - experience/sales/api.py
+  evidence:
+  - 'Captura SQLite aislada: 1 y 12 turnos producen 12 y 78 consultas, con HTTP 200.'
+  - experience/sales/api.py:211
+  - experience/sales/cash.py:30
+  severity: mayor
+  confidence: measured
+  report: docs/audits/improvement-2026-10-08-waiter-w0/README.md
+  regression_pending: false
+  required_pending: false
+  obligation_open: false
+  id: I-P-366dbded5c13
+  status: verified
+  depends_on: []
+  tests_declared: []
+  value_assessment:
+    benefit: material
+    effort: S
+    change_risk: low
+    mandatory: false
+    reason: Aplicación revisada en el SHA combinado; pruebas propias y CI verde antes del tren. La verificación conjunta queda
+      pendiente.
+    evidence:
+    - 'Captura SQLite aislada: 1 y 12 turnos producen 12 y 78 consultas, con HTTP 200.'
+    - experience/sales/api.py:211
+    - experience/sales/cash.py:30
+    - 'MySQL8.4.11: antes12/78/306 consultas para1/12/50 turnos; después6/6/6.'
+    cosmetic_only: false
+  value_decision:
+    policy_version: 1.0.0
+    required: false
+    decision: proceed
+    reason: material benefit is supported by evidence
+  context_fingerprint: 6f80dd86ad5ea60fa1c7fc3faed1995c471456b723052e7c737069ec030f126c
+  first_seen: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-08T12:06:14Z'
+  e2e_required: false
+  qa:
+    status: verified
+    round_id: 2026-10-08-waiter-w0-core
+    commit: 2ba7475df7ce9b64aba3ca0d777090d1ac70b2f7
+    report: test-results/improvement/2026-10-08-waiter-w0/qa-verification.md
+    reason: exact round, commit, passing test artifacts and live E2E where required are verified
+    recorded_at: '2026-10-08T12:06:14Z'
+    executions:
+    - layer: backend
+      report: test-results/improvement/2026-10-08-waiter-w0/qa-verification.md
+      artifact: test-results/improvement/2026-10-08-waiter-w0/ci-combinado/backend-ronda/backend.xml
+      format: junit
+      candidate_ids:
+      - I-P-366dbded5c13
+    - layer: frontend-unit
+      report: test-results/improvement/2026-10-08-waiter-w0/qa-verification.md
+      artifact: test-results/improvement/2026-10-08-waiter-w0/ci-combinado/pos-ronda/junit.xml
+      format: junit
+      candidate_ids:
+      - I-S-f699a8c046a8
+      - I-O-a86cb584a263
+    - layer: e2e
+      report: test-results/improvement/2026-10-08-waiter-w0/qa-verification.md
+      artifact: test-results/improvement/2026-10-08-waiter-w0/ci-combinado/navegador-ronda/test-results/improvement/2026-10-08-waiter-w0/playwright.json
+      format: playwright-json
+      live: true
+      candidate_ids:
+      - I-S-f699a8c046a8
+    - layer: gate
+      report: test-results/improvement/2026-10-08-waiter-w0/qa-verification.md
+      artifact: test-results/improvement/2026-10-08-waiter-w0/ci-combinado/pos-ronda/gate.json
+      format: gate-json
+      candidate_ids: []
+- front: performance
+  module: reports/customer-export
+  root_cause: per-customer-visits-and-consent-queries
+  process: exportar clientes
+  problem: Cada cliente carga sus ventas y consulta consentimiento individual.
+  paths:
+  - experience/reports/exports.py
+  evidence:
+  - experience/reports/exports.py:260
+  - experience/reports/exports.py:264
+  - experience/reports/exports.py:266
+  severity: mayor
+  confidence: inferred
+  report: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  regression_pending: false
+  required_pending: false
+  obligation_open: false
+  id: I-P-73bff8fb3577
+  status: candidate
+  depends_on: []
+  tests_declared: []
+  value_assessment:
+    benefit: unknown
+    effort: S
+    change_risk: low
+    mandatory: false
+    reason: La causa está trazada; faltan mediciones aisladas y perfil confirmado para determinar el beneficio y el presupuesto.
+    evidence:
+    - experience/reports/exports.py:260
+    - experience/reports/exports.py:264
+    - experience/reports/exports.py:266
+    cosmetic_only: false
+  value_decision:
+    policy_version: 1.0.0
+    required: false
+    decision: needs-evidence
+    reason: benefit has not been demonstrated
+  context_fingerprint: ceddc77ca3d98aaf8a512360a82e076afc33671ff81260a8bb82e07181404b83
+  first_seen: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-07T21:52:14Z'
+- front: performance
+  module: reports/summary
+  root_cause: summary-materializes-every-order-and-refund
+  process: resumen del dueño
+  problem: Carga ventas y devoluciones completas de ambos periodos para sumar cifras.
+  paths:
+  - experience/reports/api.py
+  evidence: &id007
+  - experience/reports/api.py:37
+  - experience/reports/api.py:44
+  - experience/reports/api.py:63
+  severity: mayor
+  confidence: inferred
+  report: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  regression_pending: false
+  required_pending: false
+  obligation_open: false
+  id: I-P-cc121e139b61
+  status: candidate
+  depends_on: []
+  tests_declared: []
+  value_assessment:
+    benefit: unknown
+    effort: S
+    change_risk: low
+    mandatory: false
+    reason: La causa está trazada; faltan mediciones aisladas y perfil confirmado para determinar el beneficio y el presupuesto.
+    evidence: *id007
+    cosmetic_only: false
+  value_decision:
+    policy_version: 1.0.0
+    required: false
+    decision: needs-evidence
+    reason: benefit has not been demonstrated
+  context_fingerprint: 72644aa33f7f75f5fbd0a98ad2611056e0c64dcdb27d8c15202dcff73316de0e
+  first_seen: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-07T21:52:14Z'
+- front: performance
+  module: reports/exports
+  root_cause: complete-csv-buffer-and-queryset-materialization
+  process: exportar informes
+  problem: Acumula el CSV completo en memoria y copia a bytes; ventas carga todas las filas y relaciones.
+  paths:
+  - experience/reports/exports.py
+  evidence: &id008
+  - experience/reports/exports.py:139
+  - experience/reports/exports.py:170
+  - experience/reports/exports.py:320
+  - experience/reports/exports.py:327
+  severity: mayor
+  confidence: inferred
+  report: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  regression_pending: false
+  required_pending: false
+  obligation_open: false
+  id: I-P-3547f7d06383
+  status: candidate
+  depends_on: []
+  tests_declared: []
+  value_assessment:
+    benefit: unknown
+    effort: S
+    change_risk: medium
+    mandatory: false
+    reason: La causa está trazada; faltan mediciones aisladas y perfil confirmado para determinar el beneficio y el presupuesto.
+    evidence: *id008
+    cosmetic_only: false
+  value_decision:
+    policy_version: 1.0.0
+    required: false
+    decision: needs-evidence
+    reason: benefit has not been demonstrated
+  context_fingerprint: ceddc77ca3d98aaf8a512360a82e076afc33671ff81260a8bb82e07181404b83
+  first_seen: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-07T21:52:14Z'
+- front: performance
+  module: reports/profitability
+  root_cause: profitability-loads-unused-availability-data
+  process: calcular rentabilidad
+  problem: Carga disponibilidad que el informe de rentabilidad no usa.
+  paths:
+  - experience/catalog/reading.py
+  - experience/reports/api.py
+  evidence: &id009
+  - experience/catalog/reading.py:32
+  - experience/catalog/reading.py:89
+  - experience/reports/api.py:79
+  severity: mayor
+  confidence: inferred
+  report: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  regression_pending: false
+  required_pending: false
+  obligation_open: false
+  id: I-P-a04a34001fed
+  status: candidate
+  depends_on: []
+  tests_declared: []
+  value_assessment:
+    benefit: unknown
+    effort: M
+    change_risk: medium
+    mandatory: false
+    reason: La causa está trazada; faltan mediciones aisladas y perfil confirmado para determinar el beneficio y el presupuesto.
+    evidence: *id009
+    cosmetic_only: false
+  value_decision:
+    policy_version: 1.0.0
+    required: false
+    decision: needs-evidence
+    reason: benefit has not been demonstrated
+  context_fingerprint: e3ac1d8165ed7330e377a718c7249f732d16ac0677b9ff9c6a5579e0def5dcf6
+  first_seen: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-07T21:52:14Z'
+- front: performance
+  module: pos/order-polling
+  root_cause: overlapping-poll-and-event-refresh-requests
+  process: actualizar pedidos y salón
+  problem: Intervalo, eventos y actualización manual inician lecturas simultáneas sin deduplicación.
+  paths:
+  - pos/lib/hooks/useKitOrders.ts
+  evidence: &id010
+  - pos/lib/hooks/useKitOrders.ts:36
+  - pos/lib/hooks/useKitOrders.ts:41
+  - pos/lib/hooks/useKitOrders.ts:56
+  - pos/lib/hooks/useKitOrders.ts:66
+  severity: mayor
+  confidence: inferred
+  report: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  regression_pending: false
+  required_pending: false
+  obligation_open: false
+  id: I-P-1f9eff3a4817
+  status: candidate
+  depends_on: []
+  tests_declared: []
+  value_assessment:
+    benefit: unknown
+    effort: S
+    change_risk: medium
+    mandatory: false
+    reason: La causa está trazada; faltan mediciones aisladas y perfil confirmado para determinar el beneficio y el presupuesto.
+    evidence: *id010
+    cosmetic_only: false
+  value_decision:
+    policy_version: 1.0.0
+    required: false
+    decision: needs-evidence
+    reason: benefit has not been demonstrated
+  context_fingerprint: 154ac7a189df6427cdaa5e3d9ec529a811b9305b7d3e5628abbe58c6a1ca1f3e
+  first_seen: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-07T21:52:14Z'
+- id: I-R-c4cb0d859789
+  front: responsive
+  module: pedidos
+  root_cause: orders-toolbar-fixed-row-clips-create-action
+  process: buscar y crear pedidos en móvil
+  problem: Crear pedido recortado y documento de 501 px en viewport 412 px.
+  paths:
+  - pos/app/(pos)/pedidos/page.tsx
+  evidence:
+  - docs/audits/improvement-2026-10-07-waiter-x0/report.md:19
+  - pos/app/(pos)/pedidos/page.tsx:64
+  severity: mayor
+  confidence: measured
+  value_assessment:
+    benefit: material
+    effort: S
+    change_risk: low
+    mandatory: true
+    reason: Aplicación revisada en el SHA combinado; pruebas propias y CI verde antes del tren. La verificación conjunta queda
+      pendiente.
+    evidence:
+    - docs/audits/improvement-2026-10-07-waiter-x0/report.md:19
+    - pos/app/(pos)/pedidos/page.tsx:64
+    - 'Baseline vivo: 501px en viewport412px y buscador22.5px; CI37770734156 prueba cinco tamaños en2739e9a.'
+    cosmetic_only: false
+  report: docs/audits/improvement-2026-10-08-waiter-w0/README.md
+  e2e_required: true
+  regression_pending: false
+  required_pending: false
+  obligation_open: false
+  status: verified
+  depends_on: []
+  tests_declared: []
+  value_decision:
+    policy_version: 1.0.0
+    required: true
+    decision: proceed
+    reason: a requirement, blocking risk or regression cannot be deferred for ROI
+  context_fingerprint: 18f013d3823f6fd7f325a5a0b1bbe946cc7cb4135c101b0169f36115f2ec0992
+  first_seen: '2026-10-08T12:06:09Z'
+  updated_at: '2026-10-08T12:06:15Z'
+  qa:
+    status: verified
+    round_id: 2026-10-08-waiter-w0-pedidos
+    commit: 2ba7475df7ce9b64aba3ca0d777090d1ac70b2f7
+    report: test-results/improvement/2026-10-08-waiter-w0/qa-verification.md
+    reason: exact round, commit, passing test artifacts and live E2E where required are verified
+    recorded_at: '2026-10-08T12:06:15Z'
+    executions:
+    - layer: e2e
+      report: test-results/improvement/2026-10-08-waiter-w0/qa-verification.md
+      artifact: test-results/improvement/2026-10-08-waiter-w0/ci-combinado/navegador-ronda/test-results/improvement/2026-10-08-waiter-w0/playwright.json
+      format: playwright-json
+      live: true
+      candidate_ids:
+      - I-R-c4cb0d859789
+    - layer: gate
+      report: test-results/improvement/2026-10-08-waiter-w0/qa-verification.md
+      artifact: test-results/improvement/2026-10-08-waiter-w0/ci-combinado/pos-ronda/gate.json
+      format: gate-json
+      candidate_ids: []
+- id: I-M-ef387c19a523
+  front: maintainability
+  module: docs-arquitectura
+  root_cause: current-docs-describe-retired-architecture
+  process: entender y mantener el sistema actual
+  problem: La documentación actual describía Odoo y registry retirados.
+  paths:
+  - docs/README.md
+  evidence:
+  - docs/README.md:10
+  - docs/planes/2026-10-01-plan-T-sistema-propio.md:944
+  severity: menor
+  confidence: measured
+  value_assessment:
+    benefit: minor
+    effort: S
+    change_risk: low
+    mandatory: false
+    reason: Corrige una instrucción de mantenimiento obsoleta con revisión del contenido y enlaces.
+    evidence:
+    - docs/README.md:10
+    - docs/planes/2026-10-01-plan-T-sistema-propio.md:944
+    cosmetic_only: false
+  report: docs/audits/improvement-2026-10-08-waiter-w0/README.md
+  e2e_required: false
+  regression_pending: false
+  required_pending: false
+  obligation_open: false
+  status: applied
+  depends_on: []
+  tests_declared: []
+  value_decision:
+    policy_version: 1.0.0
+    required: false
+    decision: proceed
+    reason: minor benefit is justified by a localized, low risk change
+  context_fingerprint: 8c168900632be4bd4c6ff6cef321353e17c5294fe712da1a999a39bf3d3ab84b
+  first_seen: '2026-10-08T12:06:11Z'
+  updated_at: '2026-10-08T12:06:12Z'
+- front: maintainability
+  module: round-validation
+  root_cause: round-runner-stale-branch-contract
+  process: validar entregables de una nueva ronda
+  problem: El runner exige las pruebas según las ramas de la ronda anterior y el mapa conserva recibos pendientes ya ejecutados.
+  paths:
+  - docs/USER_FLOW_MAP.md
+  - scripts/calidad/validar_ronda.py
+  evidence: &id011
+  - docs/USER_FLOW_MAP.md:45
+  - scripts/calidad/validar_ronda.py:14
+  severity: mayor
+  confidence: measured
+  report: docs/audits/improvement-2026-10-08-waiter-r2/README.md
+  regression_pending: false
+  required_pending: false
+  obligation_open: false
+  id: I-M-ccd28b260166
+  status: candidate
+  depends_on: []
+  tests_declared: []
+  value_assessment:
+    benefit: material
+    effort: S
+    change_risk: low
+    mandatory: false
+    reason: Evitar un verde sin ejecutar los entregables exigidos para cada rama y conservar referencias vigentes.
+    evidence: *id011
+    cosmetic_only: false
+  value_decision:
+    policy_version: 1.0.0
+    required: false
+    decision: proceed
+    reason: material benefit is supported by evidence
+  context_fingerprint: aa3dc0ab9d3c26b7fe24d1b79de7cd0cdfdf693ba28d96c5698dd1df1960f107
+  first_seen: '2026-10-08T13:14:54Z'
+  updated_at: '2026-10-08T13:14:54Z'
+scopes: []
+rounds:
+- id: 2026-10-07-waiter-x0
+  candidates:
+  - I-O-5b23886c570b
+  - I-R-5c9d4cf4af07
+  - I-R-a08f89764dc5
+  fronts:
+  - observability
+  - responsive
+  module: project
+  report: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  e2e_required: true
+  required_layers:
+  - backend
+  - e2e
+  - frontend-unit
+  - gate
+  commit: 7ba8900998635d801780abe50934fefe66ad1592
+  codebase: waiter_project
+  status: verified
+  created_at: '2026-10-08T01:43:11Z'
+  updated_at: '2026-10-08T01:55:10Z'
+  qa:
+    status: verified
+    round_id: 2026-10-07-waiter-x0
+    commit: 7ba8900998635d801780abe50934fefe66ad1592
+    report: test-results/improvement/2026-10-07-waiter-x0/qa-verification-final.md
+    reason: exact round, commit, passing test artifacts and live E2E where required are verified
+    recorded_at: '2026-10-08T02:01:05Z'
+    executions:
+    - layer: backend
+      report: test-results/improvement/2026-10-07-waiter-x0/qa-verification-final.md
+      artifact: test-results/improvement/2026-10-07-waiter-x0/ci-final-v2/backend-ronda/backend.xml
+      format: junit
+      candidate_ids:
+      - I-O-5b23886c570b
+    - layer: backend
+      report: test-results/improvement/2026-10-07-waiter-x0/qa-verification-final.md
+      artifact: test-results/improvement/2026-10-07-waiter-x0/ci-final-v2/backend-ronda/backend-permissions.xml
+      format: junit
+      candidate_ids:
+      - I-O-5b23886c570b
+    - layer: frontend-unit
+      report: test-results/improvement/2026-10-07-waiter-x0/qa-verification-final.md
+      artifact: test-results/improvement/2026-10-07-waiter-x0/ci-final-v2/pos-ronda/junit.xml
+      format: junit
+      candidate_ids:
+      - I-O-5b23886c570b
+      - I-R-5c9d4cf4af07
+      - I-R-a08f89764dc5
+    - layer: e2e
+      report: test-results/improvement/2026-10-07-waiter-x0/qa-verification-final.md
+      artifact: test-results/improvement/2026-10-07-waiter-x0/ci-final-v2/navegador-ronda/test-results/improvement/2026-10-07-waiter-x0/playwright.json
+      format: playwright-json
+      live: true
+      candidate_ids:
+      - I-R-5c9d4cf4af07
+      - I-R-a08f89764dc5
+    - layer: gate
+      report: test-results/improvement/2026-10-07-waiter-x0/qa-verification-final.md
+      artifact: test-results/improvement/2026-10-07-waiter-x0/ci-final-v2/pos-ronda/gate.json
+      format: gate-json
+      candidate_ids:
+      - I-O-5b23886c570b
+      - I-R-5c9d4cf4af07
+      - I-R-a08f89764dc5
+- id: 2026-10-08-waiter-w0-core
+  commit: 2ba7475df7ce9b64aba3ca0d777090d1ac70b2f7
+  candidates:
+  - I-S-f699a8c046a8
+  - I-O-a86cb584a263
+  - I-P-366dbded5c13
+  fronts:
+  - security
+  - observability
+  - performance
+  module: project
+  report: docs/audits/improvement-2026-10-08-waiter-w0/README.md
+  e2e_required: true
+  required_layers:
+  - backend
+  - e2e
+  - frontend-unit
+  - gate
+  codebase: waiter_project
+  status: verified
+  created_at: '2026-10-08T12:06:13Z'
+  updated_at: '2026-10-08T12:06:13Z'
+  qa:
+    status: verified
+    round_id: 2026-10-08-waiter-w0-core
+    commit: 2ba7475df7ce9b64aba3ca0d777090d1ac70b2f7
+    report: test-results/improvement/2026-10-08-waiter-w0/qa-verification.md
+    reason: exact round, commit, passing test artifacts and live E2E where required are verified
+    recorded_at: '2026-10-08T12:06:14Z'
+    executions:
+    - layer: backend
+      report: test-results/improvement/2026-10-08-waiter-w0/qa-verification.md
+      artifact: test-results/improvement/2026-10-08-waiter-w0/ci-combinado/backend-ronda/backend.xml
+      format: junit
+      candidate_ids:
+      - I-P-366dbded5c13
+    - layer: frontend-unit
+      report: test-results/improvement/2026-10-08-waiter-w0/qa-verification.md
+      artifact: test-results/improvement/2026-10-08-waiter-w0/ci-combinado/pos-ronda/junit.xml
+      format: junit
+      candidate_ids:
+      - I-S-f699a8c046a8
+      - I-O-a86cb584a263
+    - layer: e2e
+      report: test-results/improvement/2026-10-08-waiter-w0/qa-verification.md
+      artifact: test-results/improvement/2026-10-08-waiter-w0/ci-combinado/navegador-ronda/test-results/improvement/2026-10-08-waiter-w0/playwright.json
+      format: playwright-json
+      live: true
+      candidate_ids:
+      - I-S-f699a8c046a8
+    - layer: gate
+      report: test-results/improvement/2026-10-08-waiter-w0/qa-verification.md
+      artifact: test-results/improvement/2026-10-08-waiter-w0/ci-combinado/pos-ronda/gate.json
+      format: gate-json
+      candidate_ids: []
+- id: 2026-10-08-waiter-w0-pedidos
+  commit: 2ba7475df7ce9b64aba3ca0d777090d1ac70b2f7
+  candidates:
+  - I-R-c4cb0d859789
+  fronts:
+  - responsive
+  module: project
+  report: docs/audits/improvement-2026-10-08-waiter-w0/README.md
+  e2e_required: true
+  required_layers:
+  - e2e
+  - gate
+  codebase: waiter_project
+  status: verified
+  created_at: '2026-10-08T12:06:13Z'
+  updated_at: '2026-10-08T12:06:13Z'
+  qa:
+    status: verified
+    round_id: 2026-10-08-waiter-w0-pedidos
+    commit: 2ba7475df7ce9b64aba3ca0d777090d1ac70b2f7
+    report: test-results/improvement/2026-10-08-waiter-w0/qa-verification.md
+    reason: exact round, commit, passing test artifacts and live E2E where required are verified
+    recorded_at: '2026-10-08T12:06:15Z'
+    executions:
+    - layer: e2e
+      report: test-results/improvement/2026-10-08-waiter-w0/qa-verification.md
+      artifact: test-results/improvement/2026-10-08-waiter-w0/ci-combinado/navegador-ronda/test-results/improvement/2026-10-08-waiter-w0/playwright.json
+      format: playwright-json
+      live: true
+      candidate_ids:
+      - I-R-c4cb0d859789
+    - layer: gate
+      report: test-results/improvement/2026-10-08-waiter-w0/qa-verification.md
+      artifact: test-results/improvement/2026-10-08-waiter-w0/ci-combinado/pos-ronda/gate.json
+      format: gate-json
+      candidate_ids: []

@@ -19,6 +19,23 @@ NEW_TESTS = {
     ],
     'improve/rendimiento': ['experience/sales/tests/views/test_shift_list_queries.py'],
     'improve/responsividad': ['pos/e2e/pedidos/ronda.spec.ts'],
+    'improve/contexto-y-validacion': [
+        'experience/experience_app/tests/test_access_logging.py',
+        'experience/experience_app/tests/test_round_validation.py',
+    ],
+    'improve/cookie-y-correo': [
+        'experience/experience_app/tests/views/test_entry_and_sessions.py',
+        'experience/accounts/tests/test_invitations.py',
+    ],
+    'improve/exportacion-clientes': [
+        'experience/reports/tests/views/test_customer_export_queries.py',
+        'experience/reports/tests/test_exportes_historial_equipo.py',
+    ],
+    'improve/consolas': [
+        'pos/components/console/__tests__/ConsoleNavigation.test.tsx',
+        'pos/components/console/__tests__/ConsoleLayouts.test.tsx',
+        'pos/e2e/consolas/ronda.spec.ts',
+    ],
 }
 BACKEND = [
     'sales/tests/views/test_cash_moves_idempotency.py',

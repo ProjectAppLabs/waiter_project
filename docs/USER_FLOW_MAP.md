@@ -42,8 +42,7 @@ Los casos legados ejercen parte del pago y la devolución, pero carecen de los t
 
 Pedidos usa 835×1194 primero, después 412×915, 1195×835, 1440×900 y 2560×1440. El
 guion comprueba rectángulos, recortes de ancestros, controles y desborde documental junto
-con la interacción. La evidencia del nuevo guion permanece pendiente hasta su ejecución
-sobre el SHA final: tags, autoría y el verde de la ronda anterior no le dan crédito.
+con la interacción. El guion quedó ejecutado sobre el contenido combinado de w0: 17 pruebas de navegador en verde en el CI 37773308888. El recibo y el SHA exacto se conservan en docs/audits/improvement-2026-10-08-waiter-w0/qa-verification.md; no se atribuye esa ejecución a cambios posteriores.
 
 ## Índice de cobertura de la ronda
 

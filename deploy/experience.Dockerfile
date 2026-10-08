@@ -19,4 +19,4 @@ RUN pip install --no-cache-dir --no-index --find-links /wheels -r requirements.t
 COPY . .
 EXPOSE 8000
 # El SSE mantiene conexiones abiertas hasta cinco minutos: hilos por trabajador.
-CMD ["sh", "-c", "python manage.py migrate --noinput && exec gunicorn experience_project.wsgi:application --bind 0.0.0.0:8000 --workers 3 --threads 16 --timeout 330 --access-logfile -"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && exec gunicorn experience_project.wsgi:application --config python:experience_project.gunicorn_conf --bind 0.0.0.0:8000 --workers 3 --threads 16 --timeout 330"]

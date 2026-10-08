@@ -26,7 +26,7 @@ from accounts.models import Account
 from catalog.models import Product
 from catalog.services import seed_organization
 from sales.models import PaymentMethod
-from tenancy.models import Organization, Restaurant
+from tenancy.models import Organization, PlatformUser, Restaurant
 
 USERNAME = 'operador.qa'
 PASSWORD = 'Waiter-X0-QA-2026!'
@@ -48,6 +48,10 @@ def main():
         'name': 'Operador QA', 'role': 'owner', 'email': 'operador.qa@example.test',
         'activated': True, 'password': make_password(PASSWORD)})
     person.restaurants.set([restaurant])
+    PlatformUser.objects.update_or_create(username='plataforma.r2.qa', defaults={
+        'name': 'Operador plataforma QA', 'role': 'operator', 'email': 'plataforma.r2.qa@example.test',
+        'active': True, 'activated': True, 'password': make_password('Waiter-R2-QA-2026!'),
+    })
     dish, _ = Product.objects.get_or_create(organization=org, name='Hamburguesa QA',
                                            defaults={'kind': 'dish', 'price': 38900})
     client = APIClient()
