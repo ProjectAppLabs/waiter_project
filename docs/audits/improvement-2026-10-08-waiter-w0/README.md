@@ -13,7 +13,7 @@ La duplicación de caja, Pago e Historial no se vuelven a implementar.
 | Seguridad | CON BRECHAS: logout conserva lecturas que pueden restaurar identidad offline. | `I-S-f699a8c046a8` | w1 |
 | Mantenibilidad | CON BRECHAS: el índice de documentación describe Odoo y registry retirados. | `I-M-ef387c19a523` | w0 |
 | Observabilidad | CON BRECHAS: SSE reconecta después de eventos terminales ignorados. | `I-O-a86cb584a263` | w1 |
-| Rendimiento | CON BRECHAS: 1 y 12 turnos producen 12 y 78 consultas en la medición aislada inicial. | `I-P-366dbded5c13` | w2 |
+| Rendimiento | CON BRECHAS: MySQL confirma 12, 78 y 306 consultas para 1, 12 y 50 turnos; el cambio produce 6, 6 y 6. | `I-P-366dbded5c13` | w2 |
 | Responsividad | CON BRECHAS: Pedidos llega a 501 px en un viewport de 412 px, con Crear pedido recortado. | `I-R-c4cb0d859789` | w3 |
 | QA | CON BRECHAS: el mapa y el CI anterior sólo acreditan una parte del producto. | Validación de la unión de cambios | w0 |
 
@@ -53,3 +53,9 @@ Cookie del comensal sin Secure, claves MCP en acceso configurado, advisories de 
 por corroborar, timeouts HTTP, fallos de correo sin señal, otros N+1 y pantallas sin inventario
 siguen abiertos. El cupo de esta ronda no los convierte en riesgos aceptados ni frentes maduros.
 El resumen definitivo de pruebas, PRs e integración se añade al cerrar la ronda.
+
+## Correcciones de la propia validación
+
+El Auditor pidió reubicar la prueba de la API de turnos bajo `sales/tests/views/` y
+congelar su reloj. w2 conserva esas pruebas conductuales y corrige ambos hallazgos;
+el conductor adapta el runner al destino correcto. No se rebajan reglas ni se añaden excepciones.

@@ -22,30 +22,30 @@ candidates:
   front: security
   severity: mayor
   confidence: inferred
-  report: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  report: docs/audits/improvement-2026-10-08-waiter-w0/README.md
   regression_pending: false
   required_pending: false
-  obligation_open: false
+  obligation_open: true
   id: I-S-f699a8c046a8
-  status: candidate
+  status: selected
   depends_on: []
   tests_declared: []
-  value_assessment:
-    benefit: material
-    effort: M
-    change_risk: medium
-    mandatory: true
-    reason: Impedir el acceso local después de salida expresa preservando la operación sin conexión.
-    evidence: *id001
-    cosmetic_only: false
   value_decision:
     policy_version: 1.0.0
     required: true
     decision: proceed
     reason: a requirement, blocking risk or regression cannot be deferred for ROI
-  context_fingerprint: 2113a59e3248da8f22c4535cb1b1a5f2d73e3c7f91096e46a409420edee2f691
+  context_fingerprint: 2cb34033cffcc8454493e9686253abe8520c6c3168917caa3ff3666327b206e4
   first_seen: '2026-10-07T21:52:14Z'
-  updated_at: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-08T11:06:32Z'
+  value_assessment:
+    benefit: material
+    effort: M
+    change_risk: medium
+    mandatory: true
+    reason: Diagnóstico vigente aprobado; alcance exclusivo y corrección conductual acotada.
+    evidence: *id001
+    cosmetic_only: false
 - module: diner-session
   root_cause: diner-cookie-missing-secure
   process: identificar al comensal en producción
@@ -232,31 +232,30 @@ candidates:
   - pos/lib/services/core/realtime.ts:4
   severity: mayor
   confidence: inferred
-  report: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  report: docs/audits/improvement-2026-10-08-waiter-w0/README.md
   regression_pending: false
   required_pending: false
   obligation_open: false
   id: I-O-a86cb584a263
-  status: candidate
+  status: selected
   depends_on: []
   tests_declared: []
-  value_assessment:
-    benefit: material
-    effort: S
-    change_risk: low
-    mandatory: false
-    reason: Escuchar los dos eventos terminales, cerrar la conexión y detener sus reintentos evita recuperaciones imposibles
-      sin cambiar el contrato del servidor.
-    evidence: *id005
-    cosmetic_only: false
   value_decision:
     policy_version: 1.0.0
     required: false
     decision: proceed
     reason: material benefit is supported by evidence
-  context_fingerprint: 676823eed55f54dbc9f733bb4452c83df3aa434c6837a6ebe4beadba26153751
+  context_fingerprint: aa003bc6594a6c40bebb3d9f48a852fb2320107736e5642458912d8d1d088f79
   first_seen: '2026-10-07T21:52:14Z'
-  updated_at: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-08T11:06:34Z'
+  value_assessment:
+    benefit: material
+    effort: S
+    change_risk: low
+    mandatory: false
+    reason: Diagnóstico vigente aprobado; alcance exclusivo y corrección conductual acotada.
+    evidence: *id005
+    cosmetic_only: false
 - front: observability
   module: accounts/invitations
   root_cause: invitation-delivery-failure-without-diagnostic-signal
@@ -650,34 +649,35 @@ candidates:
   paths:
   - experience/sales/api.py
   evidence: &id013
+  - 'Captura SQLite aislada: 1 y 12 turnos producen 12 y 78 consultas, con HTTP 200.'
   - experience/sales/api.py:211
   - experience/sales/cash.py:30
   severity: mayor
-  confidence: inferred
-  report: docs/audits/2026-10-07-waiter_project-improvement-pass-project-2026-10-07-waiter-x0.md
+  confidence: measured
+  report: docs/audits/improvement-2026-10-08-waiter-w0/README.md
   regression_pending: false
   required_pending: false
   obligation_open: false
   id: I-P-366dbded5c13
-  status: candidate
+  status: selected
   depends_on: []
   tests_declared: []
-  value_assessment:
-    benefit: unknown
-    effort: S
-    change_risk: low
-    mandatory: false
-    reason: La causa está trazada; faltan mediciones aisladas y perfil confirmado para determinar el beneficio y el presupuesto.
-    evidence: *id013
-    cosmetic_only: false
   value_decision:
     policy_version: 1.0.0
     required: false
-    decision: needs-evidence
-    reason: benefit has not been demonstrated
-  context_fingerprint: c70cb6c7fd62807697c9388bf981985a2fbd61a75ce69578619adc0be56fe23d
+    decision: proceed
+    reason: material benefit is supported by evidence
+  context_fingerprint: dd3601682ca65b1059ed4c366e649dbeec9776052500ea199ef5886353b074f9
   first_seen: '2026-10-07T21:52:14Z'
-  updated_at: '2026-10-07T21:52:14Z'
+  updated_at: '2026-10-08T11:06:39Z'
+  value_assessment:
+    benefit: material
+    effort: S
+    change_risk: low
+    mandatory: false
+    reason: Diagnóstico vigente aprobado; alcance exclusivo y corrección conductual acotada.
+    evidence: *id013
+    cosmetic_only: false
 - front: performance
   module: reports/customer-export
   root_cause: per-customer-visits-and-consent-queries
@@ -866,5 +866,79 @@ candidates:
   context_fingerprint: 154ac7a189df6427cdaa5e3d9ec529a811b9305b7d3e5628abbe58c6a1ca1f3e
   first_seen: '2026-10-07T21:52:14Z'
   updated_at: '2026-10-07T21:52:14Z'
+- front: responsive
+  module: pedidos
+  root_cause: orders-toolbar-fixed-row-clips-create-action
+  process: buscar y crear pedidos en móvil
+  problem: Crear pedido recortado y documento de 501 px en viewport 412 px.
+  paths:
+  - pos/app/(pos)/pedidos/page.tsx
+  evidence: &id019
+  - docs/audits/improvement-2026-10-07-waiter-x0/report.md:19
+  - pos/app/(pos)/pedidos/page.tsx:64
+  severity: mayor
+  confidence: measured
+  report: docs/audits/improvement-2026-10-08-waiter-w0/README.md
+  regression_pending: false
+  required_pending: false
+  obligation_open: true
+  id: I-R-c4cb0d859789
+  status: selected
+  depends_on: []
+  tests_declared: []
+  value_decision:
+    policy_version: 1.0.0
+    required: true
+    decision: proceed
+    reason: a requirement, blocking risk or regression cannot be deferred for ROI
+  context_fingerprint: e3e99a912cad79e7d1a2fc64153610ba8d0456369824b8d82db11b4280a56c3a
+  first_seen: '2026-10-08T11:06:45Z'
+  updated_at: '2026-10-08T11:06:46Z'
+  value_assessment:
+    benefit: material
+    effort: S
+    change_risk: low
+    mandatory: true
+    reason: Evidencia histórica en navegador y fuente sin cambios; reproducir baseline vivo antes de aplicar.
+    evidence: *id019
+    cosmetic_only: false
+- front: maintainability
+  module: docs-arquitectura
+  root_cause: current-docs-describe-retired-architecture
+  process: entender y mantener el sistema actual
+  problem: La documentación actual describía Odoo y registry retirados.
+  paths:
+  - docs/README.md
+  evidence:
+  - docs/README.md:10
+  - docs/planes/2026-10-01-plan-T-sistema-propio.md:944
+  severity: menor
+  confidence: measured
+  report: docs/audits/improvement-2026-10-08-waiter-w0/README.md
+  regression_pending: false
+  required_pending: false
+  obligation_open: false
+  id: I-M-ef387c19a523
+  status: applied
+  depends_on: []
+  tests_declared: []
+  value_assessment:
+    benefit: minor
+    effort: S
+    change_risk: low
+    mandatory: false
+    reason: Corrige una instrucción de mantenimiento obsoleta con revisión del contenido y enlaces.
+    evidence:
+    - docs/README.md:10
+    - docs/planes/2026-10-01-plan-T-sistema-propio.md:944
+    cosmetic_only: false
+  value_decision:
+    policy_version: 1.0.0
+    required: false
+    decision: proceed
+    reason: minor benefit is justified by a localized, low risk change
+  context_fingerprint: 4a6d47b3af546ae988455db72abb71adc6b5dfaaf00e14ba506361bc3478b448
+  first_seen: '2026-10-08T11:06:48Z'
+  updated_at: '2026-10-08T11:09:36Z'
 scopes: []
 rounds: []
