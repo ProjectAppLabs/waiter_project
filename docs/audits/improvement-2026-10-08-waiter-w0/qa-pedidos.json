@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "kind": "improvement-qa",
+  "round_id": "2026-10-08-waiter-w0-pedidos",
+  "codebase": "waiter_project",
+  "candidate_ids": [
+    "I-R-c4cb0d859789"
+  ],
+  "commit": "2ba7475df7ce9b64aba3ca0d777090d1ac70b2f7",
+  "report": "test-results/improvement/2026-10-08-waiter-w0/qa-verification.md",
+  "executions": [
+    {
+      "layer": "e2e",
+      "command": "npx playwright test --config=playwright.ronda.config.ts",
+      "exit_code": 0,
+      "executed": true,
+      "live": true,
+      "report": "test-results/improvement/2026-10-08-waiter-w0/qa-verification.md",
+      "artifact": "test-results/improvement/2026-10-08-waiter-w0/ci-combinado/navegador-ronda/test-results/improvement/2026-10-08-waiter-w0/playwright.json",
+      "format": "playwright-json",
+      "candidate_ids": [
+        "I-R-c4cb0d859789"
+      ]
+    },
+    {
+      "layer": "gate",
+      "command": "python scripts/calidad/validar_ronda.py gate",
+      "exit_code": 0,
+      "executed": true,
+      "report": "test-results/improvement/2026-10-08-waiter-w0/qa-verification.md",
+      "artifact": "test-results/improvement/2026-10-08-waiter-w0/ci-combinado/pos-ronda/gate.json",
+      "format": "gate-json",
+      "candidate_ids": []
+    }
+  ]
+}
