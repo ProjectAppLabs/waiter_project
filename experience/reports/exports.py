@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
+from django.db.models import Count, Exists, F, Max, OuterRef, Q, Sum
 from django.http import HttpResponse
 
 from catalog.api import PosView
@@ -259,14 +260,27 @@ def rows(kind, account, params, start, end, locals_):
     elif kind == "clientes":
         customers = Customer.objects.filter(organization=org).select_related("card").order_by("name", "id")
         if account.role != "owner" or params.get("restaurant_id"):
-            customers = customers.filter(orders__restaurant__in=locals_).distinct()
-        for customer in customers:
-            visits = list(customer.orders.filter(state="paid", restaurant__in=locals_))
-            consent = (
-                DinerAccount.objects.filter(pk=customer.diner_key, organization_slug=org.slug, marketing=True).exists()
-                if customer.diner_key
-                else False
+            # La pertenencia a la sede admite cualquier pedido; no debe multiplicar los agregados de visitas.
+            orders_in_scope = Order.objects.filter(customer_id=OuterRef("pk"), restaurant__in=locals_)
+            customers = customers.filter(Exists(orders_in_scope))
+        paid_visits = Q(orders__state="paid", orders__restaurant__in=locals_)
+        customers = list(
+            customers.annotate(
+                export_visits=Count("orders", filter=paid_visits),
+                export_spend=Sum(F("orders__total") - F("orders__refunded"), filter=paid_visits),
+                export_last_visit=Max("orders__paid_at", filter=paid_visits),
             )
+        )
+        consenting = set(
+            DinerAccount.objects.filter(
+                pk__in=[customer.diner_key for customer in customers if customer.diner_key],
+                organization_slug=org.slug,
+                marketing=True,
+            ).values_list("pk", flat=True)
+        )
+        for customer in customers:
+            # SQL conserva los centavos; el CSV mantiene dos decimales con visitas y «0» cuando no hay ninguna.
+            spend = customer.export_spend.quantize(Decimal("0.01")) if customer.export_visits else Decimal(0)
             yield [
                 customer.name,
                 customer.id_type,
@@ -274,10 +288,10 @@ def rows(kind, account, params, start, end, locals_):
                 customer.email,
                 customer.phone,
                 customer.card.points if hasattr(customer, "card") else 0,
-                len(visits),
-                sum((o.total - o.refunded for o in visits), Decimal(0)),
-                max((o.paid_at for o in visits), default=None),
-                consent,
+                customer.export_visits,
+                spend,
+                customer.export_last_visit,
+                customer.diner_key in consenting,
             ]
     elif kind == "equipo":
         for row in team_report(account, params)["rows"]:
