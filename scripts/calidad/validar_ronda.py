@@ -36,6 +36,29 @@ NEW_TESTS = {
         'pos/components/console/__tests__/ConsoleLayouts.test.tsx',
         'pos/e2e/consolas/ronda.spec.ts',
     ],
+    'improve/mantenibilidad-08102026-r3': [
+        'experience/sales/tests/views/test_cart_price_contract.py',
+        'pos/lib/domain/__tests__/cartAmounts.test.ts',
+        'pos/lib/domain/__tests__/orderWizard.test.ts',
+        'pos/lib/domain/__tests__/orderState.test.ts',
+        'pos/components/orders/__tests__/steps.test.tsx',
+        'pos/components/orders/__tests__/OrderDetailsPanel.test.tsx',
+        'pos/components/orders/__tests__/AddRoundScreen.test.tsx',
+        'pos/lib/stores/__tests__/orderWizardStore.test.ts',
+        'pos/lib/services/__tests__/orderCreate.test.ts',
+        'pos/lib/services/__tests__/ordersKit.test.ts',
+        'pos/e2e/pedidos/ronda.spec.ts',
+    ],
+    'improve/observabilidad-08102026-r3': [
+        'experience/sales/tests/test_operations.py',
+        'pos/lib/services/core/__tests__/http.test.ts',
+        'pos/lib/offline/__tests__/offline.test.ts',
+        'pos/components/offline/__tests__/OfflineBar.test.tsx',
+        'pos/e2e/pago/ronda.spec.ts',
+    ],
+    'improve/compartido-08102026-r3': [
+        'experience/experience_app/tests/utils/test_round_validation.py',
+    ],
 }
 BACKEND = [
     'sales/tests/views/test_cash_moves_idempotency.py',
@@ -52,6 +75,7 @@ POS = [
     'lib/offline/__tests__/cashMoves.test.ts',
     'lib/offline/__tests__/offline.test.ts',
     'lib/offline/__tests__/emergency.test.ts',
+    'lib/services/core/__tests__/http.test.ts',
     'components/payment/__tests__/PaymentModal.test.tsx',
     'app/(pos)/historial/__tests__/page.test.tsx',
     'components/history/__tests__/BillInfo.test.tsx',
@@ -61,6 +85,8 @@ LEGACY_GATE = [
     'pos/lib/services/__tests__/cashRegister.test.ts',
     'pos/lib/offline/__tests__/cashMoves.test.ts',
     'pos/lib/offline/__tests__/emergency.test.ts',
+    'pos/lib/offline/__tests__/offline.test.ts',
+    'pos/lib/services/core/__tests__/http.test.ts',
     'pos/e2e/pago/ronda.spec.ts',
     'pos/e2e/historial/ronda.spec.ts',
 ]
@@ -82,18 +108,18 @@ def commands(layer):
     if 'pos/lib/offline/__tests__/cache.test.ts' in present:
         present += ['pos/lib/stores/__tests__/authStore.test.ts', 'pos/lib/services/core/__tests__/http.test.ts']
     if layer == 'backend':
-        paths = BACKEND + [path.removeprefix('experience/') for path in present if path.startswith('experience/')]
+        paths = list(dict.fromkeys(BACKEND + [path.removeprefix('experience/') for path in present if path.startswith('experience/')]))
         return [
             (ROOT / 'experience', [sys.executable, '-m', 'pytest', *paths, '--junitxml=../test-results/backend.xml', '-q']),
             (ROOT / 'experience', [sys.executable, '-m', 'pytest', 'sales/tests/test_permissions.py', '-k', 'shifts',
                                   '--reuse-db', '--junitxml=../test-results/backend-permissions.xml', '-q']),
         ]
     if layer == 'pos':
-        paths = POS + [path.removeprefix('pos/') for path in present if path.startswith('pos/') and '/e2e/' not in path]
+        paths = list(dict.fromkeys(POS + [path.removeprefix('pos/') for path in present if path.startswith('pos/') and '/e2e/' not in path]))
         return [(ROOT / 'pos', ['npm', 'run', 'test:ci', '--', '--runInBand', '--runTestsByPath', *paths,
                                '--json', '--outputFile=../test-results/pos.json', '--reporters=default',
                                '--reporters=../test-results/junit/node_modules/jest-junit'])]
-    includes = [argument for path in LEGACY_GATE + present for argument in ['--include-file', path]]
+    includes = [argument for path in dict.fromkeys(LEGACY_GATE + present) for argument in ['--include-file', path]]
     return [(ROOT, [sys.executable, 'scripts/calidad/gate_ronda.py', *includes, '--semantic-rules', 'strict',
                    '--junk-severity', 'error', '--external-lint', 'run',
                    '--report-path', 'test-results/gate.json', '--json-only'])]
