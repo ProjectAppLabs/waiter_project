@@ -1,4 +1,3 @@
-// qa: draft-unvalidated (2026-10-07 — pendiente primera ejecución viva)
 import { expect } from '@playwright/test'
 
 import { createPendingCheckout, expectNoHorizontalDocumentOverflow, expectReachable, orderById } from '../helpers/ronda'
