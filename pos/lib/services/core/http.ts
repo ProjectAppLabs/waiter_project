@@ -1,5 +1,5 @@
 import { currentOrg } from '@/lib/domain/tenant'
-import { recall, remember } from '@/lib/offline/cache'
+import { cacheSessionEnded, captureCacheContext, isCurrentCacheContext, recall, remember } from '@/lib/offline/cache'
 import { markOffline, markOnline } from '@/lib/offline/network'
 
 // Plan T: el transporte hacia el sistema propio (Django). Mismo origen: Next reescribe /experience/* hacia Django, y así
@@ -18,6 +18,7 @@ export type CoreScope = 'pos' | 'platform'
 interface Options { method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; scope?: CoreScope }
 
 export async function coreFetch<T>(path: string, { method = 'GET', body, scope = 'pos' }: Options = {}): Promise<T> {
+  const context = captureCacheContext()
   const headers: Record<string, string> = { Accept: 'application/json' }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   if (scope === 'pos') { const org = currentOrg(); if (org) headers['X-Waiter-Org'] = org }
@@ -25,10 +26,20 @@ export async function coreFetch<T>(path: string, { method = 'GET', body, scope =
   // así que la ruta se envía tal cual.
   const url = `${BASE}/${scope}/v1/${path.replace(/^\/+/, '').replace(/\/+$/, '')}`
   const relative = path.replace(/^\/+/, '').replace(/\/+$/, '')
+  const assertCurrentRead = () => {
+    if (scope === 'pos' && method === 'GET' && !isCurrentCacheContext(context)) {
+      throw new CoreError(401, 'session_changed', 'La sesión cambió. Vuelve a consultar desde tu cuenta.')
+    }
+  }
+  // Una salida local sigue vigente aunque el servidor no haya recibido el cierre de la cookie.
+  if (scope === 'pos' && relative === 'auth/me' && method === 'GET' && cacheSessionEnded(context)) {
+    throw new CoreError(401, 'unauthenticated', 'Inicia sesión para continuar.')
+  }
   // Plan U2: sin red, las lecturas que el POS necesita salen de la última respuesta guardada.
   const unreachable = () => {
+    assertCurrentRead()
     markOffline()
-    const cached = scope === 'pos' && method === 'GET' ? recall(relative) : null
+    const cached = scope === 'pos' && method === 'GET' ? recall(relative, context) : null
     if (cached !== null) return JSON.parse(cached) as T
     throw new CoreError(0, 'unreachable', 'No se pudo conectar con el servidor. Revisa la conexión de este dispositivo.')
   }
@@ -40,9 +51,10 @@ export async function coreFetch<T>(path: string, { method = 'GET', body, scope =
   }
   // El proxy responde 502–504 cuando el servidor no está: es lo mismo que no tener red.
   if (response.status >= 502 && response.status <= 504) return unreachable()
-  markOnline()
   const text = await response.text()
-  if (response.ok && scope === 'pos' && method === 'GET') remember(relative, text)
+  assertCurrentRead()
+  markOnline()
+  if (response.ok && scope === 'pos' && method === 'GET') remember(relative, text, context)
   let data: Record<string, unknown> = {}
   try { data = text ? (JSON.parse(text) as Record<string, unknown>) : {} } catch { /* respuesta sin JSON: se trata abajo */ }
   if (!response.ok) {
