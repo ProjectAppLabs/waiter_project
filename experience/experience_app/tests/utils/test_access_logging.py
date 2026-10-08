@@ -14,9 +14,10 @@ pytestmark = pytest.mark.django_db
 
 
 @pytest.mark.parametrize('status', ['200 OK', '401 Unauthorized'])
-def test_access_log_no_publica_credenciales_y_conserva_resultado(caplog, monkeypatch, status):
+def test_access_log_publica_solo_metadatos_permitidos(caplog, monkeypatch, status):
+    """La configuración de producción sólo publica los metadatos permitidos."""
     # Falla si una clave de URL, consulta o cabecera acaba en el registro, o se pierde el resultado de la petición.
-    root = Path(__file__).resolve().parents[3]
+    root = Path(__file__).resolve().parents[4]
     command = next(line for line in (root / 'deploy/experience.Dockerfile').read_text().splitlines()
                    if line.startswith('CMD '))
     arguments = shlex.split(json.loads(command[4:])[2])

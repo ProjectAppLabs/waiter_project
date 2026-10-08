@@ -20,16 +20,16 @@ NEW_TESTS = {
     'improve/rendimiento': ['experience/sales/tests/views/test_shift_list_queries.py'],
     'improve/responsividad': ['pos/e2e/pedidos/ronda.spec.ts'],
     'improve/contexto-y-validacion': [
-        'experience/experience_app/tests/test_access_logging.py',
-        'experience/experience_app/tests/test_round_validation.py',
+        'experience/experience_app/tests/utils/test_access_logging.py',
+        'experience/experience_app/tests/utils/test_round_validation.py',
     ],
     'improve/cookie-y-correo': [
         'experience/experience_app/tests/views/test_entry_and_sessions.py',
-        'experience/accounts/tests/test_invitations.py',
+        'experience/accounts/tests/views/test_invitations.py',
     ],
     'improve/exportacion-clientes': [
         'experience/reports/tests/views/test_customer_export_queries.py',
-        'experience/reports/tests/test_exportes_historial_equipo.py',
+        'experience/reports/tests/views/test_exportes_historial_equipo.py',
     ],
     'improve/consolas': [
         'pos/components/console/__tests__/ConsoleNavigation.test.tsx',
@@ -68,12 +68,15 @@ LEGACY_GATE = [
 def commands(layer):
     branch = os.environ.get('GITHUB_HEAD_REF') or subprocess.check_output(
         ['git', 'branch', '--show-current'], cwd=ROOT, text=True).strip()
-    combined = os.environ.get('WAITER_REQUIRE_ROUND_TESTS') == '1' or branch.startswith('queue/integration-')
+    combined = os.environ.get('WAITER_REQUIRE_ROUND_TESTS') == '1' or branch.startswith('queue/integration-') or branch == 'main'
     required = [path for paths in NEW_TESTS.values() for path in paths] if combined else NEW_TESTS.get(branch, [])
     missing = [path for path in required if not (ROOT / path).is_file()]
     if missing:
         raise SystemExit('Faltan pruebas obligatorias de esta rama: ' + ', '.join(missing))
-    present = [path for paths in NEW_TESTS.values() for path in paths if (ROOT / path).is_file()]
+    # Cada PR valida su entrega y la regresión anterior; el tren exige la unión completa.
+    previous = ('improve/seguridad-observabilidad', 'improve/rendimiento', 'improve/responsividad')
+    legacy = [path for branch in previous for path in NEW_TESTS[branch] if (ROOT / path).is_file()]
+    present = list(dict.fromkeys(legacy + required))
     # Las pruebas existentes del transporte y del store pertenecen también al cambio de seguridad.
     if 'pos/lib/offline/__tests__/cache.test.ts' in present:
         present += ['pos/lib/stores/__tests__/authStore.test.ts', 'pos/lib/services/core/__tests__/http.test.ts']
