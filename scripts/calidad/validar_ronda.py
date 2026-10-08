@@ -45,6 +45,7 @@ BACKEND = [
     'sales/tests/test_operations.py::test_nobody_closes_with_drafts',
     'sales/tests/test_operations.py::test_database_unique_open_shift',
     'sales/tests/test_operations.py::test_closings_manager_scope',
+    'tenancy/tests/test_platform.py::test_creation_survives_mail_failure',
 ]
 POS = [
     'lib/services/__tests__/cashRegister.test.ts',
