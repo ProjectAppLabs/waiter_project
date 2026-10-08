@@ -50,7 +50,7 @@ NEW_TESTS = {
         'pos/e2e/pedidos/ronda.spec.ts',
     ],
     'improve/observabilidad-08102026-r3': [
-        'experience/sales/tests/test_operations.py',
+        'experience/sales/tests/views/test_payment_review.py',
         'pos/lib/services/core/__tests__/http.test.ts',
         'pos/lib/offline/__tests__/offline.test.ts',
         'pos/components/offline/__tests__/OfflineBar.test.tsx',
