@@ -1,14 +1,17 @@
 """Respuestas y validación comunes, sin cambiar la API del comensal."""
 from datetime import date, datetime, timezone as datetime_timezone
 from decimal import Decimal
+import logging
 import uuid
 
 from django.conf import settings
-from django.core.exceptions import ValidationError
+from django.core.exceptions import RequestDataTooBig, ValidationError
 from django.db import IntegrityError
 from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+logger = logging.getLogger(__name__)
 
 
 class Problem(Exception):
@@ -102,6 +105,14 @@ class ContractView(APIView):
     def handle_exception(self, exc):
         if isinstance(exc, Problem):
             return Response(exc.body, status=exc.status)
+        if isinstance(exc, RequestDataTooBig):
+            # Sin esto Django respondía su página HTML «Bad Request» y el POS solo mostraba «El servidor respondió 400.».
+            # El registro lleva el patrón de la ruta y los tamaños; nunca el cuerpo ni la ruta concreta.
+            limit = settings.DATA_UPLOAD_MAX_MEMORY_SIZE
+            logger.warning('payload_too_large ruta=%s bytes=%s limite=%s', getattr(self.request.resolver_match, 'route', '?'),
+                           self.request.META.get('CONTENT_LENGTH', '?'), limit)
+            return Response({'error': 'payload_too_large', 'message': f'El envío supera los {limit / 1_000_000:g} MB que admite '
+                             'el servidor. Usa imágenes más livianas o envía menos a la vez.'}, status=413)
         if isinstance(exc, ValidationError):
             return Response({'error': 'invalid_data', 'message': ' '.join(exc.messages)}, status=400)
         if isinstance(exc, IntegrityError):

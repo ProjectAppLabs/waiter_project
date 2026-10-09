@@ -83,11 +83,16 @@ def test_galeria_cuatro_orden_y_aislamiento(setup):
     assert x['client'].put(url, [], format='json').json() == {'photos': []}
 
 
-@pytest.mark.parametrize('raw', ['no-base64', '', 14, base64.b64encode(b'no es una imagen').decode(), 'a' * (16 * 1024 * 1024 + 4)])
-def test_imagen_invalida_no_escribe(setup, raw):
-    # Falla si datos malformados o mayores de 12 MB crean una foto o provocan un error de servidor.
+@pytest.mark.parametrize(('raw', 'estado', 'cuerpo'), [
+    ('no-base64', 400, {}), ('', 400, {}), (14, 400, {}), (base64.b64encode(b'no es una imagen').decode(), 400, {}),
+    ('a' * (16 * 1024 * 1024 + 4), 413, {'error': 'payload_too_large'}),
+])
+def test_imagen_invalida_no_escribe(setup, raw, estado, cuerpo):
+    # Falla si datos malformados crean una foto o no se rechazan con 400, o si un envío de 16 MB (por encima del límite de
+    # 3 MB por envío del servidor) crea una foto o no responde 413 payload_too_large con su causa.
     x = setup
     response = x['client'].patch(f'{BASE}/products/{x["dish"].pk}', {'image': raw}, format='json')
-    assert response.status_code == 400, response.data
+    assert response.status_code == estado, response.data
+    assert response.json().items() >= cuerpo.items()
     x['dish'].refresh_from_db()
     assert not x['dish'].image

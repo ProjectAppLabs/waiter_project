@@ -1,4 +1,4 @@
-import { coreFetch } from '@/lib/services/core/http'
+import { CoreError, coreFetch } from '@/lib/services/core/http'
 jest.mock('@/lib/services/core/http', () => ({ ...jest.requireActual('@/lib/services/core/http'), coreFetch: jest.fn() }))
 const m = jest.mocked(coreFetch)
 beforeEach(() => m.mockReset())
@@ -33,4 +33,28 @@ it('carga organización y salón sin crear turno', async () => {
  expect(c.tables[0]).toMatchObject({ floorId: 2, x: 40, y: 190, width: 110, height: 110 })
  expect(c.paymentMethods[0].type).toBe('cash')
  expect(m.mock.calls.every(([path]) => !path.startsWith('shifts'))).toBe(true)
+})
+
+// Plan W: el módulo Salón apagado en el local. El servidor manda los ajustes sin «salon» y responde 403 a sus pisos.
+const SIN_SALON = { restaurant: {}, role_policy: DEFAULT_ROLE_POLICY, can_charge: true, can_edit_inventory: false, modules: ['nucleo', 'cocina'] }
+type Respuesta = (path: string, options?: Parameters<typeof coreFetch>[1]) => Promise<unknown>
+const conPisos = (base: Respuesta, ajustes: object, pisos: Error) => (async (path: string, options?: Parameters<typeof coreFetch>[1]) => {
+ if (path.startsWith('settings?')) return ajustes
+ if (path.startsWith('floors?')) throw pisos
+ return base(path, options)
+}) as typeof coreFetch
+// Falla si con el Salón apagado en el local el POS pide los pisos y su 403 lo deja en «No se pudo cargar la carta» en vez
+// de abrir la carta con el salón vacío.
+it('abre la carta con el salón vacío si el módulo está apagado en el local', async () => {
+ m.mockImplementation(conPisos(m.getMockImplementation()!, SIN_SALON, new CoreError(403, 'module_inactive', 'La función «Salón» no está activa en tu plan.')))
+ const c = await loadPosData(1)
+ expect(c.products.map((p) => p.id)).toEqual([3, 6])
+ expect(c.floors).toEqual([])
+ expect(c.tables).toEqual([])
+ expect(m.mock.calls.some(([path]) => path.startsWith('floors?'))).toBe(false)
+})
+// Falla si un error de los pisos con el Salón activo se oculta como salón vacío: el POS abriría sin mesas y sin decir por qué.
+it('propaga cualquier otro error de los pisos', async () => {
+ m.mockImplementation(conPisos(m.getMockImplementation()!, { ...SIN_SALON, modules: ['nucleo', 'salon'] }, new CoreError(500, 'http_500', 'El servidor respondió 500.')))
+ await expect(loadPosData(1)).rejects.toMatchObject({ status: 500, code: 'http_500' })
 })
