@@ -12,6 +12,9 @@ from tenancy.http import payload
 
 from .models import ReservationSchedule, rules, weekly
 
+# Duración que toma una reserva creada sin hora de salida (services.create); mesas valida la misma.
+DEFAULT_LENGTH = 1.5
+
 
 def local_now(org):
     return timezone.now().astimezone(ZoneInfo(org.timezone))
@@ -114,7 +117,9 @@ def slots(org, restaurant, day, span=None, data=None):
     result, hour = [], first
     while hour < last:
         opened = any(a <= hour < b for a, b in ranges)
-        if span or opened:
+        # Sin `span` se ofrecen franjas para reservar: solo las que, con la duración por omisión, terminan a más
+        # tardar a medianoche. La línea de tiempo (`span`) sigue dibujando el día completo.
+        if span or (opened and hour + DEFAULT_LENGTH <= 24):
             past = hour < hour_now
             result.append(
                 {
