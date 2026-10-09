@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 
 import { ProductForm } from '@/components/catalog/ProductForm'
+import { LogoError, resizeImage } from '@/lib/domain/image'
 import { messages } from '@/lib/i18n/messages'
 
 const wrap = (ui: React.ReactElement) => render(<NextIntlClientProvider locale="es" messages={messages}>{ui}</NextIntlClientProvider>)
@@ -98,4 +99,59 @@ it('edits the dish gallery and saves its final order', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Quitar la foto 1' }))
   fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
   await waitFor(() => { const gallery = onSave.mock.lastCall[0].gallery; expect(gallery).toHaveLength(3); expect(gallery[0]).toEqual({ id: 7 }); expect(gallery[1]).toHaveProperty('image') })
+})
+
+// Fotos de celular: el navegador las reduce antes de subirlas. resizeImage es la frontera con el decodificador del
+// navegador (jsdom no decodifica imágenes), como en BrandForm.
+jest.mock('@/lib/domain/image', () => ({ ...jest.requireActual('@/lib/domain/image'), resizeImage: jest.fn().mockResolvedValue('cmVkdWNpZGE=') }))
+const mResize = resizeImage as jest.Mock
+const openImageStep = (onSave: jest.Mock) => {
+  wrap(<ProductForm initial={initial} isNew categories={categories} taxes={taxes} onSave={onSave} onClose={jest.fn()} />)
+  fireEvent.click(screen.getByRole('tab', { name: /Foto|Imagen/ }))
+}
+const addToGallery = (photo: File) => fireEvent.change(screen.getByLabelText('Añadir foto a la galería'), { target: { files: [photo] } })
+
+// Falla si una foto de celular, principal o de la galería, viaja sin reducir: su original de varios MB supera el límite
+// de 3 MB por envío del servidor y el POS solo mostraría «El servidor respondió 400.».
+it('reduces phone photos to 1600 px before saving them', async () => {
+  const onSave = jest.fn().mockResolvedValue(undefined)
+  openImageStep(onSave)
+  const photo = file('celular.jpg', 'image/jpeg', 3_300_000)
+  addToGallery(photo)
+  await screen.findByRole('img', { name: 'Foto 1 de la galería' })
+  fireEvent.change(screen.getByLabelText('Subir foto'), { target: { files: [file('principal.jpg', 'image/jpeg', 3_300_000)] } })
+  await waitFor(() => expect(screen.queryByText('Sin foto')).not.toBeInTheDocument())
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+  await waitFor(() => expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ image: 'cmVkdWNpZGE=', gallery: [{ image: 'cmVkdWNpZGE=' }] })))
+  expect(mResize).toHaveBeenCalledWith(photo, { width: 1600, height: 1600 })
+})
+
+// Falla si las fotos nuevas de un mismo guardado pueden pasar del límite de envío del servidor sin avisar, o si la foto
+// que no cabe se agrega igual.
+it('keeps the new gallery photos of one save within the upload budget', async () => {
+  const onSave = jest.fn().mockResolvedValue(undefined)
+  const heavy = 'A'.repeat(1_000_000)
+  mResize.mockResolvedValueOnce(heavy).mockResolvedValueOnce(heavy).mockResolvedValueOnce(heavy)
+  openImageStep(onSave)
+  addToGallery(file('a.jpg', 'image/jpeg'))
+  await screen.findByRole('img', { name: 'Foto 1 de la galería' })
+  addToGallery(file('b.jpg', 'image/jpeg'))
+  await screen.findByRole('img', { name: 'Foto 2 de la galería' })
+  addToGallery(file('c.jpg', 'image/jpeg'))
+  expect(await screen.findByRole('alert')).toHaveTextContent('Guarda la ficha y añade esta foto después')
+  expect(screen.queryByRole('img', { name: 'Foto 3 de la galería' })).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+  await waitFor(() => expect(onSave.mock.lastCall[0].gallery).toHaveLength(2))
+})
+
+// Falla si una foto que ni reducida baja de 1 MB, o que el navegador no puede leer, se agrega igual o deja la galería
+// sin explicar por qué.
+it('explains why a photo could not be reduced', async () => {
+  mResize.mockRejectedValueOnce(new LogoError('size')).mockRejectedValueOnce(new LogoError('decode'))
+  openImageStep(jest.fn())
+  addToGallery(file('plano.png', 'image/png'))
+  expect(await screen.findByRole('alert')).toHaveTextContent('Aun reducida, la foto pesa más de 1 MB')
+  addToGallery(file('danada.jpg', 'image/jpeg'))
+  expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos leer esta foto')
+  expect(screen.queryByRole('img', { name: 'Foto 1 de la galería' })).not.toBeInTheDocument()
 })

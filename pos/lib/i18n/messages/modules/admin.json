@@ -73,7 +73,7 @@
       "storable": "Controla existencias",
       "storableHint": "Se agota según el inventario.",
       "image": "Foto (4:3)",
-      "imageHint": "PNG o JPEG. Se muestra en la carta y en el POS.",
+      "imageHint": "PNG, JPEG o WebP. Se reduce a 1600 px antes de subirla y se muestra en la carta y en el POS.",
       "noImage": "Sin foto",
       "upload": "Subir foto",
       "pieces": "Piezas",
@@ -105,14 +105,17 @@
       "save": "Guardar",
       "saved": "Guardado. La carta del comensal se actualiza en un minuto.",
       "gallery": "Galería de la ficha",
-      "galleryHint": "Hasta 4 fotos más (5 con la principal). Se ven en el detalle del plato; al guardar se optimizan a WebP.",
+      "galleryHint": "Hasta 4 fotos más (5 con la principal). Se reducen a 1600 px antes de subirlas, se ven en el detalle del plato y al guardar se optimizan a WebP.",
       "galleryAdd": "Añadir foto a la galería",
       "galleryRemove": "Quitar la foto {n}",
       "galleryLeft": "Mover la foto {n} antes",
       "galleryRight": "Mover la foto {n} después",
       "galleryPhoto": "Foto {n} de la galería",
       "photoType": "Usa una foto PNG, JPEG o WebP.",
-      "photoSize": "La foto pesa más de 12 MB."
+      "photoSize": "La foto pesa más de 12 MB.",
+      "photoTooHeavy": "Aun reducida, la foto pesa más de 1 MB. Prueba con una foto JPEG.",
+      "photoUnreadable": "No pudimos leer esta foto. Prueba con otra en PNG, JPEG o WebP.",
+      "galleryBudget": "Las fotos nuevas ya llenan un guardado. Guarda la ficha y añade esta foto después."
     },
     "catForm": {
       "title": "Categorías",

@@ -14,6 +14,11 @@ export type GalleryItem = { id: number } | { image: string }
 export const GALLERY_MAX = 4
 export const PHOTO_TYPES = ['image/png', 'image/jpeg', 'image/webp']
 export const PHOTO_MAX_BYTES = 12 * 1024 * 1024
+// Una foto de celular pesa varios MB y el servidor rechaza envíos de más de 3 MB: el equipo la reduce al tamaño que el
+// servidor conserva (catalog/images.py) y nunca sube el original.
+export const PHOTO_MAX_SIZE = { width: 1600, height: 1600 }
+// Las fotos nuevas de la galería viajan juntas en un solo envío: su base64 no puede pasar de este presupuesto.
+export const GALLERY_UPLOAD_BUDGET = 2_900_000
 export const catalogPhotoUrl = (id: number) => (galleryUrl(id))
 
 export async function listCatalogPhotos(templateId: number): Promise<{ id: number }[]> {
