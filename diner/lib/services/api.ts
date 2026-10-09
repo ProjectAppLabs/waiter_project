@@ -20,8 +20,10 @@ http.interceptors.request.use(config => {
 http.interceptors.response.use((r) => r, (error) => {
   if (error instanceof ApiError) return Promise.reject(error)
   const status = error?.response?.status ?? 0
-  const detail = error?.response?.data?.detail
-  return Promise.reject(new ApiError(typeof detail === 'string' ? detail : status ? `Error ${status}` : 'Sin conexión', status))
+  // Los errores de dominio del restaurante llegan como {error, message} (p. ej. la caja cerrada); los de DRF, como {detail}.
+  const data = error?.response?.data
+  const text = [data?.message, data?.detail].find((value) => typeof value === 'string')
+  return Promise.reject(new ApiError(text ?? (status ? `Error ${status}` : 'Sin conexión'), status))
 })
 
 const base = (rest: string, venue: string, token: string | null) => `/api/v1/${rest}/${venue}/${token ? `t/${token}/` : ''}`

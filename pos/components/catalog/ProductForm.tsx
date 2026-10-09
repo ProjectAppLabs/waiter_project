@@ -12,8 +12,9 @@ import { Toggle } from '@/components/kit/Toggle'
 import { Button } from '@/components/ui/Button'
 import { Field, Select, TextInput } from '@/components/ui/Field'
 import { SPICY_LEVELS, listToText, textToList, type DinerAttributes, type SpicyLevel } from '@/lib/domain/dinerAttributes'
+import { LogoError, resizeImage } from '@/lib/domain/image'
 import type { AdminCategory, ProductInput, Tax } from '@/lib/services/catalogAdmin'
-import { GALLERY_MAX, PHOTO_MAX_BYTES, PHOTO_TYPES, catalogPhotoUrl, listCatalogPhotos, type GalleryItem } from '@/lib/services/catalogAdmin'
+import { GALLERY_MAX, GALLERY_UPLOAD_BUDGET, PHOTO_MAX_BYTES, PHOTO_MAX_SIZE, PHOTO_TYPES, catalogPhotoUrl, listCatalogPhotos, type GalleryItem } from '@/lib/services/catalogAdmin'
 import { cn } from '@/lib/utils'
 
 type Step = 'info' | 'image' | 'attributes'
@@ -43,11 +44,20 @@ export function ProductForm({ extraProducts = [], initial, hasImage = false, tem
     return () => { alive = false }
   }, [templateId])
   const setSlots = (next: Slot[]) => { setGallery(next); patch({ gallery: next.map((g): GalleryItem => (g.id ? { id: g.id } : { image: g.image! })) }) }
-  const readPhoto = (file: File, done: (b64: string) => void) => {
+  // La foto se reduce en el equipo antes de subirla: el original de un celular supera el límite de envío del servidor.
+  const readPhoto = async (file: File, done: (b64: string) => void) => {
     if (!PHOTO_TYPES.includes(file.type)) { setPhotoError(t('photoType')); return }
     if (file.size > PHOTO_MAX_BYTES) { setPhotoError(t('photoSize')); return }
     setPhotoError('')
-    const r = new FileReader(); r.onload = () => done(String(r.result).split(',')[1]); r.readAsDataURL(file)
+    try { done(await resizeImage(file, PHOTO_MAX_SIZE)) } catch (e) {
+      setPhotoError(t(e instanceof LogoError && e.reason === 'size' ? 'photoTooHeavy' : 'photoUnreadable'))
+    }
+  }
+  // Las fotos nuevas de la galería se envían juntas: la que no cabe en el presupuesto espera al siguiente guardado.
+  const addToGallery = (image: string) => {
+    const pending = gallery.reduce((total, g) => total + (g.image?.length ?? 0), 0)
+    if (pending + image.length > GALLERY_UPLOAD_BUDGET) { setPhotoError(t('galleryBudget')); return }
+    setSlots([...gallery, { key: `nueva-${Date.now()}`, image }])
   }
   const move = (i: number, by: number) => { const next = [...gallery]; const [x] = next.splice(i, 1); next.splice(i + by, 0, x); setSlots(next) }
   const attrs = p.dinerAttributes
@@ -113,7 +123,7 @@ export function ProductForm({ extraProducts = [], initial, hasImage = false, tem
                       : <span className="flex flex-col items-center gap-2 text-[13px]"><Icon name="photo" size={36} />{t('noImage')}</span>}
                 </div>
                 <label className="flex flex-col gap-2 text-[15px] font-medium text-ink">{t('image')}
-                  <input type="file" accept="image/png,image/jpeg,image/webp" aria-label={t('upload')} onChange={(e) => { const f = e.target.files?.[0]; if (f) readPhoto(f, (image) => patch({ image })) }} className="text-sm font-normal" />
+                  <input type="file" accept="image/png,image/jpeg,image/webp" aria-label={t('upload')} onChange={(e) => { const f = e.target.files?.[0]; if (f) void readPhoto(f, (image) => patch({ image })) }} className="text-sm font-normal" />
                   <span className="text-[13px] text-soft font-normal">{t('imageHint')}</span>
                 </label>
               </div>
@@ -139,7 +149,7 @@ export function ProductForm({ extraProducts = [], initial, hasImage = false, tem
                 {gallery.length < GALLERY_MAX && (
                   <label className="flex flex-col gap-2 text-[15px] font-medium text-ink">{t('galleryAdd')}
                     <input type="file" accept="image/png,image/jpeg,image/webp" aria-label={t('galleryAdd')} className="text-sm font-normal"
-                      onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) readPhoto(f, (image) => setSlots([...gallery, { key: `nueva-${Date.now()}`, image }])) }} />
+                      onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void readPhoto(f, addToGallery) }} />
                   </label>
                 )}
               </section>
