@@ -192,3 +192,47 @@ test('revisión exige respuesta fresca aunque exista una copia del pago aceptado
   expect(saved.failed).toHaveLength(2)
   expect(saved.failed[0].entry.requestKey).toBe(order.requestKey)
 })
+
+// Abre el diálogo «Pago» de una cuenta recién creada, como el cajero: desde Pedidos y su botón «Cobrar».
+async function openCheckout(page: Page, name: string) {
+  await page.goto('/dashboard')
+  const order = await createPendingCheckout(page, name)
+  await page.getByRole('link', { name: 'Pedidos', exact: true }).click()
+  await expect(page).toHaveURL(/\/pedidos$/)
+  await page.getByRole('article', { name: `Cuenta ${order.number}`, exact: true }).getByRole('link', { name: 'Cobrar', exact: true }).click()
+  const payment = page.getByRole('dialog', { name: 'Pago', exact: true })
+  await expect(payment).toContainText('$ 38.900')
+  return { order, payment }
+}
+
+type PaidOrder = { order: { state: string; total: number; tip: number; paid: number } }
+
+// Falla si cobrar con Tarjeta vuelve a mandar el efectivo recibido: el servidor respondía «El efectivo entregado debe
+// cubrir el pago.» y ningún cobro con datáfono o QR terminaba.
+test('cobro con tarjeta deja el pedido pagado', {
+  tag: ['@flow:pos-payment-checkout', '@outcome:success'],
+}, async ({ page }) => {
+  const { order, payment } = await openCheckout(page, 'tarjeta')
+  await payment.getByRole('tab', { name: 'Tarjeta', exact: true }).click()
+  await payment.getByRole('button', { name: 'Confirmar pago', exact: true }).click()
+  await payment.getByRole('button', { name: 'Aprobado', exact: true }).click()
+  await expect(page.getByRole('dialog', { name: '¡Pago exitoso!', exact: true })).toBeVisible()
+  const after = await qaApi<PaidOrder>(page, `orders/${order.id}`)
+  expect(after.order).toMatchObject({ state: 'paid', total: 38_900, paid: 38_900 })
+})
+
+// Falla si la propina sugerida no llega al servidor antes del pago: el cobro de 38.900 + 3.890 se rechazaba con «El pago
+// supera el saldo del pedido.» porque solo se registraba con el producto de propina de Odoo.
+test('cobro con propina sugerida registra la propina del pedido', {
+  tag: ['@flow:pos-payment-checkout', '@outcome:success'],
+}, async ({ page }) => {
+  const { order, payment } = await openCheckout(page, 'propina')
+  await payment.getByRole('button', { name: 'Más opciones', exact: true }).click()
+  await payment.getByRole('button', { name: '10 % · $ 3.890', exact: true }).click()
+  await expect(payment).toContainText('$ 42.790')
+  await payment.getByRole('button', { name: '50.000', exact: true }).click()
+  await payment.getByRole('button', { name: 'Pagar ahora', exact: true }).click()
+  await expect(page.getByRole('dialog', { name: '¡Pago exitoso!', exact: true })).toBeVisible()
+  const after = await qaApi<PaidOrder>(page, `orders/${order.id}`)
+  expect(after.order).toMatchObject({ state: 'paid', tip: 3_890, total: 42_790, paid: 42_790 })
+})
