@@ -26,7 +26,8 @@ export async function payOrder(orderId: number, paymentMethodId: number, amount:
   return toSavedOrder(await sales.addPayment(orderId, { method_id: paymentMethodId, amount, received, reference, request_key: `pay-${orderId}-${uuid()}` }))
 }
 
-export async function addTip(orderId: number, tipProductId: number, amount: number): Promise<SavedOrder> {
+// La propina es un importe del pedido en el sistema propio (no un producto): se reemplaza con el valor elegido.
+export async function addTip(orderId: number, amount: number): Promise<SavedOrder> {
   return toSavedOrder(await sales.setTip(orderId, amount))
 }
 

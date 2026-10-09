@@ -13,7 +13,7 @@ import type { Catalog } from '@/lib/types'
 jest.mock('@/lib/services/paymentKit', () => ({ readPayableOrder: jest.fn(), loadLoyaltyProgram: jest.fn(), lookupMember: jest.fn(), redeemPoints: jest.fn() }))
 
 const order = { id: 40, reference: '260-1-40', trackingNumber: '40', presetId: 1, presetName: 'Dine In', customerName: 'Zahir', tableId: 9, tableNumber: 'A8',
-  date: '2026-09-07 12:24:00', total: 100000, tax: 15966, paid: 0, lines: [{ uuid: 'l1', name: 'Hamburguesa Angus', qty: 2, unitPrice: 36900, total: 100000, note: '' }] }
+  date: '2026-09-07 12:24:00', total: 100000, tax: 15966, tip: 0, paid: 0, lines: [{ uuid: 'l1', name: 'Hamburguesa Angus', qty: 2, unitPrice: 36900, total: 100000, note: '' }] }
 const catalog = { company: { name: 'Aurora' }, settings: { tipProductId: null }, products: [], categories: [], floors: [], tables: [],
   paymentMethods: [{ id: 1, name: 'Efectivo', type: 'cash' }, { id: 2, name: 'Tarjeta', type: 'bank' }] } as unknown as Catalog
 
@@ -123,6 +123,21 @@ it('applies the suggested tip and keeps the terminal voucher', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Aprobado' }))
   const settle = useOrderStore.getState().settle as jest.Mock
   expect(settle.mock.calls[0][0]).toEqual({ tip: 10000, payments: [{ methodId: 2, type: 'bank', amount: 110000, received: 110000, reference: 'A1B2' }] })
+})
+
+// Falla si al reabrir el cobro de un pedido que ya tiene la propina registrada (100.000 + 10.000) la propina se suma dos
+// veces o la sugerida sale de la cuenta con propina: el pago pediría 121.000 y el servidor lo rechazaría.
+it('cobra la cuenta sin sumar otra vez la propina ya registrada', async () => {
+  ;(readPayableOrder as jest.Mock).mockResolvedValue({ ...order, total: 110000, tip: 10000 })
+  show()
+  await userEvent.click(await screen.findByRole('button', { name: 'Más opciones' }))
+  await userEvent.click(screen.getByRole('button', { name: /10 %/ }))
+  await userEvent.click(screen.getByRole('tab', { name: /Tarjeta/ }))
+  await userEvent.click(screen.getByRole('button', { name: 'Confirmar pago' }))
+  await userEvent.click(await screen.findByRole('button', { name: 'Aprobado' }))
+  const settle = useOrderStore.getState().settle as jest.Mock
+  expect(settle.mock.calls[0][0]).toMatchObject({ tip: 10000, payments: [{ methodId: 2, amount: 110000 }] })
+  expect(settle.mock.calls[0][1]).toMatchObject({ existing: { orderId: 40, tableId: 9, tip: 10000 } })
 })
 
 // Falla si "cuenta de cliente" (pay_later) vuelve a ofrecerse como forma de cobro: no cobra nada.

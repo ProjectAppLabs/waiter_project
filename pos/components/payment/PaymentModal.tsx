@@ -79,7 +79,9 @@ export function PaymentModal({ orderId, onClose, onPaid }: { orderId: number; on
   // (efectivo por tipo; QR y datáfono son ambos 'bank' y se distinguen por el nombre).
   const sameKind = useMemo(() => methods.filter((m) => methodFor(kind, [m])), [kind, methods])
   const method = sameKind.find((m) => m.id === methodId) ?? methodFor(kind, methods)
-  const base = order?.total ?? 0
+  // La cuenta sin la propina que el pedido ya tenga registrada: la que se elige aquí la reemplaza (si no, al reabrir el
+  // cobro se sumaría dos veces y la sugerida saldría de sí misma).
+  const base = order ? order.total - order.tip : 0
   const tip = tipMode === 'none' ? 0 : tipMode === 'suggested' ? suggestedTip(base) : customTip
   const rate = useMemo(() => ({ copPerPoint: program?.copPerPoint ?? 0 }), [program])
   const candidateDiscount = usePoints && member ? pointsDiscount(member.points, rate, base) : 0
@@ -97,7 +99,7 @@ export function PaymentModal({ orderId, onClose, onPaid }: { orderId: number; on
       catch(e) {setBenefitError(e instanceof Error?e.message:'No se pudo canjear');setPayments([]);return}
     }
     const ok = await settle({ tip, payments: all }, {
-      existing: { orderId: order.id, tableId: order.tableId ?? 0 }, tipProductId: catalog.settings.tipProductId,
+      existing: { orderId: order.id, tableId: order.tableId ?? 0, tip: order.tip },
       // El documento lleva la mesa que ve el cliente ("A8", "Terraza 8"), no el id interno.
       tableNumber: order.tableId ?? 0, tableLabel: order.tableNumber || undefined, company: catalog.company.name,
       lines: order.lines.map((l) => ({ uuid: l.uuid, name: l.name, qty: l.qty, unitPrice: l.unitPrice, total: l.total })),

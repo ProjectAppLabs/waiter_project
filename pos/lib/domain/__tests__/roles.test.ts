@@ -10,9 +10,11 @@ it('limits navigation and routes by role', () => {
   expect(allowedPath('admin', '/configuracion')).toBe(true)
 })
 
-// Falla si un mesero puede cerrar caja o si alguien que no es administrador puede forzar un cierre.
-it('reserves register closing to cashiers and forcing it to admins', () => {
-  expect([can.closeRegister('waiter'), can.closeRegister('cashier'), can.forceCloseRegister('cashier'), can.forceCloseRegister('admin')]).toEqual([false, true, false, true])
+// Falla si un mesero puede cerrar caja o si el cajero o el encargado la pierden. «Forzar cierre» ya no existe: el sistema
+// propio no tiene descuadre contable que forzar (plan T).
+it('keeps register closing away from waiters', () => {
+  expect([can.closeRegister('waiter'), can.closeRegister('cashier'), can.closeRegister('admin')]).toEqual([false, true, true])
+  expect(can).not.toHaveProperty('forceCloseRegister')
 })
 
 // Falla si la pantalla vuelve a seguir a la credencial del terminal: con la tablet abierta como

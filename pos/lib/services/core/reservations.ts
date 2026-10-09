@@ -5,8 +5,10 @@ const q = (p: Record<string, string | number | null | undefined>) => Object.entr
 
 export const timeline = <T>(restaurantId: number, date: string, floorId?: number | null) => coreFetch<T>(`reservations/timeline?${q({ restaurant_id: restaurantId, date, floor_id: floorId })}`)
 export const slots = <T>(restaurantId: number, date: string) => coreFetch<T>(`reservations/slots?${q({ restaurant_id: restaurantId, date })}`)
+// Todas las mesas con su estado (`include_unavailable`, como se pedía a Odoo): una que no sienta sola al grupo llega como
+// «unavailable» y se puede juntar con otra, porque al crear el servidor acepta la suma de puestos.
 export const tables = <T>(restaurantId: number, date: string, timeStart: number, people: number, prep: string, excludeId: number | null) =>
-  coreFetch<T>(`reservations/tables?${q({ restaurant_id: restaurantId, date, time_start: timeStart, people, prep, exclude_id: excludeId })}`)
+  coreFetch<T>(`reservations/tables?${q({ restaurant_id: restaurantId, date, time_start: timeStart, people, prep, exclude_id: excludeId, include_unavailable: 'true' })}`)
 export const create = async <T>(body: Record<string, unknown>) => one(await coreFetch<T | T[]>('reservations', { method: 'POST', body }))
 export const get = async <T>(id: number) => one(await coreFetch<T | T[]>(`reservations/${id}`))
 export const byTable = <T>(tableId: number) => coreFetch<{ reservations: T[] }>(`reservations?table_id=${tableId}`).then((r) => r.reservations)

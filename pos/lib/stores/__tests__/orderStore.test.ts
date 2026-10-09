@@ -18,7 +18,8 @@ beforeEach(() => {
   useOrderStore.setState({ draft: null, saved: null, openOrders: [], shift: null, flags: {}, busy: false, error: null, receipt: null })
 })
 
-const CTX = { existing: { orderId: 13, tableId: 6 }, tipProductId: 1, tableNumber: 6, company: 'Demo', lines: [], methodName: (id: number) => (id === 1 ? 'Efectivo' : 'Tarjeta') }
+// El contexto que arma el modal de pago con el sistema propio: el pedido y la propina que ya tiene registrada.
+const CTX = { existing: { orderId: 13, tableId: 6, tip: 0 }, tableNumber: 6, company: 'Demo', lines: [], methodName: (id: number) => (id === 1 ? 'Efectivo' : 'Tarjeta') }
 
 // Falla si un error del servidor deja el store "ocupado" para siempre (botón bloqueado).
 it('save surfaces the el servidor message and releases busy', async () => {
@@ -48,10 +49,42 @@ it('settle tips, records every payment and the change, closes and leaves a recei
   ;(addTip as jest.Mock).mockResolvedValue({ ...saved, total: 95822 })
   const ok = await useOrderStore.getState().settle({ tip: 8000, payments: [{ methodId: 2, type: 'bank', amount: 50000, received: 50000, reference: 'A1' }, { methodId: 1, type: 'cash', amount: 45822, received: 50000, reference: '' }] }, CTX)
   expect(ok).toBe(true)
-  expect(addTip).toHaveBeenCalledWith(13, 1, 8000)
-  expect(mPay.mock.calls.map((c) => c.slice(1))).toEqual([[2, 50000, 50000, 'A1'], [1, 45822, 50000, '']])
+  expect(addTip).toHaveBeenCalledWith(13, 8000)
+  // El datáfono viaja sin efectivo recibido (el servidor lo rechaza fuera del efectivo); el efectivo lo conserva.
+  expect(mPay.mock.calls.map((c) => c.slice(1))).toEqual([[2, 50000, undefined, 'A1'], [1, 45822, 50000, '']])
   expect(setChange).toHaveBeenCalledWith(13, 4178)
   expect(useOrderStore.getState().receipt).toMatchObject({ total: 95822, tip: 8000, change: 4178, payments: [{ method: 'Tarjeta', amount: 50000, reference: 'A1' }, { method: 'Efectivo', amount: 45822, reference: '' }] })
+})
+
+// Falla si un pago con datáfono o QR vuelve a viajar con el efectivo recibido: el servidor lo rechaza con «El efectivo
+// entregado debe cubrir el pago.» y el cobro no se puede completar.
+it('envía el pago con datáfono sin efectivo recibido', async () => {
+  mPay.mockResolvedValue({ ...saved, paid: 87822 }); mClose.mockResolvedValue({ ...saved, state: 'paid', paid: 87822 })
+  const ok = await useOrderStore.getState().settle({ tip: 0, payments: [{ methodId: 2, type: 'bank', amount: 87822, received: 87822, reference: 'A1B2' }] }, CTX)
+  expect(ok).toBe(true)
+  expect(mPay).toHaveBeenCalledWith(13, 2, 87822, undefined, 'A1B2')
+})
+
+// Falla si la propina elegida no llega al servidor antes de los pagos: sin producto de propina (sistema propio) el pago
+// de total + propina se rechaza porque supera el saldo del pedido.
+it('registra la propina elegida antes del primer pago', async () => {
+  mPay.mockResolvedValue({ ...saved, paid: 96604 }); mClose.mockResolvedValue({ ...saved, state: 'paid', total: 96604, paid: 96604 })
+  ;(addTip as jest.Mock).mockResolvedValue({ ...saved, total: 96604 })
+  const ok = await useOrderStore.getState().settle({ tip: 8782, payments: [{ methodId: 1, type: 'cash', amount: 96604, received: 100000, reference: '' }] }, CTX)
+  expect(ok).toBe(true)
+  expect(addTip).toHaveBeenCalledWith(13, 8782)
+  expect((addTip as jest.Mock).mock.invocationCallOrder[0]).toBeLessThan(mPay.mock.invocationCallOrder[0])
+})
+
+// Falla si quitar en el cobro una propina que el pedido ya tenía registrada la deja en el servidor: el pago sin propina
+// no alcanzaría el saldo y el pedido no se podría cerrar.
+it('vuelve a cero la propina que el pedido ya tenía', async () => {
+  mPay.mockResolvedValue({ ...saved, paid: 87822 }); mClose.mockResolvedValue({ ...saved, state: 'paid', paid: 87822 })
+  ;(addTip as jest.Mock).mockResolvedValue(saved)
+  const ok = await useOrderStore.getState().settle({ tip: 0, payments: [{ methodId: 1, type: 'cash', amount: 87822, received: 87822, reference: '' }] },
+    { ...CTX, existing: { orderId: 13, tableId: 6, tip: 5000 } })
+  expect(ok).toBe(true)
+  expect(addTip).toHaveBeenCalledWith(13, 0)
 })
 
 // Falla si un corte de red durante el sondeo del salón deja un rechazo sin capturar o borra lo último conocido.

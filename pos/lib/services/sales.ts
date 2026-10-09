@@ -49,3 +49,13 @@ export async function topProducts(scope: SalesScope, limit = 6): Promise<Product
   if (r === null) throw new Error('Elige un restaurante.')
   return toProductTotals(await core.salesSummary(r, scopeParams(scope))).slice(0, limit)
 }
+
+// Las cuatro tarjetas de Ventas (indicadores, métodos de pago, meseros y más vendidos) salen de UNA respuesta de
+// `sales/summary` con los mismos conversores: antes cada tarjeta repetía la misma consulta del periodo.
+export interface SalesOverview { summary: SalesSummary; methods: MethodTotal[]; waiters: WaiterTotal[]; top: ProductTotal[] }
+export async function salesOverview(scope: SalesScope, limit = 6): Promise<SalesOverview> {
+  const r = currentRestaurantId()
+  if (r === null) throw new Error('Elige un restaurante.')
+  const s = await core.salesSummary(r, scopeParams(scope))
+  return { summary: { total: s.total, orders: s.orders, autonomous: s.autonomous }, methods: toMethodTotals(s), waiters: toWaiterTotals(s), top: toProductTotals(s).slice(0, limit) }
+}

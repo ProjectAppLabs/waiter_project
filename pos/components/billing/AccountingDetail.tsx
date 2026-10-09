@@ -33,7 +33,8 @@ export function AccountingDetail({ invoiceId }: { invoiceId: number }) {
       {[['company', detail.company], ['journal', detail.journal], ['date', billingDate(detail.date)], ['origin', detail.origin || '—'], ...(detail.original ? [['original', detail.original]] : [])].map(([key, value]) => <div key={key}><dt className="text-soft">{t(key)}</dt><dd className="text-ink break-words">{value}</dd></div>)}
     </dl>
     <dl className="rounded-md bg-muted p-4 text-sm space-y-2">
-      <div className="flex justify-between gap-2"><dt>{t('netSales')}</dt><dd className="tabular">{money(detail.untaxed - detail.tip)}</dd></div>
+      {/* `untaxed` del servidor ya deja la propina fuera de la base (va aparte y sin impuestos): no se resta otra vez. */}
+      <div className="flex justify-between gap-2"><dt>{t('netSales')}</dt><dd className="tabular">{money(detail.untaxed)}</dd></div>
       {detail.taxes.map((tax) => <div key={tax.id} className="flex justify-between gap-2 text-soft"><dt>{tax.name}</dt><dd className="tabular whitespace-nowrap">{money(tax.amount)}</dd></div>)}
       <div className="flex justify-between gap-2"><dt>{t('tax')}</dt><dd className="tabular">{money(detail.tax)}</dd></div>
       <div className="flex justify-between gap-2"><dt>{t('tip')}</dt><dd className="tabular">{money(detail.tip)}</dd></div>

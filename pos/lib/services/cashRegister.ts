@@ -44,8 +44,3 @@ export async function cashInOut(sessionId: number, type: 'in' | 'out', amount: n
     useOutboxStore.getState().enqueue({ kind: 'cash_move', shiftId: sessionId, type, amount, reason, requestKey, label: reason })
   }
 }
-
-export async function forceCloseRegister(sessionId: number): Promise<CloseResult> {
-  // En el sistema propio no hay descuadre contable que forzar: cerrar es cerrar.
-  return { successful: true, message: '' }
-}

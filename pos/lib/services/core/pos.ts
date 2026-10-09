@@ -31,7 +31,8 @@ export const createRestaurant = (input: { name: string; slug: string; street?: s
 export const updateRestaurant = (id: string, patch: Partial<CoreRestaurant>) => coreFetch<{ restaurant: CoreRestaurant }>(`restaurants/${id}`, { method: 'PATCH', body: patch }).then((r) => r.restaurant)
 
 export const listPeople = () => coreFetch<{ people: CorePerson[] }>('team').then((r) => r.people)
-export const invitePerson = (input: { name: string; username?: string; email: string; role: AccountRole; restaurant_ids: string[]; shift_start?: number | null; shift_end?: number | null; hourly_rate?: number | null }) =>
+// `restaurant_ids` van como números: el servidor rechaza con 400 una lista de textos (accounts/services.py).
+export const invitePerson = (input: { name: string; username?: string; email: string; role: AccountRole; restaurant_ids: number[]; shift_start?: number | null; shift_end?: number | null; hourly_rate?: number | null }) =>
   coreFetch<{ person: CorePerson; invite_sent: boolean }>('team', { method: 'POST', body: input })
 export const updatePerson = (id: string, patch: Record<string, unknown>) => coreFetch<{ person: CorePerson }>(`team/${id}`, { method: 'PATCH', body: patch }).then((r) => r.person)
 export const resendInvite = (id: string) => coreFetch<{ ok: true }>(`team/${id}/resend_invite`, { method: 'POST' })
