@@ -37,7 +37,7 @@ export function WhatsAppView() {
     if (!data?.signup) return
     const result = await runEmbeddedSignup(data.signup, mode)
     if (!result) { setNotice('Cerraste la ventana de Meta sin conectar el número.'); return }
-    setData(await connectWhatsapp(result)); setNotice('¡Listo! Tu WhatsApp quedó conectado a Waiter.')
+    await connectWhatsapp({ ...result, business_app: mode === 'business_app' }); await load(); setNotice('¡Listo! Tu WhatsApp quedó conectado a Waiter.')
   })
   if (!data) return error ? <p role="alert" className="text-danger">{error}</p> : <p role="status" className="text-soft">Leyendo la conexión de WhatsApp…</p>
   const account = data.account?.status === 'connected' ? data.account : null
@@ -94,7 +94,7 @@ export function WhatsAppView() {
       {open !== null && <ConversationModal id={open} onClose={() => { setOpen(null); void load() }} />}
       <ConfirmDialog open={leaving} title="¿Desconectar WhatsApp?" destructive confirmLabel="Desconectar" cancelLabel="Cancelar"
         body="Waiter deja de recibir y enviar mensajes de tu número. Tu número y tus chats siguen en WhatsApp."
-        onCancel={() => setLeaving(false)} onConfirm={() => { setLeaving(false); void run(async () => { setData(await disconnectWhatsapp()); setNotice('WhatsApp desconectado.') }) }} />
+        onCancel={() => setLeaving(false)} onConfirm={() => { setLeaving(false); void run(async () => { await disconnectWhatsapp(); await load(); setNotice('WhatsApp desconectado.') }) }} />
     </section>
   )
 }

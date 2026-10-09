@@ -89,6 +89,13 @@ def isolated(context, settings):
         approved_by=s['person'], state='vigente', since=timezone.now(), until=timezone.now() + timedelta(hours=1))
     SupportToken.objects.create(grant=support, agent=support.requested_by, token_hash=digest('token-de-otra-organizacion'),
         expires=timezone.now() + timedelta(minutes=2))
+    from whatsapp.models import WhatsAppAccount, WhatsAppConversation, WhatsAppMessage
+    from tenancy.models import OrganizationModule
+    OrganizationModule.objects.create(organization=org_a, key='asistente_whatsapp', active=True, starts=timezone.now())
+    wa_account = WhatsAppAccount.objects.create(organization=org_b, phone_number_id='999', waba_id='888', name=SECRET)
+    wa_conversation = WhatsAppConversation.objects.create(account=wa_account, wa_id='573004771554', profile_name=SECRET)
+    WhatsAppMessage.objects.create(conversation=wa_conversation, direction='in', type='text', text=SECRET, status='received')
+    s['whatsapp'] = wa_conversation
     s['support'] = support
     s.update(org_a=org_a, actor=actor, venue_a=venue_a, actor_client=client, course=course, photo=photo, banner=banner,
         purchase=purchase, resolution=resolution, document=document, subscription=charge, order_obj=order)
@@ -102,7 +109,7 @@ def scenario(s, method, route):
     target = '<' in route
     ids = {'restaurant_id': rid, 'image_id': 'imagen-b', 'code': s['card'].code, 'token': s['reservation'].pay_token, 'kind': 'ventas'}
     resources = {
-        'products': s['dish'].pk, 'categories': s['category'].pk, 'inventory': s['ingredient'].pk,
+        'whatsapp': s['whatsapp'].pk, 'products': s['dish'].pk, 'categories': s['category'].pk, 'inventory': s['ingredient'].pk,
         'photos': s['dish'].pk, 'floors': s['r1'].floors.get().pk, 'tables': s['table'].pk,
         'shifts': s['order_obj'].shift_id, 'orders': oid, 'payment-methods': cash_method(s).pk,
         'courses': s['course'].pk, 'customers': s['customer'].pk, 'reservations': s['reservation'].pk,
@@ -157,6 +164,7 @@ def scenario(s, method, route):
     if route == 'brand/logo':
         target = True
     specific = {
+        'whatsapp/conversations/<int:pk>/reply': {'text': 'Respuesta de prueba'},
         'inventory/requests/<int:pk>/mark': {'state': 'sent'},
         'orders/<int:pk>/lines': {'line_ids': [s['order']['lines'][0]['id']]},
         'orders/<int:pk>/tip': {'amount': 10},
@@ -180,7 +188,7 @@ def scenario(s, method, route):
     if method == 'post' and route == 'payment-methods':
         target, body = True, {'name': 'Banco A', 'type': 'bank', 'restaurant_ids': [rid]}
     # Rutas sin selección de un recurso: los datos y las escrituras pertenecen siempre a la sesión A.
-    implicit = {'audit/actions', 'support', 'recharges', 'consumption', 'subscription', 'org', 'restaurants', 'team', 'notifications', 'notifications/read_all',
+    implicit = {'whatsapp', 'whatsapp/connect', 'whatsapp/disconnect', 'whatsapp/test', 'audit/actions', 'support', 'recharges', 'consumption', 'subscription', 'org', 'restaurants', 'team', 'notifications', 'notifications/read_all',
         'products', 'categories', 'taxes', 'taxes/regime', 'units', 'suppliers', 'catalog/overview', 'catalog/restaurants',
         'payment-methods', 'settings/cash', 'settings/roles', 'customers', 'customers/id-types', 'loyalty/program',
         'benefits', 'banners', 'me/notify-prefs', 'reports/summary', 'company', 'brand', 'brand/logo',
@@ -218,7 +226,7 @@ def test_all_registered_pos_routes(isolated, method, route):
     s = isolated
     path, query, body, target = scenario(s, method, route)
     tracked = [s[k] for k in ('org', 'r1', 'person', 'dish', 'ingredient', 'customer', 'card', 'reservation',
-                              'notification', 'document', 'resolution', 'subscription', 'order_obj', 'purchase', 'banner', 'support')]
+                              'notification', 'document', 'resolution', 'subscription', 'order_obj', 'purchase', 'banner', 'support', 'whatsapp')]
     before = [model_to_dict(obj) for obj in tracked]
     from urllib.parse import urlencode
     url = BASE + path + ('?' + urlencode(query) if query else '')

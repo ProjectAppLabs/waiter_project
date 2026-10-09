@@ -16,7 +16,7 @@ const SIGNUP = { app_id: '1825282295557750', config_id: 'cfg-1', graph_version: 
 const CONNECTED: WaOverview = {
   account: { phone: '+1 555 633 1020', name: 'Burger House', quality: 'GREEN', status: 'connected', connected_at: '2026-10-09T15:00:00Z', test_number: true },
   signup: SIGNUP,
-  recent: [{ id: 5, wa_id: '573004771554', name: 'Gus', last_inbound_at: '2026-10-09T15:05:00Z', window_open: true, last_message: { direction: 'in', text: 'Hola, ¿tienen domicilio?', status: 'received', at: '2026-10-09T15:05:00Z' } }],
+  recent: [{ id: 5, wa_id: '573004771554', name: 'Gus', last_inbound_at: '2026-10-09T15:05:00Z', window_open: true, last_message: { id: 2, direction: 'in', type: 'text', text: 'Hola, ¿tienen domicilio?', template: null, status: 'received', error: null, at: '2026-10-09T15:05:00Z' } }],
 }
 const wrap = () => render(<NextIntlClientProvider locale="es" messages={messages}><WhatsAppView /></NextIntlClientProvider>)
 beforeEach(() => jest.clearAllMocks())
@@ -24,15 +24,15 @@ beforeEach(() => jest.clearAllMocks())
 // Falla si sin número conectado no aparece el botón de conectar, si el botón no manda a Waiter el código y los ids que
 // devuelve Meta, o si cerrar la ventana de Meta se toma como conexión.
 it('conecta WhatsApp con un botón', async () => {
-  jest.mocked(whatsappOverview).mockResolvedValue({ account: null, signup: SIGNUP, recent: [] })
+  jest.mocked(whatsappOverview).mockResolvedValueOnce({ account: null, signup: SIGNUP, recent: [] }).mockResolvedValue(CONNECTED)
   jest.mocked(runEmbeddedSignup).mockResolvedValueOnce(null).mockResolvedValueOnce({ code: 'c0de', waba_id: 'W1', phone_number_id: 'P1' })
-  jest.mocked(connectWhatsapp).mockResolvedValue(CONNECTED)
+  jest.mocked(connectWhatsapp).mockResolvedValue(CONNECTED.account!)
   wrap()
   fireEvent.click(await screen.findByRole('button', { name: 'Conectar WhatsApp' }))
   expect(await screen.findByText(/sin conectar el número/)).toBeInTheDocument()
   expect(connectWhatsapp).not.toHaveBeenCalled()
   fireEvent.click(screen.getByRole('button', { name: 'Ya uso la app WhatsApp Business en mi celular' }))
-  await waitFor(() => expect(connectWhatsapp).toHaveBeenCalledWith({ code: 'c0de', waba_id: 'W1', phone_number_id: 'P1' }))
+  await waitFor(() => expect(connectWhatsapp).toHaveBeenCalledWith({ code: 'c0de', waba_id: 'W1', phone_number_id: 'P1', business_app: true }))
   expect(runEmbeddedSignup).toHaveBeenLastCalledWith(SIGNUP, 'business_app')
   expect(await screen.findByText(/quedó conectado/)).toBeInTheDocument()
   expect(screen.getByText(/Burger House · \+1 555 633 1020/)).toBeInTheDocument()
@@ -49,9 +49,9 @@ it('sin la configuración de Meta explica que la conexión no está habilitada',
 // Falla si con el número conectado no se puede enviar la prueba, si el aviso del número de prueba no aparece, o si
 // desconectar no pide confirmación.
 it('envía la prueba, avisa del número de prueba y desconecta con confirmación', async () => {
-  jest.mocked(whatsappOverview).mockResolvedValue(CONNECTED)
-  jest.mocked(sendWhatsappTest).mockResolvedValue({ ok: true, wamid: 'wamid.1' })
-  jest.mocked(disconnectWhatsapp).mockResolvedValue({ ...CONNECTED, account: { ...CONNECTED.account!, status: 'disconnected' } })
+  jest.mocked(whatsappOverview).mockResolvedValueOnce(CONNECTED).mockResolvedValueOnce(CONNECTED).mockResolvedValue({ ...CONNECTED, account: { ...CONNECTED.account!, status: 'disconnected' } })
+  jest.mocked(sendWhatsappTest).mockResolvedValue({ id: 9, direction: 'out', type: 'template', text: '', template: 'hello_world', status: 'sent', error: null, at: '2026-10-09T15:10:00Z' })
+  jest.mocked(disconnectWhatsapp).mockResolvedValue({ ...CONNECTED.account!, status: 'disconnected' })
   wrap()
   expect(await screen.findByText(/número de prueba/)).toBeInTheDocument()
   fireEvent.change(screen.getByLabelText('Número de prueba'), { target: { value: '300 477 1554' } })

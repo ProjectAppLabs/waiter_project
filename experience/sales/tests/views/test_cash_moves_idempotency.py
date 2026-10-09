@@ -160,6 +160,7 @@ def test_movimientos_sin_clave_conservan_el_historial_legacy(setup):
     assert CashMove.objects.filter(shift_id=shift["id"], request_key__isnull=True).count() == 2
 
 
+@pytest.mark.skipif(connection.vendor != "mysql", reason="La colación de MySQL requiere ejecutar esta prueba con MySQL.")
 def test_claves_de_caja_difieren_por_mayusculas_en_mysql(setup):
     """La colación binaria de MySQL distingue dos claves que cambian de caso."""
     # Falla si MySQL compara sin distinguir mayúsculas las claves de idempotencia de caja.
@@ -210,6 +211,7 @@ def test_replay_no_omite_autenticacion_permisos_ni_aislamiento(setup, client_fac
     assert SalesEvent.objects.filter(kind="cash").count() == events_before
 
 
+@pytest.mark.skipif(not connection.features.has_select_for_update, reason="La concurrencia de caja requiere bloqueos de filas del motor de producción.")
 @pytest.mark.django_db(transaction=True)
 def test_reintentos_simultaneos_comparten_un_solo_movimiento(setup):
     """Dos clientes con la misma clave compiten por un único resultado confirmado."""
@@ -228,6 +230,7 @@ def test_reintentos_simultaneos_comparten_un_solo_movimiento(setup):
     assert SalesEvent.objects.filter(kind="cash").count() == events_before + 1
 
 
+@pytest.mark.skipif(not connection.features.has_select_for_update, reason="La concurrencia de caja requiere bloqueos de filas del motor de producción.")
 @pytest.mark.django_db(transaction=True)
 def test_reintentos_simultaneos_con_importes_distintos_dejan_un_conflicto(setup):
     """Dos importes con una clave compartida dejan un ganador observable y un conflicto."""

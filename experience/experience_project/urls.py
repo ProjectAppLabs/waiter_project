@@ -14,7 +14,12 @@ def health_check(request):
     })
 
 
+from whatsapp.views import webhook as whatsapp_webhook
+
+
 urlpatterns = [
+    path('webhooks/whatsapp', whatsapp_webhook),
+    path('api/pos/v1/', include('whatsapp.urls')),
     path('api/platform/v1/', include('tenancy.urls')),
     path('api/pos/v1/', include('tenancy.pos_urls')),
     path('api/pos/v1/', include('catalog.urls')),

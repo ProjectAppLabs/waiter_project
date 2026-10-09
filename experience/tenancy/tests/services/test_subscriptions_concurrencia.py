@@ -66,6 +66,7 @@ def test_correo_lento_no_detiene_escrituras_de_otra_organizacion():
 
 
 # Falla si dos corridas solapadas del cron envían o auditan dos veces el mismo aviso.
+@pytest.mark.skipif(not connection.features.has_select_for_update, reason="El envío concurrente requiere bloqueos de filas del motor de producción.")
 def test_corridas_solapadas_envian_un_solo_aviso():
     """La segunda corrida empieza mientras la primera envía: el aviso sale y se audita una sola vez."""
     deudora()

@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'reports',
     'billing',
     'reservations',
+    'whatsapp',
 ]
 
 MIDDLEWARE = [
@@ -185,3 +186,14 @@ CORS_ALLOW_HEADERS = (*default_headers, 'x-waiter-org')
 
 # Fotos propias del catálogo T1.
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# WhatsApp: las credenciales son opcionales para arrancar.
+WA_ACCESS_TOKEN = os.getenv('WA_ACCESS_TOKEN', '')
+WA_PHONE_NUMBER_ID = os.getenv('WA_PHONE_NUMBER_ID', '')
+WA_WABA_ID = os.getenv('WA_WABA_ID', '')
+META_APP_SECRET = os.getenv('META_APP_SECRET', '')
+WA_VERIFY_TOKEN = os.getenv('WA_VERIFY_TOKEN', '')
+WA_GRAPH_VERSION = os.getenv('WA_GRAPH_VERSION', 'v25.0')
+META_APP_ID = os.getenv('META_APP_ID', '')
+WA_SIGNUP_CONFIG_ID = os.getenv('WA_SIGNUP_CONFIG_ID', '')
+WA_TEST_RECIPIENTS = [n.strip() for n in os.getenv('WA_TEST_RECIPIENTS', '').split(',') if n.strip()]

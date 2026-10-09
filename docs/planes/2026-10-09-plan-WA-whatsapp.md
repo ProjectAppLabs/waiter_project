@@ -89,3 +89,69 @@ estados, y respuesta de texto dentro de la ventana de 24 h.
 ## Estado
 
 - 2026-10-09: plan escrito; credenciales parciales en `.env`; kit de Meta en `integrations/waiter-whatsapp/`.
+
+- **Servidor (Codex), 2026-10-09:** implementación en `experience/whatsapp/`: cliente y parser adaptados del kit,
+  modelos, migración `0001_cuentas_conversaciones_mensajes_y_eventos`, servicios, webhook público, API del dueño,
+  procesamiento en hilo tras el commit y los cuatro comandos. Cambios adicionales: `experience_project/settings.py`,
+  `experience_project/urls.py`, `pytest.ini` y escenarios de WhatsApp en la prueba transversal de aislamiento de
+  `tenancy/tests/test_isolation_all_routes.py`. Pruebas nuevas en `whatsapp/tests/`. Para ejecutar la suite existente
+  con SQLite: `sales/tests/views/test_kitchen_tickets_queries.py` usa las comillas del motor activo;
+  `sales/tests/views/test_cash_moves_idempotency.py` y
+  `tenancy/tests/services/test_subscriptions_concurrencia.py` marcan cuatro comprobaciones exclusivas de colación
+  MySQL/bloqueos de filas para omitirlas cuando el motor no ofrece esas capacidades, conservando sus aserciones.
+  - **Decisiones donde faltaba detalle:** una cuenta conectada por organización, conservando el historial de las
+    desconectadas; cambiar de número exige desconectar primero. Un número no se puede trasladar a otra organización
+    desde esta API. `wamid` y organización conectada usan columnas calculadas e índices únicos, compatibles con MySQL.
+    Meta no entrega un identificador único del sobre: `event_id` es SHA-256 del JSON canónico (del cuerpo crudo si
+    no es JSON). El cuerpo original siempre se conserva. Los bloqueos y escrituras condicionales serializan
+    trabajadores; los estados no retroceden y una entrega/lectura prevalece sobre un fallo tardío.
+  - El token y el PIN se cifran con el Fernet de pagos. Un alta que falla después del intercambio conserva las
+    credenciales cifradas y el PIN para reintentar; la cuenta nueva permanece desconectada. El PIN se reutiliza al
+    reconectar. Un fallo al marcar leído conserva el mensaje y deja pendiente el evento para recuperación. El comando
+    procesa hasta 100 eventos por ejecución. El gancho del asistente todavía no produce respuestas automáticas.
+  - `WA_TEST_RECIPIENTS` vacío permite arrancar pero bloquea envíos del número de prueba hasta configurar los
+    destinatarios. La confirmación de pedido usa `delivery_phone` o el teléfono del cliente y exige una cuenta de su
+    organización compatible con el local. `whatsapp_connect_test` vincula sin llamadas a Meta; el simulador usa por
+    omisión `http://localhost:8000/webhooks/whatsapp`, admite `--url` y no sigue redirecciones.
+  - **Respuestas, sin cambios a las formas fijadas en el plan:** `GET whatsapp` conserva exactamente `account`,
+    `signup` y `recent`; sin conexión/configuración devuelve sus valores nulos/lista vacía. Las operaciones que
+    necesitan credenciales ausentes devuelven un error en español. Se concretan las respuestas que el plan dejaba
+    abiertas: conectar/desconectar → `200 {"account": <misma ficha de GET>}`; prueba/respuesta →
+    `200 {"message": <mensaje>}`; detalle → `200 {"conversation": <conversación>, "messages": [...]}`.
+    Cada conversación contiene `id`, `wa_id`, `profile_name`, `last_inbound_at`, `created_at`, `updated_at`,
+    `window_open` y `last_message` (mensaje o null). `recent` contiene las últimas 50, ordenadas por actualización
+    descendente; el detalle incluye todos los mensajes en orden cronológico.
+    Cada mensaje contiene `id`, `direction`, `wamid`, `type`, `text`, `template`, `language`, `status`, `error_code`,
+    `error_message`, `created_at`, `received_at`, `sent_at`, `delivered_at`, `read_at` y `failed_at`.
+    Fechas ISO UTC con `Z`; fechas desconocidas null, textos ausentes vacíos. No se expone JSON crudo ni credenciales.
+    Errores con `error` y `message`: `window_closed` local 409; `recipient_not_allowed` 400;
+    `whatsapp_disconnected` 409; `whatsapp_not_configured` 503; errores de Meta 502 (131047 también usa
+    `window_closed`). Permisos y aislamiento conservan los errores comunes de la API.
+  - **Validación final:** `cd experience && PYTHON_DOTENV_DISABLED=1 DJANGO_DB_ENGINE=django.db.backends.sqlite3
+    venv/bin/pytest -q`: **2383 correctas, 4 omitidas, ningún fallo**, en 278,04 s. Las cuatro omisiones corresponden
+    a pruebas preexistentes que requieren colación MySQL o bloqueos de filas, no disponibles en SQLite; siguen
+    habilitadas para el motor correspondiente. Las **50 pruebas nuevas de WhatsApp pasan**, incluida concurrencia
+    con conexiones independientes. `manage.py makemigrations --check`: **sin cambios pendientes**; `git diff --check`
+    limpio. Todas las llamadas a Meta se simulan con `requests`; no se verificó contra Meta real ni MySQL.
+    No se modificaron `.env`, POS, comensal, despliegue ni el kit. Sin commits ni servidores levantados.
+
+- **Integración (Claude), 2026-10-09:**
+  - Credenciales completas en `experience/.env` y comprobadas con Meta: token del usuario del sistema (sin vencimiento,
+    con acceso al número), `WA_PHONE_NUMBER_ID`, `WA_WABA_ID`, `META_APP_ID`, `WA_SIGNUP_CONFIG_ID`,
+    `META_APP_SECRET` (Meta la acepta) y `WA_VERIFY_TOKEN` (el registrado en el webhook de Meta). Envío real de
+    `hello_world` al destinatario de prueba aceptado por Meta.
+  - Ajustes al servidor de Codex:
+    - **Coexistencia** (app WhatsApp Business del celular): `connect` acepta `business_app` y `phone_number_id`
+      opcional; sin número, cambia el código una sola vez y busca el número en la WABA, y en coexistencia no vuelve a
+      registrar el número.
+    - **Tope de 5 intentos** por evento del webhook: un error permanente (lectura que Meta rechaza, cuerpo ilegible)
+      deja de reintentarse y queda con su error.
+    - `whatsapp_connect_test` guarda el número visible, el nombre y la calidad que informa Meta.
+  - Consola del dueño: la capa `lib/services/core/whatsapp.ts` traduce las respuestas del servidor; conectar y
+    desconectar recargan el resumen.
+  - Probado en local: webhook simulado firmado con la clave real → conversación de Burger House visible en la consola.
+  - **Pendiente:** URL pública (túnel o dominio) para registrar el webhook en Meta y recibir mensajes reales; probar el
+    botón «Conectar WhatsApp» con la cuenta del dueño (tiene rol en la app); regenerar la clave secreta y el token
+    antes de producción, porque quedaron escritos en la conversación; segunda parte: el asistente de IA responde por
+    WhatsApp y los pedidos llegan al POS.
+
