@@ -8,7 +8,8 @@ import { coreOrder } from '@/lib/testFixtures/core'
 it('lee el pedido completo para cobrarlo', async () => {
  m.mockResolvedValue({ order: coreOrder() })
  const order = await readPayableOrder(13)
- expect(m).toHaveBeenCalledWith('orders/13')
+ // Contrato vigente del cliente (core/sales.ts: `getOrder`): la lectura en línea viaja sin opciones de respaldo.
+ expect(m).toHaveBeenCalledWith('orders/13', {})
  expect(order).toMatchObject({ id: 13, customerName: 'Zahir', tableNumber: '8', total: 73800, paid: 20000 })
  expect(order.lines[0]).toMatchObject({ uuid: 'linea-1', name: 'Angus', qty: 2, total: 73800 })
 })
