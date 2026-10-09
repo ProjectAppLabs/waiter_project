@@ -14,8 +14,7 @@ from tenancy.metrics import metrics
 from tenancy.models import PricingRevision
 from tenancy.price_lists import default_pricing, effective_pricing
 from tenancy.pricing import consumption
-
-from .helpers import account, organization, restaurant
+from tenancy.tests.helpers import account, organization, restaurant
 
 pytestmark = pytest.mark.django_db
 
