@@ -14,7 +14,7 @@ freezegun==1.5.5
 ruff==0.16.4
 
 # Conversión de fotos del catálogo.
-Pillow==12.1.1
+Pillow==12.3.0
 
 # PostgreSQL de desarrollo y producción del sistema propio (plan T2).
 psycopg[binary]==3.2.9

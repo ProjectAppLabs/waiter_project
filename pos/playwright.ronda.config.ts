@@ -5,7 +5,9 @@ const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: ['**/pago/ronda.spec.ts', '**/historial/ronda.spec.ts', '**/acceso/ronda.spec.ts', '**/pedidos/ronda.spec.ts', '**/consolas/ronda.spec.ts'],
+  // r4: cocina, inventario y operación en tableta vertical y celular.
+  testMatch: ['**/pago/ronda.spec.ts', '**/historial/ronda.spec.ts', '**/acceso/ronda.spec.ts', '**/pedidos/ronda.spec.ts', '**/consolas/ronda.spec.ts',
+    '**/cocina/ronda.spec.ts', '**/inventario/ronda.spec.ts', '**/pedidos/operacion.spec.ts'],
   timeout: 60_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,
