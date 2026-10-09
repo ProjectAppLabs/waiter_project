@@ -5,7 +5,12 @@ import subprocess
 import sys
 from pathlib import Path
 
-EXPERIENCE = Path(__file__).resolve().parents[2]
+import pytest
+
+# Los fixtures automáticos de experience_app consultan la base de pruebas.
+pytestmark = pytest.mark.django_db
+
+EXPERIENCE = Path(__file__).resolve().parents[3]
 SMTP = 'django.core.mail.backends.smtp.EmailBackend'
 LEER = (
     "import json, experience_project.settings as s; o = s.MAILERS['waiter']['OPTIONS']; "
