@@ -3,10 +3,12 @@
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from django.db.models import Q
 from django.http import HttpResponse
 from django.template import Context, Engine
+from django.utils import timezone
 from rest_framework.response import Response
 
 from catalog.api import PosView
@@ -24,6 +26,11 @@ class OwnerView(PosView):
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
         owner(self.account)
+
+
+def issue_zone(doc):
+    """La zona con la que el CUFE firma la fecha y la hora de emisión: la de la organización al emitir."""
+    return ZoneInfo(doc.company_data["timezone"])
 
 
 def integer(value, minimum=0):
@@ -175,7 +182,8 @@ class DetailView(OwnerView):
                 "issues": issues,
                 "company": doc.company_data["legal_name"] or doc.company_data["name"],
                 "journal": doc.resolution_data.get("prefix", "NC"),
-                "date": doc.issued_at.date().isoformat(),
+                # El día local de la emisión, el mismo del CUFE: a las 20:00 de Bogotá el día UTC ya es el siguiente.
+                "date": doc.issued_at.astimezone(issue_zone(doc)).date().isoformat(),
                 "origin": doc.order.number,
                 "currency": "COP",
                 "company_currency": "COP",
@@ -197,7 +205,9 @@ class PrintView(OwnerView):
     def get(self, request, pk):
         doc = reference(SalesDocument, self.org, pk)
         template = Engine(dirs=[Path(__file__).parent / "templates"]).get_template("billing/document.html")
-        html = template.render(Context({"document": doc, "qr_image": image_data(doc.qr) if doc.qr else ""}))
+        # Las fechas impresas salen en la zona del CUFE, no en la del servidor (UTC).
+        with timezone.override(issue_zone(doc)):
+            html = template.render(Context({"document": doc, "qr_image": image_data(doc.qr) if doc.qr else ""}))
         return HttpResponse(
             html,
             content_type="text/html; charset=utf-8",

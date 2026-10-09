@@ -1,9 +1,10 @@
 """Informes por fecha de cobro en la zona horaria de la organización."""
 
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
+from django.db.models import Prefetch
 from django.utils import timezone
 from rest_framework.response import Response
 
@@ -11,11 +12,16 @@ from catalog.api import PosView
 from catalog.services import restaurant_for, valid
 
 from .api import get_shift, limit
-from .models import Refund
+from .models import Order, OrderLine, Refund
 from .policy import permit
 from .reading import order_dict, orders
 from .refunds import sale_values
 from .services import period
+
+# Lo que `sale_values` lee de cada línea para repartir los canjes, más el plato y la cantidad del tablero.
+SALE_LINE_FIELDS = (
+    "id", "order", "product", "name", "qty", "total", "subtotal", "cancelled", "parent", "points_cost", "loyalty_card",
+)
 
 
 def selection(account, params):
@@ -130,10 +136,13 @@ class InsightsView(PosView):
         daily = {}
         hourly = {}
         products = {}
-        for order in orders().filter(restaurant=restaurant, state="paid", paid_at__gte=start, paid_at__lt=end):
-            local = order.paid_at.astimezone(zone)
+        paid = Order.objects.filter(restaurant=restaurant, state="paid", paid_at__gte=start, paid_at__lt=end)
+        # Las cifras por día y por hora solo necesitan cuándo se cobró y cuánto: ni mesas, ni meseros, ni cursos,
+        # ni pagos de 84 días de pedidos.
+        for paid_at, total, tip in paid.values_list("paid_at", "total", "tip"):
+            local = paid_at.astimezone(zone)
             day = local.date()
-            amount = order.total - order.tip
+            amount = total - tip
             row = daily.setdefault(day.isoformat(), {"date": day.isoformat(), "total": Decimal(0), "orders": 0})
             row["total"] += amount
             row["orders"] += 1
@@ -141,24 +150,27 @@ class InsightsView(PosView):
                 row = hourly.setdefault(local.hour, {"hour": local.hour, "total": Decimal(0), "orders": 0})
                 row["total"] += amount
                 row["orders"] += 1
-            if day >= previous:
-                for value in sale_values(order.lines.all()).values():
-                    line = value["line"]
-                    row = products.setdefault(
-                        line.product_id,
-                        {
-                            "product_id": line.product_id,
-                            "name": line.name,
-                            "qty": Decimal(0),
-                            "amount": Decimal(0),
-                            "prev_qty": Decimal(0),
-                        },
-                    )
-                    if day >= recent:
-                        row["qty"] += line.qty
-                        row["amount"] += value["amount"]
-                    else:
-                        row["prev_qty"] += line.qty
+        # Los platos cuentan desde `previous`: solo se leen las líneas de esos pedidos, con lo que reparte el canje.
+        window = paid.filter(paid_at__gte=datetime.combine(previous, time.min, zone)).only("id", "paid_at")
+        for order in window.prefetch_related(Prefetch("lines", queryset=OrderLine.objects.only(*SALE_LINE_FIELDS))):
+            day = order.paid_at.astimezone(zone).date()
+            for value in sale_values(order.lines.all()).values():
+                line = value["line"]
+                row = products.setdefault(
+                    line.product_id,
+                    {
+                        "product_id": line.product_id,
+                        "name": line.name,
+                        "qty": Decimal(0),
+                        "amount": Decimal(0),
+                        "prev_qty": Decimal(0),
+                    },
+                )
+                if day >= recent:
+                    row["qty"] += line.qty
+                    row["amount"] += value["amount"]
+                else:
+                    row["prev_qty"] += line.qty
         for refund in Refund.objects.filter(restaurant=restaurant, created_at__gte=start, created_at__lt=end):
             local = refund.created_at.astimezone(zone)
             day = local.date()

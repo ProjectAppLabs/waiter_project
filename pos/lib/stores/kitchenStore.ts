@@ -4,7 +4,7 @@ import { create } from 'zustand'
 
 import { play, setMuted, setStation } from '@/lib/audio/sounds'
 import { ALL, FRESH_MIN, LATE_MIN, ticketMinutes } from '@/lib/domain/kitchen'
-import { startPreparation, listCompletedCourses, listKitchenTickets, markLineReady, markReady, markServed, type CompletedCourse, type KitchenTicket } from '@/lib/services/kitchen'
+import { startPreparation, listKitchenBoard, markLineReady, markReady, markServed, type CompletedCourse, type KitchenTicket } from '@/lib/services/kitchen'
 
 type StationOf = (productId: number) => string | null
 const WARN_MIN = 12
@@ -36,7 +36,7 @@ export const useKitchenStore = create<KitchenState>((set, get) => ({
   tickets: [], done: [], tab: ALL, muted: false, primed: false, error: null, alarms: {},
   refresh: async (sessionId, stationOf) => {
     try {
-      const [tickets, done] = await Promise.all([listKitchenTickets(sessionId, stationOf), listCompletedCourses(sessionId)])
+      const { tickets, done } = await listKitchenBoard(sessionId, stationOf)
       const known = new Set(get().tickets.map((t) => t.id))
       // Suena solo cuando entra algo nuevo después de la primera carga (no al abrir la pantalla).
       if (get().primed && tickets.some((t) => !known.has(t.id))) play('ticket')
