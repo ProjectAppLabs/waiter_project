@@ -157,6 +157,20 @@ it.each([[409, 'La mesa ya se pagó', 'La mesa ya se pagó'], [503, {}, 'Error 5
   await expect(api.getCart('visita')).rejects.toMatchObject({ message: mensaje, status })
 })
 
+// Errores de dominio del restaurante: llegan como {error, message}; el detalle de DRF no gana sobre el mensaje.
+const ERRORES_DE_DOMINIO: [object, string][] = [
+  [{ error: 'restaurant_closed', message: 'El restaurante no está recibiendo pedidos en este momento' }, 'El restaurante no está recibiendo pedidos en este momento'],
+  [{ message: 'Confirma el pedido antes de pagar.', detail: 'Conflicto' }, 'Confirma el pedido antes de pagar.'],
+]
+// Falla si un error de dominio del restaurante, como la caja cerrada al confirmar, se muestra como «Error 409» en vez de
+// su mensaje, o si el detalle gana sobre el mensaje.
+it.each(ERRORES_DE_DOMINIO)('presenta al comensal el mensaje de un error de dominio %#', async (data, mensaje) => {
+  transporte.mockImplementationOnce(async (config: InternalAxiosRequestConfig) => {
+    throw new AxiosError('Fallo de transporte', 'ERR_BAD_RESPONSE', config, undefined, { status: 409, data, config, headers: {}, statusText: '' } as AxiosResponse)
+  })
+  await expect(api.confirmOrder('visita')).rejects.toMatchObject({ message: mensaje, status: 409 })
+})
+
 // Falla si un borrador permite modificar el pedido o bloquea la consulta de su menú.
 it('bloquea escrituras en vista previa antes de alcanzar la red y permite leer', async () => {
   setPreviewReadOnly(true)
