@@ -69,6 +69,15 @@ BACKEND = [
     'sales/tests/test_operations.py::test_database_unique_open_shift',
     'sales/tests/test_operations.py::test_closings_manager_scope',
     'tenancy/tests/test_platform.py::test_creation_survives_mail_failure',
+    # r4: las redes de aislamiento entre organizaciones y de suspensión corren en cada PR.
+    'tenancy/tests/test_isolation_all_routes.py',
+    'tenancy/tests/test_suspension_e2e.py',
+]
+# r4: las matrices completas de permisos por rol corren en la combinación (tren y main).
+PERMISSION_MATRICES = [
+    'sales/tests/test_permissions.py',
+    'loyalty/tests/test_permissions.py',
+    'billing/tests/test_permissions_company.py',
 ]
 POS = [
     'lib/services/__tests__/cashRegister.test.ts',
@@ -109,14 +118,17 @@ def commands(layer):
         present += ['pos/lib/stores/__tests__/authStore.test.ts', 'pos/lib/services/core/__tests__/http.test.ts']
     if layer == 'backend':
         paths = list(dict.fromkeys(BACKEND + [path.removeprefix('experience/') for path in present if path.startswith('experience/')]))
+        permissions = PERMISSION_MATRICES if combined else ['sales/tests/test_permissions.py', '-k', 'shifts']
         return [
             (ROOT / 'experience', [sys.executable, '-m', 'pytest', *paths, '--junitxml=../test-results/backend.xml', '-q']),
-            (ROOT / 'experience', [sys.executable, '-m', 'pytest', 'sales/tests/test_permissions.py', '-k', 'shifts',
+            (ROOT / 'experience', [sys.executable, '-m', 'pytest', *permissions,
                                   '--reuse-db', '--junitxml=../test-results/backend-permissions.xml', '-q']),
         ]
     if layer == 'pos':
         paths = list(dict.fromkeys(POS + [path.removeprefix('pos/') for path in present if path.startswith('pos/') and '/e2e/' not in path]))
-        return [(ROOT / 'pos', ['npm', 'run', 'test:ci', '--', '--runInBand', '--runTestsByPath', *paths,
+        # r4: la combinación corre la suite completa de Jest; #23 y #29 rompieron pruebas fuera de la selección con CI verde.
+        selection = [] if combined else ['--runTestsByPath', *paths]
+        return [(ROOT / 'pos', ['npm', 'run', 'test:ci', '--', '--runInBand', *selection,
                                '--json', '--outputFile=../test-results/pos.json', '--reporters=default',
                                '--reporters=../test-results/junit/node_modules/jest-junit'])]
     includes = [argument for path in dict.fromkeys(LEGACY_GATE + present) for argument in ['--include-file', path]]
