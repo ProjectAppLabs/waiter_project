@@ -44,3 +44,5 @@
 .smart-menu .sm-action-dock-compacto .sm-chat-launch { width: 58px; padding: 0; grid-template-columns: 1fr; place-items: center; overflow: hidden; }
 .smart-menu .sm-action-dock-compacto .sm-chat-launch > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
+/* Plan AS: los avisos de la escalera se ven como mensajes del asistente, con una franja según su nivel. */
+.sm-chat-bubble[data-aviso]{border-left:4px solid var(--sm-accent)}.sm-chat-bubble[data-aviso=advertencia],.sm-chat-bubble[data-aviso=restringido],.sm-chat-bubble[data-aviso=pausado]{border-left-color:#a12b35}.sm-chat-aviso-hasta{display:block;margin-top:var(--ds-espacio-6);font-size:calc(14px * var(--ds-texto));color:var(--sm-muted)}

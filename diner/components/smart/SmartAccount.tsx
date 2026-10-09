@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import {PasswordField} from './SmartPassword'
+import { AssistantMemory } from './AssistantMemory'
 import { updateAccount } from '@/lib/services/api'
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { initials } from '@/lib/domain/template'
@@ -340,7 +341,7 @@ export function SmartAccount() {
       </Link>
     ))}
   </>
-  const notificaciones = <><h2>Notificaciones</h2><label className="sm-profile-notification"><span><strong>Novedades y promociones</strong><small>Recibe novedades del restaurante</small></span><input type="checkbox" role="switch" aria-label="Novedades y promociones" checked={!!account.novedades} disabled={savingMarketing||!!preview} onChange={async e=>{if(savingMarketing)return;setSavingMarketing(true);setMarketingError('');try{const response=await updateAccount({novedades:e.target.checked});useDinerStore.setState({account:response.cuenta})}catch(error){setMarketingError(error instanceof Error?error.message:'No pudimos guardar tu preferencia')}finally{setSavingMarketing(false)}}}/></label>{marketingError&&<p className="sm-error" role="alert">{marketingError}</p>}</>
+  const notificaciones = <><h2>Notificaciones</h2><label className="sm-profile-notification"><span><strong>Novedades y promociones</strong><small>Recibe novedades del restaurante</small></span><input type="checkbox" role="switch" aria-label="Novedades y promociones" checked={!!account.novedades} disabled={savingMarketing||!!preview} onChange={async e=>{if(savingMarketing)return;setSavingMarketing(true);setMarketingError('');try{const response=await updateAccount({novedades:e.target.checked});useDinerStore.setState({account:response.cuenta})}catch(error){setMarketingError(error instanceof Error?error.message:'No pudimos guardar tu preferencia')}finally{setSavingMarketing(false)}}}/></label>{marketingError&&<p className="sm-error" role="alert">{marketingError}</p>}<AssistantMemory /></>
   const salir = <button className="sm-secondary" disabled={busy} onClick={async () => { await logout(); if (!useDinerStore.getState().error) go('carta') }}><Icon name="logout" />Cerrar sesión</button>
   return (
     <>

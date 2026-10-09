@@ -132,7 +132,10 @@ export interface ChatTurn {
   carrito?: Cart
   resultado_carrito?: string
   lineas: { producto: number; cantidad: number; nombre: string; nota?: string }[]
+  aviso?: ChatNotice | null
 }
+// Plan AS: la escalera de avisos del asistente (recordatorio, advertencia, restricción, pausa y cupo del día).
+export interface ChatNotice { tipo: 'recordatorio' | 'advertencia' | 'restringido' | 'pausado' | 'cupo'; hasta: string | null }
 export async function getChat(sessionId: string): Promise<{ disponible: boolean; mensajes: ChatTurn[]; selecciones?: ChatSelection[] }> {
   return (await http.get(`/api/v1/sesiones/${sessionId}/asistente/`)).data
 }
@@ -147,4 +150,19 @@ export async function addChatSelection(sessionId: string, mensaje: string, produ
 
 export async function newChat(sessionId: string): Promise<{disponible: boolean; mensajes: ChatTurn[]}> {
   return (await http.delete(`/api/v1/sesiones/${sessionId}/asistente/`)).data
+}
+
+// Plan AS: lo que el asistente aprendió del comensal en este restaurante; el comensal lo ve y lo borra.
+export interface AssistantMemory {
+  preferencias: { clave: string; nombre: string; veces: number }[]
+  favoritos: { producto: number; nombre: string }[]
+  ultimos: { producto: number; nombre: string }[]
+  alergias: string[]
+}
+const memoryUrl = (rest: string, venue: string) => `/api/v1/${encodeURIComponent(rest)}/${encodeURIComponent(venue)}/assistant/profile`
+export async function getAssistantMemory(rest: string, venue: string): Promise<AssistantMemory> {
+  return (await http.get<{ perfil: AssistantMemory }>(memoryUrl(rest, venue))).data.perfil
+}
+export async function forgetAssistantMemory(rest: string, venue: string): Promise<void> {
+  await http.delete(memoryUrl(rest, venue))
 }

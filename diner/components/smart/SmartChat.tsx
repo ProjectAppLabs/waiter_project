@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { formatCop } from '@/lib/domain/cart'
 import { pathFor } from '@/lib/domain/route'
-import { addChatSelection, getChat, newChat, sendChat, type ChatTurn, type ChatSelection } from '@/lib/services/api'
+import { addChatSelection, getChat, newChat, sendChat, type ChatNotice, type ChatTurn, type ChatSelection } from '@/lib/services/api'
 import { useDinerStore } from '@/lib/stores/dinerStore'
 import type { Entry } from '@/lib/types'
 import { ChatReply, ChatCarousel } from './ChatReply'
@@ -13,6 +13,15 @@ import './smart-tokens.css'
 import './smart-chat.css'
 
 // crypto.randomUUID requires HTTPS; host-only development uses HTTP.
+// Plan AS: hasta cuándo dura un aviso; el texto del aviso ya lo redacta el servidor con plantillas.
+export function noticeUntil(notice: ChatNotice) {
+  if (!notice.hasta) return ''
+  const hour = new Date(notice.hasta).toLocaleTimeString('es-CO', { hour: 'numeric', minute: '2-digit' })
+  if (notice.tipo === 'restringido') return `Hasta las ${hour} solo puedes usar los botones.`
+  if (notice.tipo === 'pausado' || notice.tipo === 'cupo') return 'Podrás volver a escribir mañana. Tu pedido y el menú siguen disponibles.'
+  return ''
+}
+
 function messageId() {
   const bytes = crypto.getRandomValues(new Uint8Array(16))
   bytes[6] = (bytes[6] & 15) | 64
@@ -157,7 +166,8 @@ export function SmartChat({ entry, rest, venue, token }: { entry: Entry; rest: s
         <div className="sm-chat-welcome"><h3>¿Qué se te antoja hoy?</h3><p>Cuéntame tus gustos y buscamos algo rico en el menú.</p></div>
         {history.map(turn => <div className="sm-chat-turn" data-current={turn.id === fresh} key={turn.id}>
           <p className="sm-chat-bubble sm-chat-user"><span className="sr-only">Tú: </span>{turn.mensaje}</p>
-          <div className="sm-chat-bubble"><span className="sr-only">Mesero: </span><ChatReply text={turn.respuesta} animate={turn.id === fresh}>
+          <div className="sm-chat-bubble" data-aviso={turn.aviso?.tipo}><span className="sr-only">Mesero: </span><ChatReply text={turn.respuesta} animate={turn.id === fresh}>
+            {turn.aviso?.hasta && <small className="sm-chat-aviso-hasta">{noticeUntil(turn.aviso)}</small>}
             {Array.from(turn.lineas.reduce((groups, line) => {
               const dish = dishes.get(line.producto)
               const category = categories.get(dish?.categorias?.[0] ?? -1) ?? 'Sugerencias'

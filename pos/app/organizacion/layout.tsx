@@ -15,7 +15,7 @@ import { isOwner } from '@/lib/domain/roles'
 import { listRestaurants, type Restaurant } from '@/lib/services/restaurants'
 import { getCompany } from '@/lib/services/settings'
 import { ModuleInactive } from '@/components/kit/ModuleInactive'
-import { hasModule, moduleForPath } from '@/lib/domain/modules'
+import { moduleForPath, pathEnabled } from '@/lib/domain/modules'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { cn } from '@/lib/utils'
 
@@ -25,7 +25,7 @@ const GROUPS: [string, [string, string, KitIcon][]][] = [
   ['Negocio', [['/organizacion', 'Resumen', 'dashboard'], ['/organizacion/ventas', 'Ventas', 'sales'], ['/organizacion/cuadres', 'Cuadres de caja', 'scale'], ['/organizacion/devoluciones', 'Devoluciones', 'refresh'], ['/organizacion/horas', 'Horas y propinas', 'clock'], ['/organizacion/consumo', 'Consumo', 'chartLine'],
     ['/organizacion/rentabilidad', 'Rentabilidad', 'coins'], ['/organizacion/retorno', 'Retorno de inversión', 'chartLine']]],
   ['Contabilidad', [['/organizacion/facturacion', 'Facturación', 'billing'], ['/organizacion/pagos', 'Pagos', 'card'], ['/organizacion/empresa', 'Empresa e impuestos', 'lock']]],
-  ['Clientes y marca', [['/organizacion/clientes', 'Clientes', 'customers'], ['/organizacion/promociones', 'Promociones', 'percentage'], ['/organizacion/diseno', 'Diseño del menú', 'layout'], ['/organizacion/whatsapp', 'WhatsApp', 'chat']]],
+  ['Clientes y marca', [['/organizacion/clientes', 'Clientes', 'customers'], ['/organizacion/promociones', 'Promociones', 'percentage'], ['/organizacion/diseno', 'Diseño del menú', 'layout'], ['/organizacion/whatsapp', 'WhatsApp', 'chat'], ['/organizacion/asistente', 'Asistente', 'sparkles']]],
   ['Organización', [['/organizacion/restaurantes', 'Restaurantes', 'store'], ['/organizacion/catalogo', 'Catálogo', 'bag'], ['/organizacion/equipo', 'Equipo', 'users'], ['/organizacion/historial', 'Historial de cambios', 'history'], ['/organizacion/soporte', 'Soporte de ProjectApp', 'lock'],
     ['/organizacion/integraciones', 'Integraciones IA', 'sparkles']]],
 ]
@@ -37,7 +37,7 @@ export default function OrganizationLayout({ children }: { children: React.React
   const pathname = usePathname()
   const { user, employee, hydrated, hydrate, logout, modules } = useAuthStore()
   // Plan W: lo que no está en el plan de la organización no aparece en el menú; por la dirección, se explica.
-  const enabled = (href: string) => { const m = moduleForPath(href); return !m || hasModule(modules, m) }
+  const enabled = (href: string) => pathEnabled(modules, href)
   const pageModule = moduleForPath(pathname)
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [companyName, setCompanyName] = useState('')
@@ -89,7 +89,7 @@ export default function OrganizationLayout({ children }: { children: React.React
           {/* relative: lo absoluto de adentro (textos sr-only) se recorta aquí y no estira la página. */}
           {/* Sin relleno abajo: la barra horizontal de las tablas (ScrollTable) se pega al borde de lo visible, no 28 px antes con
               una franja transparente debajo. El mismo espacio va al final del contenido. */}
-          <div data-testid="organization-console-content" className="relative flex-1 min-w-0 min-h-0 m-3 lg:m-4 rounded-lg border border-border overflow-y-auto px-4 pt-4 lg:px-7 lg:pt-7">{<SubscriptionNotice />}{pageModule && !hasModule(modules, pageModule) ? <ModuleInactive module={pageModule} /> : children}<div aria-hidden className="h-7" /></div>
+          <div data-testid="organization-console-content" className="relative flex-1 min-w-0 min-h-0 m-3 lg:m-4 rounded-lg border border-border overflow-y-auto px-4 pt-4 lg:px-7 lg:pt-7">{<SubscriptionNotice />}{pageModule && !pathEnabled(modules, pathname) ? <ModuleInactive module={pageModule} /> : children}<div aria-hidden className="h-7" /></div>
         </div>
       </main>
     </OrgContext.Provider>

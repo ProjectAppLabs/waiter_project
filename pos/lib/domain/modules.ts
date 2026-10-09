@@ -37,6 +37,13 @@ const PATH_MODULE: [RegExp, ModuleKey][] = [
   [/^\/organizacion\/rentabilidad(\/|$)/, 'inventario'], [/^\/organizacion\/facturacion(\/|$)/, 'facturacion'], [/^\/organizacion\/pagos(\/|$)/, 'pagos_en_linea'],
   [/^\/organizacion\/(clientes|promociones)(\/|$)/, 'fidelizacion'], [/^\/organizacion\/diseno(\/|$)/, 'menu_comensal'],
   [/^\/organizacion\/integraciones(\/|$)/, 'menu_comensal'],
-  [/^\/organizacion\/whatsapp(\/|$)/, 'asistente_whatsapp'],
+  [/^\/organizacion\/whatsapp(\/|$)/, 'asistente_whatsapp'], [/^\/organizacion\/asistente(\/|$)/, 'asistente_menu'],
 ]
 export const moduleForPath = (pathname: string): ModuleKey | null => PATH_MODULE.find(([re]) => re.test(pathname))?.[1] ?? null
+// Plan AS: el asistente es uno solo para el menú y WhatsApp; su página abre con cualquiera de los dos módulos.
+const ASSISTANT = /^\/organizacion\/asistente(\/|$)/
+export const pathEnabled = (active: ActiveModules, pathname: string) => {
+  if (ASSISTANT.test(pathname)) return hasModule(active, 'asistente_menu') || hasModule(active, 'asistente_whatsapp')
+  const m = moduleForPath(pathname)
+  return !m || hasModule(active, m)
+}

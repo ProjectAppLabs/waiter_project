@@ -48,3 +48,8 @@ body:has(.smart-menu dialog[open]) { overflow:hidden; }
 .sm-navigation nav a { min-height:44px; padding:var(--ds-espacio-10) 0; }
 .sm-navigation nav a[aria-current=page] { color:var(--sm-highlight-text); }
 .sm-navigation header > .sm-profile-link { padding:0; background:transparent; }
+/* Plan AS: lo que el asistente recuerda del comensal, con la misma tarjeta del perfil. */
+.sm-assistant-memory { background:var(--sm-surface); border-radius:calc(16px * var(--ds-forma-tarjeta)); padding:var(--ds-espacio-20); margin:0 0 var(--ds-espacio-28); }
+.sm-assistant-memory h2 { margin:0 0 var(--ds-espacio-12); }
+.sm-assistant-memory p, .sm-assistant-memory dd { font-size:calc(14px * var(--ds-texto)); color:var(--sm-muted); line-height:1.5; margin:0 0 var(--ds-espacio-10); }
+.sm-assistant-memory dt { font-size:calc(14px * var(--ds-texto)); font-weight:600; }

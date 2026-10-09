@@ -125,3 +125,15 @@ it('starts a fresh conversation without changing the cart', async () => {
   expect(screen.getByLabelText('Tu mensaje')).toHaveValue('')
   expect(screen.getByText('¿Qué se te antoja hoy?')).toBeInTheDocument()
 })
+
+// Falla si un aviso de la escalera del asistente no se ve como mensaje marcado del mesero o no dice hasta cuándo dura.
+it('muestra los avisos del asistente como mensajes suyos', async () => {
+  const aviso = { id: 'aviso', mensaje: 'cuéntame un chiste', respuesta: 'Por ahora te ayudo solo con el menú.', accion: 'preguntar', lineas: [], opciones: ['Ver el menú'],
+    aviso: { tipo: 'restringido', hasta: '2026-10-09T23:30:00Z' } }
+  jest.mocked(getChat).mockResolvedValue({ disponible: true, mensajes: [aviso as never] })
+  render(<SmartChat entry={entry} rest="demo" venue="salon" token={null}/>)
+  fireEvent.click(screen.getByRole('button', { name: /Mi mesero/ }))
+  const texto = await screen.findByText(/solo puedes usar los botones/)
+  expect(texto.closest('.sm-chat-bubble')).toHaveAttribute('data-aviso', 'restringido')
+  expect(screen.getByRole('button', { name: 'Ver el menú' })).toBeInTheDocument()
+})
