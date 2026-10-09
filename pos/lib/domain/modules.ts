@@ -37,5 +37,6 @@ const PATH_MODULE: [RegExp, ModuleKey][] = [
   [/^\/organizacion\/rentabilidad(\/|$)/, 'inventario'], [/^\/organizacion\/facturacion(\/|$)/, 'facturacion'], [/^\/organizacion\/pagos(\/|$)/, 'pagos_en_linea'],
   [/^\/organizacion\/(clientes|promociones)(\/|$)/, 'fidelizacion'], [/^\/organizacion\/diseno(\/|$)/, 'menu_comensal'],
   [/^\/organizacion\/integraciones(\/|$)/, 'menu_comensal'],
+  [/^\/organizacion\/whatsapp(\/|$)/, 'asistente_whatsapp'],
 ]
 export const moduleForPath = (pathname: string): ModuleKey | null => PATH_MODULE.find(([re]) => re.test(pathname))?.[1] ?? null

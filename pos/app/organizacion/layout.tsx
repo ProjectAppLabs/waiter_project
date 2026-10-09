@@ -25,7 +25,7 @@ const GROUPS: [string, [string, string, KitIcon][]][] = [
   ['Negocio', [['/organizacion', 'Resumen', 'dashboard'], ['/organizacion/ventas', 'Ventas', 'sales'], ['/organizacion/cuadres', 'Cuadres de caja', 'scale'], ['/organizacion/devoluciones', 'Devoluciones', 'refresh'], ['/organizacion/horas', 'Horas y propinas', 'clock'], ['/organizacion/consumo', 'Consumo', 'chartLine'],
     ['/organizacion/rentabilidad', 'Rentabilidad', 'coins'], ['/organizacion/retorno', 'Retorno de inversión', 'chartLine']]],
   ['Contabilidad', [['/organizacion/facturacion', 'Facturación', 'billing'], ['/organizacion/pagos', 'Pagos', 'card'], ['/organizacion/empresa', 'Empresa e impuestos', 'lock']]],
-  ['Clientes y marca', [['/organizacion/clientes', 'Clientes', 'customers'], ['/organizacion/promociones', 'Promociones', 'percentage'], ['/organizacion/diseno', 'Diseño del menú', 'layout']]],
+  ['Clientes y marca', [['/organizacion/clientes', 'Clientes', 'customers'], ['/organizacion/promociones', 'Promociones', 'percentage'], ['/organizacion/diseno', 'Diseño del menú', 'layout'], ['/organizacion/whatsapp', 'WhatsApp', 'chat']]],
   ['Organización', [['/organizacion/restaurantes', 'Restaurantes', 'store'], ['/organizacion/catalogo', 'Catálogo', 'bag'], ['/organizacion/equipo', 'Equipo', 'users'], ['/organizacion/historial', 'Historial de cambios', 'history'], ['/organizacion/soporte', 'Soporte de ProjectApp', 'lock'],
     ['/organizacion/integraciones', 'Integraciones IA', 'sparkles']]],
 ]
