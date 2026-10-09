@@ -197,8 +197,21 @@ def update_rules(actor, data):
     return rules
 
 
-@transaction.atomic
 def enforce_subscriptions():
+    """Marca las cuentas vencidas, suspende por mora y envía los avisos del día, en dos fases.
+
+    Toda escritura del POS toma la fila de su organización (`sales.writing`). Por eso el estado se decide con las
+    organizaciones bloqueadas, como siempre, y los correos salen después, cuando ya se liberaron: un SMTP lento no
+    puede detener los cobros, la caja ni los pedidos de ningún cliente."""
+    counts, notices = _enforce_state()
+    for notice in notices:
+        _send_notice(counts, *notice)
+    return counts
+
+
+@transaction.atomic
+def _enforce_state():
+    """Fase 1: vencimiento y suspensión en una sola transacción; solo decide qué avisos tocan hoy."""
     rules = billing_settings()
     organizations = {o.pk: o for o in Organization.objects.select_for_update().order_by('pk')}
     charges = list(SubscriptionCharge.objects.select_for_update().filter(state__in=OPEN_STATES, kind='mensualidad', amount__gt=0).order_by('organization_id', 'due_date', 'pk'))
@@ -206,6 +219,7 @@ def enforce_subscriptions():
     for owner in Account.objects.filter(role='owner', active=True).exclude(email__isnull=True).exclude(email='').order_by('pk'):
         owners.setdefault(owner.organization_id, []).append(owner.email)
     counts = {'overdue': 0, 'reminders': 0, 'suspended': 0, 'mail_failed': 0}
+    notices = []
     for charge in charges:
         org = organizations[charge.organization_id]
         today = local_today(org)
@@ -223,22 +237,35 @@ def enforce_subscriptions():
                 f'vence el {charge.due_date.isoformat()}.\nSi queda sin pagar, la suspensión será el '
                 f'{(charge.due_date + timedelta(days=rules.suspend_after_days)).isoformat()}.\n— Equipo ProjectApp',
                 settings.EMAIL_FROM, sorted(set(owners[org.pk])))
-            try:
-                sent = mail.send(using='waiter')
-            except Exception:
-                logger.exception('No se pudo enviar el aviso de suscripción %s.', charge.pk)
-                sent = 0
-            if not sent:
-                counts['mail_failed'] += 1
-                continue
-            setattr(charge, field, timezone.now())
-            charge.save(update_fields=[field])
-            audit(None, org, 'subscription.reminder', {'charge_id': charge.pk, 'notice': notice})
-            counts['reminders'] += 1
+            notices.append((org, charge.pk, field, notice, mail))
         if charge.due_date < today and today >= charge.due_date + timedelta(days=rules.suspend_after_days) and org.status != 'suspended':
             organizations[org.pk] = set_suspension(None, org, True, 'mora')
             counts['suspended'] += 1
-    return counts
+    return counts, notices
+
+
+def _send_notice(counts, org, charge_id, field, notice, mail):
+    """Fase 2: un aviso por transacción corta que bloquea solo la fila del cargo, nunca las organizaciones."""
+    with transaction.atomic():
+        # Otra corrida que se solape espera esta fila y encuentra el aviso marcado; un cargo pagado o anulado entre
+        # las dos fases ya no recibe aviso. Un correo fallido no lo marca: la próxima corrida del día lo reintenta.
+        charge = SubscriptionCharge.objects.select_for_update().filter(pk=charge_id, state__in=OPEN_STATES, **{field: None}).first()
+        if charge is None:
+            return
+        try:
+            sent = mail.send(using='waiter')
+        except Exception:
+            logger.exception('No se pudo enviar el aviso de suscripción %s.', charge_id)
+            sent = 0
+        if not sent:
+            counts['mail_failed'] += 1
+            return
+        setattr(charge, field, timezone.now())
+        charge.save(update_fields=[field])
+    # Fuera del bloqueo del cargo: el registro apunta a la organización y su llave foránea pide leer esa fila, que una
+    # corrida en su fase 1 puede tener bloqueada mientras espera este cargo; dentro de la transacción se interbloquearían.
+    audit(None, org, 'subscription.reminder', {'charge_id': charge_id, 'notice': notice})
+    counts['reminders'] += 1
 
 
 def subscription_response(org):
