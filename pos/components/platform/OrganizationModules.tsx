@@ -8,6 +8,7 @@ import { Toggle } from '@/components/kit/Toggle'
 import { Button } from '@/components/ui/Button'
 import { Select, TextInput } from '@/components/ui/Field'
 import { ScrollTable } from '@/components/ui/ScrollTable'
+import { serverDate } from '@/lib/domain/time'
 import { CoreError } from '@/lib/services/core/http'
 import { changeOrganizationModules, organizationModules, organizationUsage, type CatalogModule, type ModuleChange, type ModuleSource, type ModuleState,
   type OrganizationModules as Modules, type OrganizationUsage } from '@/lib/services/core/platform'
@@ -91,14 +92,22 @@ export function OrganizationModulesPanel({ slug, canEdit }: { slug: string; canE
   )
 }
 
+// La vigencia es un instante con zona horaria: el servidor rechaza la fecha sola con 400. «Vence el» incluye todo el día
+// elegido en la hora del navegador; una vigencia guardada se muestra como su fecha y viaja intacta si no se cambia.
+const pad = (n: number) => String(n).padStart(2, '0')
+const dayOf = (at: string | null) => { if (!at) return ''; const d = serverDate(at); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` }
+const endOfDay = (day: string) => { const [y, m, d] = day.split('-').map(Number); return new Date(y, m - 1, d, 23, 59, 59, 999).toISOString() }
+
 function DetailsModal({ module, state, restaurantId, onClose, onSave }: { module: CatalogModule; state: ModuleState; restaurantId: number | null; onClose: () => void; onSave: (c: ModuleChange) => void }) {
-  const [ends, setEnds] = useState(state.ends ?? '')
+  const savedDay = dayOf(state.ends)
+  const [ends, setEnds] = useState(savedDay)
   const [price, setPrice] = useState(state.price === null ? '' : String(state.price))
   const [notes, setNotes] = useState(state.notes ?? '')
   const [limits, setLimits] = useState<Record<string, string>>(() => Object.fromEntries(module.units.map((u) => [u, state.limits?.[u] === undefined ? '' : String(state.limits[u])])))
   const save = () => {
     const parsed = Object.fromEntries(Object.entries(limits).filter(([, v]) => v !== '').map(([k, v]) => [k, Number(v)]))
-    onSave({ key: module.key, active: state.active, restaurant_id: restaurantId, ends: ends || null, price: price === '' ? null : Number(price), notes, limits: Object.keys(parsed).length ? parsed : null })
+    const until = ends === savedDay ? state.ends : ends ? endOfDay(ends) : null
+    onSave({ key: module.key, active: state.active, restaurant_id: restaurantId, ends: until, price: price === '' ? null : Number(price), notes, limits: Object.keys(parsed).length ? parsed : null })
   }
   return (
     <Modal open onClose={onClose} title={`${module.name} · vigencia y cupos`} size="center"
