@@ -1,11 +1,12 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 
 import { NewOrganizationWizard } from '@/components/platform/NewOrganizationWizard'
 import { OrganizationModulesPanel } from '@/components/platform/OrganizationModules'
+import { OrganizationSheet } from '@/components/platform/OrganizationSheet'
 import { messages } from '@/lib/i18n/messages'
 import { coreFetch } from '@/lib/services/core/http'
-import { updateOrganization, type PlatformUser } from '@/lib/services/core/platform'
+import { updateOrganization, type OrganizationDetail, type PlatformUser } from '@/lib/services/core/platform'
 import { usePlatformStore } from '@/lib/stores/platformStore'
 
 // La frontera es el transporte: lo que llega a coreFetch es lo que recibe el servidor de la plataforma.
@@ -99,4 +100,43 @@ it('una vigencia guardada se muestra como fecha y no cambia al editar otro dato'
   fireEvent.click(within(dialog).getByRole('button', { name: 'Guardar' }))
   await waitFor(() => expect(server).toHaveBeenCalledTimes(2))
   expect(sentBody(1)).toMatchObject({ key: 'fidelizacion', ends: saved, price: 20000 })
+})
+
+const ficha: OrganizationDetail = {
+  organization: { id: 'o1', slug: 'frisby', name: 'Frisby', legal_name: 'Frisby SA', tax_id: '860.000.000-1', billing_email: 'pagos@frisby.co',
+    billing_contact: '', plan: 'completo', monthly_price: 150000, status: 'active', trial_ends: null, max_restaurants: 2, timezone: 'America/Bogota',
+    suspended_at: null, suspended_reason: '', created_at: '2026-09-04T12:00:00Z', pricing: { mode: 'estandar', whatsapp_plan: null } },
+  owner: { name: 'María López', email: 'maria@frisby.co', username: 'maria.lopez', status: 'active' }, restaurants: [], audit: [],
+}
+// Responde la ficha y la lista de precios; lo demás que pide la ficha (módulos, consumo, saldo, soporte) queda pendiente.
+const replies: Record<string, unknown> = { 'organizations/frisby': ficha, 'settings/pricing': book }
+const serveSheet = () => server.mockImplementation(async (path: string) => (path in replies ? replies[path] : new Promise(() => undefined)))
+const patchBody = () => (server.mock.calls.find((call) => (call[1] as { method?: string } | undefined)?.method === 'PATCH')![1] as { body: Record<string, unknown> }).body
+async function editSheet() {
+  show(<OrganizationSheet slug="frisby" />)
+  fireEvent.click(await screen.findByRole('button', { name: 'Editar plan y datos' }))
+  return screen.getByRole('dialog', { name: 'Editar a Frisby' })
+}
+
+// Falla si «Editar plan y datos» manda precios cuando edita quien opera (el servidor responde 403 y no guarda nada), o
+// si quien administra pierde la edición de precios de la ficha.
+it('la ficha manda precios solo cuando la edita quien administra', async () => {
+  serveSheet()
+  usePlatformStore.setState({ user: person('operator') })
+  const operator = await editSheet()
+  expect(within(operator).queryByRole('group', { name: 'Precios del cliente' })).toBeNull()
+  fireEvent.change(within(operator).getByLabelText('Límite de restaurantes'), { target: { value: '3' } })
+  fireEvent.click(within(operator).getByRole('button', { name: 'Guardar' }))
+  await waitFor(() => expect(server).toHaveBeenCalledWith('organizations/frisby', expect.objectContaining({ method: 'PATCH' })))
+  expect(Object.keys(patchBody()).sort()).toEqual(['billing_contact', 'billing_email', 'legal_name', 'max_restaurants', 'name', 'plan', 'tax_id', 'trial_ends'])
+  expect(patchBody()).toMatchObject({ name: 'Frisby', max_restaurants: 3, trial_ends: null })
+  cleanup(); server.mockClear()
+  usePlatformStore.setState({ user: person('admin') })
+  const admin = await editSheet()
+  await within(admin).findByRole('option', { name: /Inicial/ })
+  fireEvent.change(within(admin).getByLabelText('Plan del asistente de WhatsApp'), { target: { value: 'inicial' } })
+  fireEvent.click(within(admin).getByRole('button', { name: 'Guardar' }))
+  await waitFor(() => expect(server).toHaveBeenCalledWith('organizations/frisby', expect.objectContaining({ method: 'PATCH' })))
+  expect(patchBody()).toMatchObject({ monthly_price: 150000 })
+  expect(patchBody().pricing).toEqual({ mode: 'estandar', whatsapp_plan: 'inicial' })
 })

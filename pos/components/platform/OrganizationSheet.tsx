@@ -83,7 +83,7 @@ export function OrganizationSheet({ slug, justCreated = false }: { slug: string;
       <section className="rounded-lg border border-border p-5"><h2 className="text-[17px] font-semibold mb-3">Historial</h2>
         {audit.length === 0 ? <p className="text-soft">Sin movimientos.</p> : <ul className="flex flex-col gap-2">{audit.map((a) => (
           <li key={a.id} className="flex flex-wrap justify-between gap-x-4 text-[14px]"><span>{ACTION[a.action] ?? a.action}{a.actor && <span className="text-soft"> · {a.actor.name}</span>}</span><span className="text-dim">{when(a.at)}</span></li>))}</ul>}</section>
-      {editing && <EditModal detail={data} onClose={() => setEditing(false)} onSaved={() => { setEditing(false); void act(async () => undefined, 'Cambios guardados.') }} />}
+      {editing && <EditModal detail={data} admin={role === 'admin'} onClose={() => setEditing(false)} onSaved={() => { setEditing(false); void act(async () => undefined, 'Cambios guardados.') }} />}
       {/* Suspender pide el motivo: queda en el historial y se lo mostramos al dueño si escribe a ProjectApp. */}
       {suspending && (
         <Modal open onClose={() => setSuspending(false)} title={`¿Suspender a ${o.name}?`} size="center">
@@ -98,7 +98,8 @@ export function OrganizationSheet({ slug, justCreated = false }: { slug: string;
   )
 }
 
-function EditModal({ detail, onClose, onSaved }: { detail: OrganizationDetail; onClose: () => void; onSaved: () => void }) {
+// El servidor solo admite precios de quien administra (403 a quien opera): quien opera edita lo demás sin tocarlos.
+function EditModal({ detail, admin, onClose, onSaved }: { detail: OrganizationDetail; admin: boolean; onClose: () => void; onSaved: () => void }) {
   const o = detail.organization
   const [form, setForm] = useState({ name: o.name, legal_name: o.legal_name, tax_id: o.tax_id, billing_email: o.billing_email, billing_contact: o.billing_contact, plan: o.plan, max_restaurants: String(o.max_restaurants), trial_ends: o.trial_ends ?? '' })
   const [busy, setBusy] = useState(false), [error, setError] = useState('')
@@ -110,7 +111,7 @@ function EditModal({ detail, onClose, onSaved }: { detail: OrganizationDetail; o
   const save = async () => {
     setBusy(true); setError('')
     try {
-      await updateOrganization(o.slug, { ...form, monthly_price: effectiveLocal(pricing, book), pricing, max_restaurants: Number(form.max_restaurants), trial_ends: form.trial_ends || null })
+      await updateOrganization(o.slug, { ...form, ...(admin && { monthly_price: effectiveLocal(pricing, book), pricing }), max_restaurants: Number(form.max_restaurants), trial_ends: form.trial_ends || null })
       onSaved()
     } catch (e) { setError(e instanceof Error ? e.message : 'No se pudo guardar.') } finally { setBusy(false) }
   }
@@ -125,8 +126,10 @@ function EditModal({ detail, onClose, onSaved }: { detail: OrganizationDetail; o
           <TextInput label="Límite de restaurantes" type="number" min={1} step={1} required value={form.max_restaurants} onChange={set('max_restaurants')} hint={`Hoy tiene ${detail.restaurants.length}.`} />
           <TextInput label="En prueba hasta" type="date" value={form.trial_ends} onChange={set('trial_ends')} />
         </div>
-        <ClientPricingForm value={pricing} onChange={setPricing} book={book} />
-        <p className="text-[13px] text-soft">Los cambios de precio se aplican desde la próxima cuenta; si cambia algo con mensualidad a mitad de mes, se ajusta por días.</p>
+        {admin ? <>
+          <ClientPricingForm value={pricing} onChange={setPricing} book={book} />
+          <p className="text-[13px] text-soft">Los cambios de precio se aplican desde la próxima cuenta; si cambia algo con mensualidad a mitad de mes, se ajusta por días.</p>
+        </> : <p className="text-[13px] text-soft">Los precios y el plan de WhatsApp de este cliente los cambia quien administra la plataforma.</p>}
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}
         <div className="flex justify-end gap-3"><Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button><Button type="submit" variant="primary" disabled={busy || Number(form.max_restaurants) < detail.restaurants.length}>{busy ? 'Guardando…' : 'Guardar'}</Button></div>
       </form>
