@@ -360,3 +360,22 @@ Nunca se corta a nadie sin aviso. Escalera con plantillas fijas y tono amable:
 5. **Selección por reglas** de candidatos y comandos con máquina de estados (incluye patrones de corrección).
 6. **Voz del LLM** con su revisión y plantillas de respaldo con varias redacciones.
 7. Banco de preguntas frecuentes, conjunto de prueba con pass^k y WhatsApp con listas y botones.
+
+---
+
+## 16. Modelo de la voz y cachés
+
+**Modelo de la voz:** GPT-6 Luna (`gpt-6-luna`, por confirmar con la primera llamada), USD 0,10 / 0,50 por millón de
+tokens: ~COP 0,36 por respuesta y ~COP 2,2 por atención. Solo voz; además, respaldo de los oídos en pedidos muy
+compuestos y la propuesta única de etiquetas del catálogo.
+
+**Tres niveles distintos:**
+
+| Nivel | Qué guarda | Alcance | Cuándo deja de valer |
+|---|---|---|---|
+| **Caché del restaurante** | La **decisión** para una pregunta normalizada (ruta de Jev, platos elegidos, entrada del banco), no el texto del modelo | Por restaurante; nunca entre restaurantes | Al cambiar la versión de lo que usa: carta, precios, agotados, preguntas frecuentes, horario o datos de la sede |
+| **Perfil del cliente** (memoria) | Preferencias aprendidas (picante, sin azúcar, porción, para compartir), favoritos, pedidos anteriores y alergias | Por cliente **y por organización**; en WhatsApp se identifica por el número | No vence: el cliente lo ve, lo corrige o lo borra (política de privacidad); solo con cuenta o número identificado |
+| **Caché del proveedor** (OpenAI) | La parte fija de la llamada de voz | Automática | La gestiona OpenAI; armamos cada llamada con lo fijo primero y lo variable al final |
+
+El perfil lo usa el **servidor** al elegir candidatos («Ana, ¿lo de siempre?»); al LLM solo le llega el dato puntual de
+esa respuesta, nunca el perfil completo.
