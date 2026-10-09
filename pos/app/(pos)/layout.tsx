@@ -34,15 +34,7 @@ export default function PosLayout({ children }: { children: React.ReactNode }) {
   const allowed = (role: Role) => allowedPath(role, pathname, policy) || (emergency && operatesInEmergency(role) && emergencyPath(pathname))
 
   useEffect(() => { void hydrate() }, [hydrate])
-  // PWA: registro del service worker (no hace nada más que permitir la instalación).
-  // Plan U2: el service worker guarda la app para abrirla sin internet; solo en producción (en desarrollo estorbaría
-  // la recarga en caliente).
-  useEffect(() => {
-    if (!('serviceWorker' in navigator)) return
-    if (process.env.NODE_ENV === 'production') void navigator.serviceWorker.register('/sw.js').catch(() => undefined)
-    // En desarrollo se quita el que haya quedado registrado: guardaría archivos que aquí cambian a cada edición.
-    else void navigator.serviceWorker.getRegistrations().then((all) => all.forEach((r) => void r.unregister())).catch(() => undefined)
-  }, [])
+  // El service worker (PWA y modo sin conexión) lo registra la raíz: components/app/ServiceWorkerSetup.tsx.
   useEffect(() => {
     if (!hydrated) return
     // Sin usuario: login. Con usuario pero sin caja abierta: abrir caja (no es un error, es el inicio del turno).
