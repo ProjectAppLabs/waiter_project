@@ -132,6 +132,9 @@ DINER_PUBLIC_URL = os.getenv('DINER_PUBLIC_URL', 'http://192.168.56.10:3001').rs
 DESIGN_VERIFIER_CMD = os.getenv('DESIGN_VERIFIER_CMD', '')
 DESIGN_VERIFIER_TIMEOUT = int(os.getenv('DESIGN_VERIFIER_TIMEOUT', '180'))
 DESIGN_VERIFIER_REQUIRED = os.getenv('DESIGN_VERIFIER_REQUIRED', 'true').lower() in {'1', 'true', 'yes', 'on'}
+# Con MAILERS, Django lee use_ssl y use_tls solo de OPTIONS y son excluyentes: el puerto 465 (TLS implícito) necesita
+# use_ssl; STARTTLS (use_tls) queda para el resto. En minúsculas: Django 6.1 rechaza el setting EMAIL_USE_SSL junto a MAILERS.
+email_use_ssl = os.getenv('EMAIL_USE_SSL', 'false').lower() in {'1', 'true', 'yes', 'on'}
 MAILERS = {'default': {
     'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
     'OPTIONS': {
@@ -139,7 +142,8 @@ MAILERS = {'default': {
         'port': int(os.getenv('EMAIL_PORT', '587')),
         'username': os.getenv('EMAIL_HOST_USER', ''),
         'password': os.getenv('EMAIL_HOST_PASSWORD', ''),
-        'use_tls': os.getenv('EMAIL_USE_TLS', 'true').lower() in {'1', 'true', 'yes', 'on'},
+        'use_ssl': email_use_ssl,
+        'use_tls': not email_use_ssl and os.getenv('EMAIL_USE_TLS', 'true').lower() in {'1', 'true', 'yes', 'on'},
         'timeout': 10,
     },
 }}
@@ -170,6 +174,11 @@ MAILERS['waiter'] = {
         else {}
     ),
 }
+# Falla cerrado: en producción un correo que no sale del servidor (archivo, consola, memoria o nulo) se reportaría como
+# enviado y las invitaciones y los avisos de cobro no llegarían a nadie.
+if IS_PRODUCTION and WAITER_EMAIL_BACKEND in {f'django.core.mail.backends.{name}.EmailBackend'
+                                              for name in ('filebased', 'console', 'locmem', 'dummy')}:
+    raise RuntimeError('EMAIL_BACKEND con salida real (p. ej. django.core.mail.backends.smtp.EmailBackend) es obligatorio en producción')
 # La cabecera del inquilino debe pasar el preflight del navegador.
 from corsheaders.defaults import default_headers
 CORS_ALLOW_HEADERS = (*default_headers, 'x-waiter-org')
