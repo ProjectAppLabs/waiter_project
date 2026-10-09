@@ -232,3 +232,63 @@ promete. El determinismo se construye alrededor, en este orden de impacto:
   razonamiento entiende mejor, pero varía más y cuesta más. Se decide con la prueba técnica.
 - ¿Cuántas acciones queremos que el asistente haga sin confirmación? La propuesta: **ninguna que cambie dinero o la
   cocina**; agregar al carrito sí, con umbral alto y botón de deshacer.
+
+---
+
+## 9. Modelo híbrido: botones y texto libre
+
+La persona puede escribir lo que quiera en cualquier momento; los botones son atajos, no una jaula. En cada turno el
+servidor conoce lo que hay en pantalla (botones, tarjetas, pregunta pendiente) y decide el camino:
+
+1. **Coincidencia exacta sin modelos:** toque de botón, «sí / no / la 2» a la pregunta pendiente, nombre de un plato del
+   catálogo aunque tenga errores de escritura.
+2. **Jev con opciones dinámicas:** una pregunta `choice` cuyas opciones son **los botones y tarjetas actuales** más las
+   salidas fijas (`faq`, `libre`, `fuera`). «Dame la de maracuyá» elige la tarjeta con confianza alta y se ejecuta como
+   el botón; con confianza media se pregunta «¿Te refieres a…?» con botones.
+3. **LLM solo para `libre`:** deseos abiertos y recomendaciones. Su salida **vuelve a ser tarjetas con botones**; nada
+   pasa al carrito sin un toque o una orden explícita confirmada por Jev.
+
+---
+
+## 10. Referencias: quién ya hace esto y qué copiamos
+
+Lo que tienen en común los sistemas que funcionan en producción: **el modelo entiende, pero no manda**. La lógica del
+negocio es determinista y el modelo solo traduce lenguaje natural a órdenes que esa lógica sabe ejecutar.
+
+| Referencia | Qué hace | Qué copiamos para Waiter |
+|---|---|---|
+| **Rasa CALM** (código abierto) | El LLM traduce cada mensaje en **comandos** internos y un gestor de diálogo ejecuta **flujos deterministas**. Trae «patrones de reparación» para correcciones, digresiones, aclaraciones y cancelaciones | Nuestro LLM devuelve **comandos** (`agregar`, `quitar`, `cambiar`, `preguntar`, `recomendar`, `estado`) y la máquina de estados los ejecuta. Los patrones de reparación («no, mejor la otra», «olvídalo», «espera, ¿cuánto vale?») son flujos fijos, no improvisación |
+| **NVIDIA NeMo Guardrails** (código abierto) | **Flujos de diálogo deterministas** para los caminos más comunes y lo generativo para el resto; «formas canónicas» que resumen la intención de un mensaje | Los caminos frecuentes (horario, domicilio, ver menú, repetir pedido, estado) no pasan por el LLM. El banco de preguntas guarda variantes de cada pregunta, como sus formas canónicas |
+| **Semantic Router** (Aurelio, código abierto) | Enruta por similitud de significado contra frases de ejemplo, en unos milisegundos y **sin llamar a un LLM**, con umbral configurable | Primera capa barata antes de Jev: si un mensaje se parece mucho a una frase de ejemplo de una ruta, se resuelve ahí. Jev queda para lo dudoso y para las preguntas que necesitan contexto |
+| **Parlant** (código abierto) | **Respuestas preparadas** con campos dinámicos y un **modo estricto** para los momentos críticos; directrices con condición y acción; verificación de que la salida respeta las reglas | Totales, confirmaciones, enlaces de pago y errores salen de **plantillas con datos del servidor** (modo estricto). Para que no suene robótico, cada plantilla tiene **varias redacciones aprobadas** y se elige una de forma determinista |
+| **Sierra** (comercial) | **Supervisores** que revisan la entrada y la salida del agente principal; **simulación de conversaciones** para probar a escala; métrica **pass^k** (resolver la misma tarea en las *k* repeticiones) | Jev como supervisor de entrada y de salida. Batería de **clientes simulados** (con un LLM jugando al cliente) y **pass^k** como medida de determinismo: misma conversación corrida *k* veces, mismo resultado |
+| **τ-bench** (Sierra, investigación) | Agentes de atención con herramientas: aun los mejores fallaron más de la mitad de las tareas y fueron **inconsistentes** (pass^8 < 25 % en comercio) cuando el LLM decidía todo | Confirma el enfoque: no dejarle al LLM la secuencia de pasos ni las acciones; medir consistencia, no solo aciertos |
+| **Wendy's FreshAI** (Google) | Pedido por voz con el menú, reglas de negocio y guardarraíles, conectado al POS. **86 %** de pedidos sin intervención del personal y **~99 %** si se cuenta con que una persona corrija | Siempre hay un camino para que el personal tome la conversación desde el POS. Medimos las dos cifras: resuelto solo y resuelto con ayuda |
+| **McDonald's con IBM** (terminado en 2024) | La precisión se quedó en el rango del **80 %** cuando la meta era **95 %**; videos virales de pedidos absurdos | No lanzar a más restaurantes sin medir la precisión con conversaciones reales (sección 6) y fijar la meta antes |
+| **Taco Bell** (2025) | Un cliente pidió **18.000 vasos de agua** y el sistema lo aceptó; bucles de preguntas. Volvieron a dejar personas en la hora pico | **Límites de sentido común** en el servidor (cantidades máximas por producto y por pedido, total máximo sin confirmación), detección de bucles (la misma pregunta dos veces lleva a botones o a una persona) |
+
+---
+
+## 11. Determinista por dentro, natural por fuera
+
+El cliente **no debe notar** ninguna de estas capas. Lo que lo garantiza:
+
+- **El texto libre siempre se acepta.** Los botones aparecen como sugerencias (respuestas rápidas en WhatsApp, chips en
+  el menú); nunca se le dice «elige una opción».
+- **Las respuestas preparadas tienen varias redacciones** aprobadas y campos personalizados (nombre del cliente, plato,
+  hora). Se elige una variante con una huella de la conversación: no se repite la misma frase dos veces seguidas, y la
+  misma situación da el mismo contenido.
+- **El LLM aporta la calidez** (una frase corta) donde no hay cifras; el servidor aporta la exactitud.
+- **Nunca se explica el mecanismo** («estoy clasificando tu mensaje»). Si algo no se entiende, se pregunta como lo haría
+  una persona: «¿Te refieres a la Limonada o al Jugo de maracuyá?».
+- **Rapidez:** las capas sin modelo responden en milisegundos; Jev en cientos; el LLM solo cuando hace falta. Meta: menos
+  de 2 segundos en el 90 % de los mensajes.
+- **Tono fijo del restaurante** en las plantillas y en el prompt, con el saludo y el nombre del asistente que el dueño ya
+  configura en la marca.
+
+Fuentes: [Rasa CALM](https://rasa.com/docs/learn/concepts/calm/), [NeMo Guardrails](https://github.com/NVIDIA/NeMo-Guardrails),
+[Semantic Router](https://docs.aurelio.ai/), [Parlant: diseño agéntico](https://parlant.io/docs/production/agentic-design),
+[Sierra: agentes empresariales](https://sierra.ai/jp/blog/enterprise-grade-agents), [τ-bench](https://export.arxiv.org/pdf/2406.12045),
+[Wendy's FreshAI](https://www.restaurantdive.com/news/wendys-expand-google-generative-ai-drive-thru-test/702184/),
+[McDonald's termina la prueba con IBM](https://www.nrn.com/quick-service/mcdonald-s-is-ending-its-ai-drive-thru-test-with-ibm),
+[Taco Bell replantea la voz con IA](https://www.computing.co.uk/news/2025/ai/taco-bell-scales-back-ai-tests-after-customer-complaints).
