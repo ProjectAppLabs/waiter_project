@@ -111,13 +111,16 @@ class OverviewView(PosView):
 
 class RestaurantCatalogView(PosView):
     def get(self, request):
-        s.owner(self.account)
+        # El encargado también lista la carta y los agotados de SUS restaurantes para poder reactivar un plato tras
+        # recargar; sólo el dueño recibe los precios (base y por restaurante). La forma de la respuesta no cambia.
+        s.manager(self.account)
+        is_owner = self.account.role == 'owner'
         restaurants = list(restaurants_for(self.account).order_by('id'))
         data = CatalogData(self.org, restaurants)
-        return Response({'dishes': [{**model_dict(p, ('id', 'name', 'price')),
+        return Response({'dishes': [{**model_dict(p, ('id', 'name', 'price') if is_owner else ('id', 'name')),
                                     'category': next((c.name for c in p.categories.all()), '')}
                                    for p in data.products.values() if p.active and p.kind == 'dish'],
-                         'prices': {str(r.pk): {str(pid): float(price) for (rid, pid), price in data.prices.items() if rid == r.pk} for r in restaurants},
+                         'prices': {str(r.pk): {str(pid): float(price) for (rid, pid), price in data.prices.items() if rid == r.pk} for r in restaurants} if is_owner else {},
                          'unavailable': {str(r.pk): sorted(pid for rid, pid in data.unavailable if rid == r.pk) for r in restaurants}})
 
     def put(self, request, restaurant_id, pk):

@@ -129,7 +129,7 @@ def test_precios_agotados_y_permisos(setup, role):
     assert c.put(url, {'unavailable': True}, format='json').status_code == (200 if role in ('owner', 'admin') else 403)
     other = f'{BASE}/catalog/restaurants/{x["r2"].pk}/products/{x["dish"].pk}'
     assert c.put(other, {'unavailable': True}, format='json').status_code == (200 if role == 'owner' else 404 if role == 'admin' else 403)
-    assert c.get(f'{BASE}/catalog/restaurants').status_code == (200 if role == 'owner' else 403)
+    assert c.get(f'{BASE}/catalog/restaurants').status_code == (200 if role in ('owner', 'admin') else 403)
     assert c.get(f'{BASE}/catalog/overview').status_code == (200 if role in ('owner', 'admin') else 403)
 
 
