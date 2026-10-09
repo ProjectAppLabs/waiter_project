@@ -19,7 +19,7 @@ LEER = (
 
 
 def cargar(**entorno):
-    # La configuración se importa en un proceso aparte para no contaminar la de las pruebas.
+    """Importa la configuración en un proceso aparte, con el entorno dado, sin contaminar la de las pruebas."""
     base = {'PATH': os.environ['PATH'], 'HOME': os.environ.get('HOME', '/tmp'), 'DJANGO_SECRET_KEY': 'x' * 64,
             'DJANGO_DEBUG': 'false'}
     return subprocess.run([sys.executable, '-c', LEER], cwd=EXPERIENCE, env={**base, **entorno},
@@ -27,6 +27,7 @@ def cargar(**entorno):
 
 
 def test_produccion_sin_correo_real_no_arranca():
+    """Producción no arranca si el mailer waiter no saca el correo del servidor."""
     # Falla si producción arranca con el respaldo de archivo y reporta como enviados correos que nunca salen.
     resultado = cargar(DJANGO_ENV='production')
     assert resultado.returncode != 0
@@ -34,6 +35,7 @@ def test_produccion_sin_correo_real_no_arranca():
 
 
 def test_ssl_implicito_excluye_starttls():
+    """EMAIL_USE_SSL enciende el TLS implícito y apaga STARTTLS."""
     # Falla si EMAIL_USE_SSL se ignora y el mailer intenta STARTTLS contra el puerto 465.
     resultado = cargar(DJANGO_ENV='production', EMAIL_BACKEND=SMTP, EMAIL_PORT='465', EMAIL_USE_SSL='true')
     assert resultado.returncode == 0, resultado.stderr
@@ -41,6 +43,7 @@ def test_ssl_implicito_excluye_starttls():
 
 
 def test_desarrollo_conserva_el_respaldo_de_archivo():
+    """Desarrollo sigue dejando los correos en archivo."""
     # Falla si la guarda de producción rompe el desarrollo, que deja los correos en experience/mail.
     resultado = cargar()
     assert resultado.returncode == 0, resultado.stderr
