@@ -3,7 +3,8 @@
 La ronda `2026-10-07-waiter-x0` cubre Pago e Historial; `2026-10-08-waiter-w0` añade
 salida offline y la entrada al asistente de Pedidos. La ronda `waiter-r3-20261008` amplía
 el contrato de importes finales, las rondas, la emergencia y la conciliación de pagos;
-su ejecución sólo se acredita en el recibo de QA del SHA exacto combinado. Este mapa no
+su ejecución sólo se acredita en el recibo de QA del SHA exacto combinado. La ronda r4
+añade Cocina, Inventario → Menú y Operación en vivo en tableta y celular. Este mapa no
 certifica el resto del POS ni el comensal. El registro vive en `pos/e2e/flow-definitions.json`.
 
 ## Convenciones y roles
@@ -108,3 +109,31 @@ predeterminado de Playwright, 1280×720. La matriz de cinco tamaños no se atrib
 a estos cinco casos nuevos, que no modifican layouts. Los recibos de rondas anteriores permanecen como historia y no
 certifican esta ampliación. No se acredita cobertura completa de permisos,
 tarjeta/QR ni de todas las clases de resultado por estos guiones.
+
+## Cocina, inventario y operación en vivo · ronda r4
+
+Tres pantallas del POS quedan usables en tableta y celular. Cada caso prepara sus
+datos por la API de la cuenta aislada y después entra, lee y actúa por la UI; el
+registro de los flujos está en `pos/e2e/flow-definitions.json`.
+
+| Flujo | Interacción y resultado concreto | Código y spec asignado |
+|---|---|---|
+| pos-kitchen-tickets | Dashboard → Cocina por la navegación principal. Una comanda para llevar con nota única muestra su cronómetro y «Iniciar preparación»; al iniciarla, el botón pasa a «Listo todo». Cronómetro y botón alcanzables, sin desborde horizontal del documento. Si el servidor rechaza la lectura o la acción, el error queda en una alerta. | `pos/app/(pos)/kds/page.tsx:74`; `pos/app/(pos)/kds/page.tsx:69`; `pos/components/kds/TicketCard.tsx:38`; `pos/components/kds/TicketCard.tsx:91`; `pos/e2e/cocina/ronda.spec.ts:32` |
+| pos-inventory-dishes | Dashboard → Inventario por la navegación principal. En la «Lista del menú», el nombre de un plato propio no queda tapado por «Agotar aquí» ni la insignia «Disponible» por el lápiz de edición; agotarlo en este restaurante deja a la vista «Volver a ofrecer». Sin desborde horizontal. Si agotarlo falla, un aviso muestra el error. | `pos/app/(pos)/inventario/page.tsx:155`; `pos/app/(pos)/inventario/page.tsx:79`; `pos/components/pantry/FilterPanel.tsx:21`; `pos/components/pantry/DishCard.tsx:41`; `pos/e2e/inventario/ronda.spec.ts:28` |
+| pos-operations-shift | Operación en vivo se abre por su dirección, `/operacion`, porque la interfaz no tiene enlace (guía de QA, E-10). En la pestaña Pagos, la fila de un pedido pendiente conserva «Mesa / mesero» (… · Operador QA), el total 38.900 y el estado «Pendiente». Sin desborde horizontal. | `pos/app/(pos)/operacion/page.tsx:81`; `pos/app/(pos)/operacion/page.tsx:84`; `pos/components/ops/ShiftTable.tsx:21`; `pos/e2e/pedidos/operacion.spec.ts:15` |
+
+Tamaños: Cocina y Operación se comprueban en 835×1194 y 412×915, los dos anchos donde
+se recortaban; Inventario, en los cinco (835×1194, 412×915, 1195×835, 1440×900 y
+2560×1440), tableta vertical primero, porque su tarjeta cambia en todos. Cada caso
+lleva `@flow`, `@viewport` y un solo outcome: success en Cocina e Inventario,
+display en Operación. La clase failure registrada en Cocina e Inventario expresa el
+camino de la UI, no cobertura acreditada: ningún caso de esta ronda la ejerce.
+
+| Flujo y resultado | Prueba calificable | Límite del guion |
+|---|---|---|
+| pos-kitchen-tickets · success | `pos/e2e/cocina/ronda.spec.ts` | Iniciar una comanda en 835×1194 y 412×915. No acredita pulsar «Listo todo», el pase a «Listos por entregar» ni los otros tres anchos. |
+| pos-inventory-dishes · success | `pos/e2e/inventario/ronda.spec.ts` | Agotar un plato propio en los cinco anchos. No acredita volver a ofrecerlo, ingredientes ni solicitudes de compra. |
+| pos-operations-shift · display | `pos/e2e/pedidos/operacion.spec.ts` | La fila de un pedido pendiente en Pagos, en 835×1194 y 412×915. No acredita alertas, los demás filtros ni los otros anchos. |
+
+La ejecución de estos nueve casos sólo se acredita en el recibo de QA del SHA
+combinado de r4; la evidencia local del frente no lo sustituye.
