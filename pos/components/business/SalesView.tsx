@@ -17,7 +17,7 @@ import { KpiTile } from '@/components/ui/KpiTile'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { formatCop } from '@/lib/domain/money'
 import { can, effectiveRole } from '@/lib/domain/roles'
-import { cashInOut, closeRegister, closingData, forceCloseRegister, type ClosingData } from '@/lib/services/cashRegister'
+import { cashInOut, closeRegister, closingData, type ClosingData } from '@/lib/services/cashRegister'
 import { SALES_LIST_LIMIT, listSales, listShifts, paymentsByMethod, salesByWaiter, salesSummary, topProducts, type SalesSummary, type MethodTotal, type ProductTotal, type SaleRow, type ShiftRow, type WaiterTotal } from '@/lib/services/sales'
 import { SALES_PERIODS, rangeFor, validRange, type DayRange, type SalesPeriod, type SalesScope } from '@/lib/domain/salesPeriod'
 import { useAuthStore } from '@/lib/stores/authStore'
@@ -156,8 +156,7 @@ export function SalesView() {
         </Card>
       </div>
       {closing && session && <CloseRegisterModal data={closing} onClose={() => setClosing(null)}
-        onConfirm={async (counted, notes) => { const r = await closeRegister(session.id, counted, notes); if (r.successful) setTimeout(() => void refreshSession(), 1500); return r }}
-        canForce={can.forceCloseRegister(role)} onForce={async () => { const r = await forceCloseRegister(session.id); if (r.successful) setTimeout(() => void refreshSession(), 1500); return r }} />}
+        onConfirm={async (counted, notes) => { const r = await closeRegister(session.id, counted, notes); if (r.successful) setTimeout(() => void refreshSession(), 1500); return r }} />}
     </>
   )
 }

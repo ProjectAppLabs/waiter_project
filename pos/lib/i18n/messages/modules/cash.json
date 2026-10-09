@@ -51,8 +51,6 @@
     "closing": "Cerrando…",
     "closed": "Caja cerrada. El turno queda contabilizado en el servidor.",
     "failed": "el servidor no cerró la caja: {message}",
-    "force": "Forzar cierre (administrador)",
-    "forceHint": "el servidor detectó un descuadre contable. Forzar el cierre lo contabiliza como diferencia de caja.",
     "refunds": "Devoluciones en efectivo"
   },
   "sales": {

@@ -3,13 +3,15 @@ import { NextIntlClientProvider } from 'next-intl'
 
 import { SalesView } from '@/components/business/SalesView'
 import { messages } from '@/lib/i18n/messages'
+import { closeRegister, closingData } from '@/lib/services/cashRegister'
 import { downloadExport } from '@/lib/services/core/exports'
 import { listShifts, salesSummary } from '@/lib/services/sales'
 
-const auth = { session: null, refreshSession: jest.fn(), user: { role: 'admin' } }
+const auth = { session: null as { id: number; configId: number } | null, refreshSession: jest.fn(), user: { role: 'admin' } }
 jest.mock('@/lib/stores/authStore', () => ({ useAuthStore: (select?: (s: unknown) => unknown) => (select ? select(auth) : auth) }))
 jest.mock('@/lib/stores/catalogStore', () => ({ useCatalogStore: (select: (s: unknown) => unknown) => select({ catalog: { tables: [{ id: 5, number: 12 }], settings: { configId: 3 } } }) }))
-jest.mock('@/lib/services/cashRegister', () => ({ cashInOut: jest.fn(), closeRegister: jest.fn(), closingData: jest.fn(), forceCloseRegister: jest.fn() }))
+jest.mock('@/lib/services/cashRegister', () => ({ cashInOut: jest.fn(), closeRegister: jest.fn(), closingData: jest.fn() }))
+jest.mock('@/lib/services/business', () => ({ cashSettings: jest.fn().mockResolvedValue({ tolerance: 0, currency: 'COP' }) }))
 jest.mock('@/lib/services/core/exports', () => ({ downloadExport: jest.fn(async (kind: string) => `${kind}.csv`) }))
 jest.mock('@/lib/stores/toastStore', () => ({ toast: jest.fn() }))
 jest.mock('@/lib/services/sales', () => ({
@@ -25,7 +27,23 @@ jest.mock('@/lib/services/sales', () => ({
 const wrap = () => render(<NextIntlClientProvider locale="es" messages={messages}><SalesView /></NextIntlClientProvider>)
 beforeEach(() => {
   jest.clearAllMocks()
+  auth.session = null
   jest.mocked(listShifts).mockResolvedValue([{ id: 7, name: 'Turno mañana', state: 'closed', startAt: '2026-10-03T13:00:00Z', stopAt: '2026-10-03T22:00:00Z', user: 'Carlos', total: 0, orders: 0 }])
+})
+
+// Falla si tras un cierre de caja rechazado por el servidor el encargado vuelve a ver «Forzar cierre», que anunciaba
+// «Caja cerrada. El turno queda contabilizado en el servidor.» sin llamarlo y dejaba el turno abierto.
+it('un cierre rechazado muestra el motivo del servidor sin ofrecer forzarlo', async () => {
+  auth.session = { id: 7, configId: 3 }
+  jest.mocked(closingData).mockResolvedValue({ ordersCount: 1, ordersTotal: 10000, expectedCash: 10000, openingCash: 0, cashPayments: 10000, cashMoves: [], otherMethods: [], draftOrders: 0, openingNotes: '' })
+  jest.mocked(closeRegister).mockResolvedValue({ successful: false, message: 'Escribe por qué no cuadra la caja.' })
+  wrap()
+  fireEvent.click(await screen.findByRole('button', { name: 'Cerrar caja' }))
+  const dialog = await screen.findByRole('dialog', { name: 'Cerrar caja' })
+  fireEvent.change(within(dialog).getByLabelText(/Efectivo contado/), { target: { value: '10000' } })
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Cerrar caja' }))
+  expect(await within(dialog).findByRole('alert')).toHaveTextContent('Escribe por qué no cuadra la caja.')
+  expect(within(dialog).queryByRole('button', { name: /Forzar cierre/ })).toBeNull()
 })
 
 // Falla si los indicadores (ventas, pedidos, ticket promedio, autónomos) no salen del resumen del periodo, o si las

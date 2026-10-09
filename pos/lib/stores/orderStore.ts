@@ -45,9 +45,10 @@ export interface ReceiptData {
   company: string; tableNumber: number; tableLabel?: string; reference: string; at: number; lines: { uuid: string; name: string; qty: number; unitPrice: number; discount?: number; total?: number }[]
   subtotal: number; tax: number; tip: number; total: number; payments: { method: string; amount: number; reference: string }[]; change: number
 }
-// Lo que el cobro necesita saber además del plan: dónde está el pedido y con qué pintar el recibo.
+// Lo que el cobro necesita saber además del plan: dónde está el pedido (con la propina que ya tenga registrada) y con
+// qué pintar el recibo.
 export interface SettleContext {
-  existing: { orderId: number; tableId: number } | null; tipProductId: number | null; tableNumber: number; tableLabel?: string; company: string
+  existing: { orderId: number; tableId: number; tip?: number } | null; tableNumber: number; tableLabel?: string; company: string
   lines: ReceiptData['lines']; methodName: (id: number) => string
 }
 
@@ -93,8 +94,11 @@ export const useOrderStore = create<OrderState>((set, get) => {
       }
       set({ busy: true, error: null })
       try {
-        if (plan.tip > 0 && ctx.tipProductId) await addTip(orderId, ctx.tipProductId, plan.tip)
-        for (const p of plan.payments) await payOrder(orderId, p.methodId, p.amount, p.received, p.reference)
+        // La propina elegida viaja antes de los pagos cuando difiere de la que el pedido ya tiene (también para quitarla):
+        // sin ella el servidor rechaza el pago de total + propina porque supera el saldo.
+        if (plan.tip !== (ctx.existing?.tip ?? 0)) await addTip(orderId, plan.tip)
+        // Solo el efectivo lleva lo recibido, como el cobro sin conexión: el servidor lo rechaza en datáfono o QR.
+        for (const p of plan.payments) await payOrder(orderId, p.methodId, p.amount, p.type === 'cash' ? p.received : undefined, p.reference)
         const ch = change(plan.payments)
         if (ch > 0) await setChange(orderId, ch)
         const closed = await closeOrder(orderId)
