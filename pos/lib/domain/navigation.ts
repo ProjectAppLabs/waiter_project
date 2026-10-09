@@ -43,10 +43,15 @@ export function pathAllowed(role: Role, pathname: string, policy: RolePolicy = D
   return sub ? adminSubtabsFor(role, policy).some(([key]) => key === sub) : role === 'admin'
 }
 
-// Inicio por rol y por vistas autorizadas. Sin caja, el equipo operativo va a abrirla.
+// El servidor sólo deja abrir caja a dueño, encargado y cajero (experience/sales/api.py: require role in
+// owner/admin/cashier). En el POS el dueño opera como 'admin', así que a este nivel son el encargado y el cajero.
+export const canOpenRegister = (role: Role): boolean => role === 'admin' || role === 'cashier'
+
+// Inicio por rol y por vistas autorizadas. Sin caja, quien SÍ puede abrirla va a abrirla; un mesero no, así que no lo
+// mandamos a un formulario que el servidor siempre le rechazaría: va a su pantalla de siempre (Mesas).
 export function homePath(role: Role, hasOpenSession: boolean, policy: RolePolicy = DEFAULT_ROLE_POLICY): string {
   if (role === 'admin') return '/dashboard'
-  if (!hasOpenSession) return '/caja'
+  if (!hasOpenSession && canOpenRegister(role)) return '/caja'
   const preferred: KitTab[] = role === 'waiter' ? ['tables', 'orders'] : ['orders', 'tables']
   const tab = [...preferred, ...tabsFor(role, policy)].find((entry) => tabsFor(role, policy).includes(entry))
   return tab === 'admin' ? adminSubtabsFor(role, policy)[0]?.[1] ?? '/salon' : TAB_ROUTES[tab ?? 'tables']

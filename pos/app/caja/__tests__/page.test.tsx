@@ -57,3 +57,13 @@ it('con caja abierta va al salón y sin sesión al inicio', async () => {
   wrap()
   await waitFor(() => expect(replace).toHaveBeenCalledWith('/login'))
 })
+
+// Falla si, cuando el servidor rechaza abrir la caja, la pantalla se queda muda (sin mensaje) o navega igual al salón.
+it('muestra el mensaje del servidor cuando no se puede abrir la caja', async () => {
+  as('cashier', { openRegister: jest.fn(async () => { throw new Error('No tienes permiso para esta acción.') }) })
+  wrap()
+  await waitFor(() => expect(screen.getByLabelText('Caja')).toHaveValue('4'))
+  fireEvent.click(screen.getByRole('button', { name: /Abrir caja/ }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('No tienes permiso para esta acción.')
+  expect(replace).not.toHaveBeenCalledWith('/salon')
+})

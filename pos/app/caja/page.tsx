@@ -27,6 +27,7 @@ export default function CajaPage() {
   const [cash, setCash] = useState('')
   const [notes, setNotes] = useState('')
   const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => { void hydrate() }, [hydrate])
   useEffect(() => {
@@ -43,7 +44,12 @@ export default function CajaPage() {
   async function open() {
     if (chosenId === null) return
     setBusy(true)
-    try { await openRegister(chosenId, Number(cash || '0'), notes); router.replace('/salon') } finally { setBusy(false) }
+    setError('')
+    // El servidor decide quién puede abrir caja (dueño, encargado, cajero); si la rechaza, mostramos su mensaje en vez
+    // de dejar una promesa rechazada sin manejar y un formulario que parece no responder.
+    try { await openRegister(chosenId, Number(cash || '0'), notes); router.replace('/salon') }
+    catch (e) { setError(e instanceof Error ? e.message : String(e)) }
+    finally { setBusy(false) }
   }
   if (!hydrated || !user || !employee || session) return null
   return (
@@ -71,6 +77,7 @@ export default function CajaPage() {
             <AmountInput label={t('openingCash')} value={cash} onChange={setCash} />
             <NumericKeypad onDigit={(d) => setCash((v) => pushDigit(v, d))} onBackspace={() => setCash(popDigit)} />
             <Button type="submit" variant="primary" size="money" className="w-full max-w-[420px] mt-2" disabled={busy || chosenId === null}><Icon name="cash" size={20} />{busy ? t('opening') : t('submit')}</Button>
+            {error && <p role="alert" className="text-danger-ink text-[14px] text-center max-w-[420px]">{error}</p>}
           </section>
         </div>
       </form>

@@ -89,7 +89,9 @@ def decode_logo(value):
     try:
         raw = base64.b64decode(value, validate=True)
         valid(len(raw) <= 2000000, "El logo no puede pesar más de 2 MB.")
-        with Image.open(io.BytesIO(raw)) as img:
+        # formats= limita a los parsers que la validación ya acepta: Pillow nunca despacha a EPS/PDF/FITS (su apertura
+        # puede colgarse o explotar antes de este chequeo). La lista blanca de abajo se conserva igual.
+        with Image.open(io.BytesIO(raw), formats=("PNG", "JPEG", "GIF")) as img:
             valid(img.format in ("PNG", "JPEG", "GIF"), "El logo debe ser PNG, JPEG o GIF; nunca SVG.")
             img.verify()
         return raw

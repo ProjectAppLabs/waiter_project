@@ -243,7 +243,9 @@ def banner_image(value):
         valid(prefix in ("data:image/png;base64", "data:image/jpeg;base64", "data:image/webp;base64"))
         data = base64.b64decode(raw, validate=True)
         valid(len(data) <= 512000)
-        with Image.open(BytesIO(data)) as picture:
+        # formats= limita a los parsers raster permitidos: Pillow nunca despacha a EPS/PDF/FITS (su apertura puede
+        # colgarse o explotar antes de este chequeo). La lista blanca de abajo se conserva igual.
+        with Image.open(BytesIO(data), formats=("PNG", "JPEG", "WEBP")) as picture:
             valid(picture.width <= 4096 and picture.height <= 4096 and picture.format in ("PNG", "JPEG", "WEBP"))
             picture.verify()
         return encoded(convert(raw))

@@ -26,7 +26,9 @@ def convert(raw):
         valid(len(data) <= MAX_BYTES, 'La imagen supera 12 MB.')
         with warnings.catch_warnings():
             warnings.simplefilter('error', Image.DecompressionBombWarning)
-            with Image.open(BytesIO(data)) as source:
+            # formats= limita a los parsers raster permitidos: Pillow nunca despacha a EPS/PDF/FITS (su apertura puede
+            # colgarse o explotar antes de este chequeo de formato). La lista blanca de abajo se conserva igual.
+            with Image.open(BytesIO(data), formats=('PNG', 'JPEG', 'WEBP')) as source:
                 valid(source.format in ('PNG', 'JPEG', 'WEBP'), 'Usa una imagen PNG, JPEG o WebP.')
                 source.load()
                 oriented = ImageOps.exif_transpose(source)
