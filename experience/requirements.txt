@@ -27,7 +27,7 @@ cryptography==46.0.5
 pycparser==3.0
 
 # Conversión de fotos del catálogo.
-Pillow==12.1.1
+Pillow==12.3.0
 
 # MySQL, el estándar de los servidores de ProjectApp. Compilarlo necesita build-essential, pkg-config y
 # default-libmysqlclient-dev (ver deploy/experience.Dockerfile y el README).
