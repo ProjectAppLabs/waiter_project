@@ -4,7 +4,8 @@ La ronda `2026-10-07-waiter-x0` cubre Pago e Historial; `2026-10-08-waiter-w0` a
 salida offline y la entrada al asistente de Pedidos. La ronda `waiter-r3-20261008` amplía
 el contrato de importes finales, las rondas, la emergencia y la conciliación de pagos;
 su ejecución sólo se acredita en el recibo de QA del SHA exacto combinado. La ronda r4
-añade Cocina, Inventario → Menú y Operación en vivo en tableta y celular. Este mapa no
+añade Cocina, Inventario → Menú y Operación en vivo en tableta y celular, y el cobro con
+tarjeta y con propina sugerida. Este mapa no
 certifica el resto del POS ni el comensal. El registro vive en `pos/e2e/flow-definitions.json`.
 
 ## Convenciones y roles
@@ -110,30 +111,37 @@ a estos cinco casos nuevos, que no modifican layouts. Los recibos de rondas ante
 certifican esta ampliación. No se acredita cobertura completa de permisos,
 tarjeta/QR ni de todas las clases de resultado por estos guiones.
 
-## Cocina, inventario y operación en vivo · ronda r4
+## Cocina, inventario, operación en vivo y cobro · ronda r4
 
-Tres pantallas del POS quedan usables en tableta y celular. Cada caso prepara sus
-datos por la API de la cuenta aislada y después entra, lee y actúa por la UI; el
-registro de los flujos está en `pos/e2e/flow-definitions.json`.
+Tres pantallas del POS quedan usables en tableta y celular, y el cobro con tarjeta y
+con propina termina contra el servidor. Cada caso prepara sus datos por la API de la
+cuenta aislada y después entra, lee y actúa por la UI; el registro de los flujos está
+en `pos/e2e/flow-definitions.json`.
 
 | Flujo | Interacción y resultado concreto | Código y spec asignado |
 |---|---|---|
 | pos-kitchen-tickets | Dashboard → Cocina por la navegación principal. Una comanda para llevar con nota única muestra su cronómetro y «Iniciar preparación»; al iniciarla, el botón pasa a «Listo todo». Cronómetro y botón alcanzables, sin desborde horizontal del documento. Si el servidor rechaza la lectura o la acción, el error queda en una alerta. | `pos/app/(pos)/kds/page.tsx:74`; `pos/app/(pos)/kds/page.tsx:69`; `pos/components/kds/TicketCard.tsx:38`; `pos/components/kds/TicketCard.tsx:91`; `pos/e2e/cocina/ronda.spec.ts:32` |
 | pos-inventory-dishes | Dashboard → Inventario por la navegación principal. En la «Lista del menú», el nombre de un plato propio no queda tapado por «Agotar aquí» ni la insignia «Disponible» por el lápiz de edición; agotarlo en este restaurante deja a la vista «Volver a ofrecer». Sin desborde horizontal. Si agotarlo falla, un aviso muestra el error. | `pos/app/(pos)/inventario/page.tsx:155`; `pos/app/(pos)/inventario/page.tsx:79`; `pos/components/pantry/FilterPanel.tsx:21`; `pos/components/pantry/DishCard.tsx:41`; `pos/e2e/inventario/ronda.spec.ts:28` |
 | pos-operations-shift | Operación en vivo se abre por su dirección, `/operacion`, porque la interfaz no tiene enlace (guía de QA, E-10). En la pestaña Pagos, la fila de un pedido pendiente conserva «Mesa / mesero» (… · Operador QA), el total 38.900 y el estado «Pendiente». Sin desborde horizontal. | `pos/app/(pos)/operacion/page.tsx:81`; `pos/app/(pos)/operacion/page.tsx:84`; `pos/components/ops/ShiftTable.tsx:21`; `pos/e2e/pedidos/operacion.spec.ts:15` |
+| pos-payment-checkout | Pedidos → Cobrar en una cuenta de 38.900 → pestaña Tarjeta → «Confirmar pago» → «Aprobado». Aparece «¡Pago exitoso!» y el servidor tiene el pedido pagado: total 38.900 y pagado 38.900. Antes, el pago con datáfono o QR llevaba el efectivo recibido y el servidor lo rechazaba con «El efectivo entregado debe cubrir el pago.». | `pos/lib/stores/orderStore.ts:101`; `pos/e2e/pago/ronda.spec.ts:212` |
+| pos-payment-checkout | Pedidos → Cobrar en una cuenta de 38.900 → «Más opciones» → propina «10 % · $ 3.890»; el total pasa a 42.790; efectivo 50.000 → «Pagar ahora». Aparece «¡Pago exitoso!» y el servidor tiene el pedido pagado con propina 3.890, total 42.790 y pagado 42.790. Antes, la propina no se registraba y el pago respondía «El pago supera el saldo del pedido.». | `pos/lib/stores/orderStore.ts:99`; `pos/components/payment/PaymentModal.tsx:84`; `pos/e2e/pago/ronda.spec.ts:226` |
 
 Tamaños: Cocina y Operación se comprueban en 835×1194 y 412×915, los dos anchos donde
 se recortaban; Inventario, en los cinco (835×1194, 412×915, 1195×835, 1440×900 y
 2560×1440), tableta vertical primero, porque su tarjeta cambia en todos. Cada caso
 lleva `@flow`, `@viewport` y un solo outcome: success en Cocina e Inventario,
 display en Operación. La clase failure registrada en Cocina e Inventario expresa el
-camino de la UI, no cobertura acreditada: ningún caso de esta ronda la ejerce.
+camino de la UI, no cobertura acreditada: ningún caso de esta ronda la ejerce. Los dos
+casos de cobro usan el tamaño predeterminado de Playwright, 1280×720, sin la matriz de
+cinco: corrigen el contrato con el servidor y no cambian layout.
 
 | Flujo y resultado | Prueba calificable | Límite del guion |
 |---|---|---|
 | pos-kitchen-tickets · success | `pos/e2e/cocina/ronda.spec.ts` | Iniciar una comanda en 835×1194 y 412×915. No acredita pulsar «Listo todo», el pase a «Listos por entregar» ni los otros tres anchos. |
 | pos-inventory-dishes · success | `pos/e2e/inventario/ronda.spec.ts` | Agotar un plato propio en los cinco anchos. No acredita volver a ofrecerlo, ingredientes ni solicitudes de compra. |
 | pos-operations-shift · display | `pos/e2e/pedidos/operacion.spec.ts` | La fila de un pedido pendiente en Pagos, en 835×1194 y 412×915. No acredita alertas, los demás filtros ni los otros anchos. |
+| pos-payment-checkout · success | `pos/e2e/pago/ronda.spec.ts` | Desde r4, tarjeta aprobada por 38.900 y efectivo con la propina sugerida del 10 % (42.790), en 1280×720. No acredita QR, propina personalizada, reparto, puntos ni resultados negativos. |
 
-La ejecución de estos nueve casos sólo se acredita en el recibo de QA del SHA
-combinado de r4; la evidencia local del frente no lo sustituye.
+La ejecución de estos once casos (nueve de pantallas y dos de cobro) sólo se acredita
+en el recibo de QA del SHA combinado de r4; la evidencia local de los frentes no lo
+sustituye.

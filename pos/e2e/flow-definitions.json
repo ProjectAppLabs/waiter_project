@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "scope": "Acceso offline, Pedidos, Pago, Historial y navegación de consolas; rondas x0, w0, r2, contratos de r3 y, en r4, Cocina, Inventario → Menú y Operación en vivo",
+  "scope": "Acceso offline, Pedidos, Pago, Historial y navegación de consolas; rondas x0, w0, r2, contratos de r3 y, en r4, Cocina, Inventario → Menú, Operación en vivo y cobro con tarjeta y propina",
   "flows": {
     "pos-payment-checkout": {
       "name": "Cobrar un pedido pendiente",
@@ -11,7 +11,7 @@
         "waiter con charge_orders"
       ],
       "priority": "P1",
-      "description": "El personal autorizado llega al cobro desde el pedido, ve detalle, total y métodos; cobra en efectivo, tarjeta o QR. Puede fijar un importe parcial, elegir método, dividir pagos y agregar propina. Éxito muestra total, método y cambio reales; efectivo insuficiente o QR no configurado muestra rechazo visible; un rechazo del servidor deja el error visible sin mostrar éxito. Contrato responsive: recorrido y controles alcanzables sin recorte en 835x1194, 412x915, 1195x835, 1440x900 y 2560x1440. En un pago en cola, la pérdida de respuesta conserva la incertidumbre: al volver la conexión y recargar se reintenta con la misma clave y el importe fijado antes del primer envío, aunque el saldo haya cambiado. El resultado confirmado contiene un único pago; un fallo de almacenamiento impide enviar un pago cuyo importe no quedó guardado.",
+      "description": "El personal autorizado llega al cobro desde el pedido, ve detalle, total y métodos; cobra en efectivo, tarjeta o QR. Puede fijar un importe parcial, elegir método, dividir pagos y agregar propina. Éxito muestra total, método y cambio reales; efectivo insuficiente o QR no configurado muestra rechazo visible; un rechazo del servidor deja el error visible sin mostrar éxito. Contrato responsive: recorrido y controles alcanzables sin recorte en 835x1194, 412x915, 1195x835, 1440x900 y 2560x1440. En un pago en cola, la pérdida de respuesta conserva la incertidumbre: al volver la conexión y recargar se reintenta con la misma clave y el importe fijado antes del primer envío, aunque el saldo haya cambiado. El resultado confirmado contiene un único pago; un fallo de almacenamiento impide enviar un pago cuyo importe no quedó guardado. En tarjeta (datáfono) y QR el pago no lleva efectivo recibido, que el servidor rechaza; con tarjeta el pedido de 38.900 queda pagado. La propina elegida se registra en el pedido antes de los pagos: con la sugerida del 10 % el pedido queda pagado con propina 3.890 y total 42.790.",
       "outcomes": [
         "success",
         "error",
