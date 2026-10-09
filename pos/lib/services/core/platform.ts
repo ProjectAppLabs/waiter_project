@@ -17,7 +17,8 @@ export interface Organization {
 }
 export interface OrganizationInput {
   name: string; slug: string; legal_name: string; tax_id: string; billing_email: string; billing_contact: string
-  plan: string; monthly_price: number; max_restaurants: number; trial_ends: string | null; timezone: string
+  // Precio y precios solo los manda quien administra; sin ellos el servidor da los precios estándar.
+  plan: string; monthly_price?: number; max_restaurants: number; trial_ends: string | null; timezone: string
   owner: { name: string; email: string; username?: string }
   pricing?: ClientPricing
 }
@@ -41,11 +42,19 @@ export const platformMe = () => platform<{ user: PlatformUser; two_factor?: bool
 export const platformRequestCode = (login: string) => platform<{ ok: true }>('auth/request_code', { method: 'POST', body: { login } })
 export const platformActivate = (login: string, code: string, password: string) => platform<{ ok: true }>('auth/activate', { method: 'POST', body: { login, code, password } })
 
+// El formulario marca con `whatsapp: null` que el plan de WhatsApp no tiene precio propio; el servidor no admite ese
+// null (400), así que en ese caso la clave no viaja.
+const withServerPricing = <T extends { pricing?: ClientPricing }>(body: T): T => {
+  if (!body.pricing) return body
+  const { whatsapp, ...pricing } = body.pricing
+  return { ...body, pricing: whatsapp ? { ...pricing, whatsapp } : pricing }
+}
+
 export const listOrganizations = () => platform<{ organizations: Organization[] }>('organizations').then((r) => r.organizations)
-export const createOrganization = (input: OrganizationInput) => platform<{ organization: Organization }>('organizations', { method: 'POST', body: input }).then((r) => r.organization)
+export const createOrganization = (input: OrganizationInput) => platform<{ organization: Organization }>('organizations', { method: 'POST', body: withServerPricing(input) }).then((r) => r.organization)
 export const getOrganization = (slug: string) => platform<OrganizationDetail>(`organizations/${slug}`)
 export const updateOrganization = (slug: string, patch: Partial<Omit<OrganizationInput, 'slug' | 'owner'>>) =>
-  platform<{ organization: Organization }>(`organizations/${slug}`, { method: 'PATCH', body: patch }).then((r) => r.organization)
+  platform<{ organization: Organization }>(`organizations/${slug}`, { method: 'PATCH', body: withServerPricing(patch) }).then((r) => r.organization)
 export const suspendOrganization = (slug: string, reason: string) => platform<{ organization: Organization }>(`organizations/${slug}/suspend`, { method: 'POST', body: { reason } }).then((r) => r.organization)
 export const reactivateOrganization = (slug: string) => platform<{ organization: Organization }>(`organizations/${slug}/reactivate`, { method: 'POST' }).then((r) => r.organization)
 export const resendOwnerInvite = (slug: string) => platform<{ ok: true; sent: boolean }>(`organizations/${slug}/resend_invite`, { method: 'POST' })

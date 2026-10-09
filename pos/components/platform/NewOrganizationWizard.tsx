@@ -10,6 +10,7 @@ import { slugify, suggestUsername, validSlug, validUsername } from '@/lib/domain
 import { RESERVED_SUBDOMAINS } from '@/lib/domain/tenant'
 import { CoreError } from '@/lib/services/core/http'
 import { createOrganization, priceBook, type ClientPricing, type PriceBook, type OrganizationInput } from '@/lib/services/core/platform'
+import { usePlatformStore } from '@/lib/stores/platformStore'
 import { ClientPricingForm, effectiveLocal, pricingSummary } from './ClientPricingForm'
 import { orgUrl } from './OrganizationsView'
 
@@ -23,6 +24,8 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 // dirección sale sola del slug.
 export function NewOrganizationWizard() {
   const router = useRouter()
+  // El servidor solo admite precios de quien administra; quien opera da de alta con los precios estándar.
+  const admin = usePlatformStore((s) => s.user?.role === 'admin')
   const [step, setStep] = useState(0)
   const [name, setName] = useState(''), [slug, setSlug] = useState(''), [slugTouched, setSlugTouched] = useState(false)
   const [legalName, setLegalName] = useState(''), [taxId, setTaxId] = useState(''), [billingEmail, setBillingEmail] = useState(''), [billingContact, setBillingContact] = useState('')
@@ -44,7 +47,7 @@ export function NewOrganizationWizard() {
     setBusy(true); setError('')
     const input: OrganizationInput = {
       name: name.trim(), slug, legal_name: legalName.trim(), tax_id: taxId.trim(), billing_email: billingEmail.trim().toLowerCase(), billing_contact: billingContact.trim(),
-      plan, monthly_price: price, pricing, max_restaurants: Number(maxRestaurants), trial_ends: trialEnds || null, timezone: 'America/Bogota',
+      plan, ...(admin && { monthly_price: price, pricing }), max_restaurants: Number(maxRestaurants), trial_ends: trialEnds || null, timezone: 'America/Bogota',
       owner: { name: ownerName.trim(), email: ownerEmail.trim().toLowerCase(), username: ownerUser },
     }
     try { const org = await createOrganization(input); router.replace(`/plataforma/clientes/${org.slug}?nuevo=1`) }
@@ -82,7 +85,8 @@ export function NewOrganizationWizard() {
             <TextInput label="Límite de restaurantes" type="number" min={1} step={1} required value={maxRestaurants} onChange={(e) => setMaxRestaurants(e.target.value)} hint="El dueño no podrá crear más que estos." />
             <TextInput label="En prueba hasta (opcional)" type="date" value={trialEnds} onChange={(e) => setTrialEnds(e.target.value)} hint="Sin fecha, la cuenta nace activa." />
           </div>
-          <ClientPricingForm value={pricing} onChange={setPricing} book={book} />
+          {admin ? <ClientPricingForm value={pricing} onChange={setPricing} book={book} />
+            : <p className="text-[14px] text-soft">El cliente queda con los precios estándar. Los precios personalizados y el plan de WhatsApp los fija quien administra la plataforma.</p>}
           <div className="rounded-lg border border-border p-4 text-[15px] flex flex-col gap-1">
             <p><strong>{name}</strong> · {orgUrl(slug)}</p><p className="text-soft">{legalName} · NIT {taxId} · {billingEmail}</p>
             <p className="text-soft">Dueño: {ownerName} ({ownerUser}, {ownerEmail})</p>
