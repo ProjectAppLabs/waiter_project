@@ -16,7 +16,7 @@ export function KdsHeader({ tabs, counts, active, onTab, avgSeconds, now }: KdsH
   const label = (tab: string) => (tab === ALL ? t('tabs.all') : tab === LATE ? t('tabs.late') : tab)
   return (
     <header className="shrink-0 bg-surface border-b border-border">
-      <div className="h-topbar px-5 flex items-center gap-4">
+      <div className="min-h-topbar lg:h-topbar px-5 py-3 lg:py-0 flex flex-wrap lg:flex-nowrap items-center gap-4">
         <BrandMark />
         <PageTitle>{t('title')}</PageTitle>
         <nav aria-label={t('grid')} className="min-w-0 flex items-center gap-2 overflow-x-auto">

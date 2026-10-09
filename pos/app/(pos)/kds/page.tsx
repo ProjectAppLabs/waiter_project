@@ -68,11 +68,14 @@ export default function KdsPage() {
       <AuroraBackground />
       {(actionError || error) && <p role="alert" className="p-3 text-danger">{actionError || error}</p>}
       <KdsHeader tabs={[ALL, ...stations(cooking), LATE]} counts={countTickets(cooking, now)} active={tab} onTab={setTab} avgSeconds={averagePrepSeconds(done)} now={now} />
-      <div className="flex flex-1 min-h-0 gap-5 p-5">
-        <section aria-label={t('grid')} className="flex-1 min-w-0 overflow-y-auto grid grid-cols-3 auto-rows-min content-start gap-5">
+      {/* Desde lg, la disposición de siempre: tres columnas de comandas y «Listos por entregar» al lado. Por debajo (tableta
+          vertical, celular) el panel de 340 px dejaba la comanda en 132 px o en 12 px: las comandas van en una o dos
+          columnas a todo el ancho y el panel pasa debajo. */}
+      <div className="flex flex-col lg:flex-row flex-1 min-h-0 gap-5 p-5">
+        <section aria-label={t('grid')} className="flex-1 min-w-0 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 auto-rows-min content-start gap-5">
           {/* Antes decía «sin comandas» mientras aún cargaba: la cocina podía creer que no había nada. */}
-          {!primed && !error ? <CardGridSkeleton count={6} className="col-span-3" />
-            : visible.length === 0 && <div className="col-span-3 flex"><KitEmptyState icon="chef" title={t('empty')} body={t('emptyBody')} /></div>}
+          {!primed && !error ? <CardGridSkeleton count={6} className="col-span-full" />
+            : visible.length === 0 && <div className="col-span-full flex"><KitEmptyState icon="chef" title={t('empty')} body={t('emptyBody')} /></div>}
           {visible.map((tk) => <TicketCard key={tk.id} ticket={tk} tableNumber={tableNumberOf(tk.tableId)} now={now}
             onStart={(id) => act(start(id, session.id, stationOf))} onReady={(id) => act(ready(id, session.id, stationOf))} onReadyDish={(id) => act(readyDish(id, session.id, stationOf))} />)}
         </section>
