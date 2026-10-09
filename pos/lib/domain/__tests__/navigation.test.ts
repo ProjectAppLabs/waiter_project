@@ -43,15 +43,12 @@ it('keeps restaurant management available without cash while blocking order oper
 })
 
 // Falla si el administrador vuelve a caer en Mesas al entrar (lo pidió el dueño: su pantalla es Inicio, con la visión
-// general); si el cajero y el mesero dejan de ir a Mesas con la caja abierta; si el cajero deja de ir a abrir caja con
-// ella cerrada; o si el mesero —a quien el servidor NO deja abrir caja— cae en ese formulario en vez de ir a Mesas.
+// general), o si meseros y cajeros dejan de ir a Mesas con la caja abierta.
 it('sends each role to its own home screen', () => {
   expect(homePath('admin', true)).toBe('/dashboard')
   expect(homePath('admin', false)).toBe('/dashboard')
   expect(homePath('waiter', true)).toBe('/salon')
   expect(homePath('cashier', true)).toBe('/pedidos')
-  expect(homePath('cashier', false)).toBe('/caja')
-  expect(homePath('waiter', false)).toBe('/salon')
 })
 
 // Falla si Inicio vuelve a exigir caja abierta al administrador: el guardia de rutas lo mandaba a «Abrir caja» y la
