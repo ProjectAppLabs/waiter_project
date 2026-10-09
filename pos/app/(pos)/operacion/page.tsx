@@ -62,9 +62,11 @@ export default function OperacionPage() {
         right={<><Segmented label={t('title')} options={FILTERS.map((f) => ({ value: f, label: t(`filters.${f}`) }))} value={filter} onChange={setFilter} />
           <Link href="/salon" className="h-tap px-[18px] rounded-[10px] bg-brand-500 text-white grid place-items-center text-base font-bold">{t('goSalon')}</Link></>}
       />
-      <div className="flex-1 min-h-0 flex">
+      {/* Desde lg, la disposición de siempre: el turno y el panel de alertas de 400 px lado a lado. Por debajo (tableta
+          vertical, celular) ese panel dejaba la tabla en 377 px o en 2 px y recortaba Total y Estado: pasa debajo. */}
+      <div className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-y-auto lg:overflow-visible">
         <section className="flex-1 min-w-0 p-6 px-7 flex flex-col gap-[18px]">
-          <div className="grid grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <KpiCard label={t('kpi.activeTables')} value={`${activeTables} / ${catalog.tables.length}`} />
             <KpiCard label={t('kpi.cooking')} value={cooking.length} />
             <KpiCard label={t('kpi.late')} value={lateCount} tone={lateCount ? 'busy' : 'neutral'} />
@@ -79,7 +81,7 @@ export default function OperacionPage() {
             <ShiftTable orders={filterOrders(orders, filter, now, late)} now={now} lateMinutes={late} emptyText={t('quiet')} />
           </div>
         </section>
-        <aside aria-label={t('alerts')} className="w-panel-lg shrink-0 border-l border-border bg-surface flex flex-col">
+        <aside aria-label={t('alerts')} className="w-full lg:w-panel-lg shrink-0 border-t lg:border-t-0 lg:border-l border-border bg-surface flex flex-col">
           <div className="px-[22px] py-[18px] border-b border-border flex items-center justify-between">
             <span className="text-[19px] font-bold">{t('alerts')}</span><span className="text-sm text-ink-3">{t('alertsMeta')}</span>
           </div>

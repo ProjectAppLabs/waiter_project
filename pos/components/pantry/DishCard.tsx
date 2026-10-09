@@ -31,6 +31,8 @@ export function DishCard({ dish, category, onOpen, onEdit, closedHere = false, o
         <p className="text-[15px] font-semibold text-ink truncate">{dish.name}</p>
         <p className="text-[13px] text-soft truncate">{category}</p>
       </div>
+      {/* «Agotar aquí» flota a 48 px del borde inferior: sin este hueco tapaba el nombre y la categoría del plato. */}
+      {onToggleHere && <span aria-hidden className="h-12 shrink-0" />}
       <div className="mt-auto w-full border-t border-border px-1.5 pt-2 pb-1 flex items-center justify-between text-[13px] text-soft">
         {servings === null ? <span>{t('menu.noRecipe')}</span> : <span>{t('menu.canServe')} <b className="text-ink font-semibold">{servings}</b></span>}
         <LevelBadge level={dish.level} />

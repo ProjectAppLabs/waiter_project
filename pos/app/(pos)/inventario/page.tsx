@@ -134,21 +134,26 @@ export default function InventarioPage() {
   }
 
   // Ver el inventario lo hace cualquiera; crear, editar o borrar es un permiso que da el restaurante.
+  // El ingrediente, como el plato, es de toda la organización: el servidor reserva crearlo, editarlo y archivarlo al dueño
+  // (save_product y archive exigen owner). El encargado conserva existencias, movimientos y solicitudes al proveedor.
+  const mayEditIngredients = mayEdit && owner
   const header = s.tab === 'menu'
     ? { query: s.dishFilters.query, onQuery: (query: string) => s.setDishFilters({ query }), placeholder: t('search.dish'), action: mayEdit && owner ? t('actions.addDish') : undefined, onAction: mayEdit && owner ? () => setAddDish(true) : undefined }
     : s.tab === 'ingredients'
-      ? { query: s.ingredientFilters.query, onQuery: (query: string) => s.setIngredientFilters({ query }), placeholder: t('search.ingredient'), action: mayEdit ? t('actions.addIngredient') : undefined, onAction: mayEdit ? () => setIngredientModal({ kind: 'add' }) : undefined }
+      ? { query: s.ingredientFilters.query, onQuery: (query: string) => s.setIngredientFilters({ query }), placeholder: t('search.ingredient'), action: mayEditIngredients ? t('actions.addIngredient') : undefined, onAction: mayEditIngredients ? () => setIngredientModal({ kind: 'add' }) : undefined }
       : { query: s.requestQuery, onQuery: s.setRequestQuery, placeholder: t('search.request'), action: undefined, onAction: undefined }
   const listTitle = t(s.tab === 'menu' ? 'menu.listTitle' : s.tab === 'ingredients' ? 'ingredients.listTitle' : 'requests.listTitle')
 
   return (
     <>
       <PantryHeader tab={s.tab} onTab={s.setTab} query={header.query} onQuery={header.onQuery} searchPlaceholder={header.placeholder} action={header.action} onAction={header.onAction} />
-      <div className="flex-1 min-h-0 px-4 pb-4 flex gap-4">
+      {/* Desde lg, la disposición de siempre: filtros de 352 px a la izquierda y la lista en tres columnas. Por debajo
+          (tableta vertical, celular) los filtros van encima, plegables, y la lista usa todo el ancho en una o dos columnas. */}
+      <div className="flex-1 min-h-0 px-4 pb-4 flex flex-col lg:flex-row gap-4">
         {s.tab === 'menu' && <FilterPanel sections={menuSections} onReset={s.resetFilters} />}
         {s.tab === 'ingredients' && <FilterPanel sections={ingredientSections} onReset={s.resetFilters} />}
         <section aria-label={listTitle} className="flex-1 min-w-0 min-h-0 ambient-panel border border-border rounded-lg flex flex-col">
-          <header className="h-14 px-4 flex items-center border-b border-border shrink-0"><h2 className="text-[16px] font-semibold text-ink">{listTitle}</h2>
+          <header className="min-h-14 lg:h-14 px-4 py-2 lg:py-0 flex flex-wrap lg:flex-nowrap items-center gap-y-2 border-b border-border shrink-0"><h2 className="text-[16px] font-semibold text-ink">{listTitle}</h2>
             {/* Lo que antes era Administración → Catálogo: categorías de la carta y platos ocultos o sin categoría. */}
             {s.tab === 'menu' && owner && <span className="ml-4 flex gap-2">
               <Button size="compact" onClick={() => setMenuAdmin({ kind: 'categories' })}>{t('menuAdmin.categories')}</Button>
@@ -162,10 +167,10 @@ export default function InventarioPage() {
             {s.error && <p role="alert" className="m-4 p-3 rounded-md bg-danger-soft text-danger-ink text-[14px]">{s.error}</p>}
             {s.tab === 'menu' && (dishes.length === 0 && !s.loading
               ? <KitEmptyState icon="inventory" title={t('menu.empty')} body={t('menu.emptyBody')} />
-              : <div className="p-2.5 grid grid-cols-3 gap-2.5 content-start">{dishes.map((d) => <DishCard key={d.id} dish={d} category={posCategoryName(d.categoryIds)} onOpen={() => void openDetail(d)} onEdit={owner ? () => setMenuAdmin({ kind: 'product', id: d.id }) : undefined} closedHere={closedHere.has(d.id)} onToggleHere={role === 'admin' && configId !== null ? () => void toggleHere(d) : undefined} />)}</div>)}
+              : <div className="p-2.5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 content-start">{dishes.map((d) => <DishCard key={d.id} dish={d} category={posCategoryName(d.categoryIds)} onOpen={() => void openDetail(d)} onEdit={owner ? () => setMenuAdmin({ kind: 'product', id: d.id }) : undefined} closedHere={closedHere.has(d.id)} onToggleHere={role === 'admin' && configId !== null ? () => void toggleHere(d) : undefined} />)}</div>)}
             {s.tab === 'ingredients' && (ingredients.length === 0 && !s.loading
               ? <KitEmptyState icon="inventory" title={t('ingredients.empty')} body={t('ingredients.emptyBody')} />
-              : <ul className="p-2.5 flex flex-col gap-2">{ingredients.map((i) => <IngredientRow key={i.id} ingredient={i} onEdit={() => setIngredientModal({ kind: 'edit', ingredient: i })} onRequest={() => void request(i)} onDelete={() => setIngredientModal({ kind: 'delete', ingredient: i })} mayEdit={mayEdit} onControl={()=>setControl(i)} />)}</ul>)}
+              : <ul className="p-2.5 flex flex-col gap-2">{ingredients.map((i) => <IngredientRow key={i.id} ingredient={i} onEdit={() => setIngredientModal({ kind: 'edit', ingredient: i })} onRequest={() => void request(i)} onDelete={() => setIngredientModal({ kind: 'delete', ingredient: i })} mayEdit={mayEditIngredients} onControl={()=>setControl(i)} />)}</ul>)}
             {s.tab === 'requests' && <RequestList requests={s.requests} query={s.requestQuery} />}
           </div>
         </section>

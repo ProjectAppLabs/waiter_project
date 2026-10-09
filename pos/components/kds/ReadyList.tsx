@@ -18,7 +18,7 @@ export function ReadyList({ tickets, tableNumberOf, now }: ReadyListProps) {
   const t = useTranslations('kds')
   const rows = tickets.flatMap((ticket) => waiting(ticket).map((line) => ({ ticket, line })))
   return (
-    <aside aria-label={t('ready')} className="w-[340px] shrink-0 bg-surface border border-border rounded-lg flex flex-col overflow-hidden">
+    <aside aria-label={t('ready')} className="w-full lg:w-[340px] shrink-0 max-h-[35dvh] lg:max-h-none bg-surface border border-border rounded-lg flex flex-col overflow-hidden">
       <header className="h-16 px-5 flex items-center justify-between border-b border-border">
         <h2 className="text-[18px] font-semibold text-ink">{t('ready')}</h2>
         <span className="min-w-7 h-7 px-2 rounded-md bg-success-soft text-success-ink grid place-items-center text-[14px] font-semibold">{rows.length}</span>

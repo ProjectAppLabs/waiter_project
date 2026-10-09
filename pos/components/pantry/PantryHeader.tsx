@@ -24,15 +24,15 @@ export function PantryHeader({ tab, onTab, query, onQuery, searchPlaceholder, ac
             className={cn('h-11 px-4 rounded-md border border-border bg-surface text-[15px] font-semibold', x === tab ? 'text-ink' : 'text-dim hover:text-soft')}>{t(`tabs.${x}`)}</button>
         ))}
       </div>
-      <div className="ml-auto flex items-center gap-4">
-        <label className="h-11 w-[320px] px-3.5 rounded-md border border-border bg-surface flex items-center gap-2.5 text-soft">
+      <div className="ml-auto max-sm:w-full flex flex-wrap items-center gap-4">
+        <label className="h-11 w-full sm:w-[320px] px-3.5 rounded-md border border-border bg-surface flex items-center gap-2.5 text-soft">
           <Icon name="search" size={20} />
           <input type="search" value={query} onChange={(e) => onQuery(e.target.value)} placeholder={searchPlaceholder} aria-label={searchPlaceholder}
             className="flex-1 min-w-0 bg-transparent text-[15px] text-ink placeholder:text-dim outline-none" />
         </label>
         {action && (
           <>
-            <span className="w-px h-8 bg-border" aria-hidden />
+            <span className="w-px h-8 bg-border max-sm:hidden" aria-hidden />
             <button type="button" onClick={onAction} className="h-11 px-4 rounded-md bg-primary text-primary-ink text-[15px] font-semibold flex items-center gap-2">
               <Icon name={actionIcon} size={20} />{action}
             </button>

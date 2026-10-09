@@ -63,7 +63,7 @@ it('el encargado agota un plato en su restaurante', async () => {
 // Falla si solicitar o eliminar un ingrediente no llega al servidor, si eliminar no pide confirmación, o si la lista no
 // se relee después.
 it('solicita y elimina un ingrediente con confirmación', async () => {
-  as('admin')
+  as('owner')
   usePantryStore.setState({ tab: 'ingredients' })
   wrap()
   const more = () => fireEvent.click(screen.getByRole('button', { name: 'Más opciones de Tomate' }))
