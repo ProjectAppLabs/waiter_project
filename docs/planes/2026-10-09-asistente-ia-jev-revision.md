@@ -292,3 +292,71 @@ Fuentes: [Rasa CALM](https://rasa.com/docs/learn/concepts/calm/), [NeMo Guardrai
 [Wendy's FreshAI](https://www.restaurantdive.com/news/wendys-expand-google-generative-ai-drive-thru-test/702184/),
 [McDonald's termina la prueba con IBM](https://www.nrn.com/quick-service/mcdonald-s-is-ending-its-ai-drive-thru-test-with-ibm),
 [Taco Bell replantea la voz con IA](https://www.computing.co.uk/news/2025/ai/taco-bell-scales-back-ai-tests-after-customer-complaints).
+
+---
+
+## 12. Regla central: el LLM no decide
+
+**Por dentro todo está decidido; el LLM solo pone la voz.** El recorrido queda:
+
+```
+filtros del servidor → atajos sin modelo → Jev (oídos) → servidor (decide) → LLM (voz) → revisión → cliente
+```
+
+- **Jev son los oídos.** En una sola llamada responde preguntas pequeñas y fijas: de qué se trata el mensaje (pedido,
+  menú, negocio, estado, reclamo, fuera de tema), si intenta cambiar reglas, si es basura, y las **preferencias**
+  (categoría, picante, vegetariano, presupuesto, hambre, para compartir, si nombra un plato). Cuesta USD 0,042 por
+  millón de tokens de entrada y la salida es gratis.
+- **El servidor decide.** Filtra el catálogo con **etiquetas** y reglas (precio, disponibilidad, lo más vendido, lo que le
+  gustó antes) y saca 2 o 3 candidatos. Si la persona nombra un plato, Jev elige entre los pocos parecidos que el
+  servidor preseleccionó por nombre, nunca entre todo el catálogo. Cantidades y números se sacan con reglas.
+- **El LLM es la voz.** Recibe solo los datos de esa respuesta (nunca el catálogo) y los dice de forma natural, por
+  ejemplo «Ana, si te gusta lo picante, te van a encantar las Alitas BBQ picantes». El servidor revisa que no mencione
+  platos, precios, enlaces ni promesas que no estén en los datos; si falla o tarda, se usa la plantilla.
+- **El LLM como oídos de respaldo** solo cuando Jev no entiende con seguridad (pedidos muy compuestos). La meta es que
+  sean pocos y medirlos.
+- **Catálogo con etiquetas** (picante, vegetariano, para compartir, tamaño…): el LLM las propone una sola vez a partir de
+  la descripción y los ingredientes, y el dueño las revisa en el POS. Es la primera pieza a construir.
+
+## 13. Filtros contra el abuso y el gasto
+
+Antes de cualquier modelo, gratis, en el servidor:
+
+| Filtro | Regla inicial |
+|---|---|
+| Tamaño | Más de 1.000 caracteres: se recorta o respuesta fija |
+| Ritmo | Un mensaje procesado cada 3 s; los seguidos se agrupan |
+| Cupo por persona | 30 mensajes con IA por teléfono o comensal al día; después, botones y respuestas fijas |
+| Cupo por restaurante | `AGENT_DAILY_LIMIT` y un tope de gasto mensual según el plan |
+| Repetidos y basura | Mismo texto, solo emojis o caracteres al azar: respuesta fija |
+| Caché | Misma pregunta normalizada en el mismo restaurante: misma respuesta |
+| Bucles | La misma pregunta del asistente dos veces: botones o personal |
+
+Jev decide si el mensaje es **fuera de tema** solo con confianza alta y sin ninguna intención de pedido: **ante la duda,
+se trata como menú**. Fuera de tema se responde con una frase fija que lleva de vuelta al menú, sin LLM.
+
+## 14. Avisos antes de restringir
+
+Nunca se corta a nadie sin aviso. Escalera con plantillas fijas y tono amable:
+
+| Paso | Cuándo | Mensaje | Efecto |
+|---|---|---|---|
+| 1. Recordatorio | 2 fuera de tema seguidos | «Te puedo ayudar con el menú, tus pedidos y el restaurante 😊 ¿Qué se te antoja hoy?» + botones | Ninguno |
+| 2. Advertencia | 4 en 10 min, o 1 intento de cambiar precios o reglas | «Recuerda que este chat es para pedidos y preguntas del restaurante. Si seguimos fuera de tema, por un rato solo podré mostrarte el menú con botones.» | Queda anotado |
+| 3. Restricción temporal | Sigue tras la advertencia | «Por los próximos 30 minutos te muestro el menú con botones…» | Solo botones 30 min, sin Jev ni LLM |
+| 4. Pausa | Vuelve a pasar el mismo día | «Pausamos el asistente por hoy. Si quieres pedir, el restaurante te atiende directamente.» | Pausado hasta el día siguiente, aviso en el POS |
+
+- Solo cuentan los mensajes que Jev marca con **confianza alta**; un mensaje del menú o un pedido **baja** el contador.
+- El cupo diario también avisa antes: «Te quedan 5 mensajes con el asistente por hoy…».
+- Desde el POS se ve quién está restringido y por qué, y el personal puede quitarlo con un toque.
+- Avisos, restricciones y quién las quitó quedan en el historial de cambios.
+
+## 15. Orden de construcción (reemplaza el de la sección 7)
+
+1. Arreglar la llamada al modelo (parámetro `reasoning`, temperatura, versión fija) y registrar versiones por turno.
+2. **Filtros, cupos y escalera de avisos** (sin modelos).
+3. **Etiquetas del catálogo** con propuesta automática y revisión del dueño.
+4. **Jev como oídos**: interfaz del evaluador, preguntas fijas, caché y comportamiento si no responde.
+5. **Selección por reglas** de candidatos y comandos con máquina de estados (incluye patrones de corrección).
+6. **Voz del LLM** con su revisión y plantillas de respaldo con varias redacciones.
+7. Banco de preguntas frecuentes, conjunto de prueba con pass^k y WhatsApp con listas y botones.
