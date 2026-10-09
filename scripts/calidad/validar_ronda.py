@@ -59,6 +59,57 @@ NEW_TESTS = {
     'improve/compartido-08102026-r3': [
         'experience/experience_app/tests/utils/test_round_validation.py',
     ],
+    # r4: cada frente exige sus pruebas; el tren exige la unión de todas.
+    'improve/seguridad-09102026-r4': [
+        'experience/catalog/tests/views/test_imagenes_no_raster.py',
+        'experience/billing/tests/views/test_logo_no_raster.py',
+        'experience/loyalty/tests/views/test_banner_no_raster.py',
+        'experience/catalog/tests/views/test_agotados_encargado.py',
+        'pos/lib/domain/__tests__/navigation_r4.test.ts',
+        'pos/app/caja/__tests__/page.test.tsx',
+    ],
+    'improve/mantenibilidad-09102026-r4': [
+        'pos/lib/services/__tests__/paymentKit.test.ts',
+        'pos/lib/stores/__tests__/orderStore.test.ts',
+        'pos/components/payment/__tests__/PaymentModal.test.tsx',
+        'pos/components/billing/__tests__/AccountingDetail.test.tsx',
+        'pos/lib/domain/__tests__/roles.test.ts',
+        'pos/components/business/__tests__/SalesView.test.tsx',
+        'pos/lib/services/__tests__/team.test.ts',
+        'pos/components/settings/__tests__/UsersAndPermissions.test.tsx',
+        'pos/lib/services/__tests__/reservations_r4.test.ts',
+        'pos/lib/services/__tests__/sales.test.ts',
+        'pos/lib/services/__tests__/floorPlan_r4.test.ts',
+        'pos/e2e/pago/ronda.spec.ts',
+    ],
+    'improve/observabilidad-09102026-r4': [
+        'experience/tenancy/tests/services/test_subscriptions_concurrencia.py',
+        'experience/tenancy/tests/views/test_cuerpo_demasiado_grande.py',
+        'pos/components/catalog/__tests__/ProductForm.test.tsx',
+        'pos/lib/services/__tests__/posData.test.ts',
+    ],
+    'improve/rendimiento-09102026-r4': [
+        'experience/sales/tests/views/test_insights_queries.py',
+        'experience/sales/tests/views/test_kitchen_tickets_queries.py',
+        'pos/lib/stores/__tests__/kitchenStore.test.ts',
+        'experience/billing/tests/views/test_fecha_documento_r4.py',
+        'experience/tenancy/tests/services/test_metricas_plataforma_r4.py',
+    ],
+    'improve/responsividad-09102026-r4': [
+        'pos/e2e/cocina/ronda.spec.ts',
+        'pos/e2e/inventario/ronda.spec.ts',
+        'pos/e2e/pedidos/operacion.spec.ts',
+        'pos/app/(pos)/inventario/__tests__/ingredientes_r4.test.tsx',
+    ],
+    'improve/qa-09102026-r4': [
+        'pos/components/settings/__tests__/RestaurantInfoForm.test.tsx',
+        'pos/components/platform/__tests__/platform_r4.test.tsx',
+        'experience/reservations/tests/views/test_cierre_medianoche_r4.py',
+    ],
+    'improve/compartido-09102026-r4': [
+        'experience/experience_app/tests/utils/test_round_validation.py',
+        'experience/experience_app/tests/utils/test_correo_produccion.py',
+    ],
 }
 BACKEND = [
     'sales/tests/views/test_cash_moves_idempotency.py',
@@ -72,6 +123,18 @@ BACKEND = [
     # r4: las redes de aislamiento entre organizaciones y de suspensión corren en cada PR.
     'tenancy/tests/test_isolation_all_routes.py',
     'tenancy/tests/test_suspension_e2e.py',
+    # r4: regresiones legadas que la ronda modificó o vuelve a ejercitar; se ejecutan sin entrar en la puerta
+    # (viven fuera de las carpetas de área y su deuda previa no es de esta ronda).
+    'catalog/tests/test_images.py',
+    'catalog/tests/test_contract.py::test_precios_agotados_y_permisos',
+    'tenancy/tests/test_subscriptions.py',
+    'tenancy/tests/test_metrics.py',
+    'billing/tests/test_documents.py',
+    'reservations/tests/test_reservations.py',
+    'sales/tests/test_tables_reports_events.py::test_insights_local_days_and_previous_window',
+    'sales/tests/test_operations.py::test_kitchen_only_shows_the_open_shift',
+    'sales/tests/test_operations.py::test_kitchen_ticket_carries_the_chosen_options',
+    'sales/tests/test_operations.py::test_kitchen_line_and_course_workflow',
 ]
 # r4: las matrices completas de permisos por rol corren en la combinación (tren y main).
 PERMISSION_MATRICES = [

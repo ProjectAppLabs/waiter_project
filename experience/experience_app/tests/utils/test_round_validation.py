@@ -17,6 +17,14 @@ pytestmark = pytest.mark.django_db
     ('improve/observabilidad-08102026-r3', 'OfflineBar.test.tsx'),
     ('improve/compartido-08102026-r3', 'test_round_validation.py'),
     ('queue/integration-r3', 'cartAmounts.test.ts'),
+    ('improve/seguridad-09102026-r4', 'test_imagenes_no_raster.py'),
+    ('improve/mantenibilidad-09102026-r4', 'paymentKit.test.ts'),
+    ('improve/observabilidad-09102026-r4', 'test_subscriptions_concurrencia.py'),
+    ('improve/rendimiento-09102026-r4', 'test_insights_queries.py'),
+    ('improve/responsividad-09102026-r4', 'cocina/ronda.spec.ts'),
+    ('improve/qa-09102026-r4', 'RestaurantInfoForm.test.tsx'),
+    ('improve/compartido-09102026-r4', 'test_correo_produccion.py'),
+    ('queue/integration-r4', 'test_metricas_plataforma_r4.py'),
 ])
 def test_runner_rechaza_la_ausencia_de_pruebas_obligatorias(monkeypatch, tmp_path, branch, missing):
     """Rechaza una rama o su tren cuando faltan pruebas obligatorias."""
