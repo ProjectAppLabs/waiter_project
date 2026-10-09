@@ -148,5 +148,10 @@ Todos tienen impacto BAJO:
   - Typecheck y eslint de lo cambiado en 0, y `falla_si` en 0.
   - Ruff no tiene avisos nuevos.
   - La puerta estricta da 99–100.
-- **Integración local de las 7 ramas (`3213055`)**: Jest completo del POS, 216 suites y 1007 pruebas en verde, incluidas las 3 que estaban en rojo en main.
-<!-- verificación combinada: backend completo y E2E en vivo -->
+- **CI de cada PR (#31–#37)**: backend, POS y navegador (cinco tamaños) en verde.
+- **Integración local de las 7 ramas (`3213055`)**, con Pillow 12.3.0 y MySQL 8.4 con zonas horarias:
+  - Backend completo: 2.331 pruebas en verde, sin fallas ni omisiones.
+  - Jest completo del POS: 216 suites y 1007 pruebas en verde, incluidas las 3 que estaban en rojo en main.
+  - E2E de la ronda en vivo (siembra, gunicorn y POS construido, como el job del CI): 43/43 en verde sobre una base nueva, sin reintentos.
+  - Las corridas anteriores dieron timeouts sueltos, en un caso distinto cada vez y que pasa aislado, por la carga del host compartido y los hilos de gunicorn retenidos por SSE. Una también reutilizó la base y encontró la mesa 931 ocupada por un pedido de una corrida interrumpida. Ninguno es una regresión.
+- **El tren de `merge-queue`** valida la combinación en el CI: Jest completo, `NEW_TESTS` de las 7 ramas y matrices de permisos.
