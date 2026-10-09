@@ -42,6 +42,21 @@ if (typeof window !== 'undefined') Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
+// jsdom no implementa el diálogo nativo y los menús de las consolas lo abren y cierran al montar. Estos dobles solo
+// despachan su contrato de apertura y cierre, como las pruebas de r2; el foco atrapado se comprueba en Chromium.
+if (typeof window !== 'undefined' && typeof HTMLDialogElement !== 'undefined') {
+  if (typeof HTMLDialogElement.prototype.showModal !== 'function') {
+    HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) { this.setAttribute('open', '') }
+  }
+  if (typeof HTMLDialogElement.prototype.close !== 'function') {
+    HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) {
+      if (!this.open) return
+      this.removeAttribute('open')
+      this.dispatchEvent(new Event('close'))
+    }
+  }
+}
+
 // Espera de waitFor/findBy: 1 s por omisión fallaba con la máquina cargada; 3 s sigue detectando lo que nunca llega.
 import { configure } from '@testing-library/react'
 configure({ asyncUtilTimeout: 3000 })
