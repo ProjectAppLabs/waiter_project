@@ -16,21 +16,16 @@ export async function fireUnsentLines(orderId: number): Promise<number | null> {
   return courseId
 }
 
-// Comandas disparadas y aún no entregadas, con sus líneas y quién las pidió. Tres llamadas por sondeo.
-export async function listKitchenTickets(sessionId: number, stationOf: (productId: number) => string | null): Promise<KitchenTicket[]> {
+// El tablero de cocina en una sola lectura: las comandas disparadas y aún no entregadas, con sus líneas y quién las
+// pidió, y los cursos ya listos del turno (entregados o no) para el tiempo medio. Antes eran dos lecturas idénticas
+// de `kitchen/tickets` por refresco, cada una con el turno completo.
+export async function listKitchenBoard(sessionId: number, stationOf: (productId: number) => string | null): Promise<{ tickets: KitchenTicket[]; done: CompletedCourse[] }> {
   void sessionId
   void stationOf
   const r = currentRestaurantId()
   if (r === null) throw new Error('Elige un restaurante.')
-  return (await coreKitchen.listTickets(r)).tickets.map(toKitchenTicket)
-}
-
-// Para el tiempo medio del turno: cursos ya listos de la sesión (entregados o no).
-export async function listCompletedCourses(sessionId: number): Promise<CompletedCourse[]> {
-  void sessionId
-  const r = currentRestaurantId()
-  if (r === null) throw new Error('Elige un restaurante.')
-  return (await coreKitchen.listTickets(r)).completed.map(toCompleted)
+  const board = await coreKitchen.listTickets(r)
+  return { tickets: board.tickets.map(toKitchenTicket), done: board.completed.map(toCompleted) }
 }
 
 // Para el salón: en qué fase de cocina está cada pedido abierto.

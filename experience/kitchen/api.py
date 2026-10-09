@@ -10,7 +10,7 @@ from sales.models import Course, Order, OrderLine
 from sales.policy import permit
 from sales.reading import course_dict, fields, line_dict, person
 from sales.services import writing
-from tenancy.http import payload, require
+from tenancy.http import json_value, payload, require
 
 from .services import transition
 
@@ -62,9 +62,14 @@ class TicketsView(PosView):
                     ],
                 }
             )
-        completed = [
-            fields(c, "fired_at ready_at") for c in qs.filter(ready_at__isnull=False, order__shift__state="open")
-        ]
+        # Los terminados del turno solo aportan sus dos horas (el tiempo medio de preparación): sin pedido, mesa,
+        # mesero, líneas, productos ni categorías, que con el turno avanzado son miles de filas por lectura.
+        finished = (
+            Course.objects.filter(order__restaurant=restaurant, order__shift__state="open", ready_at__isnull=False)
+            .exclude(order__state="cancelled")
+            .values_list("fired_at", "ready_at")
+        )
+        completed = [{"fired_at": json_value(fired), "ready_at": json_value(ready)} for fired, ready in finished]
         return Response({"tickets": tickets, "completed": completed})
 
 
