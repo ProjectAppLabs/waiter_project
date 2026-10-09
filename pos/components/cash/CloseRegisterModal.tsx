@@ -16,11 +16,13 @@ import { cn } from '@/lib/utils'
 
 const TONE = { ok: 'text-success-ink', warn: 'text-progress-ink', busy: 'text-danger-ink' }
 
-interface CloseRegisterModalProps { data: ClosingData; onClose: () => void; onConfirm: (counted: number, notes: string) => Promise<CloseResult>; canForce?: boolean; onForce?: () => Promise<CloseResult> }
+// Sin «forzar cierre»: el sistema propio no lo tiene (plan T). Un cierre rechazado muestra el motivo del servidor y deja
+// volver a intentarlo con el contado y la nota.
+interface CloseRegisterModalProps { data: ClosingData; onClose: () => void; onConfirm: (counted: number, notes: string) => Promise<CloseResult> }
 
 // Cierre de caja como modal ancho del kit: resumen del turno a la izquierda (como "Order Details" del pago) y el
 // efectivo contado con el teclado numérico a la derecha (Payment / Cash / Pay.png).
-export function CloseRegisterModal({ data, onClose, onConfirm, canForce = false, onForce }: CloseRegisterModalProps) {
+export function CloseRegisterModal({ data, onClose, onConfirm }: CloseRegisterModalProps) {
   const t = useTranslations('cash.close')
   const [counted, setCounted] = useState('')
   const [notes, setNotes] = useState('')
@@ -67,10 +69,6 @@ export function CloseRegisterModal({ data, onClose, onConfirm, canForce = false,
           <div className="mt-auto w-full max-w-[420px] flex flex-col gap-2">
             {state === 'closed' && <p role="status" className="text-[14px] text-success-ink text-center">{t('closed')}</p>}
             {state === 'failed' && <p role="alert" className="text-[14px] text-danger-ink text-center">{t('failed', { message })}</p>}
-            {state === 'failed' && canForce && onForce && (
-              <><p className="text-[13px] text-soft text-center">{t('forceHint')}</p>
-                <Button variant="destructive" onClick={async () => { const r = await onForce(); setMessage(r.message); setState(r.successful ? 'closed' : 'failed') }}>{t('force')}</Button></>
-            )}
             {state !== 'closed' && <Button variant="primary" size="money" className="w-full" onClick={confirm} disabled={blocked || counted === '' || missingNote || state === 'closing'}>{state === 'closing' ? t('closing') : t('confirm')}</Button>}
           </div>
         </section>

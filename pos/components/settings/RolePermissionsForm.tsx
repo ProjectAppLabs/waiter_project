@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { ACTION_MODULE, hasModule, VIEW_MODULE } from '@/lib/domain/modules'
 import { DEFAULT_ROLE_POLICY, ROLE_ACTIONS, ROLE_VIEWS, type RolePolicy } from '@/lib/domain/permissions'
@@ -26,6 +26,17 @@ export function RolePermissionsForm({ configId, initial, counts }: { configId: n
   const views = POS_VIEWS.filter((view) => hasModule(modules, VIEW_MODULE[view]))
   const actions = ROLE_ACTIONS.filter((action) => hasModule(modules, ACTION_MODULE[action]))
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [saved, setSaved] = useState(false)
+  // Sin `initial` (la consola del dueño) se lee la política guardada y no se puede guardar hasta tenerla: guardar es un
+  // PUT de la política completa, así que partir de la de por omisión pisaba en silencio lo que el dueño ya había decidido.
+  const [loaded, setLoaded] = useState(initial !== undefined)
+  useEffect(() => {
+    if (initial !== undefined) return
+    let alive = true
+    rolePolicy(configId)
+      .then((current) => { if (alive) { setPolicy(current); setLoaded(true) } })
+      .catch(() => { if (alive) setError('No se pudieron leer los permisos guardados. Recarga la página antes de cambiarlos.') })
+    return () => { alive = false }
+  }, [configId, initial])
   async function save() {
     setBusy(true); setError(''); setSaved(false)
     try {
@@ -40,7 +51,7 @@ export function RolePermissionsForm({ configId, initial, counts }: { configId: n
     <div><h3 className="text-lg font-semibold">Qué puede hacer cada rol</h3><p className="mt-1 text-sm text-soft">Elige las vistas y acciones de cada rol. El administrador conserva acceso completo. Los cambios se aplican a todos los empleados de ese rol en este punto de venta.</p></div>
     {error && <p role="alert" className="text-sm text-danger-ink">{error}</p>}
     {saved && <p role="status" className="text-sm text-success-ink">Permisos guardados. Los demás terminales los recargan al recuperar el foco o en un minuto.</p>}
-    <fieldset disabled={busy} className="rounded-lg border border-border overflow-hidden">
+    <fieldset disabled={busy || !loaded} aria-busy={!loaded} className="rounded-lg border border-border overflow-hidden">
       <legend className="sr-only">Permisos por rol</legend>
       <div className="grid grid-cols-[1fr_110px_110px] gap-2 px-4 py-3 bg-muted text-sm font-semibold"><span>Permiso</span>{ROLES.map(([key, label]) => <span key={key} className="flex flex-col items-center text-center">{label}{counts && <small className="text-xs font-normal text-soft">{peopleLabel(counts[key] ?? 0)}</small>}</span>)}</div>
       {(['views', 'actions'] as const).map((kind) => <div key={kind}>
@@ -57,6 +68,6 @@ export function RolePermissionsForm({ configId, initial, counts }: { configId: n
       </div>)}
     </fieldset>
     <p className="text-xs text-soft">Crear y cobrar requieren acceso a Mesas o Pedidos. Las entregas y llamadas se atienden desde Mesas.</p>
-    <Button variant="primary" disabled={busy} onClick={() => void save()}>{busy ? 'Guardando…' : 'Guardar permisos'}</Button>
+    <Button variant="primary" disabled={busy || !loaded} onClick={() => void save()}>{busy ? 'Guardando…' : 'Guardar permisos'}</Button>
   </section>
 }

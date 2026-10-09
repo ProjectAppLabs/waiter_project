@@ -19,7 +19,7 @@ export async function listPeople(): Promise<Person[]> {
   return (await core.listPeople()).map(toPerson)
 }
 
-export const invitePerson = (values: PersonValues) => core.invitePerson({ name: values.name, username: values.username, email: values.email, role: values.role, restaurant_ids: values.configIds.map(String), shift_start: values.shiftStart, shift_end: values.shiftEnd, hourly_rate: values.hourlyRate ?? null }).then((r) => ({ employee_id: Number(r.person.id), user_id: Number(r.person.id), invite_sent: r.invite_sent }))
+export const invitePerson = (values: PersonValues) => core.invitePerson({ name: values.name, username: values.username, email: values.email, role: values.role, restaurant_ids: values.configIds, shift_start: values.shiftStart, shift_end: values.shiftEnd, hourly_rate: values.hourlyRate ?? null }).then((r) => ({ employee_id: Number(r.person.id), user_id: Number(r.person.id), invite_sent: r.invite_sent }))
 // El usuario no cambia al editar: es con lo que la persona entra y firma su historial.
 export const updatePerson = (employeeId: number, values: Omit<Partial<PersonValues>, 'username'>) => core.updatePerson(String(employeeId), toCorePerson(values)).then(() => true as const)
 export const resendInvite = (employeeId: number) => (core.resendInvite(String(employeeId)))

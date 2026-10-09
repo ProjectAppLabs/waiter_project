@@ -10,9 +10,18 @@ async function corePlan(id: number): Promise<FloorDocument> {
   return toFloorDocument(plan, typeof plan.background === 'string' ? plan.background : await backgroundOf(id, plan.revision, plan.background === true))
 }
 export const readPlan = (id: number) => (corePlan(id))
+// Un piso nuevo («Agregar piso», id null) se crea primero: el plano solo se guarda sobre un piso que exista (antes salía
+// `PUT floors/null/plan` y el servidor respondía 404). Sin fondo elegido va `background: null`: con `true` («conservar
+// el fondo») el servidor rechaza un piso que no tiene fondo.
+async function existing(configId: number, plan: FloorDocument): Promise<FloorDocument> {
+  if (plan.id !== null) return plan
+  const floor = await coreTables.createFloor(configId, plan.name)
+  return { ...plan, id: floor.id, revision: floor.revision, background: plan.background ?? null }
+}
 export async function savePlan(configId: number, plan: FloorDocument) {
-  const saved = await coreTables.savePlan(plan.id as number, toCorePlan(plan, plan.id as number))
-  return toFloorDocument(saved, plan.background ?? await backgroundOf(saved.id, saved.revision, saved.background === true))
+  const target = await existing(configId, plan)
+  const saved = await coreTables.savePlan(target.id as number, toCorePlan(target, target.id as number))
+  return toFloorDocument(saved, target.background ?? await backgroundOf(saved.id, saved.revision, saved.background === true))
 }
 // Elimina un piso del terminal (caja cerrada, como guardar el plano). `removed`: se borró con sus mesas. `archived`: tenía
 // ventas en el historial, así que se archivó y se desvinculó; para el restaurante desaparece igual.

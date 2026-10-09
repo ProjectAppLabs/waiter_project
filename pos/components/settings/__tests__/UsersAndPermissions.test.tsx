@@ -1,9 +1,22 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import { UsersForm } from '../KitSettingsForms'
 import { RolePermissionsForm } from '../RolePermissionsForm'
+import { ROLE_ACTIONS, ROLE_VIEWS, type RolePolicy } from '@/lib/domain/permissions'
 import { messages } from '@/lib/i18n/messages'
+import { coreFetch } from '@/lib/services/core/http'
 import type { PosEmployee } from '@/lib/services/employees'
+
+// Frontera HTTP: la política se lee de `settings?restaurant_id=` y se guarda completa en `settings/roles`.
+jest.mock('@/lib/services/core/http', () => ({ ...jest.requireActual('@/lib/services/core/http'), coreFetch: jest.fn() }))
+const m = jest.mocked(coreFetch)
+// Lo que el dueño ya había guardado: además de lo de siempre, el mesero cobra.
+const SAVED: RolePolicy = {
+  waiter: { views: ['tables'], actions: ['create_orders', 'serve_orders', 'charge_orders'] },
+  cashier: { views: ['orders'], actions: ['create_orders', 'charge_orders'] },
+  admin: { views: [...ROLE_VIEWS], actions: [...ROLE_ACTIONS] },
+}
+beforeEach(() => { m.mockReset(); m.mockResolvedValue({ role_policy: SAVED }) })
 
 // jsdom no trae structuredClone (el navegador sí); basta una copia JSON para la política de permisos.
 globalThis.structuredClone ??= ((value: unknown) => JSON.parse(JSON.stringify(value))) as typeof structuredClone
@@ -41,4 +54,34 @@ it('no ofrece permisos de módulos apagados en el local', () => {
   expect(screen.queryByText('Cocina')).toBeNull()
   expect(screen.getAllByText(/Salón|Mesas/).length).toBeGreaterThan(0)
   useAuthStore.setState({ modules: null, restaurantModules: null })
+})
+
+// Falla si la consola muestra la política por omisión en vez de la guardada: el dueño veía sin «Cobrar pedidos» a un
+// mesero al que ya le había dado ese permiso.
+it('muestra la política guardada de cada rol', async () => {
+  render(<RolePermissionsForm configId={1} />)
+  await waitFor(() => expect(screen.getByLabelText('Mesero: Cobrar pedidos')).toBeChecked())
+  expect(m).toHaveBeenCalledWith('settings?restaurant_id=1')
+})
+
+// Falla si guardar desde la consola vuelve a pisar con la política por omisión los permisos que el dueño ya había
+// concedido (el PUT reemplaza la política completa de la organización).
+it('guarda el cambio sin perder los permisos ya concedidos', async () => {
+  m.mockImplementation(async (path: string, options?: { body?: unknown }) => (path === 'settings/roles' ? { role_policy: options?.body } : { role_policy: SAVED }))
+  render(<RolePermissionsForm configId={1} />)
+  await waitFor(() => expect(screen.getByLabelText('Mesero: Cobrar pedidos')).toBeChecked())
+  fireEvent.click(screen.getByLabelText('Mesero: Inventario'))
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar permisos' }))
+  await waitFor(() => expect(m).toHaveBeenCalledWith('settings/roles', expect.objectContaining({ method: 'PUT' })))
+  const put = m.mock.calls.find(([path]) => path === 'settings/roles')![1] as { body: RolePolicy }
+  expect(put.body.waiter).toEqual({ views: ['tables', 'inventory'], actions: ['create_orders', 'serve_orders', 'charge_orders'] })
+})
+
+// Falla si con la lectura de la política fallida se puede guardar: el PUT reemplazaría la política guardada por la de
+// por omisión sin que el dueño lo sepa.
+it('sin la política guardada no deja guardar', async () => {
+  m.mockRejectedValue(new Error('Sin conexión'))
+  render(<RolePermissionsForm configId={1} />)
+  expect(await screen.findByRole('alert')).toHaveTextContent('No se pudieron leer los permisos guardados')
+  expect(screen.getByRole('button', { name: 'Guardar permisos' })).toBeDisabled()
 })

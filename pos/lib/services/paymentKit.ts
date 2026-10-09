@@ -6,7 +6,8 @@ import { toPayableOrder } from '@/lib/services/core/salesBridge'
 export interface PayableLine { uuid: string; name: string; qty: number; unitPrice: number; total: number; note: string; discount?: number; couponCode?: string }
 export interface PayableOrder {
   id: number; reference: string; trackingNumber: string; presetId: number | null; presetName: string; customerName: string
-  tableId: number | null; tableNumber: string; date: string; total: number; tax: number; paid: number; lines: PayableLine[]
+  // `total` incluye la propina ya registrada en el pedido (`tip`).
+  tableId: number | null; tableNumber: string; date: string; total: number; tax: number; tip: number; paid: number; lines: PayableLine[]
 }
 export interface LoyaltyProgram { id: number; name: string; copPerPoint: number; rewardId: number | null; rewardProductId: number | null; minimumPoints?: number }
 export interface Member { cardId: number; code: string; name: string; phone: string; points: number }

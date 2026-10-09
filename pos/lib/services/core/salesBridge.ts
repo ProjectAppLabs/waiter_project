@@ -55,7 +55,7 @@ export const toOpenOrder = (o: CoreOrder): OpenOrder | null => {
 const SERVICE_LABEL = { dine_in: 'En mesa', takeout: 'Para llevar', delivery: 'Domicilio' } as const
 export const toPayableOrder = (o: CoreOrder): PayableOrder => ({
   id: o.id, reference: o.number, trackingNumber: String(o.tracking), presetId: null, presetName: SERVICE_LABEL[o.service], customerName: o.customer_name,
-  tableId: o.table_id, tableNumber: o.table_number === null ? '' : String(o.table_number), date: o.created_at, total: o.total, tax: o.tax, paid: o.paid,
+  tableId: o.table_id, tableNumber: o.table_number === null ? '' : String(o.table_number), date: o.created_at, total: o.total, tax: o.tax, tip: o.tip, paid: o.paid,
   lines: live(o).map((l) => ({ uuid: l.uuid, name: l.name, qty: l.qty, unitPrice: l.unit_price, total: l.total, note: l.note, discount: l.discount_pct, couponCode: '' })),
 })
 const lineStatus = (o: CoreOrder, l: CoreOrder['lines'][number]): LineStatus => {

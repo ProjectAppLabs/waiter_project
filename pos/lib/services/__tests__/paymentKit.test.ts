@@ -8,8 +8,10 @@ import { coreOrder } from '@/lib/testFixtures/core'
 it('lee el pedido completo para cobrarlo', async () => {
  m.mockResolvedValue({ order: coreOrder() })
  const order = await readPayableOrder(13)
- expect(m).toHaveBeenCalledWith('orders/13')
- expect(order).toMatchObject({ id: 13, customerName: 'Zahir', tableNumber: '8', total: 73800, paid: 20000 })
+ // Contrato vigente del cliente (core/sales.ts: `getOrder`): la lectura en línea viaja sin opciones de respaldo.
+ expect(m).toHaveBeenCalledWith('orders/13', {})
+ // La propina ya registrada viaja aparte: el modal la descuenta del total para no sumarla dos veces.
+ expect(order).toMatchObject({ id: 13, customerName: 'Zahir', tableNumber: '8', total: 73800, tip: 0, paid: 20000 })
  expect(order.lines[0]).toMatchObject({ uuid: 'linea-1', name: 'Angus', qty: 2, total: 73800 })
 })
 // Falla si un saldo cambiado se cobra sin pedir revisar el total.
