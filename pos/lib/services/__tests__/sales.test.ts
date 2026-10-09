@@ -2,7 +2,7 @@ import { coreFetch } from '@/lib/services/core/http'
 jest.mock('@/lib/services/core/http', () => ({ ...jest.requireActual('@/lib/services/core/http'), coreFetch: jest.fn() }))
 const m = jest.mocked(coreFetch)
 beforeEach(() => m.mockReset())
-import { listSales, listShifts, paymentsByMethod, salesSummary, topProducts } from '@/lib/services/sales'
+import { listSales, listShifts, paymentsByMethod, salesOverview, salesSummary, topProducts } from '@/lib/services/sales'
 jest.mock('@/lib/services/core/catalogBridge', () => ({ currentRestaurantId: () => 1 }))
 // Falla si una caja abierta se muestra cerrada o pierde el cierre y sus importes.
 it('lee los turnos abiertos y cerrados', async () => {
@@ -20,4 +20,14 @@ it('mantiene días y turno, con totales independientes de la tabla', async () =>
  await expect(salesSummary(range)).resolves.toEqual({ total: 400000, orders: 1000, autonomous: 100 })
  await expect(paymentsByMethod(range)).resolves.toEqual([{ method: 'Efectivo', amount: 400000 }])
  await expect(topProducts(range)).resolves.toEqual([{ product: 'Angus', qty: 4, amount: 400000 }])
+})
+// Falla si Ventas vuelve a pedir el mismo resumen una vez por tarjeta: un periodo cuesta una sola consulta de
+// `sales/summary`, y de ella salen indicadores, métodos de pago, meseros y más vendidos.
+it('arma las cuatro tarjetas de Ventas con un solo resumen', async () => {
+ m.mockResolvedValue({ total: 400000, orders: 4, autonomous: 1, by_method: [{ method: 'Efectivo', amount: 400000 }], by_waiter: [{ waiter: '', amount: 400000, orders: 4 }], top_products: [{ product: 'Angus', qty: 4, amount: 400000 }] })
+ const overview = await salesOverview({ kind: 'range', from: '2026-10-01', to: '2026-10-31' })
+ expect(m).toHaveBeenCalledTimes(1)
+ expect(m).toHaveBeenCalledWith('sales/summary?restaurant_id=1&from=2026-10-01&to=2026-10-31')
+ expect(overview).toEqual({ summary: { total: 400000, orders: 4, autonomous: 1 }, methods: [{ method: 'Efectivo', amount: 400000 }],
+  waiters: [{ waiter: '—', amount: 400000, orders: 4 }], top: [{ product: 'Angus', qty: 4, amount: 400000 }] })
 })

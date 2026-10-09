@@ -5,29 +5,37 @@ import { SalesView } from '@/components/business/SalesView'
 import { messages } from '@/lib/i18n/messages'
 import { closeRegister, closingData } from '@/lib/services/cashRegister'
 import { downloadExport } from '@/lib/services/core/exports'
-import { listShifts, salesSummary } from '@/lib/services/sales'
+import { salesSummary as summaryRequest } from '@/lib/services/core/sales'
+import { listShifts } from '@/lib/services/sales'
 
 const auth = { session: null as { id: number; configId: number } | null, refreshSession: jest.fn(), user: { role: 'admin' } }
 jest.mock('@/lib/stores/authStore', () => ({ useAuthStore: (select?: (s: unknown) => unknown) => (select ? select(auth) : auth) }))
-jest.mock('@/lib/stores/catalogStore', () => ({ useCatalogStore: (select: (s: unknown) => unknown) => select({ catalog: { tables: [{ id: 5, number: 12 }], settings: { configId: 3 } } }) }))
+// La carta es estable entre renders, como en la tienda real: un objeto nuevo en cada render rehacía las consultas sin fin.
+const catalog = { tables: [{ id: 5, number: 12 }], settings: { configId: 3 } }
+jest.mock('@/lib/stores/catalogStore', () => ({ useCatalogStore: (select: (s: unknown) => unknown) => select({ catalog }) }))
 jest.mock('@/lib/services/cashRegister', () => ({ cashInOut: jest.fn(), closeRegister: jest.fn(), closingData: jest.fn() }))
 jest.mock('@/lib/services/business', () => ({ cashSettings: jest.fn().mockResolvedValue({ tolerance: 0, currency: 'COP' }) }))
 jest.mock('@/lib/services/core/exports', () => ({ downloadExport: jest.fn(async (kind: string) => `${kind}.csv`) }))
 jest.mock('@/lib/stores/toastStore', () => ({ toast: jest.fn() }))
+// El resumen del periodo es el de verdad (lib/services/sales) sobre el cliente HTTP `sales/summary`, que se simula: así se
+// cuenta cuántas veces lo pide la pantalla.
+const SUMMARY = {
+  total: 300000, orders: 4, autonomous: 1, by_method: [{ method: 'Efectivo', amount: 200000 }, { method: 'Tarjeta', amount: 100000 }],
+  by_waiter: [{ waiter: 'Sofía', amount: 300000, orders: 4 }], top_products: [{ product: 'Hamburguesa', qty: 9, amount: 180000 }],
+}
+jest.mock('@/lib/services/core/sales', () => ({ salesSummary: jest.fn() }))
+jest.mock('@/lib/services/core/catalogBridge', () => ({ currentRestaurantId: () => 3 }))
 jest.mock('@/lib/services/sales', () => ({
-  SALES_LIST_LIMIT: 200,
+  ...jest.requireActual('@/lib/services/sales'),
   listShifts: jest.fn(),
-  salesSummary: jest.fn(async () => ({ total: 300000, orders: 4, autonomous: 1 })),
   listSales: jest.fn(async () => [{ id: 81, reference: 'DI-081', paidAt: '2026-10-04 15:30:00', tableNumber: 12, waiter: 'Sofía', origin: 'waiter', total: 120000 }]),
-  paymentsByMethod: jest.fn(async () => [{ method: 'Efectivo', amount: 200000 }, { method: 'Tarjeta', amount: 100000 }]),
-  salesByWaiter: jest.fn(async () => [{ waiter: 'Sofía', amount: 300000, orders: 4 }]),
-  topProducts: jest.fn(async () => [{ product: 'Hamburguesa', qty: 9, amount: 180000 }]),
 }))
 
 const wrap = () => render(<NextIntlClientProvider locale="es" messages={messages}><SalesView /></NextIntlClientProvider>)
 beforeEach(() => {
   jest.clearAllMocks()
   auth.session = null
+  jest.mocked(summaryRequest).mockResolvedValue(SUMMARY)
   jest.mocked(listShifts).mockResolvedValue([{ id: 7, name: 'Turno mañana', state: 'closed', startAt: '2026-10-03T13:00:00Z', stopAt: '2026-10-03T22:00:00Z', user: 'Carlos', total: 0, orders: 0 }])
 })
 
@@ -64,8 +72,8 @@ it('el periodo manda la consulta y un rango inválido no exporta', async () => {
   wrap()
   await screen.findByText('Efectivo')
   fireEvent.click(screen.getByRole('button', { name: 'Ayer' }))
-  await waitFor(() => expect(salesSummary).toHaveBeenLastCalledWith(expect.objectContaining({ kind: 'range' })))
-  const yesterday = jest.mocked(salesSummary).mock.calls.at(-1)![0] as { from: string; to: string }
+  await waitFor(() => expect(summaryRequest).toHaveBeenLastCalledWith(3, expect.objectContaining({ from: expect.any(String) })))
+  const yesterday = jest.mocked(summaryRequest).mock.calls.at(-1)![1] as { from: string; to: string }
   expect(yesterday.from).toBe(yesterday.to)
   fireEvent.click(screen.getByRole('button', { name: 'Rango' }))
   fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '2020-01-01' } })
@@ -83,4 +91,17 @@ it('exporta ventas y pagos del turno con sus fechas y el local', async () => {
   fireEvent.click(screen.getByRole('button', { name: /Exportar CSV/ }))
   fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'Pagos' }))
   await waitFor(() => expect(downloadExport).toHaveBeenCalledWith('pagos', { from: '2026-10-03', to: '2026-10-03', restaurant_id: 3 }))
+})
+
+// Falla si Ventas vuelve a pedir el mismo resumen una vez por tarjeta: con «Este mes» eran 4 consultas iguales a
+// `sales/summary` (indicadores, métodos, meseros y más vendidos), y las tarjetas podían mezclar respuestas distintas.
+it('con «Este mes» pide el resumen del periodo una sola vez', async () => {
+  wrap()
+  await screen.findByText('Efectivo')
+  jest.mocked(summaryRequest).mockClear()
+  jest.mocked(summaryRequest).mockResolvedValueOnce({ ...SUMMARY, total: 900000, orders: 9, by_waiter: [{ waiter: 'Mateo', amount: 900000, orders: 9 }] })
+  fireEvent.click(screen.getByRole('button', { name: 'Este mes' }))
+  expect((await screen.findAllByText('$ 900.000'))[0]).toBeInTheDocument()
+  expect(await screen.findByText('Mateo')).toBeInTheDocument()
+  expect(summaryRequest).toHaveBeenCalledTimes(1)
 })

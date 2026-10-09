@@ -18,7 +18,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { formatCop } from '@/lib/domain/money'
 import { can, effectiveRole } from '@/lib/domain/roles'
 import { cashInOut, closeRegister, closingData, type ClosingData } from '@/lib/services/cashRegister'
-import { SALES_LIST_LIMIT, listSales, listShifts, paymentsByMethod, salesByWaiter, salesSummary, topProducts, type SalesSummary, type MethodTotal, type ProductTotal, type SaleRow, type ShiftRow, type WaiterTotal } from '@/lib/services/sales'
+import { SALES_LIST_LIMIT, listSales, listShifts, salesOverview, type SalesSummary, type MethodTotal, type ProductTotal, type SaleRow, type ShiftRow, type WaiterTotal } from '@/lib/services/sales'
 import { SALES_PERIODS, rangeFor, validRange, type DayRange, type SalesPeriod, type SalesScope } from '@/lib/domain/salesPeriod'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { cn } from '@/lib/utils'
@@ -70,8 +70,9 @@ export function SalesView() {
   useEffect(() => {
     if (!scope) return
     let alive = true
-    void Promise.all([salesSummary(scope), listSales(scope, tableNumberOf), paymentsByMethod(scope), salesByWaiter(scope), topProducts(scope)])
-      .then(([summary, sales, methods, waiters, top]) => { if (alive) setData({ key: scopeKey, summary, sales, methods, waiters, top }) })
+    // Un solo resumen del periodo alimenta indicadores, métodos, meseros y más vendidos; la tabla de pedidos va aparte.
+    void Promise.all([salesOverview(scope), listSales(scope, tableNumberOf)])
+      .then(([overview, sales]) => { if (alive) setData({ key: scopeKey, ...overview, sales }) })
     return () => { alive = false }
   }, [scopeKey, tableNumberOf]) // eslint-disable-line react-hooks/exhaustive-deps -- `scope` cambia de identidad en cada render; su contenido es `scopeKey`
 
