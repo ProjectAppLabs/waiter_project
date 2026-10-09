@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "scope": "Acceso offline, Pedidos, Pago, Historial y navegación de consolas; rondas x0, w0, r2 y contratos de r3 pendientes de QA final",
+  "scope": "Acceso offline, Pedidos, Pago, Historial y navegación de consolas; rondas x0, w0, r2, contratos de r3 y, en r4, Cocina, Inventario → Menú, Operación en vivo y cobro con tarjeta y propina",
   "flows": {
     "pos-payment-checkout": {
       "name": "Cobrar un pedido pendiente",
@@ -11,7 +11,7 @@
         "waiter con charge_orders"
       ],
       "priority": "P1",
-      "description": "El personal autorizado llega al cobro desde el pedido, ve detalle, total y métodos; cobra en efectivo, tarjeta o QR. Puede fijar un importe parcial, elegir método, dividir pagos y agregar propina. Éxito muestra total, método y cambio reales; efectivo insuficiente o QR no configurado muestra rechazo visible; un rechazo del servidor deja el error visible sin mostrar éxito. Contrato responsive: recorrido y controles alcanzables sin recorte en 835x1194, 412x915, 1195x835, 1440x900 y 2560x1440. En un pago en cola, la pérdida de respuesta conserva la incertidumbre: al volver la conexión y recargar se reintenta con la misma clave y el importe fijado antes del primer envío, aunque el saldo haya cambiado. El resultado confirmado contiene un único pago; un fallo de almacenamiento impide enviar un pago cuyo importe no quedó guardado.",
+      "description": "El personal autorizado llega al cobro desde el pedido, ve detalle, total y métodos; cobra en efectivo, tarjeta o QR. Puede fijar un importe parcial, elegir método, dividir pagos y agregar propina. Éxito muestra total, método y cambio reales; efectivo insuficiente o QR no configurado muestra rechazo visible; un rechazo del servidor deja el error visible sin mostrar éxito. Contrato responsive: recorrido y controles alcanzables sin recorte en 835x1194, 412x915, 1195x835, 1440x900 y 2560x1440. En un pago en cola, la pérdida de respuesta conserva la incertidumbre: al volver la conexión y recargar se reintenta con la misma clave y el importe fijado antes del primer envío, aunque el saldo haya cambiado. El resultado confirmado contiene un único pago; un fallo de almacenamiento impide enviar un pago cuyo importe no quedó guardado. En tarjeta (datáfono) y QR el pago no lleva efectivo recibido, que el servidor rechaza; con tarjeta el pedido de 38.900 queda pagado. La propina elegida se registra en el pedido antes de los pagos: con la sugerida del 10 % el pedido queda pagado con propina 3.890 y total 42.790.",
       "outcomes": [
         "success",
         "error",
@@ -211,6 +211,48 @@
         "success",
         "error",
         "failure",
+        "display"
+      ]
+    },
+    "pos-kitchen-tickets": {
+      "name": "Leer e iniciar una comanda en Cocina",
+      "module": "pos-cocina",
+      "roles": [
+        "admin",
+        "roles con la vista kitchen"
+      ],
+      "priority": "P1",
+      "description": "Desde Dashboard, la navegación principal lleva a Cocina (/kds). Una comanda para llevar enviada a cocina muestra su cronómetro y «Iniciar preparación»; al iniciarla, el botón pasa a «Listo todo». Si el servidor rechaza la lectura o la acción, Cocina muestra el error en una alerta. Contrato responsive en 835x1194 y 412x915: cronómetro y botón alcanzables sin recorte y sin desborde horizontal del documento. Cada caso prepara su comanda por la API con una nota única.",
+      "outcomes": [
+        "success",
+        "failure"
+      ]
+    },
+    "pos-inventory-dishes": {
+      "name": "Agotar un plato del menú desde Inventario",
+      "module": "pos-inventario",
+      "roles": [
+        "admin",
+        "roles con la vista inventory (solo consulta)"
+      ],
+      "priority": "P2",
+      "description": "Desde Dashboard, Inventario abre la «Lista del menú». La tarjeta de un plato deja leer su nombre sin que «Agotar aquí» lo tape y la insignia «Disponible» sin que la tape el lápiz de edición; agotarlo en este restaurante deja a la vista «Volver a ofrecer». Si agotarlo falla, un aviso muestra el error. Contrato responsive en 835x1194, 412x915, 1195x835, 1440x900 y 2560x1440, sin desborde horizontal. Cada caso crea su propio plato por la API y no toca los platos de Pago, Historial ni Pedidos.",
+      "outcomes": [
+        "success",
+        "failure"
+      ]
+    },
+    "pos-operations-shift": {
+      "name": "Revisar la tabla del turno en Operación en vivo",
+      "module": "pos-pedidos",
+      "roles": [
+        "admin",
+        "cashier",
+        "roles con la vista orders"
+      ],
+      "priority": "P2",
+      "description": "Operación en vivo se abre por su dirección (/operacion), su única entrada. En la pestaña Pagos, la fila de un pedido pendiente conserva «Mesa / mesero», su total y su estado «Pendiente». Contrato responsive en 835x1194 y 412x915: esas celdas alcanzables sin recorte y sin desborde horizontal del documento.",
+      "outcomes": [
         "display"
       ]
     }
