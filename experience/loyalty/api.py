@@ -32,7 +32,7 @@ def customers(org):
         .values("amount")
     )
     return Customer.objects.filter(organization=org).annotate(
-        paid_orders=Count("orders", filter=Q(orders__state="paid")),
+        paid_orders=Count("orders", filter=Q(orders__state="paid", orders__organization=org)),
         invoiced=Subquery(billed),
     )
 
@@ -42,7 +42,14 @@ def customer_dict(row):
 
 
 class CustomersView(PosView):
-    def get(self, request):
+    def get(self, request, pk=None):
+        if pk is not None:
+            from .delivery import address_dict, consent_dict, consented, insights
+            row = customers(self.org).filter(pk=pk).first()
+            require(row, 'No encontramos el cliente.', 'not_found', 404)
+            return Response({'customer': {**customer_dict(row),
+                'addresses': [address_dict(a) for a in row.addresses.order_by('-last_used_at', 'id')] if consented(row) else [],
+                'consent': consent_dict(row), 'insights': insights(row, restaurants_for(self.account))}})
         query = request.query_params.get("q", "").strip()
         rows = customers(self.org).filter(active=True)
         if query:

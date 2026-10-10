@@ -52,6 +52,10 @@ class IncomingMessage:
     phone_number_id: str
     raw: dict[str, Any] = field(repr=False)
 
+    @property
+    def action(self):
+        return location_action(self.raw) if self.type == 'location' else None
+
 
 @dataclass
 class StatusUpdate:
@@ -115,3 +119,10 @@ def parse_events(payload: dict[str, Any]) -> list[IncomingMessage | StatusUpdate
                     )
                 )
     return events
+
+
+def location_action(raw):
+    """Conserva las coordenadas enviadas por Meta; el dominio valida sus rangos."""
+    location = raw.get('location') or {}
+    return {'type': 'location', 'lat': location.get('latitude'), 'lng': location.get('longitude'),
+            'address': location.get('address') or location.get('name') or ''}

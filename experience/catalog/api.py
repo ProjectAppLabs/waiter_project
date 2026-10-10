@@ -34,7 +34,9 @@ class PosView(ContractView):
         check_pos_view(self, request, kwargs)
 
     def product(self, pk, **filters):
-        return s.reference(Product, self.org, pk, **filters)
+        product = s.reference(Product, self.org, pk, **filters)
+        require(product.kind != 'service', 'Este producto lo administra el sistema.', 'not_found', 404)
+        return product
 
 
 class CatalogView(PosView):
@@ -59,7 +61,7 @@ class ProductsView(PosView):
         q = request.query_params.get('q', '').casefold()
         data = CatalogData(self.org)
         return Response({'products': [data.product_dict(p) for p in data.products.values()
-                                      if p.active and (not kind or p.kind == kind) and q in p.name.casefold()]})
+                                      if p.active and p.kind != 'service' and (not kind or p.kind == kind) and q in p.name.casefold()]})
 
     def post(self, request):
         product = s.save_product(self.account, request.data)

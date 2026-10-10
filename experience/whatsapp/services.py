@@ -58,7 +58,7 @@ def window_open(conversation):
     return bool(conversation.last_inbound_at and conversation.last_inbound_at > timezone.now() - timedelta(hours=24))
 
 
-def _send(account, to, *, text='', template='', language=''):
+def _send(account, to, *, text='', template='', language='', location=False, options=None):
     to = number(to)
     error = None
     with transaction.atomic():
@@ -71,10 +71,12 @@ def _send(account, to, *, text='', template='', language=''):
         conversation, _ = WhatsAppConversation.objects.get_or_create(account=account, wa_id=to)
         if not template:
             require(window_open(conversation), 'La ventana de 24 horas terminó. Envía una plantilla.', 'window_closed', 409)
-        message = WhatsAppMessage.objects.create(conversation=conversation, direction='out', type='template' if template else 'text',
+        message = WhatsAppMessage.objects.create(conversation=conversation, direction='out', type='template' if template else 'interactive' if location or options else 'text',
                                                 text=text, template=template, language=language, status='sent')
         try:
-            response = client.send_template(to, template, language) if template else client.send_text(to, text)
+            response = (client.send_template(to, template, language) if template else
+                        client.send_location_request(to, text) if location else
+                        client.send_buttons(to, text, options) if options else client.send_text(to, text))
             wamid = client.message_id(response)
             if not isinstance(wamid, str) or not wamid or len(wamid) > 255:
                 raise WhatsAppError()
@@ -211,3 +213,11 @@ def connect_test(org, restaurant=None):
         'organization': org, 'restaurant': restaurant, 'waba_id': settings.WA_WABA_ID, 'status': 'connected', 'connected_at': timezone.now(),
     })
     return account
+
+
+def send_location_request(conversation, body):
+    return _send(conversation.account, conversation.wa_id, text=body, location=True)
+
+
+def send_buttons(conversation, body, options):
+    return _send(conversation.account, conversation.wa_id, text=body, options=options)

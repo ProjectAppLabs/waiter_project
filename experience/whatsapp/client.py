@@ -124,6 +124,17 @@ class WhatsAppClient:
             }
         )
 
+    def send_location_request(self, to: str, body: str):
+        return self._post({'messaging_product': 'whatsapp', 'recipient_type': 'individual',
+            'to': self.normalize_number(to), 'type': 'interactive', 'interactive': {
+                'type': 'location_request_message', 'body': {'text': body}, 'action': {'name': 'send_location'}}})
+
+    def send_buttons(self, to: str, body: str, options):
+        return self._post({'messaging_product': 'whatsapp', 'recipient_type': 'individual',
+            'to': self.normalize_number(to), 'type': 'interactive', 'interactive': {'type': 'button',
+                'body': {'text': body}, 'action': {'buttons': [{'type': 'reply', 'reply': {
+                    'id': option['value'], 'title': option['label']}} for option in options[:3]]}}})
+
     def mark_as_read(self, message_id: str) -> dict[str, Any]:
         """Marca un mensaje entrante como leído (doble check azul)."""
         return self._post(

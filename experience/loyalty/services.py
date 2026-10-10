@@ -79,7 +79,9 @@ def diner_benefits(org, diner_key, order_uuid=None):
     key = uuid_value(str(diner_key))
     uid = uuid_value(str(order_uuid)) if order_uuid else None
     with writing(org, operational=True):
-        customer, _ = Customer.objects.get_or_create(organization=org, diner_key=key, defaults={"name": "Comensal"})
+        from .models import CustomerDinerIdentity
+        identity = CustomerDinerIdentity.objects.filter(organization=org, key=key).select_related('customer').first()
+        customer = identity.customer if identity else Customer.objects.get_or_create(organization=org, diner_key=key, defaults={"name": "Comensal"})[0]
         program = program_for(org)
         card = card_for(customer) if program else None
         earned = 0
@@ -110,7 +112,7 @@ def grant_points(org, diner_key, key, points, description):
         grant = BenefitGrant.objects.filter(organization=org, key=key).select_related("card__customer").first()
         if grant:
             require(
-                grant.card.customer.diner_key == account_key,
+                grant.card.customer.diner_key == account_key or grant.card.customer.customerdineridentity_set.filter(organization=org, key=account_key).exists(),
                 "La clave del premio pertenece a otra cuenta.",
                 "grant_key_conflict",
                 409,

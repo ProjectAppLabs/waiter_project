@@ -7,9 +7,10 @@ from experience_app.adapters.core import pos
 from experience_app.adapters.core.pos import Client
 import uuid
 from decimal import Decimal
+from contextlib import nullcontext
 
 from django.db import IntegrityError, transaction
-from tenancy.http import Problem
+from tenancy.http import Problem, require
 from django.utils import timezone
 
 from django.db import DatabaseError
@@ -63,17 +64,24 @@ def _reserve_account_discount(diner, mine, order, percent):
     return percent, mine
 
 
-def confirm(session: TableSession, diner: Diner | None = None, takeaway: bool | None = None, *, prepay: bool = False, checkout_note: str | None = None, allergens: str | None = None) -> tuple[Order, bool]:
+def confirm(session: TableSession, diner: Diner | None = None, takeaway: bool | None = None, *, prepay: bool = False, delivery_payment=None, checkout_note: str | None = None, allergens: str | None = None) -> tuple[Order, bool]:
     # CAS persistente: serializa confirmaciones de una mesa incluso en SQLite.
     if not TableSession.objects.filter(id=session.id, confirming=False, state__in=TableSession.OPEN_STATES).update(confirming=True):
         raise ConfirmationBusy()
     try:
-        return _confirm(session, diner, takeaway, prepay=prepay, checkout_note=checkout_note, allergens=allergens)
+        if session.is_delivery:
+            from catalog.services import writing
+            from tenancy.models import Organization
+            guard = writing(Organization.objects.get(slug=session.restaurant_slug), operational=True)
+        else:
+            guard = nullcontext()
+        with guard:
+            return _confirm(session, diner, takeaway, prepay=prepay, delivery_payment=delivery_payment, checkout_note=checkout_note, allergens=allergens)
     finally:
         TableSession.objects.filter(id=session.id).update(confirming=False)
 
 
-def _confirm(session: TableSession, diner: Diner | None = None, takeaway: bool | None = None, *, prepay: bool = False, checkout_note: str | None = None, allergens: str | None = None) -> tuple[Order, bool]:
+def _confirm(session: TableSession, diner: Diner | None = None, takeaway: bool | None = None, *, prepay: bool = False, delivery_payment=None, checkout_note: str | None = None, allergens: str | None = None) -> tuple[Order, bool]:
     """Devuelve (pedido, hubo_algo_nuevo). Sin líneas nuevas, comprueba en el sistema propio que sigue abierto y devuelve el pedido.
 
     `diner` es quien confirma: si tiene cuenta verificada con el descuento de primera compra sin usar, SUS líneas nuevas
@@ -102,7 +110,14 @@ def _confirm(session: TableSession, diner: Diner | None = None, takeaway: bool |
     if diner is not None and diner.account_id:
         rewards.sync(tenant, diner.account)
     client = Client(tenant)
+    delivery_row, delivery_quote = None, None
     prepay = True
+    if session.is_delivery:
+        from delivery.services import prepare
+        delivery_row, delivery_quote = prepare(session, delivery_payment)
+        prepay = delivery_row.payment == 'online'
+        if order:
+            require(order.requires_payment == prepay, 'El método de pago ya quedó confirmado.', 'not_editable', 409)
     pos.ensure_open_session(client, tenant.config_id)
     # También se verifica al pagar sin líneas nuevas: el POS puede haber cobrado entretanto.
     if order is not None and order.state in (Order.SENT, Order.CHECKOUT) and order.odoo_order_id:
@@ -127,7 +142,8 @@ def _confirm(session: TableSession, diner: Diner | None = None, takeaway: bool |
         pos_session_id = pos.ensure_open_session(client, tenant.config_id)
         placed_order = pos.create_order(client, pos_session_id=pos_session_id, table_id=session.odoo_table_id, order_uuid=str(order.id),
                                       guests=max(1, session.diners.count()), lines=_to_order_lines(order, all_lines),
-                                      date_order=timezone.now().strftime('%Y-%m-%d %H:%M:%S'), requires_payment=order.requires_payment)
+                                      date_order=timezone.now().strftime('%Y-%m-%d %H:%M:%S'), requires_payment=order.requires_payment,
+                                      **({'delivery': delivery_row, 'delivery_minimum': delivery_quote['minimo']} if delivery_row else {}))
         if not order.requires_payment:
             pos.fire_course(client, placed_order.id)
     except (DatabaseError, Problem) as exc:

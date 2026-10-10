@@ -132,8 +132,10 @@ def test_acompanamiento_despues_de_escoger(carta):
 
 # Falla si a un tono le falta una frase, si una frase pide un dato que el núcleo no manda, o si el tuteo, el voseo o el
 # usted se mezclan dentro de un mismo tono.
+# Falla si las frases de cada tono piden campos desconocidos o mezclan los tratos.
 def test_tonos_completos_y_coherentes():
-    campos = {'greeting', 'featured', 'favorite', 'name', 'remaining', 'hours', 'address', 'phone', 'state'}
+    campos = {'greeting', 'featured', 'favorite', 'name', 'remaining', 'hours', 'address', 'phone', 'state',
+              'sede', 'distancia', 'envio', 'metodos', 'policy', 'label', 'url'}
     for clave, tono in tones.TONES.items():
         for frase_clave in tones.USTED:
             for frase in tones.phrases(clave, frase_clave):

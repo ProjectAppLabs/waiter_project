@@ -20,6 +20,7 @@ from whatsapp.views import webhook as whatsapp_webhook
 from assistant.api import ProfileView
 
 urlpatterns = [
+    path('', include('delivery.urls')),
     path('api/pos/v1/', include('assistant.urls')),
     path('api/v1/<slug:rest>/<slug:sede>/assistant/profile', ProfileView.as_view()),
     path('webhooks/whatsapp', whatsapp_webhook),

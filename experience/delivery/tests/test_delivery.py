@@ -1,0 +1,438 @@
+"""Contrato de domicilios, cobro y privacidad con proveedores simulados."""
+from datetime import timedelta
+from decimal import Decimal
+from unittest.mock import Mock
+from uuid import uuid4
+
+import pytest
+from django.utils import timezone
+from rest_framework.test import APIClient
+
+from catalog.models import Product, Tax, Unit, Recipe, RecipeLine
+from delivery.coverage import quote, distance
+from delivery.models import DeliverySettings, SessionDelivery, DeliveryLink
+from experience_app.models import Diner, DinerAccount, TableSession, CartLine
+from inventory.models import Stock, StockMove
+from loyalty.models import Customer, CustomerAddress
+from sales.models import CashShift, Order, Payment
+from sales.services import seed_restaurant, seed_organization
+from tenancy.http import Problem
+from tenancy.models import OrganizationAudit, OrganizationModule
+from tenancy.tests.helpers import organization, restaurant, account, pos_client
+
+pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture
+# Falla si las pruebas contactan proveedores reales o comparten datos del entorno.
+def env(settings, monkeypatch):
+    settings.OPENAI_API_KEY = settings.TYPESAFE_API_KEY = ''
+    settings.GOOGLE_MAPS_API_KEY = ''
+    settings.EXPERIENCE_INTERNAL_KEY = 'clave-interna-de-prueba'
+    settings.WA_ACCESS_TOKEN = 'token-simulado'
+    settings.WA_TEST_RECIPIENTS = ['573001234567']
+    monkeypatch.setattr('requests.sessions.Session.request', Mock(side_effect=AssertionError('Red real prohibida')))
+    org = organization(status='active')
+    venue = restaurant(org, latitude=4.65, longitude=-74.05)
+    owner = account(org)
+    seed_restaurant(venue)
+    seed_organization(org)
+    shift = CashShift.objects.create(restaurant=venue, opened_by=owner)
+    product = Product.objects.create(organization=org, kind='dish', name='Sopa', price=20000)
+    tax = Tax.objects.create(organization=org, name='INC', amount=8, included=True)
+    product.taxes.add(tax)
+    unit = Unit.objects.create(organization=org, name='Unidad', root='count', factor=1)
+    ingredient = Product.objects.create(organization=org, kind='ingredient', name='Papa', unit=unit)
+    recipe = Recipe.objects.create(product=product, yield_qty=1)
+    RecipeLine.objects.create(recipe=recipe, ingredient=ingredient, qty=1, unit=unit)
+    Stock.objects.create(restaurant=venue, ingredient=ingredient, qty=10)
+    config = DeliverySettings.objects.create(restaurant=venue, enabled=True, radius_km=5,
+        tiers=[{'up_to_km': '1', 'fee': '3000'}, {'up_to_km': '5', 'fee': '6000'}], min_order=10000,
+        methods=['online', 'cash', 'card_on_delivery'])
+    session = TableSession.objects.create(restaurant_slug=org.slug, venue_slug=venue.slug)
+    diner = Diner.objects.create(session=session)
+    CartLine.objects.create(session=session, diner=diner, product_id=product.pk, name=product.name, unit_price=20000, qty=1, tax_ids=[tax.pk])
+    client = APIClient()
+    client.cookies['waiter_diner'] = diner.key
+    return dict(org=org, venue=venue, owner=owner, shift=shift, product=product, config=config, session=session, diner=diner, client=client)
+
+
+def delivery_body(**kwargs):
+    return {'lat': 4.651, 'lng': -74.05, 'direccion': 'Calle 1 # 2-3', 'indicaciones': 'Portería',
+            'telefono': '300 123 4567', 'nombre': 'Ana', 'guardar': False, 'acepta_datos': False, **kwargs}
+
+
+def put_delivery(e, **kwargs):
+    return e['client'].put(f"/api/v1/sesiones/{e['session'].pk}/domicilio", delivery_body(**kwargs), format='json')
+
+
+def confirm(e, method='cash'):
+    return e['client'].post(f"/api/v1/sesiones/{e['session'].pk}/confirmar/", {'metodo_pago': method}, format='json')
+
+
+# Falla si la cobertura ignora la sede más cercana, su radio o el tramo sin redondear.
+def test_coverage_nearest_and_tiers(env):
+    e = env
+    near = restaurant(e['org'], 'cercana', latitude=4.66, longitude=-74.05)
+    DeliverySettings.objects.create(restaurant=near, enabled=True, radius_km=1, tiers=[{'up_to_km': '1', 'fee': '1000'}])
+    assert quote(e['org'], '4.661', '-74.05')['sede']['slug'] == 'cercana'
+    result = quote(e['org'], '4.671', '-74.05')
+    assert result['sede']['slug'] == 'centro' and result['envio'] == 6000
+    assert isinstance(result['distancia_km'], Decimal)
+    assert quote(e['org'], 0, 0)['motivo'] == 'fuera_de_zona'
+    assert distance(0, 0, 0, 0) == 0
+    assert abs(distance(0, 0, 0, 1) - Decimal('111.19508')) < Decimal('.00001')
+    assert abs(distance(0, 0, 0, 180) - Decimal('20015.11444')) < Decimal('.00001')
+
+
+@pytest.mark.parametrize('lat,lng', [(91, 0), (0, -181), ('NaN', 0), (True, 0), (None, 2), ('Infinity', 1)])
+# Falla si la ruta de cotización admite coordenadas no finitas o fuera de rango.
+def test_quote_bad_coordinates(env, lat, lng):
+    response = env['client'].post(f"/api/v1/{env['org'].slug}/domicilio/cotizar", {'lat': lat, 'lng': lng}, format='json')
+    assert response.status_code == 400
+
+
+# Falla si los ajustes dejan de exigir dueño, ubicación, validación e historial con aislamiento.
+def test_owner_settings(env):
+    e = env
+    client = pos_client(e['owner'])
+    base = '/api/pos/v1/delivery/settings'
+    assert client.get(base).data['restaurants'][0]['has_location'] is True
+    body = {'enabled': True, 'radius_km': 5, 'tiers': [{'up_to_km': 5, 'fee': 2000}], 'min_order': 1000, 'methods': ['cash'], 'notes': 'Con gusto'}
+    assert client.put(f"{base}/{e['venue'].pk}", body, format='json').status_code == 200
+    assert OrganizationAudit.objects.filter(action='delivery.deliverysettings.updated', organization=e['org']).exists()
+    for key, value in [('methods', []), ('radius_km', 51), ('tiers', [{'up_to_km': 1, 'fee': -1}]), ('enabled', 'sí'), ('notes', 'x' * 201)]:
+        assert client.put(f"{base}/{e['venue'].pk}", {**body, key: value}, format='json').status_code == 400
+    e['venue'].latitude = None
+    e['venue'].save()
+    assert client.put(f"{base}/{e['venue'].pk}", body, format='json').data['error'] == 'location_required'
+    admin = account(e['org'], role='admin', username='admin', restaurants=[e['venue']])
+    assert pos_client(admin).get(base).status_code == 403
+    other = restaurant(organization('otra'))
+    assert client.put(f'{base}/{other.pk}', body, format='json').status_code == 404
+
+
+@pytest.mark.parametrize('method', ['cash', 'card_on_delivery', 'online'])
+# Falla si envío, pagos y recibo no cuadran, si el envío consume inventario o si online cocina antes del pago.
+def test_delivery_checkout_payment_and_receipt(env, method):
+    e = env
+    response = put_delivery(e)
+    assert response.status_code == 200, response.data
+    assert response.data['carrito']['total'] == 23000
+    response = confirm(e, method)
+    assert response.status_code == 201, response.data
+    order = Order.objects.get()
+    assert order.total == 23000 and order.service == 'delivery'
+    assert order.customer is None and not Customer.objects.exclude(vat='222222222222').exists()
+    assert order.delivery_payment == method
+    assert order.courses.exists() is (method != 'online')
+    delivery = order.lines.get(product__kind='service')
+    assert delivery.total == 3000 and delivery.taxes == [] and delivery.stock_usage == [] and delivery.course_id is None
+    assert not delivery.product.available_in_pos and not delivery.product.track_stock
+    assert StockMove.objects.count() == 0
+    pos = pos_client(e['owner'])
+    receipt = pos.get(f'/api/pos/v1/orders/{order.pk}').data['order']
+    assert receipt['delivery_lat'] == 4.651 and receipt['delivery_fee'] == 3000
+    assert receipt['delivery_details'] == 'Portería' and receipt['customer']['name'] == 'Ana'
+    assert receipt['customer']['phone'] == '+573001234567'
+    from experience_app.adapters.core.pos import Client, resolve, gateway_paid
+    gateway_paid(Client(resolve(e['org'].slug, e['venue'].slug)), order.pk, 2300000, 'referencia-de-prueba')
+    order.refresh_from_db()
+    assert order.state == 'paid' and order.paid == 23000 and order.courses.count() == 1
+    assert Payment.objects.get().amount == 23000 and Stock.objects.get().qty == 9
+    assert StockMove.objects.count() == 1
+    assert order.lines.get(product__kind='service').stock_usage == []
+    assert put_delivery(e).status_code == 409
+
+
+# Falla si confirmar permite saltar dirección, método, mínimo o cobertura actual.
+def test_confirm_validation_and_rollback(env):
+    e = env
+    assert confirm(e).data['error'] == 'delivery_required'
+    assert put_delivery(e).status_code == 200
+    assert confirm(e, 'bitcoin').data['error'] == 'invalid_payment_method'
+    e['config'].min_order = 30000
+    e['config'].save()
+    assert confirm(e).data['error'] == 'minimum_order'
+    assert not Order.objects.exists() and not e['session'].orders.exists()
+    e['config'].enabled = False
+    e['config'].save()
+    assert confirm(e).data['error'] == 'delivery_unavailable'
+
+
+# Falla si la sesión usa la cobertura de otra sede o no actualiza el envío y la sugerencia.
+def test_session_own_venue_and_requote(env):
+    e = env
+    near = restaurant(e['org'], 'cerca', latitude=4.661, longitude=-74.05)
+    DeliverySettings.objects.create(restaurant=near, enabled=True)
+    response = put_delivery(e, lat=4.661)
+    assert response.data['domicilio']['sugerida']['slug'] == 'cerca'
+    assert response.data['domicilio']['sede']['slug'] == 'centro'
+    assert response.data['carrito']['envio'] == 6000
+    assert put_delivery(e).data['carrito']['envio'] == 3000
+    e['config'].radius_km = Decimal('.1')
+    e['config'].save()
+    assert put_delivery(e, lat=4.661).status_code == 409
+    assert put_delivery(e, telefono='abc').status_code == 409
+
+
+# Falla si las direcciones se guardan sin autorización, se revelan por teléfono o sobreviven a la revocación.
+def test_customer_consent_addresses_and_revoke(env):
+    e = env
+    assert put_delivery(e, guardar=True).data['error'] == 'consent_required'
+    assert not CustomerAddress.objects.exists()
+    assert put_delivery(e, guardar=True, acepta_datos=True).status_code == 200
+    customer = Customer.objects.get(normalized_phone='+573001234567')
+    assert customer.data_consent_channel == 'menu'
+    base = f"/api/v1/{e['org'].slug}/domicilio/direcciones"
+    response = e['client'].get(base)
+    assert len(response.data['direcciones']) == 1
+    address = response.data['direcciones'][0]
+    stranger = APIClient()
+    stranger_diner = Diner.objects.create(session=e['session'])
+    stranger.cookies['waiter_diner'] = stranger_diner.key
+    assert stranger.get(base).data['direcciones'] == []
+    assert stranger.delete(f"{base}/{address['id']}").status_code == 404
+    foreign = organization('otra')
+    assert e['client'].get(f'/api/v1/{foreign.slug}/domicilio/direcciones').status_code == 404
+    assert confirm(e).status_code == 201
+    assert e['client'].delete(f'/api/v1/{e["org"].slug}/datos').status_code == 200
+    customer.refresh_from_db()
+    assert customer.data_consent_revoked_at and not customer.addresses.exists()
+    assert Order.objects.get().customer == customer
+    assert e['client'].get(base).data == {'direcciones': []}
+
+
+# Falla si el buscador supera su cupo, usa red sin clave o devuelve más de cinco resultados.
+def test_geocoding_and_limits(env, settings, monkeypatch):
+    e = env
+    url = f'/api/v1/{e["org"].slug}/domicilio/buscar'
+    assert e['client'].post(url, {'texto': 'Calle 1'}, format='json').status_code == 503
+    settings.GOOGLE_MAPS_API_KEY = 'clave-simulada'
+    remote = Mock(return_value=Mock(status_code=200, json=lambda: {'status': 'OK', 'results': [
+        {'formatted_address': 'Calle 1, Bogotá', 'geometry': {'location': {'lat': 4.65, 'lng': -74.05}}}] * 8}))
+    monkeypatch.setattr('requests.get', remote)
+    for _ in range(20):
+        response = e['client'].post(url, {'texto': 'Calle 1'}, format='json')
+        assert response.status_code == 200 and len(response.data['resultados']) == 5
+    assert e['client'].post(url, {'texto': 'Calle 1'}, format='json').status_code == 429
+    assert remote.call_count == 20 and remote.call_args.kwargs['params']['components'] == 'country:CO'
+
+
+# Falla si las rutas públicas aceptan cookies desde un origen ajeno.
+def test_origins(env, settings):
+    e = env
+    url = f'/api/v1/{e["org"].slug}/domicilio/cotizar'
+    assert e['client'].post(url, {'lat': 4.65, 'lng': -74.05}, format='json', HTTP_ORIGIN='https://ajeno.co').status_code == 403
+    assert e['client'].post(url, {'lat': 4.65, 'lng': -74.05}, format='json', HTTP_ORIGIN=settings.DINER_PUBLIC_URL).status_code == 200
+
+
+# Falla si los indicadores cuentan borradores u otra organización o no separan canales y zona horaria.
+def test_customer_insights(env):
+    e = env
+    assert put_delivery(e, acepta_datos=True).status_code == 200
+    assert confirm(e).status_code == 201
+    order = Order.objects.get()
+    order.state, order.paid_at = 'paid', timezone.now()
+    order.save()
+    Order.objects.create(organization=e['org'], restaurant=e['venue'], shift=e['shift'], uuid=uuid4(), service='takeout', prefix='TA', tracking=2, number='TA-2', customer=order.customer, total=999)
+    other = organization('otra')
+    Order.objects.create(organization=other, restaurant=e['venue'], shift=e['shift'], uuid=uuid4(), service='takeout', prefix='TA', tracking=3, number='TA-3', customer=order.customer, total=999, state='paid')
+    response = pos_client(e['owner']).get(f'/api/pos/v1/customers/{order.customer_id}')
+    assert response.data['customer']['orders'] == 1
+    info = response.data['customer']['insights']
+    assert info['orders'] == 1 and info['total_spent'] == 23000 and info['avg_ticket'] == 23000
+    assert info['channels'] == {'pos': 0, 'menu': 1, 'whatsapp': 0}
+    assert sum(info['hours'].values()) == sum(info['weekdays'].values()) == 1
+    assert info['top_products'][0]['name'] == 'Sopa' and len(info['top_products']) == 1
+    assert info['rfm']['segment'] == 'nuevo'
+
+
+# Falla si una dirección propia no se puede borrar o si la undécima supera el límite del cliente.
+def test_address_delete_limit_and_id_ownership(env):
+    e = env
+    assert put_delivery(e, guardar=True, acepta_datos=True).status_code == 200
+    customer = Customer.objects.get(normalized_phone='+573001234567')
+    for i in range(2, 11):
+        assert put_delivery(e, guardar=True, direccion=f'Calle {i}').status_code == 200
+    assert customer.addresses.count() == 10
+    assert put_delivery(e, guardar=True, direccion='Calle 11').data['error'] == 'address_limit'
+    address = customer.addresses.first()
+    assert e['client'].delete(f'/api/v1/{e["org"].slug}/domicilio/direcciones/{address.pk}').data == {'ok': True}
+    assert customer.addresses.count() == 9
+    assert put_delivery(e, direccion_id=999999, guardar=True).status_code == 404
+
+
+@pytest.mark.parametrize('change', [{'telefono': '123'}, {'nombre': ''}, {'guardar': 'sí'}, {'lat': 91}, {'direccion': 'x' * 301}])
+# Falla si los datos de entrega inválidos dejan una cotización parcial en la visita.
+def test_session_invalid_payload(env, change):
+    response = put_delivery(env, **change)
+    assert response.status_code == 400
+    assert not SessionDelivery.objects.exists()
+
+
+# Falla si el menú no anuncia la disponibilidad de domicilios y del buscador.
+def test_public_entry_delivery_capabilities(env, settings):
+    e = env
+    response = e['client'].get(f'/api/v1/{e["org"].slug}/{e["venue"].slug}/')
+    assert response.status_code == 200, response.data
+    assert response.data['domicilio'] == {'enabled': True, 'buscador': False}
+    settings.GOOGLE_MAPS_API_KEY = 'clave-simulada'
+    assert e['client'].get(f'/api/v1/{e["org"].slug}/{e["venue"].slug}/').data['domicilio']['buscador']
+
+
+# Falla si un fallo del proveedor se expone como 500 o si buscar no exige cookie de la organización.
+def test_search_provider_error_and_identity(env, settings, monkeypatch):
+    import requests
+    e = env
+    settings.GOOGLE_MAPS_API_KEY = 'clave-simulada'
+    url = f'/api/v1/{e["org"].slug}/domicilio/buscar'
+    assert APIClient().post(url, {'texto': 'Casa'}, format='json').status_code == 404
+    monkeypatch.setattr('requests.get', Mock(side_effect=requests.Timeout()))
+    assert e['client'].post(url, {'texto': 'Casa'}, format='json').data['error'] == 'maps_unavailable'
+
+
+# Falla si el pago aprobado en Wompi omite el envío o se concilia dos veces en cocina y caja.
+def test_online_reconciliation_includes_delivery(env):
+    from experience_app.models import PaymentGateway, PaymentAttempt, Order as MenuOrder
+    from experience_app.services.online_payments import reconcile
+    e = env
+    assert put_delivery(e).status_code == 200
+    assert confirm(e, 'online').data['estado'] == 'pendiente_pago'
+    order = Order.objects.get()
+    gateway = PaymentGateway.objects.create(restaurant_slug=e['org'].slug, venue_slug=e['venue'].slug,
+        environment='prod', payment_method_id=e['org'].paymentmethod_set.get(name='Pago en línea').pk)
+    attempt = PaymentAttempt.objects.create(gateway=gateway, session=e['session'], diner=e['diner'], order=MenuOrder.objects.get(),
+        amount_in_cents=2300000, method='CARD', status='PENDING', payment_method_id=gateway.payment_method_id)
+    reconcile(attempt)
+    assert not order.courses.exists()
+    attempt.status = 'APPROVED'
+    attempt.save()
+    assert reconcile(attempt).reconciled
+    assert reconcile(attempt).reconciled
+    order.refresh_from_db()
+    assert order.total == order.paid == 23000 and order.courses.count() == 1 and Payment.objects.count() == 1
+
+
+# Falla si cambiar tarifas después de confirmar modifica el carrito, la cuenta o el importe que se paga.
+def test_confirmed_delivery_is_frozen(env):
+    e = env
+    assert put_delivery(e).status_code == 200
+    assert confirm(e, 'online').status_code == 201
+    e['config'].enabled = False
+    e['config'].tiers = [{'up_to_km': '5', 'fee': '9000'}]
+    e['config'].save()
+    cart = e['client'].get(f'/api/v1/sesiones/{e["session"].pk}/carrito/')
+    assert cart.status_code == 200 and cart.data['envio'] == 3000
+    from experience_app.services.sessions import bill_summary
+    assert bill_summary(e['session'], e['diner'])['total'] == 23000
+    assert Order.objects.get().total == 23000
+
+
+# Falla si WhatsApp y la cuenta del menú crean dos clientes para el mismo teléfono o pierden diner_key.
+def test_same_phone_customer_across_channels(env):
+    from loyalty.delivery import authorize
+    e = env
+    diner = e['diner']
+    diner.account = DinerAccount.objects.create(organization_slug=e['org'].slug, email='ana@example.co', name='Ana', phone='3001234567', verified=True)
+    diner.save()
+    assert put_delivery(e, acepta_datos=True, guardar=True).status_code == 200
+    customer = Customer.objects.get(normalized_phone='+573001234567')
+    whatsapp = authorize(e['org'], '573001234567', 'Ana', 'whatsapp')
+    assert customer.pk == whatsapp.pk and whatsapp.diner_key == diner.account_id
+    assert Customer.objects.filter(normalized_phone='+573001234567').count() == 1
+
+
+# Falla si conocer el teléfono de otro cliente permite vincular una cuenta propia a sus direcciones.
+def test_phone_does_not_grant_address_access(env):
+    from loyalty.delivery import authorize, save_address
+    e = env
+    victim = authorize(e['org'], '573001234567', 'Ana', 'whatsapp')
+    save_address(victim, {'label': 'Casa privada', 'text': 'Dirección privada', 'details': '', 'latitude': Decimal('4.65'), 'longitude': Decimal('-74.05')})
+    e['diner'].account = DinerAccount.objects.create(organization_slug=e['org'].slug, email='otro@example.co', name='Otro', verified=True)
+    e['diner'].save()
+    Customer.objects.create(organization=e['org'], diner_key=e['diner'].account_id, name='Otro')
+    assert put_delivery(e, acepta_datos=True).status_code == 200
+    assert e['client'].get(f'/api/v1/{e["org"].slug}/domicilio/direcciones').data == {'direcciones': []}
+
+
+# Falla si la migración de teléfonos pierde pedidos, claves de cuenta o puntos al consolidar contactos antiguos.
+def test_phone_migration_preserves_references(env):
+    from importlib import import_module
+    from django.apps import apps
+    from loyalty.models import CustomerDinerIdentity, LoyaltyCard
+    e = env
+    key = uuid4()
+    rows = Customer.objects.bulk_create([
+        Customer(organization=e['org'], name='Ana', phone='3001234567'),
+        Customer(organization=e['org'], name='Ana menú', phone='+57 300 123 4567', diner_key=key)])
+    first = LoyaltyCard.objects.create(organization=e['org'], customer=rows[0], points=2)
+    LoyaltyCard.objects.create(organization=e['org'], customer=rows[1], points=3)
+    order = Order.objects.create(organization=e['org'], restaurant=e['venue'], shift=e['shift'], uuid=uuid4(), service='takeout', prefix='TA', tracking=4, number='TA-4', customer=rows[1])
+    import_module('loyalty.migrations.0006_unificar_telefonos_colombianos').forward(apps, None)
+    first.refresh_from_db()
+    order.refresh_from_db()
+    assert first.points == 5 and order.customer_id == rows[0].pk
+    assert CustomerDinerIdentity.objects.get(key=key).customer_id == rows[0].pk
+    assert Customer.objects.filter(normalized_phone='+573001234567').count() == 1
+
+
+# Falla si un reintento cambia la tarifa o el método de un domicilio ya confirmado.
+def test_confirmation_retry_preserves_price_and_method(env):
+    e = env
+    assert put_delivery(e).status_code == 200
+    first = confirm(e, 'cash')
+    assert first.status_code == 201
+    e['config'].tiers = [{'up_to_km': '5', 'fee': '9000'}]
+    e['config'].save()
+    assert confirm(e, 'card_on_delivery').status_code == 409
+    retry = confirm(e, 'cash')
+    assert retry.status_code == 200 and retry.data['pedido'] == first.data['pedido']
+    assert SessionDelivery.objects.get().fee == 3000 and Order.objects.get().total == 23000
+
+
+# Falla si el comensal puede iniciar un pago en línea cuando eligió contra entrega.
+def test_cash_delivery_blocks_online_checkout(env):
+    from experience_app.services.online_payments import context, create, PaymentConflict
+    e = env
+    assert put_delivery(e).status_code == 200 and confirm(e).status_code == 201
+    assert context(e['session'], e['diner'])['available'] is False
+    with pytest.raises(PaymentConflict):
+        create(e['session'], e['diner'], {'id': uuid4(), 'method': 'CARD'})
+
+
+# Falla si el producto de envío aparece en la carta o permite que el dueño lo convierta en un plato.
+def test_shipping_product_hidden_and_protected(env):
+    e = env
+    assert put_delivery(e).status_code == 200 and confirm(e).status_code == 201
+    product = Product.objects.get(kind='service')
+    client = pos_client(e['owner'])
+    assert product.pk not in [p['id'] for p in client.get('/api/pos/v1/products').data['products']]
+    assert client.patch(f'/api/pos/v1/products/{product.pk}', {'name': 'Otro nombre'}, format='json').status_code == 404
+
+
+# Falla si devolver el envío altera impuestos o devuelve ingredientes que nunca se consumieron por esa línea.
+def test_refund_shipping_without_inventory(env):
+    from experience_app.adapters.core.pos import Client, resolve, gateway_paid
+    e = env
+    assert put_delivery(e).status_code == 200 and confirm(e, 'online').status_code == 201
+    order = Order.objects.get()
+    gateway_paid(Client(resolve(e['org'].slug, e['venue'].slug)), order.pk, 2300000, 'pago-para-devolucion')
+    line = order.lines.get(product__kind='service')
+    method = Payment.objects.get().method_id
+    response = pos_client(e['owner']).post(f'/api/pos/v1/orders/{order.pk}/refunds', {
+        'lines': [{'line_id': line.pk, 'qty': 1}], 'tip': 0, 'payments': [{'method_id': method, 'amount': 3000}],
+        'reason': 'Se recogió el pedido en la sede', 'restock': True, 'request_key': uuid4().hex}, format='json')
+    assert response.status_code == 200, response.data
+    order.refresh_from_db()
+    assert order.refunded == 3000 and Stock.objects.get().qty == 9 and StockMove.objects.count() == 1
+
+
+# Falla si el turno público del chat omite la acción que abre la hoja de domicilio del menú.
+def test_menu_chat_delivery_action(env):
+    e = env
+    response = e['client'].post(f'/api/v1/sesiones/{e["session"].pk}/asistente/',
+        {'id': str(uuid4()), 'mensaje': 'domicilio'}, format='json')
+    assert response.status_code == 200, response.data
+    assert response.data['accion'] == 'domicilio' and response.data['lineas'] == []
+    assert CartLine.objects.count() == 1

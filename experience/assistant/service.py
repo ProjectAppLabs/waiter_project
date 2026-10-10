@@ -187,3 +187,7 @@ def split_name(text, products, asked=False):
 
 def declines_name(text):
     return bool(DECLINE.fullmatch(normalize(text).strip(' !.')))
+
+
+def wants_delivery(text):
+    return bool(re.search(r'\b(domicilio|delivery|envio)\b|que me lo traigan', normalize(text)))

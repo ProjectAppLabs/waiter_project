@@ -60,7 +60,7 @@ def send(chat, message_id, message, load_products):
         participant = Diner.objects.select_related('session', 'account').filter(pk=chat.participant).first() if re.fullmatch(r'[0-9a-f-]{36}', chat.participant) else None
         reply = handle(chat.channel, local, participant or chat.participant, text=message, products=load_products())
         turn = {'id': str(message_id), 'mensaje': message, 'respuesta': reply['text'],
-                'accion': 'agregar' if reply.add else 'recomendar' if reply['cards'] else 'preguntar',
+                'accion': 'domicilio' if reply['route'] == 'domicilio' else 'agregar' if reply.add else 'recomendar' if reply['cards'] else 'preguntar',
                 'opciones': [o['label'] for o in reply['options']], 'lineas': reply.lines,
                 'time': now.timestamp()}
         if reply['notice']:

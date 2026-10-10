@@ -280,14 +280,15 @@ def add_lines(order, raw):
 
 def fire(order, account):
     require(order.state != "cancelled", "El pedido está cancelado.", "not_editable", 409)
-    lines = order.lines.filter(course__isnull=True, cancelled=False, points_cost=0)
+    lines = order.lines.filter(course__isnull=True, cancelled=False, points_cost=0).exclude(product__kind='service')
+    on_delivery = order.service == 'delivery' and order.delivery_payment in ('cash', 'card_on_delivery')
     if not lines.exists():
         return None
-    require(order.origin != 'diner' or order.state == 'paid',
+    require(order.origin != 'diner' or order.state == 'paid' or on_delivery,
             'El pedido del menú debe pagarse antes de enviar a cocina.', 'prepay_required', 409)
     roles = order.restaurant.settings.kitchen_prepay_roles
     require(
-        order.state == "paid" or (account is not None and account.role not in roles) or (account is None and order.origin == "ai" and order.channel == "whatsapp"),
+        order.state == "paid" or on_delivery or (account is not None and account.role not in roles) or (account is None and order.origin == "ai" and order.channel == "whatsapp"),
         "Tu rol debe cobrar antes de enviar a cocina",
         "prepay_required",
         409,

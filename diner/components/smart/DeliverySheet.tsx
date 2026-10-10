@@ -20,7 +20,7 @@ const phoneOk = (v: string) => /^(\+?57)?3\d{9}$/.test(v.replace(/[\s-]/g, ''))
 // Plan D: «¿A dónde te lo llevamos?». La ubicación sale del GPS, de una dirección guardada, de la búsqueda o del pin
 // en el mapa; el texto y las indicaciones son para el domiciliario. Sin autorización no se guarda nada en el perfil.
 export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: DeliveryQuote | null, method: DeliveryMethod | null) => void; disabled?: boolean }) {
-  const { keys, session, account, preview } = useDinerStore()
+  const { keys, session, account, preview, entry } = useDinerStore()
   const [center, setCenter] = useState<Point | null>(null)
   const [point, setPoint] = useState<Point | null>(null)
   const [address, setAddress] = useState(''), [details, setDetails] = useState('')
@@ -28,7 +28,7 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
   const [save, setSave] = useState(false), [consent, setConsent] = useState(false), [label, setLabel] = useState('Casa')
   const [saved, setSaved] = useState<SavedAddress[]>([]), [addressId, setAddressId] = useState<number | undefined>()
   const [query, setQuery] = useState(''), [results, setResults] = useState<{ texto: string; lat: number; lng: number }[]>([])
-  const [searchable, setSearchable] = useState(true)
+  const [searchable, setSearchable] = useState(entry?.domicilio?.buscador ?? false)
   const [quote, setQuote] = useState<DeliveryQuote | null>(null), [method, setMethod] = useState<DeliveryMethod | null>(null)
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [locating, setLocating] = useState(false)
 
@@ -97,7 +97,7 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
       <label className="sm-check"><input type="checkbox" checked={save} disabled={off} onChange={(e) => setSave(e.target.checked)} /><span>Guardar esta dirección para la próxima</span></label>
       {save && <>
         <label className="sm-field"><span>Nombre de la dirección</span><input value={label} disabled={off} onChange={(e) => setLabel(e.target.value)} maxLength={30} placeholder="Casa, Oficina…" /></label>
-        <label className="sm-check"><input type="checkbox" checked={consent} disabled={off} onChange={(e) => setConsent(e.target.checked)} /><span>Autorizo al restaurante a guardar mis datos (nombre, celular y direcciones) para atender mis pedidos, según la Ley 1581 de 2012. Puedo retirar la autorización cuando quiera.</span></label>
+        <label className="sm-check"><input type="checkbox" checked={consent} disabled={off} onChange={(e) => setConsent(e.target.checked)} /><span>Autorizo al restaurante a guardar mis datos (nombre, celular y direcciones) para atender mis pedidos, según la <a href={keys ? `/${encodeURIComponent(keys.rest)}/privacidad` : '#'} target="_blank" rel="noreferrer">política de datos</a> (Ley 1581 de 2012). Puedo retirar la autorización cuando quiera.</span></label>
       </>}
       {phone && !phoneOk(phone) && <p className="sm-error" role="alert">Escribe un celular colombiano de 10 dígitos.</p>}
       <button type="button" className="sm-primary" disabled={off || !ready} onClick={() => void calculate()}>{busy ? 'Calculando…' : quote ? 'Recalcular envío' : 'Calcular envío'}</button>

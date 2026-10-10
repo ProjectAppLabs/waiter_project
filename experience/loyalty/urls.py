@@ -9,7 +9,7 @@ urlpatterns = [
     path("notifications/<int:pk>/request-ingredient", RequestIngredientView.as_view()),
     path("customers", api.CustomersView.as_view(http_method_names=["get", "post", "options"])),
     path("customers/id-types", api.CustomerInfoView.as_view(mode="id-types")),
-    path("customers/<int:pk>", api.CustomersView.as_view(http_method_names=["patch", "options"])),
+    path("customers/<int:pk>", api.CustomersView.as_view(http_method_names=["get", "patch", "options"])),
     path("customers/<int:pk>/card", api.CustomerInfoView.as_view()),
     path("customers/<int:pk>/orders", api.CustomerInfoView.as_view(mode="orders")),
     path("loyalty/program", api.ProgramView.as_view()),

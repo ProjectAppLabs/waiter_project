@@ -40,4 +40,8 @@ def entry(request, restaurant, venue, token=None):
             if product['id'] in scores:
                 product['valoracion'] = scores[product['id']]
     from experience_app.services.banners import for_menu
-    return Response({'modulos': modulos, 'contexto': _context(tenant), 'carta': menu, 'banners': for_menu(tenant, menu)})
+    from django.conf import settings
+    from delivery.models import DeliverySettings
+    delivery = {'enabled': bool(local and DeliverySettings.objects.filter(restaurant=local, enabled=True).exists()),
+                'buscador': bool(settings.GOOGLE_MAPS_API_KEY)}
+    return Response({'domicilio': delivery, 'modulos': modulos, 'contexto': _context(tenant), 'carta': menu, 'banners': for_menu(tenant, menu)})

@@ -30,6 +30,7 @@ class Reply(dict):
     usage = None
     add = False
     lines = None
+    delivery = None
 
 
 TAG_THRESHOLD = .65
@@ -228,6 +229,8 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
     source, route, template = 'shortcut', 'menu', 'menu'
     chosen, notice, extra, can_voice, add = [], None, '', False, False
     welcome_options, upsell, met = None, [], ''
+    delivery_result = None
+    from delivery import assistant as deliveries
     raw = (text or '').strip()
     normalized = normalize(raw)
     restricted_free = channel == 'whatsapp' and action is None and standing.level in ('restricted', 'paused')
@@ -247,6 +250,11 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
         template, route, source = standing.level, 'filtro', 'template'
         notice = {'kind': standing.level, 'until': standing.until.isoformat() if standing.until else None}
         chosen = select(products)
+    elif action is not None and (action.get('type') == 'location' or action.get('type') == 'option' and str(action.get('value', '')).startswith('delivery_')):
+        if action.get('type') == 'option':
+            require(action.get('value') in [o['value'] for o in state.options], 'Esa opción ya no está disponible.', 'invalid_action', 400)
+        delivery_result = deliveries.respond(channel, restaurant, participant, tone, action)
+        template, route, extra = 'business', 'domicilio', delivery_result['text']
     elif action is not None:
         template, chosen = execute(action, state, products)
         route = 'pedido' if template in ('summary', 'confirmed') else 'menu'
@@ -302,7 +310,11 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
             if 'sed' in normalized:
                 prefs['categoria'] = next((c for p in products for c in p.get('categorias', []) if 'bebida' in normalize(str(c))), '')
             safe_named = [p for p in named if p.get('agotado') is False]
-            if fixed:
+            if service.wants_delivery(raw) and deliveries.enabled(restaurant):
+                fixed = None
+                delivery_result = deliveries.respond(channel, restaurant, participant, tone)
+                template, route, extra = 'business', 'domicilio', delivery_result['text']
+            elif fixed:
                 template, route = 'business', 'estado' if 'mi pedido' in normalized else 'negocio'
             elif (given and not met) or (asked_name and service.declines_name(raw)):
                 # Respondió al «¿con quién tengo el gusto?»: se le da la bienvenida con lo fuerte de la casa.
@@ -353,6 +365,9 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
                     if manipulation and standing.consecutive == 1:
                         extra = ' ' + TemplateVoice(tone).phrase('reminder', {}) + extra
                     route, chosen = 'fuera', select(products)
+                elif selected_route == 'domicilio':
+                    delivery_result = deliveries.respond(channel, restaurant, participant, tone)
+                    template, route, extra = 'business', 'domicilio', delivery_result['text']
                 elif selected_route == 'reclamo' or (answers or {}).get('frustracion', {}).get('score', 0) >= 2:
                     template, route = 'human', 'reclamo'
                 elif choice(answers, 'ruta') == 'saludo' and not known_name(account, profile_info) and not asked_name:
@@ -376,7 +391,7 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
                         can_voice = bool(answers) and source != 'cache'
             # Ni un deseo general ni una referencia ambigua autorizan escribir en el carrito.
             from experience_app.services.agent_chat import explicit_add
-            add = bool(named and safe_named and len(safe_named) == len(named) and len(named) <= 3 and state.state not in ('esperando_pago', 'pagado') and explicit_add(raw)
+            add = bool(not delivery_result and named and safe_named and len(safe_named) == len(named) and len(named) <= 3 and state.state not in ('esperando_pago', 'pagado') and explicit_add(raw)
                        and not re.search(r'\b(con|sin|extra|extras|doble|quita|quitar|cambia|alergia|alergico)\b', normalized))
             if add:
                 route = 'pedido'
@@ -400,7 +415,7 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
             if fixed:
                 extra = fixed + extra
                 template = 'business'
-    if route in ('menu', 'pedido', 'negocio', 'estado'):
+    if route in ('menu', 'pedido', 'negocio', 'estado', 'domicilio'):
         standing.consecutive = max(0, standing.consecutive - 1)
         standing.incidents = standing.incidents[1:]
     if template == 'clarify':
@@ -429,6 +444,8 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
         options = option_cards([card(p) for p in upsell]) + [{'label': 'Ver menú', 'value': 'menu'}]
     if template in ('summary', 'confirmed'):
         options = [{'label': 'Confirmar selección', 'value': 'confirm'}, {'label': 'Ver menú', 'value': 'menu'}]
+    if delivery_result:
+        options = delivery_result['options']
     state.options = options
     if template == 'clarify':
         state.state = 'falta_dato'
@@ -462,6 +479,7 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
             record_usage(restaurant.organization, restaurant, module, 'mensaje_ia', key=f'asistente:{turn.pk}:mensaje', detail=detail)
         record_usage(restaurant.organization, restaurant, module, 'tokens_ia', sum(usage.values()), key=f'asistente:{turn.pk}:tokens', detail=detail)
     reply = Reply(text=result_text, cards=cards, options=options, state=state.state, notice=notice, route=route, source=source)
+    reply.delivery = delivery_result
     reply.turn_id, reply.usage, reply.add = turn.pk, usage, add
     numbers = {'un': 1, 'una': 1, 'uno': 1, 'dos': 2, 'tres': 3, 'cuatro': 4, 'cinco': 5, 'seis': 6, 'siete': 7, 'ocho': 8, 'nueve': 9, 'diez': 10}
     quantities = re.findall(r'\b(?:[0-9]+|' + '|'.join(numbers) + r')\b', normalized)

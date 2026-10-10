@@ -78,7 +78,12 @@ def confirm(client, uid, lines, customer, fingerprint, expires):
         require(float(order.total) == summary['total'] and float(order.tax) == summary['impuestos'],
                 'El total cambió; vuelve a cotizar antes de confirmar.', 'quote_changed', 409)
         order.origin, order.channel, order.channel_request = 'ai', 'whatsapp', request_hash
-        order.save(update_fields=['origin', 'channel', 'channel_request'])
+        from loyalty.delivery import phone, consented
+        from loyalty.models import Customer
+        contact = Customer.objects.filter(organization=client.organization, normalized_phone=phone(customer['telefono'], False)).first() if phone(customer['telefono'], False) else None
+        if consented(contact):
+            order.customer = contact
+        order.save(update_fields=['origin', 'channel', 'channel_request', 'customer'])
         sales.fire(order, None)
         return result(order)
 

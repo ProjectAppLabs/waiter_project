@@ -17,7 +17,7 @@ const MEDELLIN: Point = { lat: 6.2442, lng: -75.5812 }
 export function LocateDelivery({ token }: { token: string }) {
   const [state, setState] = useState<'loading' | 'ready' | 'invalid' | 'sent'>(token ? 'loading' : 'invalid')
   const [name, setName] = useState('')
-  const [center, setCenter] = useState<Point>(MEDELLIN)
+  const [center] = useState<Point>(MEDELLIN)
   const [point, setPoint] = useState<Point | null>(null)
   const [address, setAddress] = useState(''), [details, setDetails] = useState('')
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [covered, setCovered] = useState<boolean | null>(null)
@@ -26,8 +26,8 @@ export function LocateDelivery({ token }: { token: string }) {
     let alive = true
     getLocateLink(token).then((r) => {
       if (!alive) return
-      setName(r.nombre ?? '')
-      if (typeof r.lat === 'number' && typeof r.lng === 'number') setCenter({ lat: r.lat, lng: r.lng })
+      if (r.usado) { setState('invalid'); return }
+      setName(r.sede?.nombre ?? '')
       setState('ready')
     }).catch(() => { if (alive) setState('invalid') })
     return () => { alive = false }
@@ -38,7 +38,7 @@ export function LocateDelivery({ token }: { token: string }) {
   async function send() {
     if (!point) return
     setBusy(true); setError('')
-    try { const r = await sendLocateLink(token, { lat: point.lat, lng: point.lng, direccion: address.trim(), indicaciones: details.trim() }); setCovered(r.cobertura ?? null); setState('sent') }
+    try { const r = await sendLocateLink(token, { lat: point.lat, lng: point.lng, direccion: address.trim(), indicaciones: details.trim() }); setCovered(r.cobertura); setState('sent') }
     catch (e) { setError(e instanceof Error ? e.message : 'No pudimos enviar la ubicación.') }
     finally { setBusy(false) }
   }

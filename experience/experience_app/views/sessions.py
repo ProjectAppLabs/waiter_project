@@ -1,4 +1,6 @@
 """Sesión de comensal (cookie HttpOnly) y carrito compartido con atribución."""
+from decimal import Decimal
+
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
@@ -30,7 +32,20 @@ def discount_percent(session: TableSession) -> float:
 
 
 def cart_of(session: TableSession, diner: Diner) -> dict:
-    return sessions.cart_view(session, diner, discount_percent(session))
+    result = sessions.cart_view(session, diner, discount_percent(session))
+    from delivery.models import SessionDelivery
+    from delivery.services import delivery_dict
+    row = SessionDelivery.objects.filter(session=session).first()
+    if row:
+        result['domicilio'] = delivery_dict(row)
+        result['envio'] = result['domicilio']['envio']
+        if row.diner_id == diner.pk:
+            result['mio'] = float(Decimal(str(result['mio'])) + Decimal(str(result['envio'])))
+        for item in result['por_comensal']:
+            if item['comensal'] == str(row.diner_id):
+                item['total'] = float(Decimal(str(item['total'])) + Decimal(str(result['envio'])))
+        result['total'] = float(sum((line.subtotal for line in sessions.open_lines(session)), Decimal(0)) + Decimal(str(result['envio'])))
+    return result
 
 
 @api_view(['POST'])

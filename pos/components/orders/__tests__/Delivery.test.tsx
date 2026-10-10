@@ -47,12 +47,13 @@ it('muestra el domicilio e imprime su recibo con los datos del cliente', async (
   await waitFor(() => expect(window.print).toHaveBeenCalled())
 })
 
-// Falla si un pedido pagado en línea se imprime como «por cobrar», o si un pedido sin domicilio da recibo de domicilio.
+// Falla si un pedido pagado en línea se imprime como «por cobrar», si un pedido sin domicilio da recibo de domicilio,
+// o si la dirección repite las indicaciones o las cifras del servidor (texto decimal) no se leen como números.
 it('marca pagado lo pagado y no inventa domicilios', () => {
   expect(deliveryReceipt({ ...domicilio, delivery: { ...domicilio.delivery!, payment: 'online' } }, true)?.paid).toBe(true)
   expect(deliveryReceipt({ ...domicilio, type: 'takeout' }, false)).toBeNull()
   expect(mapsUrl(null, -75)).toBeNull()
   expect(toDelivery({ service: 'dine_in' } as CoreOrder)).toBeNull()
-  expect(toDelivery({ service: 'delivery', delivery_address: 'Calle 1', delivery_phone: '300', delivery_fee: 4000, delivery_lat: 1, delivery_lng: 2, delivery_payment: 'online', delivery_details: '', delivery_distance_km: 1.2 } as CoreOrder))
-    .toEqual({ address: 'Calle 1', details: '', phone: '300', lat: 1, lng: 2, fee: 4000, payment: 'online', distanceKm: 1.2 })
+  expect(toDelivery({ service: 'delivery', delivery_address: 'Calle 1 · Apto 2', delivery_phone: '300', delivery_fee: '4000.00', delivery_lat: '6.2', delivery_lng: '-75.5', delivery_payment: 'online', delivery_details: 'Apto 2', delivery_distance_km: '1.20' } as unknown as CoreOrder))
+    .toEqual({ address: 'Calle 1', details: 'Apto 2', phone: '300', lat: 6.2, lng: -75.5, fee: 4000, payment: 'online', distanceKm: 1.2 })
 })

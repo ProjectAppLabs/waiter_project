@@ -184,7 +184,7 @@ it('pide a domicilio con la ubicación y paga contra entrega', async () => {
     envio: 5000, distancia_km: 2.4, sede: { slug: 'salon', nombre: 'El Poblado' }, metodos: ['online', 'cash'], minimo: 0 }
   api.setDelivery.mockResolvedValue({ domicilio: cotizado, carrito: { ...carrito, total: 29000, envio: 5000, domicilio: cotizado } })
   const confirmar = jest.fn().mockResolvedValue('pedido-9')
-  useDinerStore.setState({ cart: carrito, confirm: confirmar, session: { id: 'visita', estado: 'abierta', mesa: null }, entry: { contexto: { mesa: null }, carta: { categorias: [] } } as unknown as Entry })
+  useDinerStore.setState({ cart: carrito, confirm: confirmar, session: { id: 'visita', estado: 'abierta', mesa: null }, entry: { domicilio: { enabled: true, buscador: false }, contexto: { mesa: null }, carta: { categorias: [] } } as unknown as Entry })
   Object.defineProperty(navigator, 'geolocation', { configurable: true, value: { getCurrentPosition: (ok: (p: unknown) => void) => ok({ coords: { latitude: 6.21, longitude: -75.57 } }) } })
   render(<SmartCart />)
   pulsar('Continuar al pago')
@@ -211,7 +211,7 @@ it('pide a domicilio con la ubicación y paga contra entrega', async () => {
 it('no guarda la dirección sin autorización', async () => {
   const api = jest.requireMock('@/lib/services/api')
   api.getVenueLocation.mockResolvedValue({ direccion: '', latitud: null, longitud: null })
-  useDinerStore.setState({ cart: carrito, session: { id: 'visita', estado: 'abierta', mesa: null }, entry: { contexto: { mesa: null }, carta: { categorias: [] } } as unknown as Entry })
+  useDinerStore.setState({ cart: carrito, session: { id: 'visita', estado: 'abierta', mesa: null }, entry: { domicilio: { enabled: true, buscador: false }, contexto: { mesa: null }, carta: { categorias: [] } } as unknown as Entry })
   Object.defineProperty(navigator, 'geolocation', { configurable: true, value: { getCurrentPosition: (ok: (p: unknown) => void) => ok({ coords: { latitude: 6.21, longitude: -75.57 } }) } })
   render(<SmartCart />)
   pulsar('Continuar al pago'); pulsar('A domicilio'); pulsar('Usar mi ubicación actual')

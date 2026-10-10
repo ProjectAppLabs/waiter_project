@@ -194,7 +194,7 @@ def scenario(s, method, route):
     if method == 'post' and route == 'payment-methods':
         target, body = True, {'name': 'Banco A', 'type': 'bank', 'restaurant_ids': [rid]}
     # Rutas sin selección de un recurso: los datos y las escrituras pertenecen siempre a la sesión A.
-    implicit = {'assistant', 'assistant/status', 'assistant/settings', 'assistant/tags', 'assistant/participants', 'whatsapp', 'whatsapp/connect', 'whatsapp/disconnect', 'whatsapp/test', 'audit/actions', 'support', 'recharges', 'consumption', 'subscription', 'org', 'restaurants', 'team', 'notifications', 'notifications/read_all',
+    implicit = {'delivery/settings', 'assistant', 'assistant/status', 'assistant/settings', 'assistant/tags', 'assistant/participants', 'whatsapp', 'whatsapp/connect', 'whatsapp/disconnect', 'whatsapp/test', 'audit/actions', 'support', 'recharges', 'consumption', 'subscription', 'org', 'restaurants', 'team', 'notifications', 'notifications/read_all',
         'products', 'categories', 'taxes', 'taxes/regime', 'units', 'suppliers', 'catalog/overview', 'catalog/restaurants',
         'payment-methods', 'settings/cash', 'settings/roles', 'customers', 'customers/id-types', 'loyalty/program',
         'benefits', 'banners', 'me/notify-prefs', 'reports/summary', 'company', 'brand', 'brand/logo',
@@ -228,6 +228,7 @@ def scenario(s, method, route):
 
 # Falla si una ruta registrada lee o modifica recursos de B con la sesión de A, o una ruta nueva queda sin escenario.
 @pytest.mark.parametrize('method,route', ROUTES, ids=[f'{m} {r}' for m, r in ROUTES])
+# Falla si una ruta del POS permite leer o escribir datos de otra organización.
 def test_all_registered_pos_routes(isolated, method, route):
     s = isolated
     path, query, body, target = scenario(s, method, route)

@@ -166,13 +166,14 @@ def test_percent_falls_back_to_the_design_when_core_or_the_initial_fail():
 
 # Falla si un timeout deja reutilizar el descuento desde otra mesa/cookie.
 @pytest.mark.django_db
+# Falla si un descuento reservado en una mesa se consume desde otra visita.
 def test_reservation_blocks_another_session_even_with_a_stale_account(table, core_client):
     """Falla si un timeout deja reutilizar el descuento desde otra mesa/cookie."""
     from experience_app.models import Diner, TableSession
     from experience_app.services import orders
     session, ana, _ = table
     account = verified_account(ana)
-    other = TableSession.objects.create(restaurant_slug='burger-house', venue_slug='poblado')
+    other = TableSession.objects.create(restaurant_slug='burger-house', venue_slug='poblado', table_token='otra-mesa')
     clone = Diner.objects.create(session=other, account=account)
     sessions.add_line(other, clone, ANGUS, 1)
     core_client.side_effect = [OperationalError('timeout'), SENT, SENT]

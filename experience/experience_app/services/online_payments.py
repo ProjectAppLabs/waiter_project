@@ -68,6 +68,9 @@ def context(session, diner):
     pending = session.payments.filter(status__in=ACTIVE).order_by('-created_at').first()
     result = {'available': False, 'attempt': serialize(pending) if pending and pending.diner_id == diner.id else None,
         'other_payment_pending': bool(pending and pending.diner_id != diner.id)}
+    from delivery.models import SessionDelivery
+    if SessionDelivery.objects.filter(session=session, payment__in=('cash', 'card_on_delivery')).exists():
+        return result
     config = gateway(session)
     if not config:
         return result
@@ -88,6 +91,9 @@ def create(session, diner, data):
         if existing.session_id != session.id or existing.diner_id != diner.id or existing.method != data['method']:
             raise PaymentConflict()
         return existing
+    from delivery.models import SessionDelivery
+    if SessionDelivery.objects.filter(session=session).exclude(payment='online').exists():
+        raise PaymentConflict('Este domicilio se paga contra entrega. El restaurante registrará su pago.')
     config = gateway(session)
     if not config:
         raise PaymentConflict('Los pagos en línea todavía no están habilitados para este restaurante.')

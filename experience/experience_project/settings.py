@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'reservations',
     'whatsapp',
     'assistant',
+    'delivery',
 ]
 
 MIDDLEWARE = [
@@ -205,3 +206,6 @@ ASSISTANT_JEV_MODEL = os.getenv('ASSISTANT_JEV_MODEL', 'jev-1.13.0')
 ASSISTANT_DAILY_PER_PARTICIPANT = int(os.getenv('ASSISTANT_DAILY_PER_PARTICIPANT', '30'))
 WA_AGENT_REASONING_EFFORT = os.getenv('WA_AGENT_REASONING_EFFORT', '')
 WA_AGENT_TEMPERATURE = os.getenv('WA_AGENT_TEMPERATURE', '')
+
+# Opcional: sin clave, el buscador de direcciones responde maps_not_configured.
+GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY', '')

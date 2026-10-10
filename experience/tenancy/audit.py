@@ -11,6 +11,7 @@ _context = ContextVar("actor_historial", default=None)
 
 # Lista cerrada: los nombres y las acciones son estables para el filtro del POS.
 ENTITIES = {
+    "delivery.deliverysettings": "Ajustes de domicilios",
     "catalog.product": "Producto",
     "catalog.category": "Categoría",
     "catalog.recipe": "Receta",

@@ -202,15 +202,16 @@ export async function setDelivery(sessionId: string, form: DeliveryForm): Promis
   return (await http.put(`/api/v1/sesiones/${sessionId}/domicilio`, form)).data
 }
 export async function savedAddresses(rest: string): Promise<SavedAddress[]> {
-  const raw = (await http.get(`${org(rest)}/domicilio/direcciones`)).data
-  return (raw.direcciones ?? []) as SavedAddress[]
+  const raw = (await http.get<{ direcciones: { id: number; label: string; text: string; details: string; latitude: number; longitude: number }[] }>(`${org(rest)}/domicilio/direcciones`)).data
+  return (raw.direcciones ?? []).map((a) => ({ id: a.id, etiqueta: a.label, direccion: a.text, indicaciones: a.details, lat: Number(a.latitude), lng: Number(a.longitude) }))
 }
 export async function deleteAddress(rest: string, id: number): Promise<void> { await http.delete(`${org(rest)}/domicilio/direcciones/${id}`) }
 export async function revokeData(rest: string): Promise<void> { await http.delete(`${org(rest)}/datos`) }
 // El enlace «Ubica la entrega» que llega por WhatsApp.
-export async function getLocateLink(token: string): Promise<{ restaurante: string; nombre?: string; lat?: number | null; lng?: number | null }> {
+export async function getLocateLink(token: string): Promise<{ restaurante: string; sede?: { slug: string; nombre: string }; expires_at?: string; usado?: boolean }> {
   return (await http.get(`/api/v1/domicilio/ubicar/${encodeURIComponent(token)}`)).data
 }
-export async function sendLocateLink(token: string, body: { lat: number; lng: number; direccion: string; indicaciones: string }): Promise<{ ok?: boolean; cobertura?: boolean }> {
-  return (await http.post(`/api/v1/domicilio/ubicar/${encodeURIComponent(token)}`, body)).data
+export async function sendLocateLink(token: string, body: { lat: number; lng: number; direccion: string; indicaciones: string }): Promise<{ ok: boolean; cobertura: boolean | null }> {
+  const r = (await http.post<{ ok: boolean; cotizacion?: { cobertura?: boolean } }>(`/api/v1/domicilio/ubicar/${encodeURIComponent(token)}`, body)).data
+  return { ok: r.ok, cobertura: r.cotizacion?.cobertura ?? null }
 }

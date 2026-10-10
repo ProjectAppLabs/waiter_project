@@ -8,10 +8,11 @@ from .selection import VOCABULARY
 # Cada pregunta trae su significado completo: Jev no ve los nombres de las claves, solo instrucciones y criterios.
 # Calibradas con mensajes reales en español (plan AS, «Calibración con Jev»).
 ROUTES = {
+    'domicilio': 'Quiere pedir a domicilio, conocer la cobertura o el costo del envío, o compartir la ubicación de entrega.',
     'pedido': 'Arma, cambia o confirma su pedido: agregar o quitar platos, cantidades, cambios a un plato (sin cebolla, '
               'término de la carne), pagar o cancelar.',
     'menu': 'Pregunta por la carta o pide una recomendación: qué hay, qué le sugieren, opciones por gusto, dieta o precio.',
-    'negocio': 'Pregunta por el restaurante: horario, dirección, domicilios, medios de pago, reservas, wifi.',
+    'negocio': 'Pregunta por el restaurante: horario, dirección del local, medios de pago, reservas, wifi.',
     'estado': 'Pregunta cómo va un pedido que ya hizo: si ya sale, cuánto falta, dónde está el domicilio.',
     'reclamo': 'Se queja o expresa molestia: demora, error en el pedido, mala atención, comida en mal estado.',
     'saludo': 'Solo saluda, agradece o se despide, sin pedir nada más.',

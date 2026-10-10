@@ -31,9 +31,15 @@ export interface CoreInsights {
   hours: Record<string, number>; weekdays: Record<string, number>; top_products: { product_id: number; name: string; qty: number }[]
   channels: Record<'pos' | 'menu' | 'whatsapp', number>; rfm: { r: number; f: number; m: number; segment: Segment }
 }
+interface RawConsent { active: boolean; data_consent_at: string | null; data_consent_channel: string; data_consent_version: string; data_consent_revoked_at: string | null }
 export interface CoreCustomerProfile { addresses: CoreAddress[]; consent: CoreConsent | null; insights: CoreInsights | null }
 export const customerProfile = (id: number) => coreFetch<{ customer: Partial<CoreCustomerProfile> } & Partial<CoreCustomerProfile>>(`customers/${id}`)
   .then((r): CoreCustomerProfile => {
-    const c = { ...r, ...(r.customer ?? {}) }
-    return { addresses: c.addresses ?? [], consent: c.consent ?? null, insights: c.insights ?? null }
+    const c = { ...r, ...(r.customer ?? {}) } as Partial<CoreCustomerProfile> & { consent?: RawConsent | null }
+    const k = c.consent
+    return {
+      addresses: (c.addresses ?? []).map((a) => ({ ...a, latitude: Number(a.latitude), longitude: Number(a.longitude) })),
+      consent: k ? { granted_at: k.data_consent_at, channel: k.data_consent_channel, version: k.data_consent_version, revoked_at: k.data_consent_revoked_at } : null,
+      insights: c.insights ?? null,
+    }
   })

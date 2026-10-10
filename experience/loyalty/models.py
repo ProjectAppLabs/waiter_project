@@ -25,6 +25,11 @@ ID_TYPES = [
 class Customer(Owned):
     name = models.CharField(max_length=120)
     phone = models.CharField(max_length=40, blank=True, default="")
+    normalized_phone = ExactCharField(max_length=13, null=True, blank=True)
+    data_consent_at = models.DateTimeField(null=True, blank=True)
+    data_consent_channel = models.CharField(max_length=8, blank=True, default='')
+    data_consent_version = models.CharField(max_length=40, blank=True, default='')
+    data_consent_revoked_at = models.DateTimeField(null=True, blank=True)
     email = models.EmailField(blank=True, default="")
     id_type = models.CharField(max_length=3, choices=ID_TYPES, default="CC")
     vat = models.CharField(max_length=40, blank=True, default="")
@@ -34,8 +39,16 @@ class Customer(Owned):
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def save(self, *args, **kwargs):
+        from .delivery import phone
+        self.normalized_phone = phone(self.phone, required=False)
+        if kwargs.get('update_fields') and 'phone' in kwargs['update_fields']:
+            kwargs['update_fields'] = [*kwargs['update_fields'], 'normalized_phone']
+        return super().save(*args, **kwargs)
+
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["organization", "diner_key"], name="customer_org_diner_unique")]
+        constraints = [models.UniqueConstraint(fields=["organization", "diner_key"], name="customer_org_diner_unique"),
+                       models.UniqueConstraint(fields=['organization', 'normalized_phone'], name='customer_org_phone_unique')]
 
 
 class LoyaltyProgram(models.Model):
@@ -141,3 +154,30 @@ class Banner(Owned):
 
     class Meta:
         ordering = ["sequence", "id"]
+
+
+class CustomerAddress(models.Model):
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='addresses')
+    label = models.CharField(max_length=60, default='Casa')
+    text = models.CharField(max_length=300)
+    details = models.CharField(max_length=200, blank=True, default='')
+    latitude = models.DecimalField(max_digits=10, decimal_places=7)
+    longitude = models.DecimalField(max_digits=10, decimal_places=7)
+    last_used_at = models.DateTimeField(null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class CustomerDinerIdentity(Owned):
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
+    key = models.UUIDField()
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['organization', 'key'], name='customer_diner_identity_unique')]
+
+
+class CustomerCookieIdentity(Owned):
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
+    key = ExactCharField(max_length=64)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['organization', 'key'], name='customer_cookie_identity_unique')]

@@ -32,10 +32,15 @@ def on_incoming_message(message):
     account = conversation.account
     restaurant = account.restaurant
     if restaurant is None:
-        # Sin una sede inequívoca no se mezclan cartas ni se inventa una elección.
+        # El domicilio cotiza entre todas las sedes; las demás conversaciones conservan su sede inequívoca.
         locations = list(account.organization.restaurants.filter(active=True).order_by('id')[:2])
         if len(locations) != 1:
-            return
+            from assistant.service import wants_delivery
+            interactive = message.raw.get('interactive') or {}
+            option = interactive.get('button_reply') or interactive.get('list_reply') or {}
+            delivery_message = message.type == 'location' or wants_delivery(message.text) or str(option.get('id', '')).startswith('delivery_')
+            if not locations or not delivery_message:
+                return
         restaurant = locations[0]
     action = None
     if message.type == 'interactive':
@@ -44,9 +49,28 @@ def on_incoming_message(message):
         value = item.get('id')
         if isinstance(value, str):
             action = {'type': 'option', 'value': value}
-    if message.type not in ('text', 'interactive'):
+    if message.type == 'location':
+        from .webhook import location_action
+        action = location_action(message.raw)
+    if message.type not in ('text', 'interactive', 'location'):
         return
     reply = handle('whatsapp', restaurant, conversation.wa_id, text=message.text, action=action)
+    send_reply(conversation, reply)
+
+
+def send_reply(conversation, reply):
+    from .services import send_text, send_location_request, send_buttons
+    delivery = getattr(reply, 'delivery', None)
+    if delivery:
+        if delivery['request_location']:
+            send_location_request(conversation, reply['text'])
+            if delivery['options']:
+                send_buttons(conversation, delivery['options'][0]['label'], delivery['options'])
+        elif delivery['options']:
+            send_buttons(conversation, reply['text'], delivery['options'])
+        else:
+            send_text(conversation, reply['text'])
+        return
     if reply['text']:
         details = '\n'.join(f"{c['name']}: $ {c['price']}" for c in reply['cards'])
         send_text(conversation, reply['text'] + ('\n' + details if details else ''))

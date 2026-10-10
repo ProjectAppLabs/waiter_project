@@ -97,10 +97,11 @@ def test_voz_falla_y_demora(settings, monkeypatch):
 
 # Falla si las preguntas a Jev vuelven a mandar opciones sin significado (Jev no ve las claves) o pierden el saludo,
 # que no debe contar como fuera de tema.
+# Falla si Jev pierde la descripción de alguna ruta, incluida domicilio.
 def test_preguntas_jev_con_significado():
     preguntas = questions_for([], [{'categorias': ['Bebidas']}])
     rutas = preguntas['ruta']['criteria']
-    assert {'pedido', 'menu', 'negocio', 'estado', 'reclamo', 'saludo', 'fuera'} == rutas.keys()
+    assert {'pedido', 'menu', 'negocio', 'estado', 'reclamo', 'saludo', 'fuera', 'domicilio'} == rutas.keys()
     assert all(len(texto) > 20 for texto in rutas.values())
     assert 'sin cebolla' in preguntas['cambia_reglas']['criteria']['false']
     assert all('`mensaje`' in q['instructions'] for q in preguntas.values())
