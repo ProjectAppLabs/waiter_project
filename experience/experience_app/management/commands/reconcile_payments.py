@@ -23,7 +23,8 @@ class Command(BaseCommand):
         if options['payment']:
             payments = payments.filter(id=options['payment'])
         else:
-            payments = payments.exclude(status='APPROVED', reconciled=True).exclude(provider_id='').order_by('checked_at')[:100]
+            payments = payments.exclude(status='APPROVED', reconciled=True).exclude(provider_id='').order_by('checked_at', 'created_at', 'id')[:100]
+        # Desempate fijo: dos intentos sin revisar (checked_at nulo) salían en orden distinto en MySQL y SQLite.
         for payment in payments:
             try:
                 if options['transaction']:
