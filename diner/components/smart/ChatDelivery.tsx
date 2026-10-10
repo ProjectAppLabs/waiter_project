@@ -11,7 +11,7 @@ import { useDinerStore } from '@/lib/stores/dinerStore'
 import type { Point } from './LocationPicker'
 import { Icon } from './SmartMenu'
 import { usePinAddress } from './usePinAddress'
-import { AddressAutocomplete, type PickedAddress } from './AddressAutocomplete'
+import { AddressSearch, type FoundAddress } from './AddressSearch'
 
 const LocationPicker = dynamic(() => import('./LocationPicker').then((m) => m.LocationPicker), { ssr: false, loading: () => <div className="sm-map" aria-busy="true" /> })
 const MEDELLIN: Point = { lat: 6.2442, lng: -75.5812 }
@@ -65,9 +65,9 @@ export function ChatDelivery({ pedido, onLeave, onSend }: { pedido: string; onLe
     else if (!target) typed.current = false
     setPoint(p)
   }
-  function pickSuggestion(found: PickedAddress) {
+  function pickFound(found: FoundAddress) {
     typed.current = true
-    setAddress([found.titulo, found.detalle].filter(Boolean).join(', '))
+    setAddress(found.texto)
     flying.current = { lat: found.lat, lng: found.lng }
     setPoint(flying.current)
   }
@@ -80,8 +80,8 @@ export function ChatDelivery({ pedido, onLeave, onSend }: { pedido: string; onLe
         <button type="button" disabled={busy} onClick={() => setMode('map')}>Es para otra persona</button>
       </div>}
       {mode === 'map' && <div className="sm-delivery">
-        <AddressAutocomplete rest={keys.rest} value={address} enabled={!!entry.domicilio.buscador} onPick={pickSuggestion}
-          placeholder="Escribe la dirección o mueve el mapa" onType={(text) => { typed.current = true; setAddress(text) }} />
+        <AddressSearch rest={keys.rest} value={address} enabled={!!entry.domicilio.buscador} onPick={pickFound}
+          onType={(text) => { typed.current = true; setAddress(text) }} />
         <LocationPicker center={center} value={point} onChange={moved} label="Mapa para marcar la entrega" />
         <p className="sm-map-address" role="status"><Icon name="pin" /><span>{pin.loading ? 'Buscando la dirección…' : pin.address || 'Mueve el mapa hasta la puerta de la entrega.'}</span></p>
         <button type="button" className="sm-primary" disabled={busy || !point} onClick={() => point && void check(point, address.trim())}>{busy ? 'Revisando…' : 'Usar esta ubicación'}</button>

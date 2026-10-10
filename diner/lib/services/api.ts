@@ -194,7 +194,7 @@ export async function quoteDelivery(rest: string, lat: number, lng: number): Pro
   return (await http.post(`${org(rest)}/domicilio/cotizar`, { lat, lng })).data
 }
 // Buscar una dirección escrita. Sin la clave de mapas del servidor responde 503 y el buscador se oculta.
-export async function searchAddress(rest: string, texto: string): Promise<{ texto: string; lat: number; lng: number }[]> {
+export async function searchAddress(rest: string, texto: string): Promise<{ texto: string; lat: number; lng: number; exacta?: boolean }[]> {
   return (await http.post(`${org(rest)}/domicilio/buscar`, { texto })).data.resultados
 }
 export interface DeliveryForm { lat: number; lng: number; direccion: string; indicaciones: string; telefono: string; nombre: string; etiqueta?: string; direccion_id?: number; guardar: boolean; acepta_datos: boolean; place_id?: string }
@@ -218,13 +218,4 @@ export async function sendLocateLink(token: string, body: { lat: number; lng: nu
 // La dirección aproximada del punto donde quedó el pin (vacía si el proveedor no responde).
 export async function reverseAddress(rest: string, lat: number, lng: number): Promise<string> {
   return (await http.post<{ texto: string }>(`${org(rest)}/domicilio/direccion`, { lat, lng })).data.texto ?? ''
-}
-// Sugerencias mientras se escribe la dirección (calle arriba, barrio y ciudad abajo).
-// Con Google, la sugerencia trae `place_id` y no coordenadas: se piden al escogerla (es lo único que se cobra).
-export interface AddressSuggestion { titulo: string; detalle: string; lat: number | null; lng: number | null; place_id?: string }
-export async function suggestAddresses(rest: string, texto: string, sesion?: string): Promise<AddressSuggestion[]> {
-  return (await http.post<{ sugerencias: AddressSuggestion[] }>(`${org(rest)}/domicilio/sugerencias`, { texto, ...(sesion ? { sesion } : {}) })).data.sugerencias ?? []
-}
-export async function placeDetails(rest: string, place_id: string, sesion?: string): Promise<{ lat: number; lng: number; texto: string; place_id: string }> {
-  return (await http.post(`${org(rest)}/domicilio/lugar`, { place_id, ...(sesion ? { sesion } : {}) })).data
 }

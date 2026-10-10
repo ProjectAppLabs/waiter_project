@@ -282,3 +282,11 @@ es único por organización. El inventario transversal incorpora GET/PUT de ajus
 - Google Places quedó activo (`GOOGLE_MAPS_API_KEY`): «Calle 10 # 43-12» cae en la puerta, encuentra lugares por nombre
   (Parque Lleras, Unicentro). Las sugerencias se **restringen** a ~25 km de la sede (antes salían Duitama o Bogotá) y la
   dirección del lugar se limpia de partes repetidas. Si Google falla, las sugerencias siguen con Photon.
+- **Una consulta por búsqueda (2026-10-10):** se quitan las sugerencias al escribir (Google cobra las primeras 12
+  peticiones de cada sesión cuando se cierra con el detalle más barato). Ahora el cliente escribe la dirección completa y
+  toca **Buscar** (o Enter): una sola consulta a la **Geocoding API** (~USD 5 por 1.000, 10.000 gratis al mes) que trae
+  dirección y coordenadas; no se repite la misma búsqueda; si hay varias coincidencias se escoge sin otra consulta; lo
+  que cae a más de ~30 km de la sede se descarta; el ajuste fino es moviendo el mapa (gratis) y la dirección del pin
+  sale de OpenStreetMap. Si Google falla, busca Nominatim. `delivery.MapsUsage` cuenta las consultas pagas por
+  organización, día y tipo; `manage.py consumo_mapas [--dias 30]` las resume con su costo sin cuota gratis. Las rutas de
+  sugerencias y lugar quedan en el servidor por si se vuelven a usar, pero el comensal ya no las llama.

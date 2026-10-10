@@ -17,7 +17,7 @@ from loyalty import delivery as crm
 from sales.services import text
 from tenancy.http import ContractView, require, payload
 from . import coverage, geocoding, services
-from .models import DeliverySettings, SearchUsage
+from .models import DeliverySettings, MapsUsage, SearchUsage
 
 
 class SettingsView(PosView):
@@ -73,6 +73,7 @@ class SearchView(DinerView):
             # Cerca de la primera sede con domicilio y ubicación: «Parque Lleras» es el de Medellín, no otro.
             first = coverage.candidates(org).first()
             results = geocoding.search(query, (first.restaurant.latitude, first.restaurant.longitude) if first else None)
+            count_google(org, 'geocoding')
         except geocoding.Unavailable:
             require(False, 'No pudimos consultar el buscador. Intente de nuevo o use el mapa.', 'maps_unavailable', 502)
         return Response({'resultados': results})
@@ -92,6 +93,7 @@ class SuggestView(DinerView):
         first = coverage.candidates(org).first()
         try:
             found = geocoding.suggest(query, (first.restaurant.latitude, first.restaurant.longitude) if first else None, session)
+            count_google(org, 'autocompletar')
         except geocoding.Unavailable:
             found = []
         return Response({'sugerencias': found})
@@ -108,9 +110,21 @@ class PlaceView(DinerView):
         require(re.fullmatch(r'[A-Za-z0-9_-]{10,255}', place_id), 'El lugar no es válido.', 'invalid_data', 400)
         count_search(org, diner, 'searches', 40)
         try:
-            return Response(geocoding.place(place_id, session_token(data.get('sesion'))))
+            found = geocoding.place(place_id, session_token(data.get('sesion')))
+            count_google(org, 'lugar')
+            return Response(found)
         except geocoding.Unavailable:
             require(False, 'No pudimos ubicar ese lugar. Mueva el mapa hasta la puerta de la entrega.', 'maps_unavailable', 502)
+
+
+def count_google(org, kind):
+    # Solo cuenta lo que va a Google (lo de OpenStreetMap es gratis): para ver el gasto real por día y organización.
+    if not settings.GOOGLE_MAPS_API_KEY:
+        return
+    from django.db.models import F
+    day = timezone.now().astimezone(ZoneInfo(org.timezone)).date()
+    row, _ = MapsUsage.objects.get_or_create(organization=org, day=day, kind=kind)
+    MapsUsage.objects.filter(pk=row.pk).update(count=F('count') + 1)
 
 
 def session_token(value):

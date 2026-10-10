@@ -71,6 +71,29 @@ def short(address):
     return ', '.join(dict.fromkeys(filter(None, (first, area, city))))
 
 
+def clean_address(text):
+    # Google a veces repite barrio y ciudad («El Poblado, Medellín, El Poblado, Medellín»): cada parte una sola vez.
+    return ', '.join(dict.fromkeys(x.strip() for x in (text or '').split(',') if x.strip() and x.strip() != 'Colombia'))
+
+
+def google_search(query, near):
+    params = {'address': query, 'components': 'country:CO'}
+    if near:
+        lat, lng = float(near[0]), float(near[1])
+        params['bounds'] = f'{lat - .25},{lng - .25}|{lat + .25},{lng + .25}'
+    results = []
+    for row in _google(params):
+        lat, lng = coordinates(row['geometry']['location']['lat'], row['geometry']['location']['lng'])
+        # `bounds` solo da preferencia: lo que queda lejos de la sede (otra ciudad) se descarta.
+        if near and (abs(float(lat) - float(near[0])) > .3 or abs(float(lng) - float(near[1])) > .3):
+            continue
+        results.append({'texto': clean_address(row['formatted_address']), 'lat': float(lat), 'lng': float(lng),
+                        'exacta': row['geometry'].get('location_type') in ('ROOFTOP', 'RANGE_INTERPOLATED')})
+        if len(results) == 5:
+            break
+    return results
+
+
 def search(query, near=None):
     """Hasta 5 lugares de Colombia que coinciden con lo escrito, del más probable al menos.
 
@@ -79,6 +102,15 @@ def search(query, near=None):
     kind = provider()
     if not kind:
         raise Unavailable('Sin proveedor de mapas')
+    if kind == 'google':
+        # Geocoding API: una sola consulta por búsqueda (~USD 5 por 1.000) trae dirección y coordenadas. Sin caché (sus
+        # términos no lo permiten). Si falla, sigue OpenStreetMap.
+        try:
+            return google_search(query, near)
+        except Unavailable:
+            kind = 'nominatim' if getattr(settings, 'NOMINATIM_ENABLED', True) else None
+            if not kind:
+                raise
     # Huella del texto: las claves de caché no admiten espacios ni tildes.
     around = f'{float(near[0]):.2f},{float(near[1]):.2f}' if near else ''
     key = f'geocoding:buscar:{kind}:' + hashlib.sha256(f'{around}|{query.strip().lower()}'.encode()).hexdigest()
@@ -86,16 +118,10 @@ def search(query, near=None):
     if cached is not None:
         return cached
     results = []
-    if kind == 'google':
-        bounds = {'bounds': f'{float(near[0]) - .25},{float(near[1]) - .25}|{float(near[0]) + .25},{float(near[1]) + .25}'} if near else {}
-        for row in _google({'address': query, 'components': 'country:CO', **bounds})[:5]:
-            lat, lng = coordinates(row['geometry']['location']['lat'], row['geometry']['location']['lng'])
-            results.append({'texto': row['formatted_address'], 'lat': float(lat), 'lng': float(lng)})
-    else:
-        box = {'viewbox': f'{float(near[1]) - .25},{float(near[0]) + .25},{float(near[1]) + .25},{float(near[0]) - .25}', 'bounded': 1} if near else {}
-        for row in (_nominatim('search', {'q': query, 'countrycodes': 'co', 'limit': 5, 'addressdetails': 1, **box}) or [])[:5]:
-            lat, lng = coordinates(row['lat'], row['lon'])
-            results.append({'texto': short(row.get('address') or {}) or row.get('display_name', ''), 'lat': float(lat), 'lng': float(lng)})
+    box = {'viewbox': f'{float(near[1]) - .25},{float(near[0]) + .25},{float(near[1]) + .25},{float(near[0]) - .25}', 'bounded': 1} if near else {}
+    for row in (_nominatim('search', {'q': query, 'countrycodes': 'co', 'limit': 5, 'addressdetails': 1, **box}) or [])[:5]:
+        lat, lng = coordinates(row['lat'], row['lon'])
+        results.append({'texto': short(row.get('address') or {}) or row.get('display_name', ''), 'lat': float(lat), 'lng': float(lng)})
     cache.set(key, results, DAY)
     return results
 
@@ -203,9 +229,7 @@ def place(place_id, session=''):
     data = _places('GET', f'places/{place_id}', field_mask='location,formattedAddress', session=session)
     location = data.get('location') or {}
     lat, lng = coordinates(location.get('latitude'), location.get('longitude'))
-    # Google a veces repite barrio y ciudad («El Poblado, Medellín, El Poblado, Medellín»): cada parte una sola vez.
-    parts = [x.strip() for x in (data.get('formattedAddress') or '').split(',') if x.strip() and x.strip() != 'Colombia']
-    return {'lat': float(lat), 'lng': float(lng), 'texto': ', '.join(dict.fromkeys(parts)), 'place_id': place_id}
+    return {'lat': float(lat), 'lng': float(lng), 'texto': clean_address(data.get('formattedAddress')), 'place_id': place_id}
 
 
 def suggest(query, near=None, session=''):

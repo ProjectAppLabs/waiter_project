@@ -540,3 +540,26 @@ def test_google_caido_usa_openstreetmap(env, settings, monkeypatch):
     monkeypatch.setattr('requests.get', Mock(return_value=Mock(status_code=200, json=lambda: photon)))
     data = e['client'].post(f'/api/v1/{e["org"].slug}/domicilio/sugerencias', {'texto': 'parque poblado'}, format='json').data
     assert data['sugerencias'] == [{'titulo': 'Parque El Poblado', 'detalle': 'El Poblado, Medellín', 'lat': 6.21, 'lng': -75.57}]
+
+
+# Falla si una búsqueda con Google gasta más de una consulta, si no se cuenta (gasto de ProjectApp por día y organización),
+# si trae direcciones de otra ciudad o repite barrio y ciudad, o si una caída de Google deja al cliente sin buscar.
+def test_buscar_con_google_una_consulta(env, settings, monkeypatch):
+    from django.core.cache import cache
+    from delivery.models import MapsUsage
+    e = env
+    cache.clear()
+    settings.GOOGLE_MAPS_API_KEY = 'clave-simulada'
+    sede = e['venue']
+    lat, lng = float(sede.latitude), float(sede.longitude)
+    filas = [{'formatted_address': 'Cl 10 #43-12, El Poblado, Medellín, El Poblado, Medellín, Colombia', 'geometry': {'location': {'lat': lat + .01, 'lng': lng + .01}, 'location_type': 'RANGE_INTERPOLATED'}},
+             {'formatted_address': 'Cl 10 #43-12, Duitama, Boyacá, Colombia', 'geometry': {'location': {'lat': lat + 2, 'lng': lng + 2}, 'location_type': 'ROOFTOP'}}]
+    google = Mock(return_value=Mock(status_code=200, json=lambda: {'status': 'OK', 'results': filas}))
+    monkeypatch.setattr('requests.get', google)
+    url = f'/api/v1/{e["org"].slug}/domicilio/buscar'
+    data = e['client'].post(url, {'texto': 'Calle 10 # 43-12'}, format='json').data['resultados']
+    assert data == [{'texto': 'Cl 10 #43-12, El Poblado, Medellín', 'lat': round(lat + .01, 7), 'lng': round(lng + .01, 7), 'exacta': True}]
+    assert google.call_count == 1 and 'bounds' in google.call_args.kwargs['params']
+    assert MapsUsage.objects.get(organization=e['org'], kind='geocoding').count == 1
+    monkeypatch.setattr('requests.get', Mock(side_effect=lambda url, **kw: Mock(status_code=200, json=lambda: {'status': 'REQUEST_DENIED'} if 'googleapis' in url else [])))
+    assert e['client'].post(url, {'texto': 'Carrera 70 # 1-2'}, format='json').status_code == 200

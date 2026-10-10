@@ -10,7 +10,7 @@ import { useDinerStore } from '@/lib/stores/dinerStore'
 import type { DeliveryMethod, DeliveryQuote, SavedAddress } from '@/lib/types'
 import type { Point } from './LocationPicker'
 import { usePinAddress } from './usePinAddress'
-import { AddressAutocomplete, type PickedAddress } from './AddressAutocomplete'
+import { AddressSearch, type FoundAddress } from './AddressSearch'
 
 // El mapa usa `window`: se carga solo en el navegador.
 const LocationPicker = dynamic(() => import('./LocationPicker').then((m) => m.LocationPicker), { ssr: false, loading: () => <div className="sm-map" aria-busy="true" /> })
@@ -66,11 +66,10 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
       { enableHighAccuracy: true, timeout: 10_000 })
   }
   // Escoger una sugerencia lleva el mapa hasta allá; el cliente ajusta moviendo el mapa.
-  const [placeId, setPlaceId] = useState('')
-  function pickSuggestion(found: PickedAddress) {
+  // La dirección encontrada lleva el mapa hasta allá; el cliente termina de ubicar la puerta moviendo el mapa.
+  function pickFound(found: FoundAddress) {
     typed.current = true
-    setPlaceId(found.place_id ?? '')
-    setAddress([found.titulo, found.detalle].filter(Boolean).join(', '))
+    setAddress(found.texto)
     goTo({ lat: found.lat, lng: found.lng })
   }
   function pickSaved(a: SavedAddress) { typed.current = true; goTo({ lat: a.lat, lng: a.lng }); setAddress(a.direccion); setDetails(a.indicaciones); setAddressId(a.id) }
@@ -80,7 +79,7 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
     setBusy(true); setError('')
     try {
       const r = await setDelivery(session.id, { lat: point.lat, lng: point.lng, direccion: address.trim(), indicaciones: details.trim(), telefono: phone.trim(), nombre: name.trim(),
-        etiqueta: save ? label.trim() || 'Casa' : undefined, direccion_id: addressId, guardar: save, acepta_datos: consent, ...(placeId ? { place_id: placeId } : {}) })
+        etiqueta: save ? label.trim() || 'Casa' : undefined, direccion_id: addressId, guardar: save, acepta_datos: consent })
       useDinerStore.setState({ cart: r.carrito })
       setQuote(r.domicilio)
       setMethod(r.domicilio.metodos.length === 1 ? r.domicilio.metodos[0] : null)
@@ -96,8 +95,7 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
       </div>
       {saved.length > 0 && <div className="sm-chat-choices" aria-label="Tus direcciones">{saved.map((a) => (
         <button type="button" key={a.id} aria-pressed={addressId === a.id} disabled={off} onClick={() => pickSaved(a)}>{a.etiqueta || 'Dirección'} · {a.direccion}</button>))}</div>}
-      <AddressAutocomplete rest={keys?.rest} value={address} enabled={searchable} disabled={off} onPick={pickSuggestion}
-        placeholder={searchable ? 'Escribe la dirección o mueve el mapa' : 'Calle, número y barrio'}
+      <AddressSearch rest={keys?.rest} value={address} enabled={searchable} disabled={off} onPick={pickFound}
         onType={(text) => { typed.current = true; setAddress(text); setQuote(null) }} />
       {center && <LocationPicker center={center} value={point} onChange={moved} />}
       <p className="sm-map-address" role="status"><Icon name="pin" /><span>{pin.loading ? 'Buscando la dirección…' : pin.address || 'Mueve el mapa hasta la puerta de la entrega.'}</span></p>

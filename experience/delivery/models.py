@@ -63,3 +63,14 @@ class ConversationDelivery(models.Model):
     # Dato operativo temporal; el perfil y las direcciones se crean solo tras «Acepto».
     location = models.JSONField(default=dict)
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class MapsUsage(models.Model):
+    """Consultas pagas a Google Maps por organización y día (gasto de ProjectApp, no se le cobra al restaurante)."""
+    organization = models.ForeignKey('tenancy.Organization', on_delete=models.CASCADE)
+    day = models.DateField()
+    kind = models.CharField(max_length=20)  # geocoding, autocompletar, lugar
+    count = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['organization', 'day', 'kind'], name='delivery_maps_usage_unico')]
