@@ -224,3 +224,16 @@ it('no guarda la dirección sin autorización', async () => {
   fireEvent.click(screen.getByLabelText(/Autorizo al restaurante/))
   expect(screen.getByRole('button', { name: 'Calcular envío' })).toBeEnabled()
 })
+
+// Falla si al llegar de otra sede con su pedido no se reabre la confirmación en domicilio (el cliente venía pagando).
+it('reabre la confirmación en domicilio al llegar con el pedido', async () => {
+  const api = jest.requireMock('@/lib/services/api')
+  api.getVenueLocation.mockResolvedValue({ direccion: '', latitud: 5.8, longitud: -73 })
+  useDinerStore.setState({ cart: carrito, reopenDelivery: true, deliveryDraft: { lat: 5.83, lng: -73.03, direccion: 'Calle 15' },
+    entry: { domicilio: { enabled: true, buscador: false }, contexto: { mesa: null }, carta: { categorias: [] } } as unknown as Entry })
+  render(<SmartCart />)
+  await waitFor(() => expect(screen.getByRole('dialog')).toHaveAttribute('open'))
+  expect(screen.getByRole('button', { name: 'A domicilio' })).toHaveAttribute('aria-pressed', 'true')
+  expect(screen.getByLabelText('Dirección')).toHaveValue('Calle 15')
+  expect(useDinerStore.getState().reopenDelivery).toBe(false)
+})

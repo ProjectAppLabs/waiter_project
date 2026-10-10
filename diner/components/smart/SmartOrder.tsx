@@ -30,6 +30,13 @@ export function SmartCart({ actionTarget }: { actionTarget?: HTMLElement | null 
   // Si compartió la ubicación en el chat, el pedido arranca en domicilio hasta que escoja otra cosa.
   const [choice, setDeliveryMode] = useState<boolean | null>(null)
   const delivery = choice ?? (!!draft && noTable && !!entry?.domicilio?.enabled)
+  // Llegó de otra sede con su pedido mientras pagaba: se reabre la confirmación en domicilio, con su dirección puesta.
+  const reopen = useDinerStore((s) => s.reopenDelivery)
+  useEffect(() => {
+    if (!reopen || !cart?.lineas.length) return
+    useDinerStore.setState({ reopenDelivery: false })
+    if (!modeDialog.current?.open) modeDialog.current?.showModal()
+  }, [reopen, cart?.lineas.length])
   const [ready, setReady] = useState<{ quote: DeliveryQuote | null; method: DeliveryMethod | null }>({ quote: null, method: null })
   const onReady = useCallback((quote: DeliveryQuote | null, method: DeliveryMethod | null) => setReady({ quote, method }), [])
   const { go, href } = useSmartRoute()

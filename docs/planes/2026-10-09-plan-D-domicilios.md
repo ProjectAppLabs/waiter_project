@@ -327,3 +327,8 @@ es único por organización. El inventario transversal incorpora GET/PUT de ajus
   3. **OpenStreetMap propio para producción:** `NOMINATIM_URL` y `PHOTON_URL` (en `.env.example`) apuntan a servidores
      propios con los datos de Colombia cuando el volumen supere el uso liviano que permiten los públicos. Queda para el
      despliegue: un servidor pequeño, costo fijo y no por pedido.
+- **Paso entre sedes sin sorpresas (2026-10-10):** antes de cambiar de sede se muestra, encima de todo (diálogo modal,
+  sobre el chat o la confirmación), «Te llevamos a la sede X · Guardamos tu dirección: …» con una barra de 1,6 s; la
+  sede nueva mantiene ese aviso mientras carga y, al llegar, uno fijo arriba: «Ya estás en la sede X. Tu dirección
+  quedó guardada: …» (y «Trajimos tu pedido»). Si venía pagando con platos, la confirmación se reabre en «A domicilio»
+  con la dirección puesta. Probado en el navegador: chat en Poblado con ubicación de Duitama → aviso → Duitama.
