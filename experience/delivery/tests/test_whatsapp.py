@@ -150,6 +150,8 @@ def test_organization_whatsapp_selects_covered_venue(env, conversation):
     row.account.restaurant = None
     row.account.save()
     nearby = restaurant(env['org'], 'cerca', latitude=4.651, longitude=-74.05)
+    from sales.models import CashShift
+    CashShift.objects.create(restaurant=nearby, opened_by=env['owner'])
     DeliverySettings.objects.create(restaurant=nearby, enabled=True, methods=['cash'])
     message = WhatsAppMessage.objects.create(conversation=row, direction='in', type='location', status='received', received_at=timezone.now(),
         raw={'location': {'latitude': 4.651, 'longitude': -74.05, 'address': 'Calle 1'}})

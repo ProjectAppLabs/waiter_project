@@ -329,3 +329,14 @@ it('el enlace de pago de WhatsApp abre el pago', async () => {
   render(<PayDeliveryPage />)
   expect(await screen.findByRole('alert')).toHaveTextContent('El enlace de pago venció.')
 })
+
+// Falla si una sede abierta según su horario pero sin caja abierta en el POS no avisa que no recibe pedidos o deja seguir.
+it('sede sin caja: avisa que no recibe pedidos', async () => {
+  const { ClosedBanner } = await import('../ClosedBanner')
+  const carrito: Cart = { sesion: 'v', total: 9000, mio: 9000, por_comensal: [], lineas: [{ id: 1, producto_id: 7, nombre: 'Sopa', cantidad: 1, precio: 9000, subtotal: 9000, mio: true, comensal: 'a', nota: '' }] }
+  const entry = { pedidos: false, horario: { configurado: false, abierto: true }, domicilio: { enabled: true, buscador: false }, contexto: { mesa: null }, carta: { categorias: [] } } as unknown as Entry
+  useDinerStore.setState({ cart: carrito, entry })
+  render(<><ClosedBanner entry={entry} /><SmartCart /></>)
+  expect(screen.getByText('En este momento no estamos recibiendo pedidos')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Continuar al pago' })).toBeDisabled()
+})

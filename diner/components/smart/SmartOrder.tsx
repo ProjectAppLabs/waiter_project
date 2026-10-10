@@ -25,7 +25,7 @@ import {
 } from './SmartMenu'
 
 export function SmartCart({ actionTarget }: { actionTarget?: HTMLElement | null } = {}) {
-  const { cart, entry, account, busy, setQty, remove, confirm, refreshCart } =
+  const { cart, entry, account, busy, setQty, remove, confirm, refreshCart, error: storeError } =
     useDinerStore()
   // Plan D: sin mesa (la entrada de la sede) se recoge en el local o se pide a domicilio.
   const noTable = !!entry && !entry.contexto?.mesa
@@ -99,7 +99,7 @@ export function SmartCart({ actionTarget }: { actionTarget?: HTMLElement | null 
         <button className="sm-icon" aria-label="Cerrar modalidad del pedido" disabled={sending} onClick={()=>modeDialog.current?.close()}><Icon name="close"/></button>
         {/* El paso de los datos sigue montado (oculto) mientras se revisa: «Cambiar» vuelve con todo lo escrito. */}
         {delivery && step === 'pago' && quote && cart && <><h2>Revisa y paga</h2>
-          <DeliveryReview cart={cart} quote={quote} method={method} onMethod={setMethod} onBack={()=>setStep('datos')} onConfirm={()=>void send()} sending={sending} blocked={busy||closed} /></>}
+          <DeliveryReview cart={cart} quote={quote} method={method} onMethod={setMethod} onBack={()=>setStep('datos')} onConfirm={()=>void send()} sending={sending} blocked={busy||closed} error={storeError} /></>}
         <div className="sm-fulfillment-step" hidden={delivery && step === 'pago' && !!quote}>
         <h2>{noTable ? '¿Cómo quieres recibirlo?' : '¿Dónde vas a disfrutarlo?'}</h2><p>{delivery ? 'Comparte tu ubicación y te decimos cuánto vale el envío.' : 'Enviaremos tus platos a cocina después de confirmar el pago.'}</p>
         {noTable
@@ -107,7 +107,7 @@ export function SmartCart({ actionTarget }: { actionTarget?: HTMLElement | null 
           : <div className="sm-home-options"><button aria-pressed={!takeaway} disabled={sending} className="sm-fulfillment-option" onClick={()=>setTakeaway(false)}><Icon name="cutlery"/><span>Comer aquí</span></button><button aria-pressed={takeaway} disabled={sending} className="sm-fulfillment-option" onClick={()=>setTakeaway(true)}><Icon name="bag"/><span>Para llevar</span></button></div>}
         {noTable&&delivery&&!!entry?.domicilio?.recargo&&<p className="sm-note">{deliveryPricesText({...entry,preciosDomicilio:entry.domicilio.recargo})} Los verás en tu pedido antes de pagar.</p>}
         {delivery ? <DeliverySheet onReady={onReady} disabled={sending} />
-          : <button className="sm-primary" disabled={busy||sending||closed} onClick={()=>void send()}>{sending?'Preparando…':'Continuar al pago'}<Icon name="arrow"/></button>}
+          : <>{storeError && <p className="sm-error" role="alert">{storeError}</p>}<button className="sm-primary" disabled={busy||sending||closed} onClick={()=>void send()}>{sending?'Preparando…':'Continuar al pago'}<Icon name="arrow"/></button></>}
         </div>
       </dialog>
       {cart.lineas.length ? (

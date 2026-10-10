@@ -54,4 +54,7 @@ def entry(request, restaurant, venue, token=None):
     # Plan D: si la sede está abierta ahora y cuándo abre o cierra (horario de atención que define el dueño).
     from tenancy.hours import status as opening
     horario = opening(local) if local else {'configurado': False, 'abierto': True}
-    return Response({'horario': horario, 'domicilio': delivery, 'modulos': modulos, 'contexto': _context(tenant), 'carta': menu, 'banners': for_menu(tenant, menu)})
+    # Si la sede recibe pedidos ahora (caja abierta en el POS): sin caja, el menú lo dice antes de pedir los datos.
+    from tenancy.hours import receiving
+    pedidos = receiving(local) if local else False
+    return Response({'pedidos': pedidos, 'horario': horario, 'domicilio': delivery, 'modulos': modulos, 'contexto': _context(tenant), 'carta': menu, 'banners': for_menu(tenant, menu)})

@@ -395,3 +395,11 @@ es único por organización. El inventario transversal incorpora GET/PUT de ajus
     el total, y el medio de pago; el botón dice «Pagar $ X» o «Confirmar pedido».
   - **Chat del menú:** el cierre también pide la autorización.
   - **Verificador:** ahora busca las notas en Mi pedido.
+- **Sede sin caja abierta (2026-10-10, reporte del dueño: «confirmé en efectivo y no pasó nada»):**
+  - **Causa:** Duitama no tenía turno de caja abierto en el POS. El servidor rechazaba la confirmación con 409
+    («no está recibiendo pedidos») y el menú no lo mostraba. Además, el menú tomaba cualquier 409 como «la cuenta ya se
+    pagó» y abría otra visita.
+  - **Entrada del menú:** trae `pedidos` (caja abierta). Sin caja, la carta avisa «En este momento no estamos
+    recibiendo pedidos» y no deja seguir al pago.
+  - **Domicilios:** solo van a sedes abiertas y con caja (`tenancy.hours.receiving`).
+  - **Errores de confirmación:** se muestran en el paso de pago. Solo el código `session_paid` abre otra visita.

@@ -186,8 +186,9 @@ export const useDinerStore = create<DinerState>((set, get) => {
           set({ order, bill: r.cuenta ?? null, cart: await getCart(session.id) })
           return r.pedido
         } catch (e) {
-          // 409: el salón ya cobró la cuenta de esta visita. La sesión terminó; se abre otra limpia y se avisa.
-          if (e instanceof ApiError && e.status === 409) {
+          // El salón ya cobró la cuenta de esta visita: la sesión terminó; se abre otra limpia y se avisa. Otros conflictos
+          // (la sede no está recibiendo pedidos, un pago en curso) conservan el pedido para reintentar.
+          if (e instanceof ApiError && e.status === 409 && e.code === 'session_paid') {
             const r = await openSession(keys.rest, keys.venue, keys.token)
             set({ session: r.sesion, cart: await getCart(r.sesion.id), order: null, bill: null })
           }

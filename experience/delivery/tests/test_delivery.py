@@ -74,6 +74,7 @@ def confirm(e, method='cash'):
 def test_coverage_nearest_and_tiers(env):
     e = env
     near = restaurant(e['org'], 'cercana', latitude=4.66, longitude=-74.05)
+    CashShift.objects.create(restaurant=near, opened_by=e['owner'])
     DeliverySettings.objects.create(restaurant=near, enabled=True, radius_km=1, tiers=[{'up_to_km': '1', 'fee': '1000'}])
     assert quote(e['org'], '4.661', '-74.05')['sede']['slug'] == 'cercana'
     result = quote(e['org'], '4.671', '-74.05')
@@ -164,6 +165,7 @@ def test_confirm_validation_and_rollback(env):
 def test_session_own_venue_and_requote(env):
     e = env
     near = restaurant(e['org'], 'cerca', latitude=4.661, longitude=-74.05)
+    CashShift.objects.create(restaurant=near, opened_by=e['owner'])
     DeliverySettings.objects.create(restaurant=near, enabled=True)
     response = put_delivery(e, lat=4.661)
     assert response.data['domicilio']['sugerida']['slug'] == 'cerca'
@@ -604,6 +606,7 @@ def test_sede_cerrada_no_recibe_domicilios(env):
     respuesta = confirm(e)
     assert respuesta.status_code == 409 and respuesta.data['error'] == 'restaurant_closed'
     abierta = restaurant(e['org'], 'abierta', latitude=4.652, longitude=-74.05)
+    CashShift.objects.create(restaurant=abierta, opened_by=e['owner'])
     DeliverySettings.objects.create(restaurant=abierta, enabled=True, radius_km=5)
     assert quote(e['org'], '4.651', '-74.05')['sede']['slug'] == 'abierta'
     # Sin horario, la sede atiende siempre (como antes).
@@ -654,3 +657,18 @@ def test_markup_and_free_from(env):
         apply_order(order, SessionDelivery.objects.get(), Decimal(0))
     food.refresh_from_db()
     assert food.total == 21600
+
+
+# Falla si una sede sin caja abierta en el POS recibe domicilios: la cotización debe pasar a otra sede que sí reciba o
+# decir que esa sede no está recibiendo pedidos, y el menú debe saberlo desde la entrada.
+def test_sede_sin_caja_no_recibe_pedidos(env):
+    e = env
+    CashShift.objects.filter(restaurant=e['venue']).update(state='closed')
+    cerrada = quote(e['org'], '4.651', '-74.05')
+    assert cerrada['motivo'] == 'cerrado' and 'no está recibiendo pedidos' in cerrada['mensaje']
+    assert put_delivery(e).status_code == 409
+    assert e['client'].get(f'/api/v1/{e["org"].slug}/{e["venue"].slug}/').data['pedidos'] is False
+    otra = restaurant(e['org'], 'otra', latitude=4.652, longitude=-74.05)
+    DeliverySettings.objects.create(restaurant=otra, enabled=True, radius_km=5)
+    CashShift.objects.create(restaurant=otra, opened_by=e['owner'])
+    assert quote(e['org'], '4.651', '-74.05')['sede']['slug'] == 'otra'

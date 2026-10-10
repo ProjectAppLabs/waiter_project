@@ -7,9 +7,9 @@ import { Icon, money } from './SmartMenu'
 
 // Plan D: el segundo paso del domicilio. Antes de pagar se confirma a dónde va (con «Cambiar» para corregirla) y se ve
 // el detalle de lo que se paga: platos, envío (gratis o cuánto falta para que lo sea) y total, con el medio de pago.
-export function DeliveryReview({ cart, quote, method, onMethod, onBack, onConfirm, sending, blocked }: {
+export function DeliveryReview({ cart, quote, method, onMethod, onBack, onConfirm, sending, blocked, error }: {
   cart: Cart; quote: DeliveryQuote; method: DeliveryMethod | null; onMethod: (m: DeliveryMethod) => void
-  onBack: () => void; onConfirm: () => void; sending: boolean; blocked: boolean
+  onBack: () => void; onConfirm: () => void; sending: boolean; blocked: boolean; error?: string | null
 }) {
   const lines = cart.lineas.filter((l) => l.mio)
   const food = lines.reduce((sum, l) => sum + l.subtotal, 0)
@@ -41,6 +41,7 @@ export function DeliveryReview({ cart, quote, method, onMethod, onBack, onConfir
         : <fieldset className="sm-delivery-methods"><legend>¿Cómo quieres pagar?</legend>
           {quote.metodos.map((m) => <label key={m} className="sm-check"><input type="radio" name="metodo" checked={method === m} disabled={sending} onChange={() => onMethod(m)} /><span>{METHOD_LABEL[m]}</span></label>)}
         </fieldset>}
+      {error && <p className="sm-error" role="alert">{error}</p>}
       <button type="button" className="sm-primary" disabled={sending || blocked || short || !method} onClick={onConfirm}>
         {sending ? 'Preparando…' : method === 'online' ? `Pagar ${money(total)}` : method ? 'Confirmar pedido' : 'Escoge cómo pagar'}<Icon name="arrow" /></button>
     </section>

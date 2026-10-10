@@ -87,14 +87,17 @@ def quote(organization, lat, lng, subtotal=None):
     covered = [r for r in covered if r[2]]
     # Plan D: solo sedes abiertas según su horario de atención; si la que cubre está cerrada y otra abierta también
     # cubre, gana la abierta. Si todas las que cubren están cerradas, se dice cuándo abre la más cercana.
-    from tenancy.hours import closed_message, status
+    # También deben estar recibiendo pedidos (caja abierta en el POS).
+    from tenancy.hours import NOT_RECEIVING, closed_message, receiving, status
     states = {r[1]: status(r[3]) for r in covered}
-    open_ones = [r for r in covered if states[r[1]]['abierto']]
+    taking = {r[1]: receiving(r[3]) for r in covered}
+    open_ones = [r for r in covered if states[r[1]]['abierto'] and taking[r[1]]]
     if covered and not open_ones:
         nearest = min(covered, key=lambda r: (r[0], r[1]))
         info = states[nearest[1]]
+        message = closed_message(nearest[3].name, info) if not info['abierto'] else NOT_RECEIVING.format(name=nearest[3].name)
         return {'cobertura': False, 'motivo': 'cerrado', 'sede': venue_data(nearest[3]), 'abre': info.get('abre'),
-                'mensaje': closed_message(nearest[3].name, info), 'recoger': []}
+                'mensaje': message, 'recoger': []}
     covered = open_ones
     if covered:
         result = min(covered, key=lambda r: (r[0], r[1]))[2]
@@ -110,9 +113,10 @@ def quote_session(session, lat, lng):
     from tenancy.models import Restaurant
     restaurant = Restaurant.objects.select_related('organization').get(organization__slug=session.restaurant_slug, slug=session.venue_slug)
     lat, lng = coordinates(lat, lng)
-    from tenancy.hours import closed_message, status
+    from tenancy.hours import NOT_RECEIVING, closed_message, receiving, status
     info = status(restaurant)
     require(info['abierto'], closed_message(restaurant.name, info), 'restaurant_closed', 409)
+    require(receiving(restaurant), NOT_RECEIVING.format(name=restaurant.name), 'restaurant_closed', 409)
     row = candidates(restaurant.organization).filter(restaurant=restaurant).first()
     result = for_settings(row, lat, lng) if row else None
     require(result, 'Lo sentimos, esta sede no cubre la ubicación. Puede elegir otra sede o recoger su pedido.', 'delivery_unavailable', 409)

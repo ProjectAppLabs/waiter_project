@@ -85,7 +85,7 @@ export interface OpeningStatus { configurado: boolean; abierto: boolean; cierra?
 // Plan D: `cobro` (distancia, fija o gratis), `recargo` (% en los platos a domicilio) y `gratis_desde` (envío gratis desde
 // ese valor en platos). `base`: la carta sin recargo cuando se muestran los precios para domicilio.
 export type FeeMode = 'distance' | 'flat' | 'free'
-export interface Entry { horario?: OpeningStatus; domicilio?: { enabled: boolean; buscador: boolean; centro?: { lat: number; lng: number }; radio_km?: number
+export interface Entry { horario?: OpeningStatus; pedidos?: boolean; domicilio?: { enabled: boolean; buscador: boolean; centro?: { lat: number; lng: number }; radio_km?: number
   cobro?: FeeMode; recargo?: number; gratis_desde?: number | null }; preciosDomicilio?: number; base?: Entry; banners?: MenuBanner[] | null; contexto: Context; carta: Menu
   // Plan W: módulos activos que afectan al comensal (menu_comensal, pagos_en_linea, fidelizacion, asistente_menu).
   modulos?: string[] }

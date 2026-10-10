@@ -5,7 +5,7 @@ import { AUTHORIZING_MS, payableTotal, useDinerStore } from '@/lib/stores/dinerS
 import type { Entry, Template, TemplateSpec } from '@/lib/types'
 
 jest.mock('@/lib/services/api', () => {
-  class ApiError extends Error { constructor(message: string, readonly status: number) { super(message) } }
+  class ApiError extends Error { constructor(message: string, readonly status: number, readonly code?: string) { super(message) } }
   return {
     ApiError,
     confirmOrder: jest.fn(),
@@ -31,7 +31,7 @@ afterEach(() => { jest.useRealTimers() })
 // empezar una visita limpia.
 test('a 409 on confirm reopens a fresh session and keeps the message for the diner', async () => {
   useDinerStore.setState({ keys, session: { id: 'old' } as never, cart: { lineas: [1] } as never, order: { id: 'p1' } as never })
-  api.confirmOrder.mockRejectedValue(new ApiError('La cuenta de esta mesa ya se pagó.', 409))
+  api.confirmOrder.mockRejectedValue(new ApiError('La cuenta de esta mesa ya se pagó.', 409, 'session_paid'))
   api.openSession.mockResolvedValue({ sesion: { id: 'new' } })
   api.getCart.mockResolvedValue({ lineas: [] })
 
@@ -43,6 +43,19 @@ test('a 409 on confirm reopens a fresh session and keeps the message for the din
   expect(state.cart).toEqual({ lineas: [] })
   expect(state.order).toBeNull()
   expect(state.error).toMatch(/ya se pagó/)
+})
+
+// Falla si un 409 que no es «la cuenta ya se pagó» (por ejemplo, la sede sin caja abierta) borra el pedido del comensal
+// o se calla: debe conservar la visita y dejar el motivo para mostrarlo.
+test('a 409 for a closed venue keeps the session and the message', async () => {
+  useDinerStore.setState({ keys, session: { id: 'old' } as never, cart: { lineas: [1] } as never })
+  api.openSession.mockClear()
+  api.confirmOrder.mockRejectedValue(new ApiError('El restaurante no está recibiendo pedidos en este momento', 409, 'restaurant_closed'))
+  expect(await useDinerStore.getState().confirm()).toBeNull()
+  expect(useDinerStore.getState().session?.id).toBe('old')
+  expect(useDinerStore.getState().cart).toEqual({ lineas: [1] })
+  expect(useDinerStore.getState().error).toMatch(/no está recibiendo pedidos/)
+  expect(api.openSession).not.toHaveBeenCalled()
 })
 
 // Falla si cualquier error al confirmar (no solo el 409) descarta la sesión del comensal y abre otra.

@@ -56,6 +56,15 @@ def status(restaurant, at=None):
     return result
 
 
+def receiving(restaurant):
+    """Si la sede recibe pedidos ahora: necesita un turno de caja abierto en el POS (sin caja, la cocina no los ve)."""
+    from sales.models import CashShift
+    return CashShift.objects.filter(restaurant=restaurant, state='open').exists()
+
+
+NOT_RECEIVING = 'La sede {name} no está recibiendo pedidos en este momento.'
+
+
 def closed_message(name, info):
     abre = info.get('abre')
     return f'La sede {name} está cerrada en este momento.' + (f" Abre {abre['cuando']} a las {abre['hora']}." if abre else '')

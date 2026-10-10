@@ -7,7 +7,8 @@ import type { Account, AccountSummary, Bill, Cart, DeliveryMethod, DeliveryQuote
 export const http = axios.create({ baseURL: '', withCredentials: true, timeout: 15_000 })
 
 export class ApiError extends Error {
-  constructor(message: string, readonly status: number) { super(message) }
+  // `code`: el código de dominio del servidor (por ejemplo, «session_paid» o «restaurant_closed»).
+  constructor(message: string, readonly status: number, readonly code?: string) { super(message) }
 }
 
 http.interceptors.request.use(config => {
@@ -23,7 +24,7 @@ http.interceptors.response.use((r) => r, (error) => {
   // Los errores de dominio del restaurante llegan como {error, message} (p. ej. la caja cerrada); los de DRF, como {detail}.
   const data = error?.response?.data
   const text = [data?.message, data?.detail].find((value) => typeof value === 'string')
-  return Promise.reject(new ApiError(text ?? (status ? `Error ${status}` : 'Sin conexión'), status))
+  return Promise.reject(new ApiError(text ?? (status ? `Error ${status}` : 'Sin conexión'), status, typeof data?.error === 'string' ? data.error : undefined))
 })
 
 const base = (rest: string, venue: string, token: string | null) => `/api/v1/${rest}/${venue}/${token ? `t/${token}/` : ''}`
