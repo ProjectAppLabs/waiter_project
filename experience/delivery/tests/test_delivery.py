@@ -496,3 +496,34 @@ def test_sugerencias_de_direccion(env, settings, monkeypatch):
     assert e['client'].post(url, {'texto': 'ca'}, format='json').status_code == 400
     monkeypatch.setattr('requests.get', Mock(side_effect=__import__('requests').Timeout('caído')))
     assert e['client'].post(url, {'texto': 'otra calle'}, format='json').data == {'sugerencias': []}
+
+
+# Falla si con clave de Google las sugerencias no usan sesión ni prefieren la zona de la sede, si sus resultados se
+# guardan en caché (sus términos lo prohíben), si escoger una no trae solo ubicación y dirección (lo más barato) o si
+# la lectura del pin gasta Google teniendo OpenStreetMap gratis.
+def test_google_places_con_sesion(env, settings, monkeypatch):
+    from django.core.cache import cache
+    e = env
+    cache.clear()
+    settings.GOOGLE_MAPS_API_KEY = 'clave-simulada'
+    sugerencias = {'suggestions': [{'placePrediction': {'placeId': 'ChIJ-lugar-123', 'structuredFormat': {
+        'mainText': {'text': 'Calle 10 #43-12'}, 'secondaryText': {'text': 'El Poblado, Medellín, Antioquia, Colombia'}}}}]}
+    detalle = {'location': {'latitude': 6.2098, 'longitude': -75.5684}, 'formattedAddress': 'Cl. 10 #43-12, El Poblado, Medellín, Colombia'}
+    google = Mock(side_effect=lambda method, url, **kw: Mock(status_code=200, json=lambda: sugerencias if method == 'POST' else detalle))
+    monkeypatch.setattr('requests.request', google)
+    url = f'/api/v1/{e["org"].slug}/domicilio/sugerencias'
+    for _ in range(2):
+        data = e['client'].post(url, {'texto': 'calle 10 43', 'sesion': 'sesion-1234-abcd'}, format='json').data['sugerencias']
+    assert data == [{'titulo': 'Calle 10 #43-12', 'detalle': 'El Poblado, Medellín, Antioquia', 'place_id': 'ChIJ-lugar-123', 'lat': None, 'lng': None}]
+    assert google.call_count == 2
+    cuerpo = google.call_args.kwargs['json']
+    assert cuerpo['sessionToken'] == 'sesion-1234-abcd' and cuerpo['includedRegionCodes'] == ['co'] and 'circle' in cuerpo['locationBias']
+    lugar = e['client'].post(f'/api/v1/{e["org"].slug}/domicilio/lugar', {'place_id': 'ChIJ-lugar-123', 'sesion': 'sesion-1234-abcd'}, format='json')
+    assert lugar.data == {'lat': 6.2098, 'lng': -75.5684, 'texto': 'Cl. 10 #43-12, El Poblado, Medellín', 'place_id': 'ChIJ-lugar-123'}
+    assert google.call_args.kwargs['headers']['X-Goog-FieldMask'] == 'location,formattedAddress'
+    assert google.call_args.kwargs['params']['sessionToken'] == 'sesion-1234-abcd'
+    assert e['client'].post(f'/api/v1/{e["org"].slug}/domicilio/lugar', {'place_id': '../otro'}, format='json').status_code == 400
+    nominatim = Mock(return_value=Mock(status_code=200, json=lambda: {'address': {'road': 'Calle 9A', 'suburb': 'El Poblado', 'city': 'Medellín'}}))
+    monkeypatch.setattr('requests.get', nominatim)
+    assert e['client'].post(f'/api/v1/{e["org"].slug}/domicilio/direccion', {'lat': 6.21, 'lng': -75.57}, format='json').data == {'texto': 'Calle 9A, El Poblado, Medellín'}
+    assert 'nominatim' in nominatim.call_args.args[0]

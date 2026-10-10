@@ -70,7 +70,7 @@ def set_delivery(session, diner, raw):
         require(session.is_delivery and session.state in TableSession.OPEN_STATES, 'El domicilio necesita una visita sin mesa.', 'invalid_session', 409)
         require(not session.confirming and not session.orders.exists() and not session.payments.filter(status__in=ACTIVE).exists(),
                 'El pedido ya está confirmado. No podemos cambiar la entrega.', 'not_editable', 409)
-        data = payload(raw, ('lat', 'lng', 'direccion', 'indicaciones', 'telefono', 'nombre', 'etiqueta', 'direccion_id', 'guardar', 'acepta_datos'),
+        data = payload(raw, ('lat', 'lng', 'direccion', 'indicaciones', 'telefono', 'nombre', 'etiqueta', 'direccion_id', 'guardar', 'acepta_datos', 'place_id'),
                        ('lat', 'lng', 'direccion', 'telefono', 'nombre', 'guardar', 'acepta_datos'))
         require(type(data['guardar']) is bool and type(data['acepta_datos']) is bool, 'Revise la autorización de datos.', 'invalid_data', 400)
         lat, lng = coordinates(data['lat'], data['lng'])
@@ -92,7 +92,8 @@ def set_delivery(session, diner, raw):
         if not crm.consented(customer):
             customer = None
         if data['guardar']:
-            crm.save_address(customer, {'label': label, 'text': address, 'details': details, 'latitude': lat, 'longitude': lng}, data.get('direccion_id'))
+            place_id = data.get('place_id') if isinstance(data.get('place_id'), str) and len(data['place_id']) <= 255 else ''
+            crm.save_address(customer, {'label': label, 'text': address, 'details': details, 'latitude': lat, 'longitude': lng, 'place_id': place_id}, data.get('direccion_id'))
         row, _ = SessionDelivery.objects.update_or_create(session=session, defaults={'diner': diner, 'customer': customer,
             'latitude': lat, 'longitude': lng, 'address': address, 'details': details, 'phone': number, 'name': name,
             'fee': result['envio'], 'distance_km': result['distancia_km']})

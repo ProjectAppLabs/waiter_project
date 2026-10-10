@@ -1,4 +1,5 @@
 """Contrato público de domicilios y ajustes del dueño."""
+import re
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
@@ -83,16 +84,38 @@ class SuggestView(DinerView):
         org = organization(rest)
         diner = self.diner(request, org)
         require(geocoding.provider(), 'Las sugerencias no están disponibles. Puede usar su ubicación o el mapa.', 'maps_not_configured', 503)
-        data = payload(request.data, ('texto',), ('texto',))
+        data = payload(request.data, ('texto', 'sesion'), ('texto',))
         query = text(data['texto'], 120, True)
+        session = session_token(data.get('sesion'))
         require(len(query) >= 3, 'Escriba al menos tres letras.', 'invalid_data', 400)
         count_search(org, diner, 'suggests', 300)
         first = coverage.candidates(org).first()
         try:
-            found = geocoding.suggest(query, (first.restaurant.latitude, first.restaurant.longitude) if first else None)
+            found = geocoding.suggest(query, (first.restaurant.latitude, first.restaurant.longitude) if first else None, session)
         except geocoding.Unavailable:
             found = []
         return Response({'sugerencias': found})
+
+
+class PlaceView(DinerView):
+    """Las coordenadas de una sugerencia de Google (cierra la sesión de autocompletar: es lo único que se cobra)."""
+    def post(self, request, rest):
+        org = organization(rest)
+        diner = self.diner(request, org)
+        require(settings.GOOGLE_MAPS_API_KEY, 'Las sugerencias no están disponibles.', 'maps_not_configured', 503)
+        data = payload(request.data, ('place_id', 'sesion'), ('place_id',))
+        place_id = text(data['place_id'], 255, True)
+        require(re.fullmatch(r'[A-Za-z0-9_-]{10,255}', place_id), 'El lugar no es válido.', 'invalid_data', 400)
+        count_search(org, diner, 'searches', 40)
+        try:
+            return Response(geocoding.place(place_id, session_token(data.get('sesion'))))
+        except geocoding.Unavailable:
+            require(False, 'No pudimos ubicar ese lugar. Mueva el mapa hasta la puerta de la entrega.', 'maps_unavailable', 502)
+
+
+def session_token(value):
+    # El token de sesión lo genera el comensal (un UUID por búsqueda); solo se aceptan caracteres seguros.
+    return value if isinstance(value, str) and re.fullmatch(r'[A-Za-z0-9-]{8,64}', value) else ''
 
 
 class ReverseView(DinerView):

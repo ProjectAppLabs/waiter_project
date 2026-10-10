@@ -5,12 +5,12 @@ import { useEffect, useRef, useState } from 'react'
 
 import { Icon } from './SmartMenu'
 import { formatCop } from '@/lib/domain/cart'
-import { getVenueLocation, savedAddresses, setDelivery, type AddressSuggestion } from '@/lib/services/api'
+import { getVenueLocation, savedAddresses, setDelivery } from '@/lib/services/api'
 import { useDinerStore } from '@/lib/stores/dinerStore'
 import type { DeliveryMethod, DeliveryQuote, SavedAddress } from '@/lib/types'
 import type { Point } from './LocationPicker'
 import { usePinAddress } from './usePinAddress'
-import { AddressAutocomplete } from './AddressAutocomplete'
+import { AddressAutocomplete, type PickedAddress } from './AddressAutocomplete'
 
 // El mapa usa `window`: se carga solo en el navegador.
 const LocationPicker = dynamic(() => import('./LocationPicker').then((m) => m.LocationPicker), { ssr: false, loading: () => <div className="sm-map" aria-busy="true" /> })
@@ -66,8 +66,10 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
       { enableHighAccuracy: true, timeout: 10_000 })
   }
   // Escoger una sugerencia lleva el mapa hasta allá; el cliente ajusta moviendo el mapa.
-  function pickSuggestion(found: AddressSuggestion) {
+  const [placeId, setPlaceId] = useState('')
+  function pickSuggestion(found: PickedAddress) {
     typed.current = true
+    setPlaceId(found.place_id ?? '')
     setAddress([found.titulo, found.detalle].filter(Boolean).join(', '))
     goTo({ lat: found.lat, lng: found.lng })
   }
@@ -78,7 +80,7 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
     setBusy(true); setError('')
     try {
       const r = await setDelivery(session.id, { lat: point.lat, lng: point.lng, direccion: address.trim(), indicaciones: details.trim(), telefono: phone.trim(), nombre: name.trim(),
-        etiqueta: save ? label.trim() || 'Casa' : undefined, direccion_id: addressId, guardar: save, acepta_datos: consent })
+        etiqueta: save ? label.trim() || 'Casa' : undefined, direccion_id: addressId, guardar: save, acepta_datos: consent, ...(placeId ? { place_id: placeId } : {}) })
       useDinerStore.setState({ cart: r.carrito })
       setQuote(r.domicilio)
       setMethod(r.domicilio.metodos.length === 1 ? r.domicilio.metodos[0] : null)

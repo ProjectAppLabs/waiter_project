@@ -6,12 +6,12 @@ import { useEffect, useRef, useState } from 'react'
 
 import { formatCop } from '@/lib/domain/cart'
 import { myCount } from '@/lib/domain/cartEvents'
-import { getVenueLocation, quoteDelivery, reverseAddress, type AddressSuggestion, type Coverage } from '@/lib/services/api'
+import { getVenueLocation, quoteDelivery, reverseAddress, type Coverage } from '@/lib/services/api'
 import { useDinerStore } from '@/lib/stores/dinerStore'
 import type { Point } from './LocationPicker'
 import { Icon } from './SmartMenu'
 import { usePinAddress } from './usePinAddress'
-import { AddressAutocomplete } from './AddressAutocomplete'
+import { AddressAutocomplete, type PickedAddress } from './AddressAutocomplete'
 
 const LocationPicker = dynamic(() => import('./LocationPicker').then((m) => m.LocationPicker), { ssr: false, loading: () => <div className="sm-map" aria-busy="true" /> })
 const MEDELLIN: Point = { lat: 6.2442, lng: -75.5812 }
@@ -65,7 +65,7 @@ export function ChatDelivery({ pedido, onLeave, onSend }: { pedido: string; onLe
     else if (!target) typed.current = false
     setPoint(p)
   }
-  function pickSuggestion(found: AddressSuggestion) {
+  function pickSuggestion(found: PickedAddress) {
     typed.current = true
     setAddress([found.titulo, found.detalle].filter(Boolean).join(', '))
     flying.current = { lat: found.lat, lng: found.lng }

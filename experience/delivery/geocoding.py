@@ -1,8 +1,11 @@
-"""Direcciones ⇄ coordenadas para ubicar la entrega.
+"""Direcciones ⇄ coordenadas para ubicar la entrega, gastando lo mínimo.
 
-Con `GOOGLE_MAPS_API_KEY` se usa Google (entiende mejor «Calle 10 # 43-12»). Sin clave se usa Nominatim, el servicio
-gratuito de OpenStreetMap, respetando su política de uso: una consulta por segundo, identificación en el User-Agent y
-resultados en caché. Se puede apagar con `NOMINATIM_ENABLED=False`.
+- Sugerencias al escribir: con `GOOGLE_MAPS_API_KEY`, Google Places (New) con sesiones (las sugerencias no se cobran;
+  solo el detalle del lugar escogido, ~USD 5 por 1.000). Sin clave, Photon (OpenStreetMap, gratis).
+- Dirección aproximada del pin: siempre OpenStreetMap (Nominatim, gratis) mientras esté activo; Google solo si se apaga.
+- Las respuestas de Google no se guardan en caché (sus términos solo permiten conservar el `place_id`); las de
+  OpenStreetMap sí, 24 h. El punto que se guarda en el perfil es el que el cliente deja con el pin.
+- Nominatim: una consulta por segundo, User-Agent de Waiter (su política). Se apaga con `NOMINATIM_ENABLED=False`.
 """
 import hashlib
 import time
@@ -97,9 +100,16 @@ def search(query, near=None):
     return results
 
 
+def reverse_provider():
+    # La lectura del pin es la consulta más frecuente: va por OpenStreetMap (gratis) aunque haya clave de Google.
+    if getattr(settings, 'NOMINATIM_ENABLED', True):
+        return 'nominatim'
+    return 'google' if settings.GOOGLE_MAPS_API_KEY else None
+
+
 def reverse(lat, lng):
     """La dirección aproximada de un punto, para confirmarle al cliente que el pin quedó donde es."""
-    kind = provider()
+    kind = reverse_provider()
     if not kind:
         raise Unavailable('Sin proveedor de mapas')
     lat, lng = coordinates(lat, lng)
@@ -114,7 +124,8 @@ def reverse(lat, lng):
     else:
         data = _nominatim('reverse', {'lat': str(lat), 'lon': str(lng), 'zoom': 18, 'addressdetails': 1}) or {}
         found = short(data.get('address') or {}) if isinstance(data, dict) else ''
-    cache.set(key, found, DAY)
+    if kind != 'google':
+        cache.set(key, found, DAY)
     return found
 
 
@@ -148,32 +159,74 @@ def suggestion(props, lat, lng):
     return {'titulo': title, 'detalle': detail, 'lat': float(lat), 'lng': float(lng)}
 
 
-def suggest(query, near=None):
-    """Sugerencias mientras el cliente escribe (Photon, hecho para autocompletar; Nominatim no lo permite)."""
+PLACES = 'https://places.googleapis.com/v1'
+
+
+def _places(method, path, body=None, field_mask='', session=''):
+    headers = {'X-Goog-Api-Key': settings.GOOGLE_MAPS_API_KEY, 'Content-Type': 'application/json'}
+    if field_mask:
+        headers['X-Goog-FieldMask'] = field_mask
+    try:
+        response = requests.request(method, f'{PLACES}/{path}', json=body, headers=headers, timeout=(3, 5), allow_redirects=False,
+                                    params={'sessionToken': session, 'languageCode': 'es', 'regionCode': 'co'} if method == 'GET' else None)
+        data = response.json()
+    except (requests.RequestException, ValueError) as error:
+        raise Unavailable('Google Places no respondió') from error
+    if response.status_code != 200 or not isinstance(data, dict):
+        raise Unavailable(f'Google Places {response.status_code}')
+    return data
+
+
+def google_suggest(query, near, session):
+    """Autocomplete (New) con sesión: las sugerencias se cobran juntas con el detalle del lugar que se escoja."""
+    body = {'input': query, 'languageCode': 'es', 'regionCode': 'co', 'includedRegionCodes': ['co']}
+    if session:
+        body['sessionToken'] = session
+    if near:
+        body['locationBias'] = {'circle': {'center': {'latitude': float(near[0]), 'longitude': float(near[1])}, 'radius': 25000.0}}
+    results = []
+    for row in _places('POST', 'places:autocomplete', body).get('suggestions', [])[:6]:
+        prediction = row.get('placePrediction') or {}
+        structured = prediction.get('structuredFormat') or {}
+        title = (structured.get('mainText') or {}).get('text') or (prediction.get('text') or {}).get('text', '')
+        detail = ((structured.get('secondaryText') or {}).get('text') or '').replace(', Colombia', '')
+        if prediction.get('placeId') and title:
+            results.append({'titulo': title, 'detalle': detail, 'place_id': prediction['placeId'], 'lat': None, 'lng': None})
+    return results
+
+
+def place(place_id, session=''):
+    """Las coordenadas del lugar escogido (Place Details Essentials: solo ubicación y dirección). Cierra la sesión."""
+    data = _places('GET', f'places/{place_id}', field_mask='location,formattedAddress', session=session)
+    location = data.get('location') or {}
+    lat, lng = coordinates(location.get('latitude'), location.get('longitude'))
+    return {'lat': float(lat), 'lng': float(lng), 'texto': (data.get('formattedAddress') or '').replace(', Colombia', ''), 'place_id': place_id}
+
+
+def suggest(query, near=None, session=''):
+    """Sugerencias mientras el cliente escribe: Google Places con clave; si no, Photon (Nominatim no lo permite)."""
     kind = provider()
     if not kind:
         raise Unavailable('Sin proveedor de mapas')
+    if kind == 'google':
+        # Sin caché: los términos de Google no permiten guardar sus resultados.
+        return google_suggest(query, near, session)
     around = f'{float(near[0]):.2f},{float(near[1]):.2f}' if near else ''
     key = f'geocoding:sugerir:{kind}:' + hashlib.sha256(f'{around}|{query.strip().lower()}'.encode()).hexdigest()
     cached = cache.get(key)
     if cached is not None:
         return cached
     results = []
-    if kind == 'google':
-        for row in search(query, near):
-            title, _, rest = row['texto'].partition(', ')
-            results.append({'titulo': title, 'detalle': rest.replace(', Colombia', ''), 'lat': row['lat'], 'lng': row['lng']})
-    else:
-        for feature in _photon(query, near):
-            props = feature.get('properties') or {}
-            if props.get('countrycode') != 'CO' or props.get('osm_value') in HIDDEN:
-                continue
-            lng, lat = feature['geometry']['coordinates'][:2]
-            lat, lng = coordinates(lat, lng)
-            item = suggestion(props, lat, lng)
-            # Una calle larga viene por tramos: basta una sugerencia por calle y barrio.
-            if item['titulo'] and all((r['titulo'], r['detalle']) != (item['titulo'], item['detalle']) for r in results):
-                results.append(item)
+    for feature in _photon(query, near):
+        props = feature.get('properties') or {}
+        if props.get('countrycode') != 'CO' or props.get('osm_value') in HIDDEN:
+            continue
+        lng, lat = feature['geometry']['coordinates'][:2]
+        lat, lng = coordinates(lat, lng)
+        item = suggestion(props, lat, lng)
+        # Una calle larga viene por tramos: basta una sugerencia por calle y barrio.
+        if item['titulo'] and all((r['titulo'], r['detalle']) != (item['titulo'], item['detalle']) for r in results):
+            results.append(item)
     results = results[:6]
     cache.set(key, results, DAY)
     return results

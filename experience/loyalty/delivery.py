@@ -31,7 +31,7 @@ def consent_dict(customer):
 
 
 def address_dict(row):
-    return model_dict(row, ('id', 'label', 'text', 'details', 'latitude', 'longitude', 'last_used_at', 'created_at'))
+    return model_dict(row, ('id', 'label', 'text', 'details', 'latitude', 'longitude', 'place_id', 'last_used_at', 'created_at'))
 
 
 def customer_for_diner(org, diner):

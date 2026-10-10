@@ -259,3 +259,11 @@ es único por organización. El inventario transversal incorpora GET/PUT de ajus
   a <dirección>» (con GPS se busca la dirección aproximada), sede, distancia y envío, y «¡Listo! Continuemos con tu
   pedido: ¿qué te gustaría ordenar?» con las categorías como botones (el núcleo responde al nombre exacto de una
   categoría con sus platos). La hoja del pedido también muestra «✓ Te lo llevamos a …» al cotizar.
+- **Google Places con el menor gasto (2026-10-09):** con `GOOGLE_MAPS_API_KEY`, las sugerencias usan Places API
+  (New) Autocomplete con **token de sesión** (lo genera el comensal por búsqueda): las sugerencias no se cobran y solo
+  se paga `POST /api/v1/<rest>/domicilio/lugar {place_id, sesion}` → `{lat, lng, texto, place_id}` (Place Details
+  Essentials, máscara `location,formattedAddress`, ~USD 5 por 1.000; 10.000 gratis al mes en la cuenta de ProjectApp).
+  Nada de Google va a caché (sus términos solo permiten conservar el `place_id`, que se guarda en
+  `CustomerAddress.place_id`); el punto guardado es el del pin que deja el cliente. La dirección aproximada del pin va
+  siempre por OpenStreetMap, aunque haya clave. Direcciones guardadas, WhatsApp y GPS no gastan Google: solo cuesta la
+  primera vez que un cliente escribe una dirección nueva (~$20 pesos).

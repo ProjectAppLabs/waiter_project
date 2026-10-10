@@ -124,9 +124,31 @@ it('dirección y mapa en las dos direcciones', async () => {
   fireEvent.change(screen.getByLabelText('Dirección'), { target: { value: 'Calle 10' } })
   const sugerencia = await screen.findByRole('option', { name: /Éxito Poblado/ }, { timeout: 2000 })
   expect(sugerencia).toHaveTextContent('Calle 10 43E-135, El Poblado, Medellín')
-  expect(api.suggestAddresses).toHaveBeenCalledWith('demo', 'Calle 10')
+  expect(api.suggestAddresses).toHaveBeenCalledWith('demo', 'Calle 10', expect.any(String))
   fireEvent.mouseDown(sugerencia)
   expect(screen.getByLabelText('Centro del mapa')).toHaveTextContent('6.2098,-75.5684')
   await waitFor(() => expect(api.reverseAddress).toHaveBeenLastCalledWith('demo', 6.2098, -75.5684), { timeout: 2000 })
   expect(screen.getByLabelText('Dirección')).toHaveValue('Éxito Poblado, Calle 10 43E-135, El Poblado, Medellín')
+})
+
+
+// Falla si una sugerencia de Google (sin coordenadas) no pide el lugar al escogerla, si no comparte el token de sesión
+// con las sugerencias (se cobrarían una por una) o si el token se reutiliza en la búsqueda siguiente.
+it('escoge una sugerencia de Google en la misma sesión', async () => {
+  const { AddressAutocomplete } = await import('../AddressAutocomplete')
+  const api = jest.requireMock('@/lib/services/api')
+  api.suggestAddresses.mockResolvedValue([{ titulo: 'Calle 10 #43-12', detalle: 'El Poblado, Medellín', lat: null, lng: null, place_id: 'ChIJ-lugar-123' }])
+  api.placeDetails.mockResolvedValue({ lat: 6.2098, lng: -75.5684, texto: 'Cl. 10 #43-12', place_id: 'ChIJ-lugar-123' })
+  const escoger = jest.fn()
+  function Campo() { const [v, setV] = require('react').useState(''); return <AddressAutocomplete rest="demo" value={v} enabled onType={setV} onPick={escoger} /> }
+  render(<Campo />)
+  fireEvent.change(screen.getByLabelText('Dirección'), { target: { value: 'calle 10 43' } })
+  fireEvent.mouseDown(await screen.findByRole('option', { name: /Calle 10 #43-12/ }, { timeout: 2000 }))
+  await waitFor(() => expect(escoger).toHaveBeenCalledWith(expect.objectContaining({ lat: 6.2098, lng: -75.5684, place_id: 'ChIJ-lugar-123' })))
+  const [, , sesion] = api.suggestAddresses.mock.calls[0]
+  expect(sesion).toBeTruthy()
+  expect(api.placeDetails).toHaveBeenCalledWith('demo', 'ChIJ-lugar-123', sesion)
+  fireEvent.change(screen.getByLabelText('Dirección'), { target: { value: 'carrera 70' } })
+  await waitFor(() => expect(api.suggestAddresses).toHaveBeenCalledTimes(2), { timeout: 2000 })
+  expect(api.suggestAddresses.mock.calls[1][2]).not.toBe(sesion)
 })

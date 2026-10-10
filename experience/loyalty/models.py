@@ -163,6 +163,8 @@ class CustomerAddress(models.Model):
     details = models.CharField(max_length=200, blank=True, default='')
     latitude = models.DecimalField(max_digits=10, decimal_places=7)
     longitude = models.DecimalField(max_digits=10, decimal_places=7)
+    # Identificador del lugar en Google (sus términos permiten conservarlo); las coordenadas son las del pin del cliente.
+    place_id = models.CharField(max_length=255, blank=True, default='')
     last_used_at = models.DateTimeField(null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
