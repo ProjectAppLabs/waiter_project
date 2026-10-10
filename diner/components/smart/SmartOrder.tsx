@@ -12,6 +12,7 @@ import type { Cart, CartLine, DeliveryMethod, DeliveryQuote, Dish, OrderState, O
 import { Plantilla } from '@/components/plantillas/Renderizador'
 import { usePlantilla } from '@/components/plantillas/usePlantilla'
 import { closedText } from './ClosedBanner'
+import { DeliveryReview } from './DeliveryReview'
 import { deliveryPricesText, freeFromText } from '@/lib/domain/deliveryPricing'
 import type { TemplateData } from '@/lib/domain/plantillas'
 import {
@@ -39,13 +40,17 @@ export function SmartCart({ actionTarget }: { actionTarget?: HTMLElement | null 
     useDinerStore.setState({ reopenDelivery: false })
     if (!modeDialog.current?.open) modeDialog.current?.showModal()
   }, [reopen, cart?.lineas.length])
-  const [ready, setReady] = useState<{ quote: DeliveryQuote | null; method: DeliveryMethod | null }>({ quote: null, method: null })
-  const onReady = useCallback((quote: DeliveryQuote | null, method: DeliveryMethod | null) => setReady({ quote, method }), [])
+  // Plan D: el domicilio va en dos pasos dentro del diálogo: los datos (quién y a dónde) y luego el detalle y el pago.
+  const [step, setStep] = useState<'datos' | 'pago'>('datos')
+  const [quote, setQuote] = useState<DeliveryQuote | null>(null), [method, setMethod] = useState<DeliveryMethod | null>(null)
+  const onReady = useCallback((q: DeliveryQuote) => { setQuote(q); setMethod(q.metodos.length === 1 ? q.metodos[0] : null); setStep('pago') }, [])
   const { go, href } = useSmartRoute()
   const [sending, setSending] = useState(false)
   const [takeaway,setTakeaway] = useState(false)
   const [notes,setNotes] = useState('')
-  const [allergens,setAllergens] = useState(account?.alergenos || '')
+  // Las alergias de la cuenta llegan después de abrir el pedido: se muestran mientras no las edite.
+  const [allergensEdit,setAllergens] = useState<string|null>(null)
+  const allergens = allergensEdit ?? account?.alergenos ?? ''
   const modeDialog = useRef<HTMLDialogElement>(null)
   const [swiped,setSwiped] = useState<number|null>(null)
   const lock = useRef(false)
@@ -54,10 +59,10 @@ export function SmartCart({ actionTarget }: { actionTarget?: HTMLElement | null 
     lock.current = true
     setSending(true)
     try {
-      if (delivery && (!ready.quote || !ready.method)) return
-      const id = await confirm(delivery ? false : noTable ? true : takeaway, {notas:notes.trim(), alergenos:allergens.trim(), ...(delivery && ready.method ? {metodo_pago: ready.method} : {})})
+      if (delivery && (!quote || !method)) return
+      const id = await confirm(delivery ? false : noTable ? true : takeaway, {notas:notes.trim(), alergenos:allergens.trim(), ...(delivery && method ? {metodo_pago: method} : {})})
       // Contra entrega el pedido ya va a cocina: se sigue su estado; en línea se paga primero.
-      if (id) {modeDialog.current?.close(); if (delivery && ready.method !== 'online') go('estado', id); else go('pago')}
+      if (id) {modeDialog.current?.close(); if (delivery && method !== 'online') go('estado', id); else go('pago')}
     } finally {
       lock.current = false
       setSending(false)
@@ -69,7 +74,7 @@ export function SmartCart({ actionTarget }: { actionTarget?: HTMLElement | null 
     <div className="sm-cart-submit"><button
               className="sm-primary"
               disabled={busy || sending || closed}
-              onClick={() => {setAllergens(account?.alergenos || '');modeDialog.current?.showModal()}}
+              onClick={() => {setStep('datos');modeDialog.current?.showModal()}}
             >
               {sending ? 'Preparando pago…' : 'Continuar al pago'}
               {!actionTarget && <Icon name="arrow" />}
@@ -90,16 +95,20 @@ export function SmartCart({ actionTarget }: { actionTarget?: HTMLElement | null 
         title="Tu pedido"
         sub="Un antojo está a punto de hacerse realidad"
       />
-      <dialog className="sm-filter-dialog sm-fulfillment-dialog" ref={modeDialog}>
+      <dialog className="sm-filter-dialog sm-fulfillment-dialog" ref={modeDialog} onClose={()=>setStep('datos')}>
         <button className="sm-icon" aria-label="Cerrar modalidad del pedido" disabled={sending} onClick={()=>modeDialog.current?.close()}><Icon name="close"/></button>
+        {/* El paso de los datos sigue montado (oculto) mientras se revisa: «Cambiar» vuelve con todo lo escrito. */}
+        {delivery && step === 'pago' && quote && cart && <><h2>Revisa y paga</h2>
+          <DeliveryReview cart={cart} quote={quote} method={method} onMethod={setMethod} onBack={()=>setStep('datos')} onConfirm={()=>void send()} sending={sending} blocked={busy||closed} /></>}
+        <div className="sm-fulfillment-step" hidden={delivery && step === 'pago' && !!quote}>
         <h2>{noTable ? '¿Cómo quieres recibirlo?' : '¿Dónde vas a disfrutarlo?'}</h2><p>{delivery ? 'Comparte tu ubicación y te decimos cuánto vale el envío.' : 'Enviaremos tus platos a cocina después de confirmar el pago.'}</p>
         {noTable
           ? <div className="sm-home-options"><button aria-pressed={!delivery} disabled={sending} className="sm-fulfillment-option" onClick={()=>{setDeliveryMode(false);setTakeaway(true)}}><Icon name="bag"/><span>Recoger en el local</span></button>{entry?.domicilio?.enabled && <button aria-pressed={delivery} disabled={sending} className="sm-fulfillment-option" onClick={()=>{setDeliveryMode(true);setTakeaway(false)}}><Icon name="pin"/><span>A domicilio</span></button>}</div>
           : <div className="sm-home-options"><button aria-pressed={!takeaway} disabled={sending} className="sm-fulfillment-option" onClick={()=>setTakeaway(false)}><Icon name="cutlery"/><span>Comer aquí</span></button><button aria-pressed={takeaway} disabled={sending} className="sm-fulfillment-option" onClick={()=>setTakeaway(true)}><Icon name="bag"/><span>Para llevar</span></button></div>}
         {noTable&&delivery&&!!entry?.domicilio?.recargo&&<p className="sm-note">{deliveryPricesText({...entry,preciosDomicilio:entry.domicilio.recargo})} Los verás en tu pedido antes de pagar.</p>}
-        {delivery && <DeliverySheet onReady={onReady} disabled={sending} />}
-<div className="sm-order-details"><h3>¿Alguna nota o alergia?</h3><label className="sm-field"><span>Notas para tus platos (opcional)</span><textarea value={notes} onChange={e=>setNotes(e.target.value)} maxLength={500} rows={2} disabled={sending} placeholder="Por ejemplo: la salsa aparte"/></label><label className="sm-field"><span>Alergias y alérgenos (opcional)</span><textarea value={allergens} onChange={e=>setAllergens(e.target.value)} maxLength={500} rows={2} disabled={sending} placeholder="Indica lo que debe saber la cocina"/></label><p className="sm-note">Se enviarán con tus platos. Confirma con el personal que puedan atender tu alergia.</p></div>
-        <button className="sm-primary" disabled={busy||sending||closed||(delivery&&(!ready.quote||!ready.method))} onClick={()=>void send()}>{sending?'Preparando…':delivery&&ready.method&&ready.method!=='online'?'Confirmar domicilio':'Continuar al pago'}<Icon name="arrow"/></button>
+        {delivery ? <DeliverySheet onReady={onReady} disabled={sending} />
+          : <button className="sm-primary" disabled={busy||sending||closed} onClick={()=>void send()}>{sending?'Preparando…':'Continuar al pago'}<Icon name="arrow"/></button>}
+        </div>
       </dialog>
       {cart.lineas.length ? (
         <div className="sm-checkout-layout">
@@ -115,6 +124,8 @@ export function SmartCart({ actionTarget }: { actionTarget?: HTMLElement | null 
                 <Icon name="plus" />
                 Agregar algo más
               </Link>
+              {/* Las notas y alergias van con los platos, antes de escoger cómo recibirlos. */}
+              <div className="sm-order-details"><h3>¿Alguna nota o alergia?</h3><label className="sm-field"><span>Notas para tus platos (opcional)</span><textarea value={notes} onChange={e=>setNotes(e.target.value)} maxLength={500} rows={2} disabled={sending} placeholder="Por ejemplo: la salsa aparte"/></label><label className="sm-field"><span>Alergias y alérgenos (opcional)</span><textarea value={allergens} onChange={e=>setAllergens(e.target.value)} maxLength={500} rows={2} disabled={sending} placeholder="Indica lo que debe saber la cocina"/></label><p className="sm-note">Se enviarán con tus platos. Confirma con el personal que puedan atender tu alergia.</p></div>
             </section>}
             confirmar={actionTarget ? createPortal(confirmAction, actionTarget) : confirmAction}
             pago={<button className="sm-text-button" disabled={busy || sending} onClick={() => go('pago')}>Ver opciones de pago</button>} />

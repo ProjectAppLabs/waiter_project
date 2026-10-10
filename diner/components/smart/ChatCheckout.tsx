@@ -24,10 +24,11 @@ export function ChatCheckout({ onClose }: { onClose: () => void }) {
 }
 
 function CheckoutSteps({ onClose }: { onClose: () => void }) {
-  const { session, cart, account, entry, preview, deliveryDraft, confirm } = useDinerStore()
+  const { session, cart, account, entry, preview, deliveryDraft, confirm, keys } = useDinerStore()
+  const rest = keys?.rest ?? ''
   const { go } = useSmartRoute()
   const [step, setStep] = useState<Step>('inicio')
-  const [name, setName] = useState(account?.nombre ?? ''), [phone, setPhone] = useState(account?.celular ?? ''), [details, setDetails] = useState('')
+  const [name, setName] = useState(account?.nombre ?? ''), [phone, setPhone] = useState(account?.celular ?? ''), [details, setDetails] = useState(''), [consent, setConsent] = useState(false)
   const [quote, setQuote] = useState<DeliveryQuote | null>(null)
   const [busy, setBusy] = useState(false), [error, setError] = useState('')
   if (!deliveryDraft || !entry) return null
@@ -38,7 +39,7 @@ function CheckoutSteps({ onClose }: { onClose: () => void }) {
     setBusy(true); setError('')
     try {
       const r = await setDelivery(session.id, { lat: deliveryDraft.lat, lng: deliveryDraft.lng, direccion: deliveryDraft.direccion || 'Ubicación compartida en el chat',
-        indicaciones, telefono: phone.trim(), nombre: name.trim(), guardar: false, acepta_datos: false })
+        indicaciones, telefono: phone.trim(), nombre: name.trim(), guardar: false, acepta_datos: consent })
       useDinerStore.setState({ cart: r.carrito })
       setQuote(r.domicilio)
       setStep('resumen')
@@ -82,9 +83,10 @@ function CheckoutSteps({ onClose }: { onClose: () => void }) {
         {step === 'indicaciones' && <form className="sm-chat-checkout" onSubmit={(e) => { e.preventDefault(); void summarize(details.trim()) }}>
           <label className="sm-field"><span>¿Alguna indicación para llegar? Por ejemplo, torre, apartamento o portería.</span>
             <input autoFocus value={details} maxLength={200} onChange={(e) => setDetails(e.target.value)} /></label>
+          <label className="sm-check"><input type="checkbox" checked={consent} disabled={off} onChange={(e) => setConsent(e.target.checked)} /><span>Acepto el <a href={`/${encodeURIComponent(rest)}/privacidad`} target="_blank" rel="noreferrer">tratamiento de datos</a></span></label>
           <div className="sm-chat-choices">
-            <button type="submit" disabled={off || !details.trim()}>{busy ? 'Calculando…' : 'Seguir'}</button>
-            <button type="button" disabled={off} onClick={() => { setDetails(''); void summarize('') }}>Sin indicaciones</button>
+            <button type="submit" disabled={off || !details.trim() || !consent}>{busy ? 'Calculando…' : 'Seguir'}</button>
+            <button type="button" disabled={off || !consent} onClick={() => { setDetails(''); void summarize('') }}>Sin indicaciones</button>
           </div>
         </form>}
         {step === 'resumen' && quote && cart && <div className="sm-delivery-quote" role="status">

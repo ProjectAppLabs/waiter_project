@@ -171,9 +171,10 @@ it('manda a la sede que atiende la dirección', async () => {
   render(<DeliverySheet onReady={jest.fn()} />)
   fireEvent.click(await screen.findByRole('button', { name: 'Marcar en el mapa' }))
   fireEvent.change(screen.getByLabelText('Dirección'), { target: { value: 'Calle 15 # 16-55' } })
-  fireEvent.change(screen.getByLabelText('¿A nombre de quién?'), { target: { value: 'Ana' } })
+  fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Ana' } })
   fireEvent.change(screen.getByLabelText('Celular'), { target: { value: '3001234567' } })
-  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Calcular envío' })))
+  fireEvent.click(screen.getByLabelText(/Acepto el tratamiento de datos/))
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Continuar al pago' })))
   expect(api.setDelivery).not.toHaveBeenCalled()
   expect(screen.getByText(/la atiende la sede/)).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Ir a la sede Duitama con mi pedido' }))
@@ -240,7 +241,8 @@ it('sede abierta o sin horario: sin aviso', async () => {
   expect(container).toBeEmptyDOMElement()
 })
 
-// Falla si con platos y la ubicación puesta el chat no termina el domicilio paso a paso (nombre, teléfono, indicaciones),
+// Falla si con platos y la ubicación puesta el chat no termina el domicilio paso a paso (nombre, teléfono, indicaciones y
+// la autorización del tratamiento de datos),
 // si el resumen no muestra el envío gratis y el total del servidor, o si pagar contra entrega no confirma el pedido con
 // ese método y lleva a su estado.
 it('termina el domicilio en el chat del mesero', async () => {
@@ -265,8 +267,10 @@ it('termina el domicilio en el chat del mesero', async () => {
   fireEvent.change(screen.getByLabelText(/A qué número te llamamos/), { target: { value: '300 123 4567' } })
   fireEvent.click(screen.getByRole('button', { name: 'Seguir' }))
   fireEvent.change(screen.getByLabelText(/Alguna indicación/), { target: { value: 'Torre 2' } })
+  expect(screen.getByRole('button', { name: 'Seguir' })).toBeDisabled()
+  fireEvent.click(screen.getByLabelText(/Acepto el tratamiento de datos/))
   await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Seguir' })))
-  expect(setDelivery).toHaveBeenCalledWith('s1', expect.objectContaining({ nombre: 'Ana', telefono: '300 123 4567', indicaciones: 'Torre 2', direccion: 'Calle 9', guardar: false }))
+  expect(setDelivery).toHaveBeenCalledWith('s1', expect.objectContaining({ nombre: 'Ana', telefono: '300 123 4567', indicaciones: 'Torre 2', direccion: 'Calle 9', guardar: false, acepta_datos: true }))
   expect(screen.getByText('Envío:').textContent).toContain('gratis')
   expect(screen.getByText(/Precios para domicilio \(\+8 %\)/)).toBeInTheDocument()
   expect(screen.getByText(/Total:/).textContent).toContain('9.720')

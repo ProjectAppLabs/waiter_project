@@ -384,3 +384,14 @@ es único por organización. El inventario transversal incorpora GET/PUT de ajus
   Si no hay movimiento en dos horas, el pedido de la conversación se reinicia. En cuentas de WhatsApp con varias sedes,
   la conversación sigue con la sede que atiende la ubicación. Probado en el navegador: Poblado con +8 % (carta a
   $ 39.852, resumen en el chat con envío y «te faltan» para el envío gratis).
+- **Confirmar un domicilio en dos pasos (2026-10-10, pedido del dueño):**
+  - **Mi pedido:** las notas y alergias quedan junto a los platos, ya no dentro del diálogo de la entrega.
+  - **Paso 1, «Datos del domicilio»:** primero nombre y celular, luego «¿A dónde te lo llevamos?» (GPS, direcciones
+    guardadas, búsqueda, mapa e indicaciones) y al final una sola casilla obligatoria, «Acepto el tratamiento de datos»,
+    con enlace a la política. Sin el botón «Calcular envío»: «Continuar al pago» revisa la cobertura (o la sede que la
+    atiende) y guarda la entrega.
+  - **Paso 2, «Revisa y paga» (`DeliveryReview`):** muestra la dirección para confirmarla, con «Cambiar dirección o
+    datos», que vuelve al paso 1 con todo lo escrito y recalcula al seguir. Luego el detalle de los platos, el envío y
+    el total, y el medio de pago; el botón dice «Pagar $ X» o «Confirmar pedido».
+  - **Chat del menú:** el cierre también pide la autorización.
+  - **Verificador:** ahora busca las notas en Mi pedido.

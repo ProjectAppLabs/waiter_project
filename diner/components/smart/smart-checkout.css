@@ -79,3 +79,15 @@
 .sm-closed-banner strong { color:var(--sm-ink); font-size:calc(15px * var(--ds-texto)); }
 /* Plan D: aviso de precios para domicilio (recargo del dueño). Solo distribución: los colores son los de .sm-note. */
 .sm-delivery-prices { margin:var(--ds-espacio-12) 0; padding:var(--ds-espacio-10) var(--ds-espacio-16); border-radius:calc(14px * var(--ds-forma-tarjeta)); font-size:calc(14px * var(--ds-texto)); line-height:1.45; }
+/* Plan D: segundo paso del domicilio (revisa y paga). Solo distribución: los colores son los del diálogo y de .sm-delivery-quote. */
+.sm-delivery-review { display:flex; flex-direction:column; gap:var(--ds-espacio-12); text-align:left; }
+.sm-delivery-review h3 { font-size:calc(16px * var(--ds-texto)); font-weight:600; margin-top:var(--ds-espacio-8); }
+.sm-review-label { font-size:calc(14px * var(--ds-texto)); font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+.sm-review-lines { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:var(--ds-espacio-8); }
+.sm-review-lines li, .sm-review-totals > div { display:flex; justify-content:space-between; gap:var(--ds-espacio-12); font-size:calc(15px * var(--ds-texto)); }
+.sm-review-totals { display:flex; flex-direction:column; gap:var(--ds-espacio-6); margin:0; padding-top:var(--ds-espacio-12); border-top:1px solid var(--sm-border); }
+.sm-review-totals dd { margin:0; font-weight:600; }
+.sm-review-total { font-size:calc(18px * var(--ds-texto)); font-weight:700; }
+.sm-review-total dt, .sm-review-total dd { font-size:calc(18px * var(--ds-texto)); font-weight:700; }
+/* El enlace a la política dentro de una casilla se ve como enlace y no desalinea el texto. */
+.smart-menu .sm-check a { display:inline; min-height:0; padding:0; color:inherit; font-weight:600; text-decoration:underline; text-underline-offset:2px; }

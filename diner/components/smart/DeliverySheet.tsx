@@ -4,7 +4,6 @@ import dynamic from 'next/dynamic'
 import { useEffect, useRef, useState } from 'react'
 
 import { Icon } from './SmartMenu'
-import { formatCop } from '@/lib/domain/cart'
 import { getVenueLocation, quoteDelivery, savedAddresses, setDelivery } from '@/lib/services/api'
 import { useVenueSwitch } from './VenueGuide'
 import { useDinerStore } from '@/lib/stores/dinerStore'
@@ -13,7 +12,6 @@ import type { Point } from './LocationPicker'
 import { usePinAddress } from './usePinAddress'
 import { insideZone, uncoveredText, zoneOf } from './zone'
 import { AddressSearch, type FoundAddress } from './AddressSearch'
-import { freeFromText } from '@/lib/domain/deliveryPricing'
 
 // El mapa usa `window`: se carga solo en el navegador.
 const LocationPicker = dynamic(() => import('./LocationPicker').then((m) => m.LocationPicker), { ssr: false, loading: () => <div className="sm-map" aria-busy="true" /> })
@@ -22,10 +20,11 @@ export const METHOD_LABEL: Record<DeliveryMethod, string> = { online: 'Pagar aho
 const MEDELLIN: Point = { lat: 6.2442, lng: -75.5812 }
 const phoneOk = (v: string) => /^(\+?57)?3\d{9}$/.test(v.replace(/[\s-]/g, ''))
 
-// Plan D: «¿A dónde te lo llevamos?». La ubicación sale del GPS, de una dirección guardada, de la búsqueda o del pin
-// en el mapa; el texto y las indicaciones son para el domiciliario. Sin autorización no se guarda nada en el perfil.
-export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: DeliveryQuote | null, method: DeliveryMethod | null) => void; disabled?: boolean }) {
-  const { keys, session, account, preview, entry, deliveryDraft, cart } = useDinerStore()
+// Plan D: el primer paso del domicilio. Primero quién lo recibe (nombre y celular), luego «¿A dónde te lo llevamos?» (GPS,
+// dirección guardada, búsqueda o pin en el mapa, e indicaciones para el domiciliario) y al final la autorización del
+// tratamiento de datos. «Continuar al pago» revisa la cobertura, guarda la entrega y pasa al detalle de lo que se paga.
+export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: DeliveryQuote) => void; disabled?: boolean }) {
+  const { keys, session, account, preview, entry, deliveryDraft } = useDinerStore()
   const [center, setCenter] = useState<Point | null>(null)
   // Si ya compartió la ubicación en el chat, el pin y la dirección arrancan ahí.
   const [point, setPoint] = useState<Point | null>(deliveryDraft ? { lat: deliveryDraft.lat, lng: deliveryDraft.lng } : null)
@@ -39,7 +38,8 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
   const typed = useRef(!!deliveryDraft?.direccion), flying = useRef<Point | null>(null)
   const pin = usePinAddress(keys?.rest, point)
   useEffect(() => { if (pin.address && !typed.current) setAddress(pin.address) }, [pin.address])
-  const [quote, setQuote] = useState<DeliveryQuote | null>(null), [method, setMethod] = useState<DeliveryMethod | null>(null)
+  // La cotización vigente: cambiar la dirección o el celular la invalida y «Continuar» la vuelve a pedir.
+  const [, setQuote] = useState<DeliveryQuote | null>(null)
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [locating, setLocating] = useState(false)
   const venues = useVenueSwitch()
   const [other, setOther] = useState<{ slug: string; nombre: string } | null>(null)
@@ -51,7 +51,6 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
     if (account) savedAddresses(keys.rest).then((list) => { if (alive) setSaved(list) }).catch(() => undefined)
     return () => { alive = false }
   }, [keys, account])
-  useEffect(() => { onReady(quote, method) }, [quote, method, onReady])
 
   const moved = (p: Point) => {
     // El mapa repite el punto al terminar de moverse: si no cambió, no se pierde la cotización.
@@ -112,7 +111,7 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
     }).catch(() => setError('No pudimos revisar la cobertura de esa dirección. Inténtalo de nuevo.'))
   }
   function pickSaved(a: SavedAddress) { typed.current = true; goTo({ lat: a.lat, lng: a.lng }); setAddress(a.direccion); setDetails(a.indicaciones); setAddressId(a.id) }
-  const ready = !!point && address.trim().length >= 3 && name.trim().length >= 2 && phoneOk(phone) && (!save || consent)
+  const ready = !!point && address.trim().length >= 3 && name.trim().length >= 2 && phoneOk(phone) && consent
   async function calculate() {
     if (!session || !point || !ready || !keys) return
     setBusy(true); setError(''); setOther(null)
@@ -129,13 +128,19 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
         etiqueta: save ? label.trim() || 'Casa' : undefined, direccion_id: addressId, guardar: save, acepta_datos: consent })
       useDinerStore.setState({ cart: r.carrito })
       setQuote(r.domicilio)
-      setMethod(r.domicilio.metodos.length === 1 ? r.domicilio.metodos[0] : null)
+      onReady(r.domicilio)
     } catch (e) { setQuote(null); setError(e instanceof Error ? e.message : 'No pudimos calcular el domicilio.') }
     finally { setBusy(false) }
   }
   const off = disabled || busy || !!preview
   return (
     <section className="sm-delivery" aria-label="Datos del domicilio">
+      <h3>¿Quién lo recibe?</h3>
+      <div className="sm-delivery-pair">
+        <label className="sm-field"><span>Nombre</span><input value={name} disabled={off} onChange={(e) => setName(e.target.value)} maxLength={60} autoComplete="name" /></label>
+        <label className="sm-field"><span>Celular</span><input value={phone} disabled={off} onChange={(e) => { setPhone(e.target.value); setQuote(null) }} inputMode="tel" autoComplete="tel" placeholder="300 123 4567" /></label>
+      </div>
+      {phone && !phoneOk(phone) && <p className="sm-error" role="alert">Escribe un celular colombiano de 10 dígitos.</p>}
       <h3>¿A dónde te lo llevamos?</h3>
       <div className="sm-delivery-actions">
         <button type="button" className="sm-secondary" disabled={off || locating} onClick={() => locate()}><Icon name="pin" />{locating ? 'Buscando tu ubicación…' : 'Usar mi ubicación actual'}</button>
@@ -147,32 +152,14 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
       {center && <LocationPicker area={zoneOf(entry)} center={center} value={point} onChange={moved} />}
       <p className="sm-map-address" role="status"><Icon name="pin" /><span>{pin.loading ? 'Buscando la dirección…' : pin.address || 'Mueve el mapa hasta la puerta de la entrega.'}</span></p>
       <label className="sm-field"><span>Indicaciones (opcional)</span><input value={details} disabled={off} onChange={(e) => { setDetails(e.target.value); setQuote(null) }} maxLength={200} placeholder="Torre, apartamento, portería…" /></label>
-      <div className="sm-delivery-pair">
-        <label className="sm-field"><span>¿A nombre de quién?</span><input value={name} disabled={off} onChange={(e) => setName(e.target.value)} maxLength={60} autoComplete="name" /></label>
-        <label className="sm-field"><span>Celular</span><input value={phone} disabled={off} onChange={(e) => { setPhone(e.target.value); setQuote(null) }} inputMode="tel" autoComplete="tel" placeholder="300 123 4567" /></label>
-      </div>
       <label className="sm-check"><input type="checkbox" checked={save} disabled={off} onChange={(e) => setSave(e.target.checked)} /><span>Guardar esta dirección para la próxima</span></label>
-      {save && <>
-        <label className="sm-field"><span>Nombre de la dirección</span><input value={label} disabled={off} onChange={(e) => setLabel(e.target.value)} maxLength={30} placeholder="Casa, Oficina…" /></label>
-        <label className="sm-check"><input type="checkbox" checked={consent} disabled={off} onChange={(e) => setConsent(e.target.checked)} /><span>Autorizo al restaurante a guardar mis datos (nombre, celular y direcciones) para atender mis pedidos, según la <a href={keys ? `/${encodeURIComponent(keys.rest)}/privacidad` : '#'} target="_blank" rel="noreferrer">política de datos</a> (Ley 1581 de 2012). Puedo retirar la autorización cuando quiera.</span></label>
-      </>}
-      {phone && !phoneOk(phone) && <p className="sm-error" role="alert">Escribe un celular colombiano de 10 dígitos.</p>}
-      <button type="button" className="sm-primary" disabled={off || !ready} onClick={() => void calculate()}>{busy ? 'Calculando…' : quote ? 'Recalcular envío' : 'Calcular envío'}</button>
+      {save && <label className="sm-field"><span>Nombre de la dirección</span><input value={label} disabled={off} onChange={(e) => setLabel(e.target.value)} maxLength={30} placeholder="Casa, Oficina…" /></label>}
+      <label className="sm-check"><input type="checkbox" checked={consent} disabled={off} onChange={(e) => setConsent(e.target.checked)} /><span>Acepto el <a href={keys ? `/${encodeURIComponent(keys.rest)}/privacidad` : '#'} target="_blank" rel="noreferrer">tratamiento de datos</a></span></label>
+      <button type="button" className="sm-primary" disabled={off || !ready} onClick={() => void calculate()}>{busy ? 'Revisando tu dirección…' : 'Continuar al pago'}<Icon name="arrow" /></button>
       {error && <p className="sm-error" role="alert">{error}</p>}
       {other && keys && point && <div className="sm-delivery-quote" role="status">
         <p>Esa dirección la atiende la sede <strong>{other.nombre}</strong>. Te llevamos allá con tu pedido; revisamos que todo esté disponible en esa sede.</p>
         <button type="button" className="sm-primary" onClick={() => venues.go(other.slug, other.nombre, { lat: point.lat, lng: point.lng, direccion: address.trim() })}>Ir a la sede {other.nombre} con mi pedido</button>
-      </div>}
-      {quote && <div className="sm-delivery-quote" role="status">
-        <p>✓ Te lo llevamos a <strong>{quote.direccion}</strong>{quote.indicaciones ? ` (${quote.indicaciones})` : ''}</p>
-        <p><strong>Te lo lleva {quote.sede.nombre}</strong> · {quote.distancia_km.toLocaleString('es-CO', { maximumFractionDigits: 1 })} km</p>
-        <p>Envío: <strong>{quote.envio ? formatCop(quote.envio) : 'gratis'}</strong>{quote.minimo ? ` · Pedido mínimo ${formatCop(quote.minimo)}` : ''}</p>
-        {freeFromText(quote.gratis_desde, (cart?.total ?? 0) - (cart?.envio ?? 0), formatCop) && <p className="sm-note">{freeFromText(quote.gratis_desde, (cart?.total ?? 0) - (cart?.envio ?? 0), formatCop)}</p>}
-        {quote.nota && <p className="sm-note">{quote.nota}</p>}
-        {quote.sugerida && <p className="sm-note">La sede {quote.sugerida.nombre} te queda más cerca. Puedes pedir desde su menú para un envío más rápido.</p>}
-        <fieldset className="sm-delivery-methods"><legend>¿Cómo quieres pagar?</legend>
-          {quote.metodos.map((m) => <label key={m} className="sm-check"><input type="radio" name="metodo" checked={method === m} disabled={disabled} onChange={() => setMethod(m)} /><span>{METHOD_LABEL[m]}</span></label>)}
-        </fieldset>
       </div>}
     </section>
   )

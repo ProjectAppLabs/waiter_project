@@ -196,11 +196,12 @@ function fulfillmentCheck() {
   }
   if (options.length === 2 && Math.abs(options[0].getBoundingClientRect().top - options[1].getBoundingClientRect().top) > 4) problems.push('modalidad: las dos opciones no comparten fila')
   if (options.filter((o) => o.getAttribute('aria-pressed') === 'true').length !== 1) problems.push('modalidad: debe haber exactamente una modalidad elegida')
-  const fields = [...dialog.querySelectorAll('.sm-field textarea')].filter(visible)
-  if (fields.length !== 2) problems.push(`modalidad: se esperaban los campos de notas y de alergias; se ven ${fields.length}`)
+  // Las notas y alergias van con los platos, en Mi pedido (no dentro del diálogo de la entrega).
+  const fields = [...document.querySelectorAll('.sm-order-details textarea')].filter((el) => !dialog.contains(el))
+  if (fields.length !== 2) problems.push(`modalidad: se esperaban los campos de notas y de alergias en Mi pedido; se ven ${fields.length}`)
   if (![...dialog.querySelectorAll('button.sm-icon')].some(visible)) problems.push('modalidad: falta el botón de cerrar')
   const go = [...dialog.querySelectorAll('.sm-primary')].filter(visible)
-  if (!go.length || !/Continuar al pago|Confirmar domicilio/.test(go[go.length - 1].textContent)) problems.push('modalidad: falta «Continuar al pago»')
+  if (!go.length || !/Continuar al pago/.test(go[go.length - 1].textContent)) problems.push('modalidad: falta «Continuar al pago»')
   const box = dialog.getBoundingClientRect()
   if (box.left < -1 || box.right > innerWidth + 1) problems.push('modalidad: el diálogo se sale de la pantalla a lo ancho')
   if (box.height > innerHeight + 1 && dialog.scrollHeight <= dialog.clientHeight + 1) problems.push('modalidad: el diálogo es más alto que la pantalla y no se desplaza')
