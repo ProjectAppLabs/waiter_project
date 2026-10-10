@@ -29,6 +29,8 @@ class AssistantProfile(models.Model):
     preferences = models.JSONField(default=dict)
     favorites = models.JSONField(default=dict)
     last_orders = models.JSONField(default=list)
+    # Cómo dijo llamarse cuando el mesero le preguntó; se borra con el resto de la memoria.
+    name = models.CharField(max_length=40, blank=True, default='')
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['organization', 'participant'], name='asistente_perfil_unico')]

@@ -20,17 +20,18 @@ export function AssistantMemory() {
     return () => { alive = false }
   }, [active, keys])
   if (!active) return null
-  const empty = !!memory && !memory.preferencias.length && !memory.favoritos.length && !memory.ultimos.length
+  const empty = !!memory && !memory.nombre && !memory.preferencias.length && !memory.favoritos.length && !memory.ultimos.length
   async function forget() {
     if (!keys) return
     setBusy(true); setError('')
-    try { await forgetAssistantMemory(keys.rest, keys.venue); setMemory({ preferencias: [], favoritos: [], ultimos: [], alergias: memory?.alergias ?? [] }); setDone(true) }
+    try { await forgetAssistantMemory(keys.rest, keys.venue); setMemory({ nombre: '', preferencias: [], favoritos: [], ultimos: [], alergias: memory?.alergias ?? [] }); setDone(true) }
     catch (e) { setError(e instanceof Error ? e.message : 'No pudimos borrarlo') } finally { setBusy(false) }
   }
   return <section className="sm-assistant-memory" aria-labelledby="sm-assistant-memory-title">
     <h2 id="sm-assistant-memory-title">Lo que el asistente recuerda de ti</h2>
     {!memory ? (error ? <p className="sm-error" role="alert">{error}</p> : <p role="status">Cargando…</p>) : <>
       {empty ? <p>{done ? 'Listo, el asistente ya no recuerda nada de ti en este restaurante.' : 'Todavía no recuerda nada. Aprende de lo que pides y de lo que le cuentas.'}</p> : <dl>
+        {!!memory.nombre && <><dt>Cómo te llama</dt><dd>{memory.nombre}</dd></>}
         {!!memory.preferencias.length && <><dt>Gustos</dt><dd>{memory.preferencias.map((p) => p.nombre).join(', ')}</dd></>}
         {!!memory.favoritos.length && <><dt>Favoritos</dt><dd>{memory.favoritos.map((p) => p.nombre).join(', ')}</dd></>}
         {!!memory.ultimos.length && <><dt>Últimos pedidos</dt><dd>{memory.ultimos.map((p) => p.nombre).join(', ')}</dd></>}

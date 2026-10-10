@@ -9,6 +9,9 @@ DEFAULT = 'neutro'
 
 # Frases base por trato. Cada tono hereda las de su trato y reemplaza las que tienen sabor propio.
 USTED = {
+    'ask_name': ['{greeting} Bienvenido, soy su mesero virtual y lo voy a acompañar hoy. ¿Con quién tengo el gusto?'],
+    'nice_to_meet': ['¡Mucho gusto, {name}!'],
+    'welcome_named': ['{greeting} Le cuento lo que más piden hoy: {featured}. ¿Qué le gustaría?'],
     'welcome': ['{greeting} Bienvenido. Le cuento lo que más piden hoy: {featured}. ¿Qué le gustaría?',
                 '{greeting} Qué gusto atenderlo. Hoy le recomiendo {featured}. ¿Por dónde quiere empezar?'],
     'welcome_back': ['{greeting} Qué alegría tenerlo de vuelta. ¿Le provoca {favorite} como la otra vez, o le muestro algo nuevo?'],
@@ -47,6 +50,8 @@ USTED = {
 }
 TU = {
     **USTED,
+    'ask_name': ['{greeting} Bienvenido, soy tu mesero virtual y te voy a acompañar hoy. ¿Cómo te llamas?'],
+    'welcome_named': ['{greeting} Te cuento lo que más piden hoy: {featured}. ¿Qué te gustaría?'],
     'welcome': ['{greeting} Bienvenido. Te cuento lo que más piden hoy: {featured}. ¿Qué te gustaría?',
                 '{greeting} Qué gusto atenderte. Hoy te recomiendo {featured}. ¿Por dónde quieres empezar?'],
     'welcome_back': ['{greeting} Qué alegría tenerte de vuelta. ¿Te provoca {favorite} como la otra vez, o te muestro algo nuevo?'],
@@ -85,6 +90,8 @@ TU = {
 # El voseo caleño: «mirá», «querés», «podés», «contame».
 VOS = {
     **TU,
+    'ask_name': ['{greeting} Bienvenido, soy tu mesero virtual y te voy a acompañar hoy. ¿Cómo te llamás?'],
+    'welcome_named': ['{greeting} Te cuento lo que más piden hoy: {featured}. ¿Qué querés?'],
     'welcome': ['{greeting} Bienvenido. Te cuento lo que más piden hoy: {featured}. ¿Qué querés?',
                 '{greeting} Qué gusto atenderte. Hoy te recomiendo {featured}. ¿Por dónde querés empezar?'],
     'welcome_back': ['{greeting} Qué alegría tenerte de vuelta. ¿Querés {favorite} como la otra vez, o te muestro algo nuevo?'],
@@ -125,6 +132,9 @@ TONES = {
                  '«¿qué le provoca?», «de una», «¡qué delicia!» y algún diminutivo cariñoso («ahorita», «una limonadita»). '
                  'Nunca «parce», «ome» ni «chimba».',
         'phrases': {**USTED,
+                    'ask_name': ['{greeting} Bienvenido, con mucho gusto lo atiendo hoy. ¿Con quién tengo el gusto, pues?'],
+                    'nice_to_meet': ['¡Mucho gusto, {name}!'],
+                    'welcome_named': ['{greeting} Le cuento, pues, que lo que más piden hoy es {featured}. ¿Qué le provoca?'],
                     'welcome': ['{greeting} Bienvenido, con mucho gusto lo atiendo. Lo que más piden hoy es {featured}. ¿Qué le provoca, pues?',
                                 '{greeting} ¡Qué alegría tenerlo por acá! Hoy le recomiendo {featured}. ¿Qué se le antoja?'],
                     'welcome_back': ['{greeting} ¡Qué alegría tenerlo de vuelta, pues! ¿Le provoca {favorite} como la otra vez, o le muestro algo nuevo?'],
@@ -155,6 +165,9 @@ TONES = {
         'style': 'costeño del Caribe colombiano: alegre, cálido y ágil, tuteando. Usa con moderación «¿qué más?», '
                  '«con todo el gusto», «bacano», «sabroso» y «¡qué rico!». Nada de expresiones vulgares.',
         'phrases': {**TU,
+                    'ask_name': ['{greeting} ¿Qué más? Bienvenido, con todo el gusto te atiendo hoy. ¿Cómo te llamas?'],
+                    'nice_to_meet': ['¡Qué bacano, {name}, mucho gusto!'],
+                    'welcome_named': ['{greeting} Te cuento que lo más pedido hoy es {featured}, sabroso. ¿Qué te provoca?'],
                     'welcome': ['{greeting} ¿Qué más? Bienvenido, con todo el gusto te atiendo. Lo que más piden hoy es {featured}. ¿Qué te provoca?',
                                 '{greeting} ¡Qué bacano tenerte por acá! Hoy te recomiendo {featured}, sabroso. ¿Qué se te antoja?'],
                     'welcome_back': ['{greeting} ¡Qué bacano tenerte de vuelta! ¿Te provoca {favorite} como la otra vez, o te muestro algo nuevo?'],
@@ -167,6 +180,7 @@ TONES = {
         'style': 'caleño del Valle del Cauca: alegre y cercano, con voseo («mirá», «querés», «podés», «contame»). Usa con '
                  'moderación «ve», «bien pueda», «de una» y «¡qué rico, ve!». Sin vulgaridades.',
         'phrases': {**VOS,
+                    'ask_name': ['{greeting} Bienvenido, bien pueda. Soy tu mesero virtual. ¿Cómo te llamás, ve?'],
                     'welcome': ['{greeting} Bienvenido, bien pueda. Mirá, lo que más piden hoy es {featured}. ¿Qué querés?',
                                 '{greeting} ¡Qué gusto tenerte por acá, ve! Hoy te recomiendo {featured}. ¿Qué se te antoja?'],
                     'menu': ['Mirá estas opciones, ¡qué rico, ve! ¿Cuál te provoca?', 'Te tengo estas opciones del menú. ¿Cuál querés?'],

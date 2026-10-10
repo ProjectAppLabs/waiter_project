@@ -34,7 +34,7 @@ class Reply(dict):
 
 TAG_THRESHOLD = .65
 GREETING = re.compile(r'(?:hola|holi|hey|buenas|buen dia|buenos dias|buenas tardes|buenas noches|que mas|que hubo|quiubo|saludos)'
-                      r'(?: (?:hola|buenas|buen dia|buenos dias|buenas tardes|buenas noches|que mas|como estas|como esta|como vas|como va|amigo|mesero))*')
+                      r'(?: (?:hola|buenas|buen dia|buenos dias|buenas tardes|buenas noches|que mas|como estas|como esta|como vas|como va|amigo|mesero|de nuevo|otra vez|otra vez por aca|por aca))*')
 
 
 def noul(answers, key):
@@ -157,6 +157,20 @@ def greeting(restaurant, name=''):
     return f'¡{moment}, {name}!' if name else f'¡{moment}!'
 
 
+def known_name(account, profile):
+    """El nombre con que se llama al cliente: el de su cuenta o el que le dijo al mesero."""
+    if account and account.name and account.name.split():
+        return account.name.split()[0]
+    return (profile or {}).get('name', '')
+
+
+def remember_name(organization, key, profile, name):
+    profile = profile or AssistantProfile.objects.get_or_create(organization=organization, participant=key)[0]
+    profile.name = name[:40]
+    profile.save(update_fields=['name'])
+    return profile
+
+
 def cart_ids(participant):
     """Lo que el comensal ya tiene en su carrito abierto, para no sugerirle otra bebida si ya pidió una."""
     from experience_app.models import CartLine, Diner
@@ -213,7 +227,7 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
     confidence = None
     source, route, template = 'shortcut', 'menu', 'menu'
     chosen, notice, extra, can_voice, add = [], None, '', False, False
-    welcome_options, upsell = None, []
+    welcome_options, upsell, met = None, [], ''
     raw = (text or '').strip()
     normalized = normalize(raw)
     restricted_free = channel == 'whatsapp' and action is None and standing.level in ('restricted', 'paused')
@@ -266,6 +280,11 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
                 extra = phrases(tone, 'remaining')[0].format(remaining=remaining)
                 notice = {'kind': 'quota', 'until': None}
             business_data = business.data_for(restaurant)
+            asked_name = state.last_question == 'name'
+            given = service.name_from(raw, products) if asked_name else ''
+            if given:
+                profile = remember_name(restaurant.organization, key, profile, given)
+                profile_info = profile_data(profile, account)
             fixed = business.answer(raw, business_data, restaurant, participant, tone)
             named = named_products(raw, products)
             from experience_app.services.agent_chat import explicit_add
@@ -282,8 +301,17 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
             safe_named = [p for p in named if p.get('agotado') is False]
             if fixed:
                 template, route = 'business', 'estado' if 'mi pedido' in normalized else 'negocio'
+            elif given or (asked_name and service.declines_name(raw)):
+                # Respondió al «¿con quién tengo el gusto?»: se le da la bienvenida con lo fuerte de la casa.
+                template, chosen, welcome_options = welcome(products, profile_info)
+                # Sin repetir el «bienvenido»: con el nombre, «¡Mucho gusto, Ana!»; si no lo quiso dar, directo a lo bueno.
+                template, met = ('welcome_named' if template == 'welcome' else template), given or ' '
+                can_voice = True
             elif named:
                 chosen, template = safe_named[:3], 'menu' if safe_named else 'empty'
+            elif GREETING.fullmatch(normalized.strip(' !.?')) and not known_name(account, profile_info) and not asked_name:
+                # Como un mesero de verdad: antes de recomendar, pregunta con quién tiene el gusto.
+                template, welcome_options = 'ask_name', service.category_options(products)
             elif GREETING.fullmatch(normalized.strip(' !.?')):
                 # Bienvenida del guion de servicio: lo más pedido de la casa y las categorías para explorar.
                 template, chosen, welcome_options = welcome(products, profile_info)
@@ -323,6 +351,8 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
                     route, chosen = 'fuera', select(products)
                 elif selected_route == 'reclamo' or (answers or {}).get('frustracion', {}).get('score', 0) >= 2:
                     template, route = 'human', 'reclamo'
+                elif choice(answers, 'ruta') == 'saludo' and not known_name(account, profile_info) and not asked_name:
+                    template, welcome_options = 'ask_name', service.category_options(products)
                 elif choice(answers, 'ruta') == 'saludo':
                     template, chosen, welcome_options = welcome(products, profile_info)
                     can_voice = source != 'cache'
@@ -377,6 +407,8 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
             chosen = select(products, profile=profile_info)
     else:
         state.question_count, state.last_question = 0, ''
+    if template == 'ask_name':
+        state.last_question = 'name'
     cards = [card(p) for p in chosen]
     if cards:
         state.cards = cards
@@ -396,8 +428,8 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
         state.state = 'falta_dato'
     state.save()
     standing.save()
-    name = (account.name.split() or [''])[0] if account and account.name else ''
-    fields = {'greeting': greeting(restaurant, name), 'name': name, 'featured': service.listed(c['name'] for c in cards),
+    name = known_name(account, profile_info)
+    fields = {'greeting': (phrases(tone, 'nice_to_meet')[0].format(name=met) if met.strip() else '') if met else greeting(restaurant, name), 'name': name, 'featured': service.listed(c['name'] for c in cards),
               'favorite': cards[0]['name'] if cards else ''}
     data = {'cards': cards, 'conversation': fingerprint([key, state.state, normalized]), 'text': '', 'message': raw[:300], 'fields': fields}
     voice = OpenAIVoice(catalog=[p['nombre'] for p in products], tone=tone) if can_voice else TemplateVoice(tone)

@@ -206,10 +206,11 @@ it('recupera el local y sus beneficios y permite consultar un borrador identific
 // en los últimos pedidos o muestra un favorito que ya no está en la carta.
 it('traduce la memoria del asistente a lo que lee el comensal', () => {
   expect(api.toMemory({
-    profile: { preferences: { dulce: 1, picante: 3 }, favorites: { '7': 2, '9': 5 }, allergens: 'Maní, mariscos',
+    profile: { preferences: { dulce: 1, picante: 3 }, favorites: { '7': 2, '9': 5 }, allergens: 'Maní, mariscos', name: 'Ana',
       last_orders: [{ product_id: 7, name: 'Sopa' }, { product_id: 7, name: 'Sopa' }, { product_id: 8, name: 'Limonada' }] },
     labels: { preferences: { picante: 'Picante' }, products: { '7': 'Sopa' } },
   })).toEqual({
+    nombre: 'Ana',
     preferencias: [{ clave: 'picante', nombre: 'Picante', veces: 3 }, { clave: 'dulce', nombre: 'dulce', veces: 1 }],
     favoritos: [{ producto: 7, nombre: 'Sopa' }],
     ultimos: [{ producto: 7, nombre: 'Sopa' }, { producto: 8, nombre: 'Limonada' }],

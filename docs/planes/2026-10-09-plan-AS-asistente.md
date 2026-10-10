@@ -216,3 +216,9 @@ claves.
   agregar un plato fuerte (por texto o con el botón de la tarjeta) se sugiere algo de tomar y, si ya hay bebida, una
   adición, sin agregarla sola. El papel de cada plato sale del nombre de su categoría con reglas fijas.
 - Una etiqueta sin revisar que coincide con una categoría («para compartir») busca por la categoría.
+- **El nombre del cliente:** al saludar, si no lo conoce (ni por su cuenta ni por su memoria), el mesero pregunta «¿Con
+  quién tengo el gusto?» con las categorías como botones para quien prefiera ir directo. El nombre se lee con reglas
+  («Ana», «soy Ana», «me llamo Ana María»; nunca platos, preferencias ni respuestas) y queda en `AssistantProfile.name`:
+  aparece en «Lo que el asistente recuerda de ti» y se borra con el resto. La bienvenida sigue con «¡Mucho gusto,
+  Ana!» y lo fuerte de la casa, y la voz lo llama por su nombre de vez en cuando. Quien no lo da o pide de una vez sigue
+  sin que se insista. Palabras comunes a una letra de un plato («nuevo»/«huevo») ya no nombran platos.

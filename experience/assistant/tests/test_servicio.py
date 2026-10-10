@@ -33,18 +33,63 @@ def carta(entorno, settings):
     return org, local, platos
 
 
-# Falla si el saludo abre ofreciendo adiciones o bebidas en vez de lo fuerte de la casa, si repite categoría entre los
-# destacados, si no ofrece las categorías para explorar o si consulta un modelo para saludar.
-def test_bienvenida_con_lo_fuerte_de_la_casa(carta, monkeypatch):
+# Falla si el saludo no pregunta el nombre antes de recomendar, si tras darlo la bienvenida no lo usa ni ofrece lo fuerte
+# de la casa (sin adiciones ni bebidas, una por categoría), si no deja explorar por categorías o si consulta un modelo.
+def test_bienvenida_pregunta_el_nombre(carta, monkeypatch, reloj):
     org, local, platos = carta
     monkeypatch.setattr(JevEvaluator, 'evaluate', Mock(side_effect=AssertionError('El saludo no consulta modelos.')))
-    for saludo in ('hola', 'Buenas noches!', 'hola, buenas tardes', 'qué más'):
-        respuesta = handle('menu', local, f'cliente-{saludo}', saludo)
-        nombres = [c['name'] for c in respuesta['cards']]
-        assert nombres and all(n.startswith(('Hamburguesa', 'Pizza')) for n in nombres), saludo
+    for saludo, respuesta_nombre, nombre in (('hola', 'Ana', 'Ana'), ('Buenas noches!', 'soy juan pablo', 'Juan Pablo'),
+                                             ('hola, buenas tardes', 'Me llamo María José', 'María José')):
+        cliente = f'cliente-{nombre}'
+        reloj()
+        pregunta = handle('menu', local, cliente, saludo)
+        assert '¿Con quién tengo el gusto?' in pregunta['text'] and not pregunta['cards']
+        assert [o['label'] for o in pregunta['options']] == ['Hamburguesas', 'Pizzas', 'Postres']
+        reloj()
+        bienvenida = handle('menu', local, cliente, respuesta_nombre)
+        assert bienvenida['text'].startswith(f'¡Mucho gusto, {nombre}!') and bienvenida['text'].count('ienvenid') == 0
+        nombres = [c['name'] for c in bienvenida['cards']]
+        assert nombres and all(n.startswith(('Hamburguesa', 'Pizza')) for n in nombres)
         assert len({n.split()[0] for n in nombres}) == len(nombres)
-        assert [o['label'] for o in respuesta['options']] == ['Hamburguesas', 'Pizzas', 'Postres']
-        assert 'Bienvenido' in respuesta['text'] or 'gusto' in respuesta['text']
+        reloj()
+        otra_vez = handle('menu', local, cliente, 'hola')
+        assert nombre in otra_vez['text'] and '¿Con quién' not in otra_vez['text']
+
+
+# Falla si insistir con el nombre incomoda: quien no lo quiere dar o pide de una vez debe seguir sin que se le pregunte de
+# nuevo en esa conversación, y un plato o una preferencia nunca se toman como nombre.
+def test_nombre_sin_insistir(carta, reloj):
+    org, local, platos = carta
+    reloj()
+    handle('menu', local, 'reservado', 'hola')
+    reloj()
+    respuesta = handle('menu', local, 'reservado', 'prefiero no')
+    assert respuesta['cards'] and 'Mucho gusto' not in respuesta['text'] and '¿Con quién' not in respuesta['text']
+    reloj()
+    handle('menu', local, 'afanado', 'hola')
+    reloj()
+    respuesta = handle('menu', local, 'afanado', 'quiero una pizza margarita')
+    assert [c['name'] for c in respuesta['cards']] == ['Pizza margarita']
+    productos = catalog_for(local)
+    for texto in ('Hamburguesa', 'soy vegetariano', 'sí', 'una limonada de coco', 'quiero algo picante', 'cliente frecuente', '123'):
+        assert service.name_from(texto, productos) == '', texto
+    assert service.name_from('mi nombre es ANA lucía', productos) == 'Ana Lucía'
+    assert service.name_from('¡Soy Camilo!', productos) == 'Camilo'
+
+
+# Falla si el nombre que dio el cliente no queda en su memoria, no llega a la voz o sobrevive a «Borrar».
+def test_el_nombre_es_parte_de_su_memoria(carta, reloj):
+    org, local, platos = carta
+    from assistant.models import AssistantProfile
+    from assistant.profiles import identity, profile_data
+    reloj()
+    handle('menu', local, 'ana', 'hola')
+    reloj()
+    handle('menu', local, 'ana', 'Ana')
+    clave, _ = identity('menu', 'ana', org)
+    perfil = AssistantProfile.objects.get(organization=org, participant=clave)
+    assert profile_data(perfil)['name'] == 'Ana'
+    assert 'Ana' in prompt_for('paisa', 'Ana') and 'se llama' not in prompt_for('paisa')
 
 
 # Falla si un cliente que vuelve no recibe su favorito en el saludo, o si tocar una categoría no muestra sus platos.
@@ -54,6 +99,7 @@ def test_cliente_que_vuelve_y_categorias(carta):
     from assistant.profiles import identity
     clave, _ = identity('menu', 'ana', org)
     AssistantProfile.objects.create(organization=org, participant=clave, favorites={str(platos['Pizza margarita'].pk): 3})
+    AssistantProfile.objects.filter(participant=clave).update(name='Ana')
     respuesta = handle('menu', local, 'ana', 'hola')
     assert [c['name'] for c in respuesta['cards']] == ['Pizza margarita']
     assert 'de vuelta' in respuesta['text'] and 'Pizza margarita' in respuesta['text']
@@ -107,7 +153,7 @@ def test_tonos_completos_y_coherentes():
 def test_el_tono_cambia_la_forma_de_hablar(carta):
     org, local, platos = carta
     assert 'paisa amable' in prompt_for('paisa') and 'voseo' in prompt_for('caleno') and 'usted' in prompt_for('rolo')
-    assert 'Ana' in prompt_for('neutro', 'Ana')
+    assert 'se llama Ana' in prompt_for('neutro', 'Ana')
     assert TemplateVoice('caleno').phrase('added', {}).startswith('¡Listo, ve!')
     assert TemplateVoice('paisa').phrase('added', {}).startswith('¡De una!')
     datos = {'street': 'Calle 10', 'city': 'Medellín', 'phone': '', 'weekly': {}, 'overrides': []}
@@ -116,7 +162,7 @@ def test_el_tono_cambia_la_forma_de_hablar(carta):
     org.assistant_tone = 'caleno'
     org.save()
     saludo = handle('menu', local, 'beto', 'hola')['text']
-    assert 'bien pueda' in saludo or ', ve!' in saludo, saludo
+    assert '¿Cómo te llamás, ve?' in saludo and 'bien pueda' in saludo, saludo
 
 
 # Falla si el dueño no ve el tono ni sus opciones, si puede escoger uno que no existe, si el cambio no queda en el
@@ -149,3 +195,15 @@ def test_etiqueta_que_es_categoria(carta):
     pizza.diner_attributes = {'etiquetas': ['para_compartir'], 'etiquetas_revisadas': True}
     pizza.save()
     assert [p['nombre'] for p in select(catalog_for(local), {'etiquetas': ['para_compartir']})] == ['Pizza margarita']
+
+
+# Falla si una palabra común a una letra de un plato («nuevo» y «huevo») hace que se ofrezca ese plato.
+def test_palabras_comunes_no_nombran_platos(carta):
+    from assistant.selection import named_products
+    org, local, platos = carta
+    huevos = Product.objects.create(organization=org, name='Arepa con huevo', kind='dish', price='9000')
+    huevos.categories.add(Category.objects.get(organization=org, name='Pizzas'))
+    productos = catalog_for(local)
+    assert named_products('hola de nuevo', productos) == []
+    assert named_products('quiero algo bueno', productos) == []
+    assert [p['nombre'] for p in named_products('una arepa con huevo', productos)] == ['Arepa con huevo']

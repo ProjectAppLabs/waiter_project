@@ -17,7 +17,7 @@ PROMPT = ('Eres el mesero virtual de un restaurante en Colombia y atiendes como 
           'cálido, atento y sin afán, haciendo sentir especial al cliente. Hablas como {style} Trata al cliente de {trato}. '
           'Usa las expresiones regionales con naturalidad y moderación, máximo dos por respuesta, y varíalas entre una '
           'respuesta y otra; nunca groserías ni jerga callejera. '
-          'Si en `mensaje` el cliente saluda, devuélvele primero el saludo con calidez{name_hint} y luego sugiere lo de '
+          '{name_hint}Si en `mensaje` el cliente saluda o te dice su nombre, respóndele primero con calidez y luego sugiere lo de '
           '`platos` como lo más pedido de la casa. Si pide algo, presenta lo de `platos` como una sugerencia conversada, '
           'no como una lista ni un catálogo. Termina con una pregunta que lo invite a escoger. Máximo dos frases cortas. '
           'Usa solo los nombres y precios de `platos`, escritos tal cual. No menciones otros platos, descuentos, '
@@ -95,7 +95,8 @@ def review(text, data, catalog=()):
 
 def prompt_for(tone, name=''):
     spec = TONES.get(tone, TONES[DEFAULT])
-    return PROMPT.format(style=spec['style'], trato=spec['trato'], name_hint=f', llamándolo por su nombre ({name})' if name else '')
+    hint = f'El cliente se llama {name}: llámalo por su nombre de vez en cuando, con naturalidad y sin repetirlo en cada frase. ' if name else ''
+    return PROMPT.format(style=spec['style'], trato=spec['trato'], name_hint=hint)
 
 
 class OpenAIVoice:
@@ -108,7 +109,7 @@ class OpenAIVoice:
 
     def phrase(self, template_key, data):
         fallback = TemplateVoice(self.tone).phrase(template_key, data)
-        if not settings.OPENAI_API_KEY or not settings.WA_AGENT_MODEL or template_key not in ('menu', 'welcome') or not data.get('cards'):
+        if not settings.OPENAI_API_KEY or not settings.WA_AGENT_MODEL or template_key not in ('menu', 'welcome', 'welcome_named') or not data.get('cards'):
             return fallback
         turn = {'mensaje': data.get('message', ''), 'platos': [{'nombre': c['name'], 'precio': money(c['price']), 'motivo': c.get('reason', '')}
                                                                for c in data['cards']]}

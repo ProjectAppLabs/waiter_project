@@ -8,12 +8,13 @@ import type { Entry } from '@/lib/types'
 
 jest.mock('@/lib/services/api')
 const inicial = useDinerStore.getInitialState()
-const RECUERDA = { preferencias: [{ clave: 'picante', nombre: 'Picante', veces: 3 }], favoritos: [{ producto: 7, nombre: 'Hamburguesa diabla' }], ultimos: [{ producto: 8, nombre: 'Limonada' }], alergias: ['maní'] }
+const RECUERDA = { nombre: 'Anita', preferencias: [{ clave: 'picante', nombre: 'Picante', veces: 3 }], favoritos: [{ producto: 7, nombre: 'Hamburguesa diabla' }], ultimos: [{ producto: 8, nombre: 'Limonada' }], alergias: ['maní'] }
 const conModulos = (modulos: string[] | undefined) => useDinerStore.setState({ ...inicial, keys: { rest: 'demo', venue: 'salon', token: null }, entry: { modulos } as unknown as Entry }, true)
 beforeEach(() => { jest.resetAllMocks(); conModulos(undefined) })
 afterEach(() => useDinerStore.setState(inicial, true))
 
-// Falla si el comensal no ve lo que el asistente recuerda de él en este restaurante, o si borrar no llama al servidor,
+// Falla si el comensal no ve lo que el asistente recuerda de él en este restaurante (también cómo le dijo llamarse),
+// o si borrar no llama al servidor,
 // deja datos a la vista o borra también las alergias, que son de su cuenta.
 it('muestra lo que recuerda y lo borra', async () => {
   jest.mocked(getAssistantMemory).mockResolvedValue(RECUERDA)
@@ -21,11 +22,13 @@ it('muestra lo que recuerda y lo borra', async () => {
   render(<AssistantMemory />)
   expect(await screen.findByText('Picante')).toBeInTheDocument()
   expect(screen.getByText('Hamburguesa diabla')).toBeInTheDocument()
+  expect(screen.getByText('Anita')).toBeInTheDocument()
   expect(getAssistantMemory).toHaveBeenCalledWith('demo', 'salon')
   fireEvent.click(screen.getByRole('button', { name: 'Borrar lo que recuerda' }))
   await waitFor(() => expect(forgetAssistantMemory).toHaveBeenCalledWith('demo', 'salon'))
   expect(await screen.findByText(/ya no recuerda nada de ti/)).toBeInTheDocument()
   expect(screen.queryByText('Hamburguesa diabla')).not.toBeInTheDocument()
+  expect(screen.queryByText('Anita')).not.toBeInTheDocument()
   expect(screen.getByText(/maní/)).toBeInTheDocument()
 })
 
@@ -50,7 +53,7 @@ it('se oculta sin el asistente y no ofrece borrar lo vacío', async () => {
   expect(getAssistantMemory).not.toHaveBeenCalled()
   unmount()
   conModulos(['asistente_menu'])
-  jest.mocked(getAssistantMemory).mockResolvedValue({ preferencias: [], favoritos: [], ultimos: [], alergias: [] })
+  jest.mocked(getAssistantMemory).mockResolvedValue({ nombre: '', preferencias: [], favoritos: [], ultimos: [], alergias: [] })
   render(<AssistantMemory />)
   expect(await screen.findByText(/Todavía no recuerda nada/)).toBeInTheDocument()
   expect(screen.queryByRole('button')).not.toBeInTheDocument()

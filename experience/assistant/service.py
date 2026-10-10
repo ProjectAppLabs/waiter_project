@@ -112,3 +112,43 @@ def suggestion(session, diner, product_id):
     if not key or not items:
         return None
     return {'texto': phrases(tone_of(local.organization), key)[0], 'opciones': [p['nombre'] for p in items]}
+
+
+# Palabras que nunca son un nombre: respuestas, saludos y lo que se dice al pedir.
+NOT_NAMES = {'si', 'no', 'ok', 'listo', 'gracias', 'hola', 'buenas', 'menu', 'carta', 'quiero', 'dame', 'tienen', 'tiene',
+             'algo', 'nada', 'que', 'como', 'cual', 'donde', 'cuanto', 'para', 'por', 'con', 'sin', 'una', 'uno', 'un',
+             'el', 'la', 'los', 'las', 'mi', 'su', 'tu', 'yo', 'nadie', 'ninguno', 'prefiero', 'paso', 'pedido', 'cuenta',
+             'pagar', 'mesero', 'bien', 'mal', 'hambre', 'sed', 'ver', 'agregar', 'agregame', 'anade', 'pide', 'quisiera'}
+DECLINE = re.compile(r'(?:no|prefiero no(?: decir(?:lo)?)?|no quiero(?: decir(?:lo)?)?|paso|no gracias|sin nombre|anonimo|anonima)')
+
+
+def vocabulary_words():
+    from .selection import VOCABULARY
+    return {w for label in VOCABULARY.values() for w in normalize(label).split()} | {
+        'cliente', 'frecuente', 'alergico', 'alergica', 'celiaco', 'celiaca', 'diabetico', 'diabetica', 'nuevo', 'nueva'}
+
+
+def name_from(text, products):
+    """El nombre que dio el cliente al preguntárselo, o '' si lo que escribió no parece un nombre.
+
+    Acepta «Ana», «soy Ana», «me llamo Ana María», «mi nombre es Juan»; descarta pedidos, platos y respuestas.
+    """
+    clean = ' '.join(re.sub(r'[!¡.,¿?]', ' ', text).split())
+    match = re.fullmatch(r'(?i)(?:hola,? )?(?:me llamo|mi nombre es|soy|yo soy|habla|con|es)\s+(.+)', clean)
+    candidate = match[1] if match else clean
+    words = candidate.split()
+    if not 1 <= len(words) <= 3 or len(candidate) > 40:
+        return ''
+    if not all(re.fullmatch(r"[A-Za-zÁÉÍÓÚÜÑáéíóúüñ'-]{2,20}", w) for w in words):
+        return ''
+    plain = [normalize(w) for w in words]
+    if any(w in NOT_NAMES or w in vocabulary_words() for w in plain):
+        return ''
+    dishes = ' '.join(normalize(p['nombre']) + ' ' + ' '.join(normalize(str(c)) for c in p.get('categorias', [])) for p in products)
+    if any(len(w) > 3 and w in dishes.split() for w in plain):
+        return ''
+    return ' '.join(w[:1].upper() + w[1:].lower() for w in words)
+
+
+def declines_name(text):
+    return bool(DECLINE.fullmatch(normalize(text).strip(' !.')))

@@ -156,6 +156,7 @@ export async function newChat(sessionId: string): Promise<{disponible: boolean; 
 
 // Plan AS: lo que el asistente aprendió del comensal en este restaurante; el comensal lo ve y lo borra.
 export interface AssistantMemory {
+  nombre: string
   preferencias: { clave: string; nombre: string; veces: number }[]
   favoritos: { producto: number; nombre: string }[]
   ultimos: { producto: number; nombre: string }[]
@@ -163,7 +164,7 @@ export interface AssistantMemory {
 }
 const memoryUrl = (rest: string, venue: string) => `/api/v1/${encodeURIComponent(rest)}/${encodeURIComponent(venue)}/assistant/profile`
 interface RawMemory {
-  profile: { preferences: Record<string, number>; favorites: Record<string, number>; last_orders: { product_id: number; name: string }[]; allergens: string }
+  profile: { preferences: Record<string, number>; favorites: Record<string, number>; last_orders: { product_id: number; name: string }[]; allergens: string; name?: string }
   labels: { preferences: Record<string, string>; products: Record<string, string> }
 }
 // El servidor guarda contadores por clave; aquí se ordenan por frecuencia y se ponen los nombres que manda.
@@ -171,6 +172,7 @@ export function toMemory({ profile, labels }: RawMemory): AssistantMemory {
   const byCount = (counts: Record<string, number>) => Object.entries(counts).sort(([a, x], [b, y]) => y - x || a.localeCompare(b))
   const seen = new Set<number>()
   return {
+    nombre: profile.name ?? '',
     preferencias: byCount(profile.preferences).map(([clave, veces]) => ({ clave, nombre: labels.preferences[clave] ?? clave, veces })),
     favoritos: byCount(profile.favorites).filter(([id]) => labels.products[id]).map(([id]) => ({ producto: Number(id), nombre: labels.products[id] })),
     ultimos: profile.last_orders.filter((o) => !seen.has(o.product_id) && seen.add(o.product_id)).slice(0, 5).map((o) => ({ producto: o.product_id, nombre: o.name })),

@@ -57,8 +57,13 @@ def one_letter(a, b):
     return any(shorter == longer[:i] + longer[i + 1:] for i in range(len(longer)))
 
 
+# Palabras comunes que están a una letra de un ingrediente («nuevo» y «huevo», «queso» y «quiero»): nunca nombran un plato.
+COMMON = {'nuevo', 'nueva', 'bueno', 'buena', 'quiero', 'quiere', 'pues', 'cosa', 'cosas', 'otra', 'otro', 'algo', 'como',
+          'para', 'gracias', 'favor', 'tienen', 'tiene', 'mucho', 'poco', 'rico', 'rica', 'vez', 'aqui', 'aca', 'hola'}
+
+
 def named_products(text, products):
-    words = [w.rstrip('s') for w in normalize(text).split() if len(w) > 3]
+    words = [w.rstrip('s') for w in normalize(text).split() if len(w) > 3 and w not in COMMON]
     matches = []
     for p in products:
         name = normalize(p['nombre'])

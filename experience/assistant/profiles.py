@@ -28,7 +28,8 @@ def remember(organization, key, products):
 
 def profile_data(profile, account=None):
     return {'preferences': profile.preferences if profile else {}, 'favorites': profile.favorites if profile else {},
-            'last_orders': profile.last_orders if profile else [], 'allergens': account.allergens if account else ''}
+            'last_orders': profile.last_orders if profile else [], 'allergens': account.allergens if account else '',
+            'name': profile.name if profile else ''}
 
 
 def recent_orders(account):
