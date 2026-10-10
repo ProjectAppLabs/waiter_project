@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 
 import { searchAddress } from '@/lib/services/api'
+import { NO_COVERAGE } from './zone'
 
 export interface FoundAddress { texto: string; lat: number; lng: number }
 
@@ -24,9 +25,10 @@ export function AddressSearch({ rest, value, onType, onPick, enabled, disabled =
     last.current = text
     setBusy(true); setMessage(''); setResults([])
     try {
-      const found = (await searchAddress(rest, text)) ?? []
+      const { resultados: found, fueraDeCobertura } = (await searchAddress(rest, text)) ?? { resultados: [], fueraDeCobertura: false }
       if (found.length === 1) onPick(found[0])
       else if (found.length > 1) setResults(found)
+      else if (fueraDeCobertura) setMessage(NO_COVERAGE)
       else setMessage('No encontramos esa dirección. Mueve el mapa hasta la puerta de la entrega.')
     } catch { setMessage('No pudimos buscar la dirección. Mueve el mapa hasta la puerta de la entrega.'); last.current = '' }
     finally { setBusy(false) }

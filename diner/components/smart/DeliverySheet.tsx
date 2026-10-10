@@ -11,7 +11,7 @@ import { useDinerStore } from '@/lib/stores/dinerStore'
 import type { DeliveryMethod, DeliveryQuote, SavedAddress } from '@/lib/types'
 import type { Point } from './LocationPicker'
 import { usePinAddress } from './usePinAddress'
-import { zoneOf } from './zone'
+import { insideZone, NO_COVERAGE, pickupText, zoneOf } from './zone'
 import { AddressSearch, type FoundAddress } from './AddressSearch'
 
 // El mapa usa `window`: se carga solo en el navegador.
@@ -99,7 +99,16 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
   function pickFound(found: FoundAddress) {
     typed.current = true
     setAddress(found.texto)
-    goTo({ lat: found.lat, lng: found.lng })
+    const here = { lat: found.lat, lng: found.lng }
+    if (insideZone(entry, here)) { goTo(here); return }
+    // Fuera de la zona de esta sede: o la atiende otra sede (se le transfiere) o ninguna llega hasta allá.
+    if (!keys) return
+    setError('')
+    void quoteDelivery(keys.rest, here.lat, here.lng).then((coverage) => {
+      if (!coverage.cobertura) { setQuote(null); setError(`${NO_COVERAGE}${pickupText(coverage.recoger)}`); return }
+      setPoint(here)
+      void routeIfOther(here, found.texto)
+    }).catch(() => setError('No pudimos revisar la cobertura de esa dirección. Inténtalo de nuevo.'))
   }
   function pickSaved(a: SavedAddress) { typed.current = true; goTo({ lat: a.lat, lng: a.lng }); setAddress(a.direccion); setDetails(a.indicaciones); setAddressId(a.id) }
   const ready = !!point && address.trim().length >= 3 && name.trim().length >= 2 && phoneOk(phone) && (!save || consent)
@@ -111,7 +120,7 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
       const coverage = await quoteDelivery(keys.rest, point.lat, point.lng)
       if (!coverage.cobertura) {
         setQuote(null)
-        setError(`Esa dirección queda fuera de nuestra zona de domicilios.${coverage.recoger.length ? ` Puedes recogerlo en ${coverage.recoger.map((r) => r.nombre).join(' o ')}.` : ''}`)
+        setError(`${NO_COVERAGE}${pickupText(coverage.recoger)}`)
         return
       }
       if (await routeIfOther(point, address.trim())) return

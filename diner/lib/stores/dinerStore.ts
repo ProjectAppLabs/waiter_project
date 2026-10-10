@@ -22,7 +22,7 @@ interface DinerState {
   // Plan D: la ubicación compartida en el chat del mesero; el domicilio del pedido la toma al confirmar.
   deliveryDraft: { lat: number; lng: number; direccion: string } | null
   // El paso a otra sede en curso (se muestra antes de irse) y si al llegar se reabre la confirmación en domicilio.
-  venueMove: { nombre: string; direccion: string } | null
+  venueMove: { nombre: string; direccion: string; colores?: Record<string, string> } | null
   reopenDelivery: boolean
   keys: Keys | null
   entry: Entry | null

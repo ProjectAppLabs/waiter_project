@@ -74,13 +74,3 @@
 .sm-venue-notice { position:fixed; top:calc(var(--ds-espacio-12) + env(safe-area-inset-top)); left:var(--ds-espacio-16); right:var(--ds-espacio-16); z-index:60; max-width:480px; margin:0 auto; display:flex; align-items:flex-start; gap:var(--ds-espacio-8); animation:sm-chat-enter .24s ease-out; padding:var(--ds-espacio-12); border-radius:calc(14px * var(--ds-forma-tarjeta)); background:var(--sm-surface); border:1px solid var(--sm-border); box-shadow:0 8px 24px #19193220; font-size:calc(15px * var(--ds-texto)); line-height:1.45; }
 .sm-venue-notice span { flex:1; }
 .sm-venue-notice button { flex-shrink:0; width:44px; height:44px; border:0; border-radius:50%; background:transparent; color:var(--sm-ink); font-size:calc(22px * var(--ds-texto)); cursor:pointer; }
-/* Plan D: la pantalla de paso a otra sede (encima de todo, con una barra que avanza mientras se cambia). */
-.sm-venue-move { position:fixed; inset:0; margin:auto; height:fit-content; max-width:min(380px, calc(100vw - 32px)); padding:var(--ds-espacio-24); border:0; border-radius:calc(22px * var(--ds-forma-hoja)); background:var(--sm-surface); color:var(--sm-ink); text-align:center; box-shadow:0 24px 70px #19193238; }
-.sm-venue-move::backdrop { background:#17172e66; backdrop-filter:blur(3px); }
-.sm-venue-move h2 { margin:var(--ds-espacio-8) 0; font-size:calc(19px * var(--ds-texto)); }
-.sm-venue-move p { margin:0 0 var(--ds-espacio-8); font-size:calc(15px * var(--ds-texto)); line-height:1.45; }
-.sm-venue-move-icon { display:block; font-size:calc(34px * var(--ds-texto)); }
-.sm-venue-move-bar { display:block; height:6px; margin-top:var(--ds-espacio-12); border-radius:calc(6px * var(--ds-forma-boton)); background:var(--sm-border); overflow:hidden; }
-.sm-venue-move-bar span { display:block; height:100%; width:100%; background:var(--sm-accent); transform-origin:left; animation:sm-venue-move 1.6s linear forwards; }
-@keyframes sm-venue-move { from { transform:scaleX(0); } to { transform:scaleX(1); } }
-@media (prefers-reduced-motion: reduce) { .sm-venue-move-bar span { animation:none; } }

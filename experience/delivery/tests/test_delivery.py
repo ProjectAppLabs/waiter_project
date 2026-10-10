@@ -565,8 +565,8 @@ def test_buscar_con_google_una_consulta(env, settings, monkeypatch):
     assert e['client'].post(url, {'texto': 'Carrera 70 # 1-2'}, format='json').status_code == 200
 
 
-# Falla si con sedes en varias ciudades la búsqueda solo mira la primera (una dirección de la otra ciudad no aparece), o
-# si deja pasar resultados de ciudades donde no hay sede.
+# Falla si con sedes en varias ciudades la búsqueda solo mira la primera (una dirección de la otra ciudad no aparece), si
+# deja pasar resultados de ciudades donde no hay sede, o si no avisa que la dirección queda fuera de todas las sedes.
 def test_busqueda_en_las_zonas_de_todas_las_sedes(env, settings, monkeypatch):
     from django.core.cache import cache
     from delivery.models import DeliverySettings
@@ -585,3 +585,7 @@ def test_busqueda_en_las_zonas_de_todas_las_sedes(env, settings, monkeypatch):
     data = e['client'].post(f'/api/v1/{e["org"].slug}/domicilio/buscar', {'texto': 'Calle 10 # 43-12'}, format='json').data['resultados']
     assert [r['texto'] for r in data] == ['Cl 10 #43-12, Bogotá', 'Cl 10 #43-12, Duitama']
     assert 'bounds' not in google.call_args.kwargs['params']
+    # Una dirección que solo existe lejos de todas las sedes: no es «no la encontramos», es «sin cobertura».
+    google.return_value = Mock(status_code=200, json=lambda: {'status': 'OK', 'results': [fila(10.39, -75.51, 'Cra 3 #36-1, Cartagena')]})
+    lejos = e['client'].post(f'/api/v1/{e["org"].slug}/domicilio/buscar', {'texto': 'Carrera 3 # 36-1 Cartagena'}, format='json').data
+    assert lejos == {'resultados': [], 'fuera_de_cobertura': True}

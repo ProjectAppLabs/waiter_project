@@ -332,3 +332,11 @@ es único por organización. El inventario transversal incorpora GET/PUT de ajus
   sede nueva mantiene ese aviso mientras carga y, al llegar, uno fijo arriba: «Ya estás en la sede X. Tu dirección
   quedó guardada: …» (y «Trajimos tu pedido»). Si venía pagando con platos, la confirmación se reabre en «A domicilio»
   con la dirección puesta. Probado en el navegador: chat en Poblado con ubicación de Duitama → aviso → Duitama.
+- **Direcciones de otra ciudad (2026-10-10):** si la dirección encontrada cae fuera de la zona del mapa de esta sede, se
+  cotiza de una: si otra sede la cubre, «Te transferimos a la sede X» (con la dirección guardada); si ninguna,
+  «Ninguna de nuestras sedes tiene cobertura en esa dirección» y dónde recoger. La búsqueda devuelve
+  `fuera_de_cobertura: true` cuando la dirección existe pero lejos de todas las sedes (antes decía «no la encontramos»);
+  `geocoding.search` devuelve `(resultados, descartados)` y la caché guarda ambos. La pantalla de paso
+  (`VenueMoveOverlay`) vive en los proveedores de la app con los colores de la marca, así sigue en pantalla mientras la
+  sede nueva carga (antes se veía «Preparando tu mesa…» en blanco). Probado en el navegador desde Duitama: Medellín
+  transfiere a Poblado; Bogotá dice que no hay cobertura.

@@ -12,7 +12,7 @@ import type { Point } from './LocationPicker'
 import { Icon } from './SmartMenu'
 import { usePinAddress } from './usePinAddress'
 import { useVenueSwitch } from './VenueGuide'
-import { zoneOf } from './zone'
+import { insideZone, NO_COVERAGE, zoneOf } from './zone'
 import { AddressSearch, type FoundAddress } from './AddressSearch'
 
 const LocationPicker = dynamic(() => import('./LocationPicker').then((m) => m.LocationPicker), { ssr: false, loading: () => <div className="sm-map" aria-busy="true" /> })
@@ -77,8 +77,11 @@ export function ChatDelivery({ pedido, onLeave, onSend }: { pedido: string; onLe
   function pickFound(found: FoundAddress) {
     typed.current = true
     setAddress(found.texto)
-    flying.current = { lat: found.lat, lng: found.lng }
-    setPoint(flying.current)
+    const here = { lat: found.lat, lng: found.lng }
+    // Fuera de la zona de esta sede el mapa no la muestra: se revisa de una qué sede la atiende (o que ninguna llega).
+    if (!insideZone(entry, here)) { void check(here, found.texto); return }
+    flying.current = here
+    setPoint(here)
   }
   // Las categorías con platos, para seguir con el pedido de un toque.
   const categories = (entry.carta?.categorias ?? []).filter((c) => c.productos?.length).map((c) => c.nombre).slice(0, 4)
@@ -112,7 +115,7 @@ export function ChatDelivery({ pedido, onLeave, onSend }: { pedido: string; onLe
         </>}
         <button type="button" className="sm-text-button" onClick={() => { setMode('choose'); setCoverage(null) }}>Cambiar la ubicación</button>
       </div> : <div className="sm-delivery-quote" role="status">
-        <p>Esa ubicación queda fuera de nuestra zona de domicilios.</p>
+        <p>{NO_COVERAGE}</p>
         {coverage.recoger.length > 0 && <p>Puedes recogerlo en {coverage.recoger.map((r) => r.nombre).join(' o ')}.</p>}
         <button type="button" className="sm-text-button" onClick={() => { setMode('choose'); setCoverage(null) }}>Probar con otra ubicación</button>
       </div>)}

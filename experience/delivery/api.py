@@ -73,11 +73,12 @@ class SearchView(DinerView):
             # En las zonas de todas las sedes con domicilio: si la dirección existe en dos ciudades con sede, salen ambas y
             # el cliente escoge; la cotización lleva el pedido a la sede que la cubre.
             areas = [(row.restaurant.latitude, row.restaurant.longitude) for row in coverage.candidates(org)]
-            results = geocoding.search(query, areas or None)
+            results, outside = geocoding.search(query, areas or None)
             count_google(org, 'geocoding')
         except geocoding.Unavailable:
             require(False, 'No pudimos consultar el buscador. Intente de nuevo o use el mapa.', 'maps_unavailable', 502)
-        return Response({'resultados': results})
+        # Sin resultados en ninguna zona pero sí lejos (otra ciudad): el comensal dice «ninguna sede tiene cobertura».
+        return Response({'resultados': results, 'fuera_de_cobertura': not results and outside > 0})
 
 
 class SuggestView(DinerView):

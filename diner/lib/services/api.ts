@@ -194,8 +194,10 @@ export async function quoteDelivery(rest: string, lat: number, lng: number): Pro
   return (await http.post(`${org(rest)}/domicilio/cotizar`, { lat, lng })).data
 }
 // Buscar una dirección escrita. Sin la clave de mapas del servidor responde 503 y el buscador se oculta.
-export async function searchAddress(rest: string, texto: string): Promise<{ texto: string; lat: number; lng: number; exacta?: boolean }[]> {
-  return (await http.post(`${org(rest)}/domicilio/buscar`, { texto })).data.resultados
+// Una consulta por búsqueda. `fueraDeCobertura`: la dirección existe pero lejos de todas las sedes con domicilio.
+export async function searchAddress(rest: string, texto: string): Promise<{ resultados: { texto: string; lat: number; lng: number; exacta?: boolean }[]; fueraDeCobertura: boolean }> {
+  const data = (await http.post<{ resultados: { texto: string; lat: number; lng: number; exacta?: boolean }[]; fuera_de_cobertura?: boolean }>(`${org(rest)}/domicilio/buscar`, { texto })).data
+  return { resultados: data.resultados ?? [], fueraDeCobertura: !!data.fuera_de_cobertura }
 }
 export interface DeliveryForm { lat: number; lng: number; direccion: string; indicaciones: string; telefono: string; nombre: string; etiqueta?: string; direccion_id?: number; guardar: boolean; acepta_datos: boolean; place_id?: string }
 export async function setDelivery(sessionId: string, form: DeliveryForm): Promise<{ domicilio: DeliveryQuote; carrito: Cart }> {

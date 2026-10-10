@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 import { MOVE_DELAY, useVenueSwitch, VenueGuide } from '../VenueGuide'
+import { VenueMoveOverlay } from '../VenueMoveOverlay'
 import { areaBounds, carryTo, takeCarried } from '@/lib/domain/venueRedirect'
 import { addLine, quoteDelivery } from '@/lib/services/api'
 import { useDinerStore } from '@/lib/stores/dinerStore'
@@ -26,10 +27,10 @@ it('avisa y lleva el pedido a la otra sede', () => {
   HTMLDialogElement.prototype.close = function () { this.removeAttribute('open') }
   useDinerStore.setState({ cart: pedido })
   let go: ReturnType<typeof useVenueSwitch>['go'] = () => undefined
-  function Probe() { go = useVenueSwitch().go; return <VenueGuide /> }
+  function Probe() { go = useVenueSwitch().go; return <><VenueGuide /><VenueMoveOverlay /></> }
   render(<Probe />)
   act(() => go('duitama', 'Duitama', { lat: 5.8, lng: -73, direccion: 'Calle 15' }))
-  expect(screen.getByRole('heading', { name: 'Te llevamos a la sede Duitama' })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'Te transferimos a la sede Duitama' })).toBeInTheDocument()
   expect(screen.getByText('Calle 15')).toBeInTheDocument()
   expect(push).not.toHaveBeenCalled()
   act(() => jest.advanceTimersByTime(MOVE_DELAY))
@@ -50,13 +51,14 @@ it('al llegar agrega lo que traía y avisa lo que no está', async () => {
   carryTo('demo', 'duitama', { lat: 5.83, lng: -73.03, direccion: 'Calle 15' }, 'Te pasamos a la sede Duitama.', [
     { producto_id: 7, cantidad: 2, nota: 'Sin cebolla', nombre: 'Hamburguesa' }, { producto_id: 9, cantidad: 1, nota: '', nombre: 'Malteada' }])
   jest.mocked(addLine).mockResolvedValueOnce({ lineas: [] } as never).mockRejectedValueOnce(new Error('agotado'))
-  render(<VenueGuide />)
+  render(<><VenueGuide /><VenueMoveOverlay /></>)
+  expect(screen.getByRole('heading', { name: 'Te transferimos a la sede Duitama' })).toBeInTheDocument()
   expect(await screen.findByText(/Trajimos tu pedido\. No están disponibles aquí: Malteada\./)).toBeInTheDocument()
   expect(addLine).toHaveBeenCalledWith('visita-2', 7, 2, 'Sin cebolla')
   expect(useDinerStore.getState().deliveryDraft).toEqual({ lat: 5.83, lng: -73.03, direccion: 'Calle 15' })
   expect(useDinerStore.getState().venueMove).toBeNull()
   expect(useDinerStore.getState().reopenDelivery).toBe(true)
-  expect(screen.queryByRole('heading', { name: /Te llevamos/ })).toBeNull()
+  expect(screen.queryByRole('heading', { name: /Te transferimos/ })).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: 'Cerrar aviso' }))
   expect(screen.queryByText(/Trajimos/)).toBeNull()
 })

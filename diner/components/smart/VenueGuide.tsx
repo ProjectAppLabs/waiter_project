@@ -1,11 +1,12 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { myCount } from '@/lib/domain/cartEvents'
 import { carryTo, takeCarried, type CarriedLocation } from '@/lib/domain/venueRedirect'
 import { addLine } from '@/lib/services/api'
+import { templateVars } from '@/lib/domain/template'
 import { useDinerStore } from '@/lib/stores/dinerStore'
 
 // Tiempo para leer el aviso antes de pasar a la otra sede.
@@ -21,37 +22,20 @@ export function useVenueSwitch() {
     if (!keys) return
     const lines = (cart?.lineas ?? []).filter((l) => l.mio).map((l) => ({ producto_id: l.producto_id, cantidad: l.cantidad, nota: l.nota, nombre: l.nombre }))
     const saved = location.direccion ? `: ${location.direccion}` : ''
-    carryTo(keys.rest, slug, location, motivo ?? `Ya estás en la sede ${nombre}. Tu dirección quedó guardada${saved}.`, lines)
-    useDinerStore.setState({ venueMove: { nombre, direccion: location.direccion } })
+    carryTo(keys.rest, slug, location, motivo ?? `Ya estás en la sede ${nombre}, la que lleva domicilios hasta tu dirección. Tu dirección quedó guardada${saved}.`, lines)
+    // Los colores de la marca viajan con el aviso: la sede nueva vacía la entrada mientras carga.
+    const plantilla = useDinerStore.getState().entry?.contexto.plantilla
+    useDinerStore.setState({ venueMove: { nombre, direccion: location.direccion, colores: plantilla ? templateVars(plantilla) : undefined } })
     const path = `/${encodeURIComponent(keys.rest)}/${encodeURIComponent(slug)}/${lines.length ? 'pedido' : 'carta'}`
     setTimeout(() => router.push(path), MOVE_DELAY)
   }
   return { hasItems, go, venue: keys?.venue ?? '' }
 }
 
-// La pantalla de paso: un diálogo modal para quedar encima del chat o de la confirmación del pedido.
-function MoveNotice({ nombre, direccion }: { nombre: string; direccion: string }) {
-  const dialog = useRef<HTMLDialogElement>(null)
-  useEffect(() => {
-    const element = dialog.current
-    if (element && !element.open) { try { element.showModal() } catch { element.setAttribute('open', '') } }
-    return () => { try { element?.close() } catch { /* ya cerrado */ } }
-  }, [])
-  return (
-    <dialog ref={dialog} className="sm-venue-move" aria-labelledby="sm-venue-move-title" onCancel={(e) => e.preventDefault()}>
-      <span className="sm-venue-move-icon" aria-hidden="true">📍</span>
-      <h2 id="sm-venue-move-title">Te llevamos a la sede {nombre}</h2>
-      {direccion ? <p>Guardamos tu dirección: <strong>{direccion}</strong>.</p> : <p>Guardamos tu ubicación.</p>}
-      <p>Es la sede que te queda más cerca y lleva domicilios hasta allá.</p>
-      <span className="sm-venue-move-bar" role="progressbar" aria-label="Cambiando de sede"><span /></span>
-    </dialog>
-  )
-}
-
 // Al llegar a la sede: la ubicación queda lista para el domicilio, los platos que traía se agregan aquí (cada uno se
 // revisa: precio y disponibilidad de esta sede), se reabre la confirmación si venía pagando y se explica qué pasó.
 export function VenueGuide() {
-  const { keys, entry, venueMove } = useDinerStore()
+  const { keys, entry } = useDinerStore()
   const [notice, setNotice] = useState('')
   useEffect(() => {
     // Se espera a que cargue la sede nueva: el aviso de paso sigue en pantalla mientras tanto.
@@ -73,8 +57,6 @@ export function VenueGuide() {
       setNotice(`${carried.motivo}${moved}${missing.length ? ` No están disponibles aquí: ${missing.join(', ')}.` : ''}`)
     })()
   }, [keys, entry])
-  return <>
-    {venueMove && <MoveNotice nombre={venueMove.nombre} direccion={venueMove.direccion} />}
-    {notice && <p className="sm-venue-notice" role="status"><span>{notice}</span><button type="button" aria-label="Cerrar aviso" onClick={() => setNotice('')}>×</button></p>}
-  </>
+  if (!notice) return null
+  return <p className="sm-venue-notice" role="status"><span>{notice}</span><button type="button" aria-label="Cerrar aviso" onClick={() => setNotice('')}>×</button></p>
 }

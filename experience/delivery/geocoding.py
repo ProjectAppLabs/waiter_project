@@ -88,20 +88,22 @@ def google_search(query, near):
     if len(areas) == 1:
         lat, lng = float(areas[0][0]), float(areas[0][1])
         params['bounds'] = f'{lat - .25},{lng - .25}|{lat + .25},{lng + .25}'
-    results = []
+    results, outside = [], 0
     for row in _google(params):
         lat, lng = coordinates(row['geometry']['location']['lat'], row['geometry']['location']['lng'])
         if not near_any(lat, lng, areas):
+            outside += 1
             continue
         results.append({'texto': clean_address(row['formatted_address']), 'lat': float(lat), 'lng': float(lng),
                         'exacta': row['geometry'].get('location_type') in ('ROOFTOP', 'RANGE_INTERPOLATED')})
         if len(results) == 5:
             break
-    return results
+    return results, outside
 
 
 def search(query, near=None):
-    """Hasta 5 lugares de Colombia que coinciden con lo escrito, del más probable al menos.
+    """Hasta 5 lugares de Colombia que coinciden con lo escrito, del más probable al menos, y cuántos se descartaron por
+    caer lejos de todas las sedes (para decir «ninguna sede tiene cobertura» en vez de «no la encontramos»).
 
     `near` (lat, lng) limita la búsqueda a unos 25 km de la sede: un domicilio nunca sale de su ciudad.
     """
@@ -123,18 +125,19 @@ def search(query, near=None):
     cached = cache.get(key)
     if cached is not None:
         return cached
-    results = []
+    results, outside = [], 0
     areas = near if isinstance(near, list) else ([near] if near else [])
     box = {'viewbox': f'{float(areas[0][1]) - .25},{float(areas[0][0]) + .25},{float(areas[0][1]) + .25},{float(areas[0][0]) - .25}', 'bounded': 1} if len(areas) == 1 else {}
     for row in (_nominatim('search', {'q': query, 'countrycodes': 'co', 'limit': 10 if len(areas) > 1 else 5, 'addressdetails': 1, **box}) or []):
         lat, lng = coordinates(row['lat'], row['lon'])
         if not near_any(lat, lng, areas):
+            outside += 1
             continue
         if len(results) == 5:
             break
         results.append({'texto': short(row.get('address') or {}) or row.get('display_name', ''), 'lat': float(lat), 'lng': float(lng)})
-    cache.set(key, results, DAY)
-    return results
+    cache.set(key, (results, outside), DAY)
+    return results, outside
 
 
 def reverse_provider():

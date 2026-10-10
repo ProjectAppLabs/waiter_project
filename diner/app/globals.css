@@ -59,3 +59,17 @@
 }
 html { font-family: var(--font-ui); background: var(--t-fondo); color: var(--t-tinta); -webkit-font-smoothing: antialiased; }
 .tabular { font-variant-numeric: tabular-nums; }
+
+/* Plan D: la pantalla de paso a otra sede (components/smart/VenueMoveOverlay.tsx). Vive fuera de la carta, así que usa
+   directamente los colores de la plantilla (--t-*) que el componente le pone. */
+.venue-move { position: fixed; inset: 0; margin: auto; height: fit-content; max-width: min(380px, calc(100vw - 32px)); padding: 24px;
+  border: 0; border-radius: 22px; background: var(--t-superficie, #fff); color: var(--t-tinta, #32324d); text-align: center;
+  font-family: var(--t-cuerpo, system-ui), sans-serif; box-shadow: 0 24px 70px #19193238; }
+.venue-move::backdrop { background: #17172e66; backdrop-filter: blur(3px); }
+.venue-move h2 { margin: 8px 0; font-size: 19px; font-weight: 600; }
+.venue-move p { margin: 0 0 8px; font-size: 15px; line-height: 1.45; }
+.venue-move-icon { display: block; font-size: 34px; }
+.venue-move-bar { display: block; height: 6px; margin-top: 12px; border-radius: 6px; background: var(--t-borde, #eaeaef); overflow: hidden; }
+.venue-move-bar span { display: block; height: 100%; width: 100%; background: var(--t-acento, #6755a0); transform-origin: left; animation: venue-move 1.6s linear forwards; }
+@keyframes venue-move { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@media (prefers-reduced-motion: reduce) { .venue-move-bar span { animation: none; } }

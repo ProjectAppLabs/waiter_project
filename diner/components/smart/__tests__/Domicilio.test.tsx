@@ -95,7 +95,7 @@ it('comparte la ubicación desde el chat del mesero', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Marcar en el mapa' }))
   fireEvent.change(screen.getByLabelText('Dirección'), { target: { value: 'Calle 80' } })
   await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Usar esta ubicación' })))
-  expect(await screen.findByText(/fuera de nuestra zona/)).toBeInTheDocument()
+  expect(await screen.findByText('Ninguna de nuestras sedes tiene cobertura en esa dirección.')).toBeInTheDocument()
   expect(screen.getByText('Puedes recogerlo en El Poblado.')).toBeInTheDocument()
 })
 
@@ -116,7 +116,7 @@ it('dirección y mapa en las dos direcciones', async () => {
   const api = jest.requireMock('@/lib/services/api')
   api.getVenueLocation.mockResolvedValue({ direccion: '', latitud: 6.2, longitud: -75.5 })
   api.reverseAddress.mockResolvedValue('Calle 9A 37-16, El Poblado, Medellín')
-  api.searchAddress.mockResolvedValue([{ texto: 'Cl 10 #43-12, El Poblado, Medellín, Antioquia', lat: 6.2098, lng: -75.5684 }])
+  api.searchAddress.mockResolvedValue({ resultados: [{ texto: 'Cl 10 #43-12, El Poblado, Medellín, Antioquia', lat: 6.2098, lng: -75.5684 }], fueraDeCobertura: false })
   useDinerStore.setState({ session: { id: 'visita', estado: 'abierta', mesa: null }, entry: { domicilio: { enabled: true, buscador: true }, contexto: { mesa: null }, carta: { categorias: [] } } as unknown as Entry })
   render(<DeliverySheet onReady={jest.fn()} />)
   fireEvent.click(await screen.findByRole('button', { name: 'Marcar en el mapa' }))
@@ -136,7 +136,7 @@ it('dirección y mapa en las dos direcciones', async () => {
 it('busca la dirección una sola vez y deja escoger entre varias', async () => {
   const { AddressSearch } = await import('../AddressSearch')
   const api = jest.requireMock('@/lib/services/api')
-  api.searchAddress.mockResolvedValue([{ texto: 'Cl 10 #43-12, El Poblado, Medellín', lat: 6.21, lng: -75.57 }, { texto: 'Cl 10 #43-12, Envigado', lat: 6.17, lng: -75.59 }])
+  api.searchAddress.mockResolvedValue({ resultados: [{ texto: 'Cl 10 #43-12, El Poblado, Medellín', lat: 6.21, lng: -75.57 }, { texto: 'Cl 10 #43-12, Envigado', lat: 6.17, lng: -75.59 }], fueraDeCobertura: false })
   const escoger = jest.fn()
   function Campo() { const [v, setV] = require('react').useState(''); return <AddressSearch rest="demo" value={v} enabled onType={setV} onPick={escoger} /> }
   render(<Campo />)
@@ -152,6 +152,11 @@ it('busca la dirección una sola vez y deja escoger entre varias', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Cl 10 #43-12, Envigado' }))
   expect(escoger).toHaveBeenCalledWith({ texto: 'Cl 10 #43-12, Envigado', lat: 6.17, lng: -75.59 })
   expect(api.searchAddress).toHaveBeenCalledTimes(1)
+  // Existe, pero lejos de todas las sedes: se dice que no hay cobertura, no que no se encontró.
+  api.searchAddress.mockResolvedValue({ resultados: [], fueraDeCobertura: true })
+  fireEvent.change(screen.getByLabelText('Dirección'), { target: { value: 'Carrera 7 # 72-41 Bogotá' } })
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Buscar' })))
+  expect(screen.getByText('Ninguna de nuestras sedes tiene cobertura en esa dirección.')).toBeInTheDocument()
 })
 
 // Falla si una dirección que atiende otra sede se guarda en esta, si sin platos no se lleva al cliente a esa sede con su
@@ -173,4 +178,31 @@ it('manda a la sede que atiende la dirección', async () => {
   expect(screen.getByText(/la atiende la sede/)).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Ir a la sede Duitama con mi pedido' }))
   expect(JSON.parse(sessionStorage.getItem('waiter:domicilio:demo')!)).toMatchObject({ venue: 'duitama', location: { lat: 6.2, lng: -75.57, direccion: 'Calle 15 # 16-55' } })
+})
+
+
+// Falla si una dirección encontrada fuera de la zona de esta sede (otra ciudad) se queda sin respuesta: si otra sede la
+// cubre debe transferir allá; si ninguna, decir que ninguna sede tiene cobertura y ofrecer recoger.
+it('una dirección de otra ciudad transfiere o dice que no hay cobertura', async () => {
+  const { DeliverySheet } = await import('../DeliverySheet')
+  const api = jest.requireMock('@/lib/services/api')
+  api.getVenueLocation.mockResolvedValue({ direccion: '', latitud: 5.83, longitud: -73.03 })
+  api.reverseAddress.mockResolvedValue('')
+  api.searchAddress.mockResolvedValue({ resultados: [{ texto: 'Cl 10 #43-12, El Poblado, Medellín', lat: 6.21, lng: -75.57 }], fueraDeCobertura: false })
+  api.quoteDelivery.mockResolvedValueOnce({ cobertura: false, motivo: 'fuera_de_zona', recoger: [{ slug: 'duitama', nombre: 'Duitama', direccion: '' }] })
+    .mockResolvedValue({ cobertura: true, sede: { slug: 'poblado', nombre: 'Poblado' }, distancia_km: .9, envio: 4000, minimo: 0, metodos: ['cash'] })
+  Object.defineProperty(navigator, 'geolocation', { configurable: true, value: undefined })
+  const duitama = { domicilio: { enabled: true, buscador: true, centro: { lat: 5.8267, lng: -73.0337 }, radio_km: 5 }, contexto: { mesa: null }, carta: { categorias: [] } } as unknown as Entry
+  useDinerStore.setState({ keys: { rest: 'demo', venue: 'duitama', token: null }, session: { id: 'visita', estado: 'abierta', mesa: null }, entry: duitama })
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', '') }
+  const { unmount } = render(<DeliverySheet onReady={jest.fn()} />)
+  fireEvent.change(screen.getByLabelText('Dirección'), { target: { value: 'Calle 10 # 43-12 Medellín' } })
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Buscar' })))
+  expect(await screen.findByText('Ninguna de nuestras sedes tiene cobertura en esa dirección. Puedes recogerlo en Duitama.')).toBeInTheDocument()
+  expect(screen.getByLabelText('Centro del mapa')).toHaveTextContent('sin punto')
+  unmount()
+  render(<DeliverySheet onReady={jest.fn()} />)
+  fireEvent.change(screen.getByLabelText('Dirección'), { target: { value: 'Calle 10 # 43-12 El Poblado' } })
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Buscar' })))
+  await waitFor(() => expect(JSON.parse(sessionStorage.getItem('waiter:domicilio:demo') ?? '{}')).toMatchObject({ venue: 'poblado', location: { lat: 6.21, lng: -75.57, direccion: 'Cl 10 #43-12, El Poblado, Medellín' } }))
 })
