@@ -363,9 +363,12 @@ def test_phone_migration_preserves_references(env):
     from loyalty.models import CustomerDinerIdentity, LoyaltyCard
     e = env
     key = uuid4()
-    rows = Customer.objects.bulk_create([
+    # `bulk_create` simula datos de antes de la normalización (no pasa por `save`); en MySQL no devuelve los ids, así
+    # que se leen después.
+    Customer.objects.bulk_create([
         Customer(organization=e['org'], name='Ana', phone='3001234567'),
         Customer(organization=e['org'], name='Ana menú', phone='+57 300 123 4567', diner_key=key)])
+    rows = [Customer.objects.get(organization=e['org'], name='Ana'), Customer.objects.get(organization=e['org'], name='Ana menú')]
     first = LoyaltyCard.objects.create(organization=e['org'], customer=rows[0], points=2)
     LoyaltyCard.objects.create(organization=e['org'], customer=rows[1], points=3)
     order = Order.objects.create(organization=e['org'], restaurant=e['venue'], shift=e['shift'], uuid=uuid4(), service='takeout', prefix='TA', tracking=4, number='TA-4', customer=rows[1])
