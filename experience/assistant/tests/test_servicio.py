@@ -224,3 +224,14 @@ def test_nombre_dentro_de_una_frase(carta, reloj):
     respuesta = handle('menu', local, 'gustavo', 'mi nombre es Gustavo y quiero una pizza margarita')
     assert respuesta['text'].startswith('¡Mucho gusto, Gustavo!')
     assert [c['name'] for c in respuesta['cards']] == ['Pizza margarita']
+
+
+# Falla si una forma común de pedir domicilio no se reconoce («¿me lo pueden traer?», «envíenmelo») o si una frase que
+# no es de domicilio («traer la carta», «llevar la cuenta») se toma como domicilio.
+@pytest.mark.parametrize('texto, es', [('¿me lo pueden traer?', True), ('hacen domicilios?', True), ('envíenmelo', True),
+                                       ('que me lo traigan', True), ('lo quiero a mi casa', True), ('¿hacen envíos?', True),
+                                       ('¿llevan a Laureles?', True), ('quiero una hamburguesa', False), ('traer la carta', False),
+                                       ('me gusta llevar la cuenta', False)])
+# Falla si una frase de domicilio no se reconoce o una que no lo es se toma como domicilio.
+def test_frases_de_domicilio(texto, es):
+    assert service.wants_delivery(texto) is es

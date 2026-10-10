@@ -62,3 +62,39 @@ it('no ofrece domicilio si la sede no lo tiene', async () => {
   await waitFor(() => expect(screen.getByRole('button', { name: 'Recoger en el local' })).toBeInTheDocument())
   expect(screen.queryByRole('button', { name: 'A domicilio' })).toBeNull()
 })
+
+// Falla si al pedir domicilio en el chat no aparecen los dos caminos (mi ubicación u otra persona), si la ubicación no
+// se cotiza, si no queda lista para el pedido o si fuera de zona no se ofrece recoger.
+it('comparte la ubicación desde el chat del mesero', async () => {
+  const { ChatDelivery } = await import('../ChatDelivery')
+  const { quoteDelivery, getVenueLocation } = jest.requireMock('@/lib/services/api')
+  jest.mocked(getVenueLocation).mockResolvedValue({ direccion: '', latitud: 6.2, longitud: -75.5 })
+  jest.mocked(quoteDelivery).mockResolvedValueOnce({ cobertura: true, sede: { slug: 'salon', nombre: 'El Poblado' }, distancia_km: 0.9, envio: 4000, minimo: 20000, metodos: ['cash'] })
+    .mockResolvedValueOnce({ cobertura: false, motivo: 'fuera_de_zona', recoger: [{ slug: 'salon', nombre: 'El Poblado', direccion: '' }] })
+  useDinerStore.setState({ entry: { domicilio: { enabled: true, buscador: false }, contexto: { mesa: null }, carta: { categorias: [] } } as unknown as Entry })
+  Object.defineProperty(navigator, 'geolocation', { configurable: true, value: { getCurrentPosition: (ok: (p: unknown) => void) => ok({ coords: { latitude: 6.21, longitude: -75.57 } }) } })
+  const salir = jest.fn()
+  render(<ChatDelivery pedido="/demo/salon/pedido" onLeave={salir} />)
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: '📍 Compartir mi ubicación' })))
+  expect(quoteDelivery).toHaveBeenCalledWith('demo', 6.21, -75.57)
+  expect(await screen.findByText(/Te lo lleva El Poblado/)).toBeInTheDocument()
+  expect(useDinerStore.getState().deliveryDraft).toEqual({ lat: 6.21, lng: -75.57, direccion: '' })
+  fireEvent.click(screen.getByRole('button', { name: 'Elegir mis platos →' }))
+  expect(salir).toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button', { name: 'Cambiar la ubicación' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Es para otra persona' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Marcar en el mapa' }))
+  fireEvent.change(screen.getByLabelText('Dirección'), { target: { value: 'Calle 80' } })
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Usar esta ubicación' })))
+  expect(await screen.findByText(/fuera de nuestra zona/)).toBeInTheDocument()
+  expect(screen.getByText('Puedes recogerlo en El Poblado.')).toBeInTheDocument()
+})
+
+// Falla si desde una mesa el chat ofrece compartir la ubicación (ese pedido no puede ser domicilio).
+it('en una mesa no ofrece domicilio', async () => {
+  const { ChatDelivery } = await import('../ChatDelivery')
+  useDinerStore.setState({ entry: { domicilio: { enabled: true, buscador: false }, contexto: { mesa: { numero: 3 } }, carta: { categorias: [] } } as unknown as Entry })
+  render(<ChatDelivery pedido="/demo/salon/pedido" onLeave={jest.fn()} />)
+  expect(screen.queryByRole('button', { name: '📍 Compartir mi ubicación' })).toBeNull()
+  expect(screen.getByText(/pidiendo desde una mesa/)).toBeInTheDocument()
+})

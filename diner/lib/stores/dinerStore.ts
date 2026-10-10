@@ -19,6 +19,8 @@ interface DinerState {
   favoritesBusy: boolean
   loadFavorites: () => Promise<void>
   favorite: (productId: number) => Promise<boolean>
+  // Plan D: la ubicación compartida en el chat del mesero; el domicilio del pedido la toma al confirmar.
+  deliveryDraft: { lat: number; lng: number; direccion: string } | null
   keys: Keys | null
   entry: Entry | null
   session: Session | null
@@ -77,7 +79,7 @@ export const useDinerStore = create<DinerState>((set, get) => {
   }
   return {
     favorites: [], favoritesBusy: false,
-    keys: null, entry: null, session: null, cart: null, order: null, bill: null, error: null, busy: false,
+    deliveryDraft: null, keys: null, entry: null, session: null, cart: null, order: null, bill: null, error: null, busy: false,
     template: DEFAULT_TEMPLATE, preview: null, draftToken: null, draftExpires: null,
     account: null, accountOrders: [], pendingAccount: null,
     payState: 'idle', payResult: null, demoSession: null,

@@ -12,7 +12,7 @@ USTED = {
     'delivery_quote': ['Con gusto, lo atendemos desde {sede}, a {distancia} km. El envío cuesta $ {envio}; puede pagar con {metodos}.'],
     'delivery_out': ['Lo sentimos, todavía no llegamos a esa ubicación. Con gusto podemos preparar su pedido para recoger.'],
     'delivery_off': ['Para confirmar si llegamos hasta allá y cuánto vale el domicilio, comuníquese con el restaurante{phone}.'],
-    'delivery_ask': ['Con gusto llevamos su pedido. Comparta su ubicación para revisar la cobertura y el envío.'],
+    'delivery_ask': ['¡Claro que sí, con gusto se lo llevamos! ¿A dónde? Comparta su ubicación o, si es para otra persona, márquela en el mapa.'],
     'delivery_consent': ['¿Nos autoriza a guardar su dirección para próximos pedidos? Política de datos: {policy}.'],
     'delivery_saved': ['¿Se lo enviamos a {label} ({address})?'],
     'delivery_link': ['Si es para otra persona, use este enlace: Ubica la entrega · {url}'],
@@ -67,7 +67,7 @@ TU = {
     'delivery_quote': ['Con gusto, te atendemos desde {sede}, a {distancia} km. El envío cuesta $ {envio}; puedes pagar con {metodos}.'],
     'delivery_out': ['Lo sentimos, todavía no llegamos a esa ubicación. Con gusto podemos preparar tu pedido para recoger.'],
     'delivery_off': ['Para confirmar si llegamos hasta allá y cuánto vale el domicilio, comunícate con el restaurante{phone}.'],
-    'delivery_ask': ['Con gusto llevamos tu pedido. Comparte tu ubicación para revisar la cobertura y el envío.'],
+    'delivery_ask': ['¡Claro que sí, con gusto te lo llevamos! ¿A dónde? Comparte tu ubicación o, si es para otra persona, márcala en el mapa.'],
     'delivery_consent': ['¿Nos autoriza a guardar tu dirección para próximos pedidos? Política de datos: {policy}.'],
     'delivery_saved': ['¿Te lo enviamos a {label} ({address})?'],
     'delivery_link': ['Si es para otra persona, usa este enlace: Ubica la entrega · {url}'],
@@ -118,10 +118,10 @@ TU = {
 # El voseo caleño: «mirá», «querés», «podés», «contame».
 VOS = {
     **TU,
+    'delivery_ask': ['¡Claro que sí, con gusto te lo llevamos! ¿A dónde? Compartí tu ubicación o, si es para otra persona, marcala en el mapa.'],
     'delivery_quote': ['Con gusto, te atendemos desde {sede}, a {distancia} km. El envío cuesta $ {envio}; podés pagar con {metodos}.'],
     'delivery_out': ['Lo sentimos, todavía no llegamos a esa ubicación. Con gusto podemos preparar tu pedido para recoger.'],
     'delivery_off': ['Para confirmar si llegamos hasta allá y cuánto vale el domicilio, comunícate con el restaurante{phone}.'],
-    'delivery_ask': ['Con gusto llevamos tu pedido. Compartí tu ubicación para revisar la cobertura y el envío.'],
     'delivery_consent': ['¿Nos autoriza a guardar tu dirección para próximos pedidos? Política de datos: {policy}.'],
     'delivery_saved': ['¿Te lo enviamos a {label} ({address})?'],
     'delivery_link': ['Si es para otra persona, usá este enlace: Ubica la entrega · {url}'],
@@ -174,7 +174,7 @@ TONES = {
                  '«¿qué le provoca?», «de una», «¡qué delicia!» y algún diminutivo cariñoso («ahorita», «una limonadita»). '
                  'Nunca «parce», «ome» ni «chimba».',
         'phrases': {**USTED,
-                    'delivery_ask': ['Con mucho gusto, pues. Comparta su ubicación y le cuento si llegamos y cuánto vale el envío.'],
+                    'delivery_ask': ['¡Claro que sí, con mucho gusto se lo llevamos, pues! ¿A dónde? Comparta su ubicación o, si es para otra persona, márquela en el mapa y le cuento cuánto vale el envío.'],
                     'ask_name': ['{greeting} Bienvenido, con mucho gusto lo atiendo hoy. ¿Con quién tengo el gusto, pues?'],
                     'nice_to_meet': ['¡Mucho gusto, {name}!'],
                     'welcome_named': ['{greeting} Le cuento, pues, que lo que más piden hoy es {featured}. ¿Qué le provoca?'],

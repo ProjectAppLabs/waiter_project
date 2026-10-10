@@ -20,10 +20,11 @@ const phoneOk = (v: string) => /^(\+?57)?3\d{9}$/.test(v.replace(/[\s-]/g, ''))
 // Plan D: «¿A dónde te lo llevamos?». La ubicación sale del GPS, de una dirección guardada, de la búsqueda o del pin
 // en el mapa; el texto y las indicaciones son para el domiciliario. Sin autorización no se guarda nada en el perfil.
 export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: DeliveryQuote | null, method: DeliveryMethod | null) => void; disabled?: boolean }) {
-  const { keys, session, account, preview, entry } = useDinerStore()
+  const { keys, session, account, preview, entry, deliveryDraft } = useDinerStore()
   const [center, setCenter] = useState<Point | null>(null)
-  const [point, setPoint] = useState<Point | null>(null)
-  const [address, setAddress] = useState(''), [details, setDetails] = useState('')
+  // Si ya compartió la ubicación en el chat, el pin y la dirección arrancan ahí.
+  const [point, setPoint] = useState<Point | null>(deliveryDraft ? { lat: deliveryDraft.lat, lng: deliveryDraft.lng } : null)
+  const [address, setAddress] = useState(deliveryDraft?.direccion ?? ''), [details, setDetails] = useState('')
   const [name, setName] = useState(account?.nombre ?? ''), [phone, setPhone] = useState(account?.celular ?? '')
   const [save, setSave] = useState(false), [consent, setConsent] = useState(false), [label, setLabel] = useState('Casa')
   const [saved, setSaved] = useState<SavedAddress[]>([]), [addressId, setAddressId] = useState<number | undefined>()

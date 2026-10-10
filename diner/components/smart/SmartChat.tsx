@@ -10,6 +10,7 @@ import { addChatSelection, getChat, newChat, sendChat, type ChatNotice, type Cha
 import { useDinerStore } from '@/lib/stores/dinerStore'
 import type { Entry } from '@/lib/types'
 import { ChatReply, ChatCarousel } from './ChatReply'
+import { ChatDelivery } from './ChatDelivery'
 import './smart-tokens.css'
 import './smart-chat.css'
 
@@ -203,8 +204,8 @@ export function SmartChat({ entry, rest, venue, token }: { entry: Entry; rest: s
             })}</ChatCarousel>)}
             {!!turn.opciones?.length && <div className="sm-chat-choices" aria-label="Respuestas sugeridas">{turn.opciones.map(option => <button type="button" key={option} disabled={busy || loading || resetting || !available || !!preview} onClick={() => void send(option)}>{option}</button>)}<button type="button" disabled={busy || loading || resetting || !available || !!preview} onClick={() => { setText(''); input.current?.focus() }}>Otro · Escribir mi respuesta</button></div>}
             {turn.accion === 'humano' && <Link className="sm-chat-help" onClick={close} href={pathFor(rest, venue, token, 'ayuda', undefined, previewDraft)}>Ver opciones de ayuda →</Link>}
-            {/* Plan D: el domicilio se pide desde Mi pedido, compartiendo la ubicación. */}
-            {turn.accion === 'domicilio' && <Link className="sm-chat-help" onClick={close} href={pathFor(rest, venue, token, 'pedido', undefined, previewDraft)}>Pedir a domicilio →</Link>}
+            {/* Plan D: la ubicación se comparte aquí mismo; queda lista para el domicilio del pedido. */}
+            {turn.accion === 'domicilio' && <ChatDelivery pedido={pathFor(rest, venue, token, 'pedido', undefined, previewDraft)} onLeave={close} />}
             </ChatReply>
           </div>
         </div>)}

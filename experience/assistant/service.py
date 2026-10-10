@@ -189,5 +189,16 @@ def declines_name(text):
     return bool(DECLINE.fullmatch(normalize(text).strip(' !.')))
 
 
+DELIVERY = re.compile(
+    r'\b(?:domicilios?|delivery|envios?|domi)\b'
+    r'|\b(?:envian|envias|enviais|mandan|mandas|llevan|llevas|traen|traes)\b'
+    r'|\b(?:me|nos|se) (?:lo|la|los|las) (?:pueden|puede|podrian|podria|puedes|podes|van a) (?:traer|llevar|enviar|mandar)'
+    r'|\b(?:traer|llevar|enviar|mandar)(?:me|nos|melo|mela|nosla|noslo)\b'
+    r'|\bque me (?:lo|la|los|las) (?:traigan|lleven|envien|manden)\b'
+    r'|\b(?:envien|traigan|lleven|manden)(?:melo|mela|melos|melas|noslo|nosla)\b'
+    r'|\ba (?:mi|la|su) (?:casa|apartamento|apto|oficina|trabajo)\b')
+
+
 def wants_delivery(text):
-    return bool(re.search(r'\b(domicilio|delivery|envio)\b|que me lo traigan', normalize(text)))
+    """«¿Me lo pueden traer?», «¿hacen domicilios?», «envíenmelo a mi casa»: todo cuenta como pedir domicilio."""
+    return bool(DELIVERY.search(normalize(text)))
