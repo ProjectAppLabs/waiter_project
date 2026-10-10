@@ -11,7 +11,7 @@ import { useDinerStore } from '@/lib/stores/dinerStore'
 import type { DeliveryMethod, DeliveryQuote, SavedAddress } from '@/lib/types'
 import type { Point } from './LocationPicker'
 import { usePinAddress } from './usePinAddress'
-import { insideZone, NO_COVERAGE, pickupText, zoneOf } from './zone'
+import { insideZone, uncoveredText, zoneOf } from './zone'
 import { AddressSearch, type FoundAddress } from './AddressSearch'
 
 // El mapa usa `window`: se carga solo en el navegador.
@@ -105,7 +105,7 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
     if (!keys) return
     setError('')
     void quoteDelivery(keys.rest, here.lat, here.lng).then((coverage) => {
-      if (!coverage.cobertura) { setQuote(null); setError(`${NO_COVERAGE}${pickupText(coverage.recoger)}`); return }
+      if (!coverage.cobertura) { setQuote(null); setError(uncoveredText(coverage)); return }
       setPoint(here)
       void routeIfOther(here, found.texto)
     }).catch(() => setError('No pudimos revisar la cobertura de esa dirección. Inténtalo de nuevo.'))
@@ -120,7 +120,7 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
       const coverage = await quoteDelivery(keys.rest, point.lat, point.lng)
       if (!coverage.cobertura) {
         setQuote(null)
-        setError(`${NO_COVERAGE}${pickupText(coverage.recoger)}`)
+        setError(uncoveredText(coverage))
         return
       }
       if (await routeIfOther(point, address.trim())) return

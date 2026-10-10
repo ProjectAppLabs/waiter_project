@@ -275,11 +275,12 @@ def test_session_invalid_payload(env, change):
     assert not SessionDelivery.objects.exists()
 
 
-# Falla si el menú no anuncia la disponibilidad de domicilios y del buscador.
+# Falla si el menú no anuncia la disponibilidad de domicilios y del buscador, o si no dice si la sede está abierta.
 def test_public_entry_delivery_capabilities(env, settings):
     e = env
     response = e['client'].get(f'/api/v1/{e["org"].slug}/{e["venue"].slug}/')
     assert response.status_code == 200, response.data
+    assert response.data['horario'] == {'configurado': False, 'abierto': True}
     assert response.data['domicilio'] == {'enabled': True, 'buscador': True, 'centro': {'lat': 4.65, 'lng': -74.05}, 'radio_km': 5.0}
     settings.NOMINATIM_ENABLED = False
     assert e['client'].get(f'/api/v1/{e["org"].slug}/{e["venue"].slug}/').data['domicilio']['buscador'] is False
@@ -589,3 +590,22 @@ def test_busqueda_en_las_zonas_de_todas_las_sedes(env, settings, monkeypatch):
     google.return_value = Mock(status_code=200, json=lambda: {'status': 'OK', 'results': [fila(10.39, -75.51, 'Cra 3 #36-1, Cartagena')]})
     lejos = e['client'].post(f'/api/v1/{e["org"].slug}/domicilio/buscar', {'texto': 'Carrera 3 # 36-1 Cartagena'}, format='json').data
     assert lejos == {'resultados': [], 'fuera_de_cobertura': True}
+
+
+# Falla si una sede cerrada (por el horario del dueño) recibe domicilios o pedidos, si la cotización no avisa cuándo abre
+# o si con otra sede abierta que cubre la dirección el domicilio no pasa a ella.
+def test_sede_cerrada_no_recibe_domicilios(env):
+    from tenancy.models import OpeningHours
+    e = env
+    OpeningHours.objects.create(restaurant=e['venue'], weekly={str(d): [] for d in range(7)})
+    cerrada = quote(e['org'], '4.651', '-74.05')
+    assert cerrada['cobertura'] is False and cerrada['motivo'] == 'cerrado' and 'está cerrada' in cerrada['mensaje']
+    assert put_delivery(e).status_code == 409
+    respuesta = confirm(e)
+    assert respuesta.status_code == 409 and respuesta.data['error'] == 'restaurant_closed'
+    abierta = restaurant(e['org'], 'abierta', latitude=4.652, longitude=-74.05)
+    DeliverySettings.objects.create(restaurant=abierta, enabled=True, radius_km=5)
+    assert quote(e['org'], '4.651', '-74.05')['sede']['slug'] == 'abierta'
+    # Sin horario, la sede atiende siempre (como antes).
+    OpeningHours.objects.filter(restaurant=e['venue']).delete()
+    assert put_delivery(e).status_code == 200 and confirm(e).status_code == 201

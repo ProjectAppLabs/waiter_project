@@ -470,6 +470,12 @@ async function main() {
       await page.addStyleTag({ content: 'html { scrollbar-width: none } ::-webkit-scrollbar { display: none }' })
       await page.evaluate(() => document.fonts.ready)
       await page.waitForTimeout(600)
+      // Fuera del horario de la sede no se puede seguir al pago: el diálogo del pedido se mide cuando esté abierta.
+      if ((spec.open === 'modalidad' || spec.open === 'domicilio') && await page.locator('.sm-closed-banner').count()) {
+        result.medidas[`${spec.name}-${width}`] = { nota: 'la sede está cerrada ahora: el diálogo del pedido no se abre' }
+        if (!visible) await context.close()
+        continue
+      }
       if (spec.open === 'modalidad' || spec.open === 'domicilio') {
         await page.locator('.sm-cart-submit .sm-primary').first().click()
         await page.locator('dialog.sm-fulfillment-dialog[open]').waitFor({ timeout: 15000 })

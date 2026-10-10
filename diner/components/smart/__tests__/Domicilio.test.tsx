@@ -206,3 +206,36 @@ it('una dirección de otra ciudad transfiere o dice que no hay cobertura', async
   await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Buscar' })))
   await waitFor(() => expect(JSON.parse(sessionStorage.getItem('waiter:domicilio:demo') ?? '{}')).toMatchObject({ venue: 'poblado', location: { lat: 6.21, lng: -75.57, direccion: 'Cl 10 #43-12, El Poblado, Medellín' } }))
 })
+
+// Falla si fuera del horario de la sede el menú no dice que está cerrada y cuándo abre, si deja seguir al pago, o si el
+// domicilio a una dirección cuya sede está cerrada no lo explica (dice «sin cobertura» en vez de cuándo abre).
+it('sede cerrada: avisa cuándo abre y no deja confirmar', async () => {
+  const { ClosedBanner } = await import('../ClosedBanner')
+  const { ChatDelivery } = await import('../ChatDelivery')
+  const { quoteDelivery, getVenueLocation, reverseAddress } = jest.requireMock('@/lib/services/api')
+  const carrito: Cart = { sesion: 'v', total: 9000, mio: 9000, por_comensal: [], lineas: [{ id: 1, producto_id: 7, nombre: 'Sopa', cantidad: 1, precio: 9000, subtotal: 9000, mio: true, comensal: 'a', nota: '' }] }
+  const entry = { horario: { configurado: true, abierto: false, abre: { cuando: 'hoy', hora: '6 p. m.', fecha: '2026-10-10' } },
+    domicilio: { enabled: true, buscador: false }, contexto: { mesa: null }, carta: { categorias: [] } } as unknown as Entry
+  useDinerStore.setState({ cart: carrito, entry })
+  const { unmount } = render(<><ClosedBanner entry={entry} /><SmartCart /></>)
+  expect(screen.getByText('Cerrado ahora · abre hoy a las 6 p. m.')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Continuar al pago' })).toBeDisabled()
+  unmount()
+  jest.mocked(getVenueLocation).mockResolvedValue({ direccion: '', latitud: 6.2, longitud: -75.5 })
+  jest.mocked(reverseAddress).mockResolvedValue('Calle 9')
+  jest.mocked(quoteDelivery).mockResolvedValue({ cobertura: false, motivo: 'cerrado', sede: { slug: 'salon', nombre: 'El Poblado' },
+    mensaje: 'La sede El Poblado está cerrada en este momento. Abre hoy a las 6 p. m.', recoger: [] })
+  Object.defineProperty(navigator, 'geolocation', { configurable: true, value: { getCurrentPosition: (ok: (p: unknown) => void) => ok({ coords: { latitude: 6.21, longitude: -75.57 } }) } })
+  render(<ChatDelivery pedido="/demo/salon/pedido" onLeave={jest.fn()} />)
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: '📍 Compartir mi ubicación' })))
+  expect(await screen.findByText('La sede El Poblado está cerrada en este momento. Abre hoy a las 6 p. m.')).toBeInTheDocument()
+  expect(screen.queryByText(/Ninguna de nuestras sedes/)).toBeNull()
+})
+
+// Falla si una sede abierta (o sin horario) muestra el aviso de cerrado.
+it('sede abierta o sin horario: sin aviso', async () => {
+  const { ClosedBanner } = await import('../ClosedBanner')
+  const { container } = render(<><ClosedBanner entry={{ horario: { configurado: true, abierto: true, cierra: '10 p. m.' } } as unknown as Entry} />
+    <ClosedBanner entry={{} as unknown as Entry} /></>)
+  expect(container).toBeEmptyDOMElement()
+})

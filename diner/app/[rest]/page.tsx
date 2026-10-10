@@ -34,14 +34,15 @@ export default function OrganizationLanding() {
   useEffect(() => { if (entry?.contexto.plantilla) applyGoogleFonts(entry.contexto.plantilla) }, [entry])
   // Plan D: con varias sedes, el cliente puede pedir que lo llevemos a la que le queda más cerca y le llega. La ubicación
   // se pide al tocar el botón (en contexto), no al cargar la página.
-  const [nearby, setNearby] = useState<'buscando' | 'fuera' | 'sin-permiso' | ''>('')
+  const [nearby, setNearby] = useState<'buscando' | 'fuera' | 'cerrada' | 'sin-permiso' | ''>('')
+  const [closedText, setClosedText] = useState('')
   function nearest() {
     if (typeof navigator === 'undefined' || !navigator.geolocation) { setNearby('sin-permiso'); return }
     setNearby('buscando')
     navigator.geolocation.getCurrentPosition(async (p) => {
       try {
         const q = await quoteDelivery(rest, p.coords.latitude, p.coords.longitude)
-        if (!q.cobertura) { setNearby('fuera'); return }
+        if (!q.cobertura) { setNearby(q.motivo === 'cerrado' ? 'cerrada' : 'fuera'); setClosedText(q.motivo === 'cerrado' ? q.mensaje : ''); return }
         carryTo(rest, q.sede.slug, { lat: p.coords.latitude, lng: p.coords.longitude, direccion: '' }, `Te mostramos la sede ${q.sede.nombre}, la más cercana a ti.`)
         setNearby('')
         router.push(`/${encodeURIComponent(rest)}/${encodeURIComponent(q.sede.slug)}/`)
@@ -62,6 +63,7 @@ export default function OrganizationLanding() {
           <p>Cada local tiene su carta y sus mesas; tu cuenta sirve en todos.</p>
           <button type="button" className="sm-secondary" disabled={nearby === 'buscando'} onClick={nearest}>{nearby === 'buscando' ? 'Buscando la sede más cercana…' : '📍 Ver la sede más cercana'}</button>
           {nearby === 'sin-permiso' && <p role="status">No pudimos ver tu ubicación. Escoge la sede en la lista.</p>}
+          {nearby === 'cerrada' && <p role="status">{closedText}</p>}
           {nearby === 'fuera' && <p role="status">Ninguna sede lleva domicilios hasta tu ubicación. Puedes escoger una para recoger o comer allá.</p>}
         </header>
         <nav aria-label="Restaurantes">

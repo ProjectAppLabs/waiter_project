@@ -357,3 +357,15 @@ class SupportToken(models.Model):
     agent = models.ForeignKey(PlatformUser, on_delete=models.CASCADE)
     token_hash = ExactCharField(max_length=64, unique=True)
     expires = models.DateTimeField()
+
+
+class OpeningHours(models.Model):
+    """Horario de atención de una sede (semanal y fechas especiales), en la zona horaria de la organización.
+
+    Mismo formato que el horario de reservas: `weekly` {"0".."6": [[desde, hasta], …]} en horas con medias horas y
+    `overrides` [{date, ranges, note}]. Sin fila, la sede no tiene horario y se trata como siempre abierta.
+    """
+    restaurant = models.OneToOneField(Restaurant, on_delete=models.CASCADE, related_name='opening_hours')
+    weekly = models.JSONField(default=dict)
+    overrides = models.JSONField(default=list)
+    updated_at = models.DateTimeField(auto_now=True)

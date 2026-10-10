@@ -15,6 +15,14 @@ def confirm(request, session_id):
     origin = request.headers.get('Origin')
     require(not origin or origin.rstrip('/') == settings.DINER_PUBLIC_URL, 'El origen de la petición no está permitido.', 'invalid_origin', 403)
     session = get_object_or_404(TableSession, id=session_id, state__in=TableSession.OPEN_STATES)
+    # Plan D: fuera del horario de atención de la sede no se confirman pedidos desde el menú (el POS sigue atendiendo).
+    from tenancy.hours import closed_message, status
+    from tenancy.models import Restaurant
+    local = Restaurant.objects.select_related('organization').filter(organization__slug=session.restaurant_slug, slug=session.venue_slug).first()
+    if local:
+        info = status(local)
+        if not info['abierto']:
+            return Response({'error': 'restaurant_closed', 'detail': closed_message(local.name, info), 'horario': info}, status=409)
     # Quien confirma es quien puede llevar el descuento de primera compra (sobre SUS líneas).
     diner = diner_for(request, session)
     takeaway = request.data.get('para_llevar') if isinstance(request.data, dict) else None

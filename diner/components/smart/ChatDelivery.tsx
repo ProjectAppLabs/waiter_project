@@ -115,8 +115,10 @@ export function ChatDelivery({ pedido, onLeave, onSend }: { pedido: string; onLe
         </>}
         <button type="button" className="sm-text-button" onClick={() => { setMode('choose'); setCoverage(null) }}>Cambiar la ubicación</button>
       </div> : <div className="sm-delivery-quote" role="status">
-        <p>{NO_COVERAGE}</p>
-        {coverage.recoger.length > 0 && <p>Puedes recogerlo en {coverage.recoger.map((r) => r.nombre).join(' o ')}.</p>}
+        {coverage.motivo === 'cerrado' ? <p>{coverage.mensaje}</p> : <>
+          <p>{NO_COVERAGE}</p>
+          {coverage.recoger.length > 0 && <p>Puedes recogerlo en {coverage.recoger.map((r) => r.nombre).join(' o ')}.</p>}
+        </>}
         <button type="button" className="sm-text-button" onClick={() => { setMode('choose'); setCoverage(null) }}>Probar con otra ubicación</button>
       </div>)}
       {error && <p className="sm-error" role="alert">{error}</p>}

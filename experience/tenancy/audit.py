@@ -55,6 +55,7 @@ SUPPORT_ENTITIES = {
     "billing.salesdocument": "Documento de venta",
 }
 ENTITIES['assistant.assistantstanding'] = 'Aviso del asistente'
+ENTITIES['tenancy.openinghours'] = 'Horario de atención'
 ENTITIES.update(SUPPORT_ENTITIES)
 VERBS = {"created": "Creación", "updated": "Cambio", "deleted": "Eliminación"}
 ACTIONS = {

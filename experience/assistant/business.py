@@ -8,9 +8,14 @@ from .tones import DEFAULT, phrases
 
 
 def data_for(restaurant):
-    schedule = ReservationSchedule.objects.filter(restaurant=restaurant).first()
+    # Plan D: el horario de atención manda; sin él, el de reservas (como antes).
+    from tenancy.hours import hours_of
+    schedule = hours_of(restaurant)
+    if schedule is None:
+        row = ReservationSchedule.objects.filter(restaurant=restaurant).first()
+        schedule = {'weekly': row.weekly, 'overrides': row.overrides} if row else None
     return {'name': restaurant.name, 'street': restaurant.street, 'city': restaurant.city, 'phone': restaurant.phone,
-            'weekly': schedule.weekly if schedule else {}, 'overrides': schedule.overrides if schedule else [],
+            'weekly': schedule['weekly'] if schedule else {}, 'overrides': schedule['overrides'] if schedule else [],
             'greeting': restaurant.organization.greeting, 'waiter_name': restaurant.organization.waiter_name}
 
 
@@ -30,9 +35,15 @@ def answer(text, data, restaurant, participant, tone=DEFAULT):
             minutes = int(float(value) * 60) % (24 * 60)
             h, m = divmod(minutes, 60)
             return f"{h % 12 or 12}{f':{m:02d}' if m else ''} {'a. m.' if h < 12 else 'p. m.'}"
+        # Si en este momento está cerrada, se dice cuándo abre (horario de atención del dueño).
+        from tenancy.hours import status
+        info = status(restaurant)
+        later = ''
+        if info['configurado'] and not info['abierto'] and info.get('abre'):
+            later = f" En este momento estamos cerrados; abrimos {info['abre']['cuando']} a las {info['abre']['hora']}."
         if periods and all(isinstance(p, list) and len(p) == 2 for p in periods):
-            return say('hours', hours=', '.join(f'{hour(a)} a {hour(b)}' for a, b in periods))
-        return say('hours_none')
+            return say('hours', hours=', '.join(f'{hour(a)} a {hour(b)}' for a, b in periods)) + later
+        return (say('hours_none') + later) if not later else later.strip()
     if 'domicilio' in text or 'delivery' in text:
         return say('delivery', phone=f" al {data['phone']}" if data['phone'] else '')
     if 'mi pedido' in text:

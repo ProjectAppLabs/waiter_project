@@ -283,3 +283,14 @@ def test_preferencias_negadas_excluyen_platos(entorno, mensaje):
     respuesta = handle('menu', entorno[1], 'ana', mensaje)
     assert [c['product_id'] for c in respuesta['cards']] == [entorno[5].pk]
     assert respuesta['source'] == 'shortcut'
+
+
+# Falla si el asistente responde el horario con el de reservas cuando el dueño definió el de atención, o si estando la
+# sede cerrada no dice cuándo abre.
+def test_horario_de_atencion_y_cerrado(entorno, reloj):
+    from tenancy.models import OpeningHours
+    local = entorno[1]
+    OpeningHours.objects.create(restaurant=local, weekly={str(d): [] for d in range(7)},
+        overrides=[{'date': (timezone.localdate() + timedelta(days=1)).isoformat(), 'ranges': [[11, 15]], 'note': ''}])
+    texto = handle('menu', local, 'ana', 'horario')['text']
+    assert 'cerrados' in texto and 'mañana' in texto and '11 a. m.' in texto

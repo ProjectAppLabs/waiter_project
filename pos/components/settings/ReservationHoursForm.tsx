@@ -1,7 +1,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 
 import { Icon } from '@/components/kit/Icon'
 import { Toggle } from '@/components/kit/Toggle'
@@ -18,11 +18,24 @@ import { cn } from '@/lib/utils'
 const longDate = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 const rangesText = (ranges: Range[]) => ranges.map(([a, b]) => `${hourLabel(a)}–${hourLabel(b)}`).join(' · ')
 
+// Los textos del editor: el de reservas («reservations.hours») o el de atención del local («openingHours»).
+const Texts = createContext('reservations.hours')
+const useTexts = () => useTranslations(useContext(Texts))
+
 // Horario de reservas (Configuración → Horario de reservas), con el modelo de cal.com: un horario semanal con varias
 // franjas por día y «copiar a otros días», más fechas especiales que mandan sobre su día de la semana. El servidor
 // valida lo mismo y es quien decide las horas que ofrece el asistente de reservas.
 export function ReservationHoursForm({ configId }: { configId: number }) {
-  const t = useTranslations('reservations.hours')
+  return <ScheduleForm key={configId} texts="reservations.hours" rules load={() => getSchedule(configId)} save={(s) => saveSchedule(configId, s)} />
+}
+
+// El editor de un horario semanal con fechas especiales. `rules` muestra la antelación (solo reservas); `extra` va al
+// pie, junto a guardar (por ejemplo, «quitar el horario»).
+// `pending`: lo cargado es una propuesta que aún no está guardada (se puede guardar sin cambiarla).
+export function ScheduleForm({ texts, load, save: persist, rules = false, extra, pending = false }: {
+  texts: string; load: () => Promise<Schedule>; save: (s: Schedule) => Promise<Schedule>; rules?: boolean; extra?: ReactNode; pending?: boolean
+}) {
+  const t = useTranslations(texts)
   const [saved, setSaved] = useState<Schedule | null>(null)
   const [draft, setDraft] = useState<Schedule | null>(null)
   const [failed, setFailed] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState('')
@@ -31,22 +44,25 @@ export function ReservationHoursForm({ configId }: { configId: number }) {
   const [attempt, setAttempt] = useState(0)
   useEffect(() => {
     let alive = true
-    getSchedule(configId).then((s) => { if (alive) { setSaved(s); setDraft(s); setFailed(false) } }).catch(() => { if (alive) setFailed(true) })
+    load().then((s) => { if (alive) { setSaved(s); setDraft(s); setFailed(false) } }).catch(() => { if (alive) setFailed(true) })
     return () => { alive = false }
-  }, [configId, attempt])
+    // Se carga al montar y al reintentar; quien lo usa cambia de horario con `key`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attempt])
 
   if (failed) return <p role="alert" className="text-[15px] text-danger-ink flex items-center gap-3">{t('loadFailed')}<Button onClick={() => setAttempt((n) => n + 1)}>{t('retry')}</Button></p>
   if (!draft || !saved) return null
 
-  const problem = scheduleError(draft), dirty = !sameSchedule(draft, saved)
+  const problem = scheduleError(draft), dirty = pending || !sameSchedule(draft, saved)
   async function save() {
     if (!draft || problem) return
     setBusy(true); setError('')
-    try { const s = await saveSchedule(configId, draft); setSaved(s); setDraft(s); toast({ title: t('saved') }) }
+    try { const s = await persist(draft); setSaved(s); setDraft(s); toast({ title: t('saved') }) }
     catch (e) { setError(e instanceof Error ? e.message : String(e)) } finally { setBusy(false) }
   }
 
   return (
+    <Texts.Provider value={texts}>
     <div className="flex flex-col gap-6 max-w-[1080px]">
       <p className="text-[15px] text-soft max-w-[70ch]">{t('intro')}</p>
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px] items-start">
@@ -81,7 +97,7 @@ export function ReservationHoursForm({ configId }: { configId: number }) {
 
       <Overrides schedule={draft} onChange={setDraft} />
 
-      <section aria-label={t('rules')} className="rounded-lg border border-border">
+      {rules && <section aria-label={t('rules')} className="rounded-lg border border-border">
         <header className="px-4 py-3 border-b border-border">
           <h3 className="text-[15px] font-semibold text-ink">{t('rules')}</h3>
           <p className="text-[14px] text-soft">{t('rulesIntro')}</p>
@@ -102,17 +118,19 @@ export function ReservationHoursForm({ configId }: { configId: number }) {
             <span className="font-normal text-dim">{t('maxDaysHint')}</span>
           </label>
         </div>
-      </section>
+      </section>}
 
       <footer className="sticky bottom-0 -mx-5 -mb-5 px-5 py-4 bg-surface border-t border-border flex flex-wrap items-center gap-3">
         <span role="status" className="text-[14px] text-soft">{problem ? t('fixFirst') : dirty ? t('unsaved') : ''}</span>
         {error && <span role="alert" className="text-[14px] text-danger-ink">{error}</span>}
-        <span className="ml-auto flex gap-3">
+        <span className="ml-auto flex flex-wrap gap-3">
+          {extra}
           <Button disabled={!dirty || busy} onClick={() => { setDraft(saved); setCopying(null); setError('') }}>{t('discard')}</Button>
           <Button variant="primary" disabled={!dirty || busy || !!problem} onClick={() => void save()}>{busy ? t('saving') : t('save')}</Button>
         </span>
       </footer>
     </div>
+    </Texts.Provider>
   )
 }
 
@@ -128,7 +146,7 @@ function IconButton({ icon, label, onClick, disabled, pressed }: { icon: 'plus' 
 // Franjas de un día: inicio – fin – quitar. Cambiar una hora nunca reordena ni corrige por su cuenta: si queda mal,
 // el día lo dice y no deja guardar.
 function RangesEditor({ ranges, dayName, onChange }: { ranges: Range[]; dayName: string; onChange: (ranges: Range[]) => void }) {
-  const t = useTranslations('reservations.hours')
+  const t = useTexts()
   const set = (i: number, side: 0 | 1, value: number) => onChange(ranges.map((r, j) => (j === i ? (side === 0 ? [value, r[1]] : [r[0], value]) : r)))
   const select = 'h-11 rounded-md border border-border bg-surface px-2 text-[15px] text-ink tabular-nums'
   return (
@@ -150,7 +168,7 @@ function RangesEditor({ ranges, dayName, onChange }: { ranges: Range[]; dayName:
 }
 
 function CopyPanel({ from, onApply, onCancel }: { from: DayKey; onApply: (to: DayKey[]) => void; onCancel: () => void }) {
-  const t = useTranslations('reservations.hours')
+  const t = useTexts()
   const others = DAY_KEYS.filter((d) => d !== from)
   const [to, setTo] = useState<DayKey[]>([])
   const chip = (on: boolean) => cn('h-10 px-3 rounded-full border text-[14px] font-medium', on ? 'bg-primary border-primary text-primary-ink' : 'border-border text-soft hover:text-ink')
@@ -172,7 +190,7 @@ function CopyPanel({ from, onApply, onCancel }: { from: DayKey; onApply: (to: Da
 // La semana de un vistazo, como una agenda: una columna por día y un bloque por franja. Es solo lectura; sirve para
 // ver de golpe un día olvidado o una franja que quedó corta.
 function WeekPreview({ schedule }: { schedule: Schedule }) {
-  const t = useTranslations('reservations.hours')
+  const t = useTexts()
   const [first, last] = weekSpan(schedule), total = last - first
   const marks = Array.from({ length: Math.floor(total / 2) + 1 }, (_, i) => first + i * 2).filter((h) => h <= last)
   return (
@@ -206,7 +224,7 @@ function WeekPreview({ schedule }: { schedule: Schedule }) {
 const EMPTY: DateOverride = { date: '', ranges: [], note: '' }
 
 function Overrides({ schedule, onChange }: { schedule: Schedule; onChange: (s: Schedule) => void }) {
-  const t = useTranslations('reservations.hours')
+  const t = useTexts()
   const [form, setForm] = useState<DateOverride | null>(null)
   const [editing, setEditing] = useState<string | null>(null) // fecha original de la que se está editando
   const now = new Date(), today = isoDate(now.getFullYear(), now.getMonth(), now.getDate())

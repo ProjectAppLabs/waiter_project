@@ -106,6 +106,38 @@ class RestaurantsView(ContractView):
         return Response({'restaurant': restaurant_dict(restaurant)})
 
 
+class HoursView(ContractView):
+    """Plan D: horario de atención de una sede (lo define el dueño). Sin horario, la sede se trata como siempre abierta."""
+    def restaurant(self, request, pk):
+        account = pos_session(request).account
+        require(account.role in ('owner', 'admin'))
+        restaurant = account.organization.restaurants.filter(pk=pk).first() if account.role == 'owner' else restaurants_for(account).filter(pk=pk).first()
+        require(restaurant, 'No encontramos este restaurante.', 'not_found', 404)
+        return account, restaurant
+
+    def get(self, request, pk):
+        from tenancy.hours import hours_of, status
+        _, restaurant = self.restaurant(request, pk)
+        return Response({'hours': hours_of(restaurant), 'status': status(restaurant)})
+
+    def put(self, request, pk):
+        from tenancy.hours import clean_hours, status
+        from tenancy.models import OpeningHours, Organization
+        account, restaurant = self.restaurant(request, pk)
+        data = clean_hours(request.data)
+        with transaction.atomic():
+            Organization.objects.select_for_update().get(pk=account.organization_id)
+            OpeningHours.objects.update_or_create(restaurant=restaurant, defaults=data)
+        return Response({'hours': data, 'status': status(restaurant)})
+
+    def delete(self, request, pk):
+        from tenancy.hours import status
+        from tenancy.models import OpeningHours
+        _, restaurant = self.restaurant(request, pk)
+        OpeningHours.objects.filter(restaurant=restaurant).delete()
+        return Response({'hours': None, 'status': status(restaurant)})
+
+
 class TeamView(ContractView):
     action = None
 

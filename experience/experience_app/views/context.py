@@ -48,4 +48,7 @@ def entry(request, restaurant, venue, token=None):
     if own and local.latitude is not None and local.longitude is not None:
         # Plan D: el mapa del comensal solo se mueve dentro de la zona de entrega de esta sede.
         delivery.update(centro={'lat': float(local.latitude), 'lng': float(local.longitude)}, radio_km=float(own.radius_km))
-    return Response({'domicilio': delivery, 'modulos': modulos, 'contexto': _context(tenant), 'carta': menu, 'banners': for_menu(tenant, menu)})
+    # Plan D: si la sede está abierta ahora y cuándo abre o cierra (horario de atención que define el dueño).
+    from tenancy.hours import status as opening
+    horario = opening(local) if local else {'configurado': False, 'abierto': True}
+    return Response({'horario': horario, 'domicilio': delivery, 'modulos': modulos, 'contexto': _context(tenant), 'carta': menu, 'banners': for_menu(tenant, menu)})

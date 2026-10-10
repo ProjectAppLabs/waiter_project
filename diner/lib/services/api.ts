@@ -190,6 +190,8 @@ export async function forgetAssistantMemory(rest: string, venue: string): Promis
 const org = (rest: string) => `/api/v1/${encodeURIComponent(rest)}`
 export type Coverage = { cobertura: true; sede: { slug: string; nombre: string }; distancia_km: number; envio: number; minimo: number; metodos: DeliveryMethod[]; nota?: string }
   | { cobertura: false; motivo: 'fuera_de_zona' | 'sin_domicilio'; recoger: { slug: string; nombre: string; direccion: string }[] }
+  // La sede que llega a la dirección está cerrada ahora (y ninguna abierta llega): `mensaje` dice cuándo abre.
+  | { cobertura: false; motivo: 'cerrado'; sede: { slug: string; nombre: string }; mensaje: string; recoger: { slug: string; nombre: string; direccion: string }[] }
 export async function quoteDelivery(rest: string, lat: number, lng: number): Promise<Coverage> {
   return (await http.post(`${org(rest)}/domicilio/cotizar`, { lat, lng })).data
 }

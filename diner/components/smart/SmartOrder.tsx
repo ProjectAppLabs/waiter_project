@@ -11,6 +11,7 @@ import { useDinerStore } from '@/lib/stores/dinerStore'
 import type { Cart, CartLine, DeliveryMethod, DeliveryQuote, Dish, OrderState, OrderStatus, PayMethod, PayScope } from '@/lib/types'
 import { Plantilla } from '@/components/plantillas/Renderizador'
 import { usePlantilla } from '@/components/plantillas/usePlantilla'
+import { closedText } from './ClosedBanner'
 import type { TemplateData } from '@/lib/domain/plantillas'
 import {
   Empty,
@@ -61,10 +62,12 @@ export function SmartCart({ actionTarget }: { actionTarget?: HTMLElement | null 
       setSending(false)
     }
   }
+  // Fuera del horario de la sede no se confirma (el servidor también lo impide); el aviso de arriba dice cuándo abre.
+  const closed = !!closedText(entry)
   const confirmAction = (
     <div className="sm-cart-submit"><button
               className="sm-primary"
-              disabled={busy || sending}
+              disabled={busy || sending || closed}
               onClick={() => {setAllergens(account?.alergenos || '');modeDialog.current?.showModal()}}
             >
               {sending ? 'Preparando pago…' : 'Continuar al pago'}
@@ -94,7 +97,7 @@ export function SmartCart({ actionTarget }: { actionTarget?: HTMLElement | null 
           : <div className="sm-home-options"><button aria-pressed={!takeaway} disabled={sending} className="sm-fulfillment-option" onClick={()=>setTakeaway(false)}><Icon name="cutlery"/><span>Comer aquí</span></button><button aria-pressed={takeaway} disabled={sending} className="sm-fulfillment-option" onClick={()=>setTakeaway(true)}><Icon name="bag"/><span>Para llevar</span></button></div>}
         {delivery && <DeliverySheet onReady={onReady} disabled={sending} />}
 <div className="sm-order-details"><h3>¿Alguna nota o alergia?</h3><label className="sm-field"><span>Notas para tus platos (opcional)</span><textarea value={notes} onChange={e=>setNotes(e.target.value)} maxLength={500} rows={2} disabled={sending} placeholder="Por ejemplo: la salsa aparte"/></label><label className="sm-field"><span>Alergias y alérgenos (opcional)</span><textarea value={allergens} onChange={e=>setAllergens(e.target.value)} maxLength={500} rows={2} disabled={sending} placeholder="Indica lo que debe saber la cocina"/></label><p className="sm-note">Se enviarán con tus platos. Confirma con el personal que puedan atender tu alergia.</p></div>
-        <button className="sm-primary" disabled={busy||sending||(delivery&&(!ready.quote||!ready.method))} onClick={()=>void send()}>{sending?'Preparando…':delivery&&ready.method&&ready.method!=='online'?'Confirmar domicilio':'Continuar al pago'}<Icon name="arrow"/></button>
+        <button className="sm-primary" disabled={busy||sending||closed||(delivery&&(!ready.quote||!ready.method))} onClick={()=>void send()}>{sending?'Preparando…':delivery&&ready.method&&ready.method!=='online'?'Confirmar domicilio':'Continuar al pago'}<Icon name="arrow"/></button>
       </dialog>
       {cart.lineas.length ? (
         <div className="sm-checkout-layout">

@@ -17,4 +17,7 @@ export function insideZone(entry: Entry | null | undefined, p: { lat: number; ln
 }
 
 export const NO_COVERAGE = 'Ninguna de nuestras sedes tiene cobertura en esa dirección.'
+// Por qué no hay domicilio a esa dirección: la sede que llega está cerrada (y cuándo abre) o ninguna llega.
+export const uncoveredText = (c: { motivo: string; mensaje?: string; recoger: { nombre: string }[] }) =>
+  (c.motivo === 'cerrado' && c.mensaje ? c.mensaje : `${NO_COVERAGE}${pickupText(c.recoger)}`)
 export const pickupText = (recoger: { nombre: string }[]) => (recoger.length ? ` Puedes recogerlo en ${recoger.map((r) => r.nombre).join(' o ')}.` : '')

@@ -340,3 +340,19 @@ es único por organización. El inventario transversal incorpora GET/PUT de ajus
   (`VenueMoveOverlay`) vive en los proveedores de la app con los colores de la marca, así sigue en pantalla mientras la
   sede nueva carga (antes se veía «Preparando tu mesa…» en blanco). Probado en el navegador desde Duitama: Medellín
   transfiere a Poblado; Bogotá dice que no hay cobertura.
+- **Horario de atención por sede (2026-10-10):** el dueño define en la consola (Organización → Horario de atención) las
+  franjas de cada día, hasta cuatro, en medias horas, y fechas especiales (festivos o cierres). Usa el mismo editor del
+  horario de reservas (`ScheduleForm`), sin las reglas de antelación. Modelo `tenancy.OpeningHours` (migración 0014), API
+  `restaurants/<id>/hours` (GET, PUT y DELETE, solo dueño o administrador, con historial); el cálculo vive en
+  `tenancy/hours.py` (`status`: abierta, a qué hora cierra o cuándo abre, buscando hasta 8 días adelante).
+  **Una sede sin horario atiende siempre (como antes).** Fuera de horario:
+  - el menú muestra arriba, fijo, «Cerrado ahora · abre mañana a las 11 a. m.», y la carta se puede mirar;
+  - «Continuar al pago» queda deshabilitado y el servidor responde 409 `restaurant_closed` al confirmar;
+  - la cotización de domicilio solo usa sedes abiertas: si la única que llega está cerrada, responde `motivo: 'cerrado'`
+    con el mensaje de cuándo abre;
+  - el asistente responde el horario de atención (antes, el de reservas) y añade «En este momento estamos cerrados;
+    abrimos …».
+
+  Con la sede cerrada, el verificador de diseño anota que el diálogo del pedido no se abre y no lo marca como error.
+  Probado en el navegador con Duitama cerrada (aviso, contraste y verificador sin problemas); después se le quitó el
+  horario. Queda para después: horario de domicilios distinto del local y un botón «pausar domicilios».
