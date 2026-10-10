@@ -241,6 +241,211 @@ Cuatro tarjetas numeradas, como en projectapp.co:
 
 ---
 
+## 3B. Todo el producto, módulo por módulo (la modularización)
+
+Este es el inventario completo de lo que hace Waiter hoy, sacado del código (2026-10-10). Sirve de fuente para los
+textos de la landing, la sección de módulos, la calculadora de precios y las preguntas frecuentes.
+
+**Cómo leer las etiquetas:**
+- **[Listo]:** funciona hoy y se puede mostrar y prometer.
+- **[Demo]:** funciona, pero simulado o en sandbox. Se puede mostrar en video si se aclara, sin prometerlo como
+  producción.
+- **[Pendiente]:** falta una integración externa. En la landing va como «Próximamente» o no va.
+
+**Cómo funcionan los módulos** (`experience/tenancy/modules.py`):
+- El **Núcleo** es obligatorio. Los demás se activan por cliente y también por sede, desde la consola de ProjectApp.
+- Un módulo apagado desaparece del menú. Si alguien entra por la dirección, ve una explicación en vez de un error.
+- Algunos dependen de otros:
+  - Fidelización y Asistente en el menú necesitan Menú del comensal.
+  - Pagos en línea necesita Menú del comensal o Asistente de WhatsApp.
+  - Asistente de WhatsApp necesita Pagos en línea.
+- El plan «Completo» incluye todos los módulos menos Asistente de WhatsApp (se contrata con su propio plan) y Datáfono
+  (todavía no está disponible).
+
+**Quién usa qué:**
+
+| Quién | Dónde |
+|---|---|
+| **Comensal** | El menú en su celular (NFC o QR) y WhatsApp |
+| **Personal** (mesero, cajero, cocina, encargado) | El POS en tablet o computador |
+| **Dueño** | La consola de su organización |
+| **ProjectApp** | Su propia consola (clientes, cobros, precios) |
+
+### Núcleo (obligatorio): el corazón del restaurante
+
+- **Personal:**
+  - [Listo] **Inicio:** ventas de la semana y del mes, alertas, horas de más venta, platos más y menos pedidos, y
+    pronóstico del mes siguiente. El mesero no ve cifras.
+  - [Listo] **Pedidos:** asistente de pedido (mesa o cliente, menú y resumen), rondas, para llevar y domicilio.
+  - [Listo] **Caja:** abrir contando el efectivo; cobrar en efectivo (con montos rápidos) o con datáfono manual;
+    cerrar con arqueo (esperado frente a contado).
+  - [Demo] **QR de pago en el POS:** se dibuja el código y se confirma a mano, sin verificar con el banco.
+  - [Listo] **Modo emergencia sin internet:** pedidos con número provisional, cobro en efectivo o datáfono, y todo se
+    sincroniza al volver la red.
+  - [Listo] **Historial y devoluciones**, con permiso por rol.
+  - [Listo] **Impresión térmica:** comandas, recibo de venta y recibo de domicilio.
+  - [Listo] **Notificaciones** de cocina, inventario, caja, sistema y accesos.
+  - [Listo] **Modo claro y oscuro.**
+- **Dueño** (su consola, con todas sus sedes):
+  - [Listo] **Equipo:** invitaciones por correo, roles (dueño, encargado, cajero, mesero) con permisos editables, y
+    reloj de asistencia.
+  - [Listo] **Catálogo:** platos, ingredientes, categorías, combos, galería de fotos, impuestos por producto y
+    precios por sede.
+  - [Listo] **Empresa e impuestos:** datos legales y régimen (INC 8 %, o IVA 19 % para franquicias).
+  - [Listo] **Reportes:** Resumen, Ventas (por periodo o por turno), Cuadres de caja (con tolerancia), Devoluciones,
+    Horas y propinas (base para la nómina), Consumo (lo que lleva del mes con ProjectApp) y Retorno de inversión.
+  - [Listo] **Exportes** de ventas, pagos, inventario, clientes, equipo e historial.
+  - [Listo] **Historial de cambios:** quién cambió qué, con el antes y el después, incluido lo que hizo ProjectApp.
+  - [Listo] **Horario de atención por sede.** Fuera de él, el menú dice «cerrado» y cuándo abre, y los domicilios van
+    a otra sede abierta. Sin caja abierta, el menú dice «Por ahora no tenemos abierto».
+  - [Listo] **Soporte de ProjectApp con permiso:** el dueño da, aprueba y quita el acceso temporal.
+  - [Listo] **Seguridad de los pagos:** código de un solo uso al correo y llaves que nunca se muestran.
+  - [Pendiente] **Doble factor para dueños** (hoy solo lo tiene el personal de ProjectApp).
+
+### Salón: las mesas en vivo
+
+- [Listo] Plano real por pisos con los estados de cada mesa: disponible, ocupada, reservada, en progreso y lista para
+  servir.
+- [Listo] Editor de planos con asistente: paredes, decoración, imagen de fondo y varios pisos. Se pueden ver dos pisos
+  lado a lado.
+- [Listo] Zonas, con meseros asignados por zona (habitual o por turno).
+- [Listo] Cambiar de mesa, ver el avance de cada plato y confirmar la entrega.
+- [Listo] **Comensal:** «Llamar al mesero» y «Pedir la cuenta» desde la mesa. La mesa se identifica por su NFC o QR.
+
+### Cocina: comandas sin papel
+
+- [Listo] Pantalla de cocina en vivo, por estaciones (cada plato va a la estación de su categoría).
+- [Listo] Comandas con cronómetro, «Listo» por plato o por comanda, y aviso al salón.
+- [Listo] Impresión térmica de la comanda.
+- [Listo] **Dueño:** política «cobrar antes de enviar a cocina», por restaurante y por rol.
+
+### Inventario: saber qué hay y cuánto deja cada plato
+
+- [Listo] Existencias por sede, con mínimos, máximos y alertas.
+- [Listo] Movimientos: entradas, mermas, conteos, ventas, ajustes y devoluciones.
+- [Listo] Recetas: cada venta descuenta los ingredientes.
+- [Listo] Solicitudes de compra y su seguimiento.
+- [Listo] Platos agotados por sede.
+- [Listo] **Rentabilidad:** costo por receta, margen, food cost y matriz de ingeniería de menú (popularidad × margen).
+
+### Facturación electrónica
+
+- [Listo] Ventas por facturar, documentos emitidos (factura, documento POS y nota crédito), resoluciones de numeración,
+  contingencia, impresión y envío por correo.
+- [Demo] El proveedor fiscal es simulado: genera CUFE y XML de prueba.
+- [Pendiente] **Validación real ante la DIAN**, con el servicio propio «Fiscal». Requiere certificado y habilitación.
+  En la landing: «Próximamente».
+
+### Menú del comensal (incluye domicilios y recoger en el local)
+
+- **Comensal:**
+  - [Listo] La carta con la marca del restaurante, por NFC o QR, sin descargar nada: platos con galería, carrito,
+    pedido, estado, recibo, historial, favoritos y opinión.
+  - [Listo] Animación del carrito, introducción en la primera visita, banners, combos y preferencias que ordenan la
+    carta.
+  - [Listo] Aviso de cerrado o de que no ha abierto: se puede mirar la carta, pero no pedir.
+- **Domicilios** (dentro de este módulo; no tienen uno propio):
+  - [Listo] El cliente da su ubicación por GPS, en el mapa propio (con los colores del restaurante y puntos de
+    referencia) o escribiendo la dirección.
+  - [Listo] Waiter escoge la sede que le llega y lo pasa a ella con su pedido.
+  - [Listo] Confirmación en dos pasos: datos y dirección; luego revisión, total y pago.
+  - [Listo] Direcciones guardadas con autorización (Ley 1581).
+  - [Listo] En el POS, tarjeta de otro color, panel con «Abrir en Google Maps» y recibo de domicilio.
+- **Dueño:**
+  - [Listo] **Domicilios por sede:** radio y cobro del envío (por distancia, fija, gratis o gratis desde un monto),
+    recargo en los platos a domicilio, pedido mínimo y métodos de pago.
+  - [Listo] **Diseño del menú:** 31 plantillas, 16 ejes de variantes, decoraciones y vista previa en borrador. Las
+    reglas de contraste y tamaño se verifican.
+  - [Listo] **Diseño con IA (MCP):** el dueño conecta Claude u otra IA para que diseñe su menú, con un verificador
+    automático antes de publicar.
+
+### Pagos en línea
+
+- [Demo] Pago desde el celular con Wompi: transferencia y QR Bancolombia, Nequi y tarjeta con 3DS. El webhook firmado
+  y la conciliación ya existen.
+- [Listo] **Conexión segura con Wompi:** código al correo, llaves que nunca se ven, verificación con Wompi y cifrado
+  AES-256-GCM.
+- [Demo] Anticipo de reservas por enlace de pago.
+- [Pendiente] **Cobro real:** está apagado en el servidor hasta probarlo con llaves reales. En la landing: «Próximamente».
+
+### Datáfono integrado
+
+- [Pendiente] No disponible (el adaptador de Bold no existe).
+- [Listo] Lo que sí hay, en el Núcleo: el datáfono manual. El cajero digita el monto y confirma.
+
+### Fidelización
+
+- **Comensal:**
+  - [Listo] Cuenta propia: registro, clave, perfil, favoritos, direcciones y tarjetas.
+  - [Listo] Puntos que valen en todas las sedes, recompensas y cupones en el pedido.
+  - [Listo] Premios por acciones: crear la cuenta, dar una opinión o pagar en línea.
+  - [Demo] La verificación de la cuenta acepta un código de demostración. [Pendiente] La real por WhatsApp.
+- **Dueño:**
+  - [Listo] **Clientes:** ficha con segmento, ticket promedio, frecuencia, día y hora preferidos, canal, favoritos y
+    direcciones.
+  - [Listo] **Promociones:** cupones, puntos, acciones con premio y banners.
+
+### Reservas
+
+- [Listo] Grilla de mesa × hora por piso, asistente de nueva reserva, reservas de varias mesas, pre-pedido, silla de
+  bebé y notas.
+- [Listo] Estados: confirmada, sentada, no llegó y cancelada. La mesa queda apartada desde un rato antes.
+- [Listo] Horario de reservas con franjas, fechas especiales y reglas de antelación.
+- [Listo/Demo] Anticipo: se marca pagado a mano o con el enlace de pago (en Demo).
+- El comensal no reserva solo desde la carta; solo paga el anticipo por enlace.
+
+### Asistente en el menú: «Mi mesero»
+
+- [Listo] Saluda, pregunta el nombre, recomienda lo mejor de la casa y sugiere bebida o adición. Agrega al carrito
+  desde el chat.
+- [Listo] **6 tonos regionales** que escoge el dueño: neutro, paisa, rolo, costeño, caleño y santandereano.
+- [Listo] Memoria de gustos que el comensal puede borrar.
+- [Listo] Responde el horario y la dirección, y hace el domicilio completo en el chat: ubicación, datos, total y pago.
+- [Listo] Seguro: el servidor decide y una revisión bloquea precios o promesas inventados. Hay avisos y pausas ante el
+  mal uso.
+- [Listo] **Dueño:** revisar las etiquetas de los platos, escoger el tono y ver el uso del día.
+- **Se cobra por uso** (unidad: mensaje respondido).
+
+### Asistente de WhatsApp
+
+- [Listo/Demo] Botón «Conectar WhatsApp» con el registro oficial de Meta, conversaciones y envío de prueba.
+- [Demo] El pedido completo por WhatsApp (platos, ubicación, nombre, teléfono, indicaciones, total y pago, con enlace o
+  contra entrega), probado con Meta simulado.
+- [Pendiente] Producción: aprobación de la app de Meta, número real y webhook público. En la landing:
+  «Próximamente».
+- **Se cobra con plan propio:** mensualidad con pedidos incluidos y recargas.
+
+### Varios locales
+
+- [Listo] Todas las sedes en una consola: estado del día, entrada al POS de cada una y alta de una sede nueva copiando
+  los ajustes de otra.
+- [Listo] Comparativo de sedes frente al periodo anterior.
+- [Listo] Catálogo, clientes, puntos y equipo compartidos, con precios, agotados y módulos por sede.
+
+### Consola de ProjectApp (interna; no va en la landing, pero alimenta los precios)
+
+- [Listo] Clientes: alta en 3 pasos con invitación, módulos por cliente y por sede (con vigencia, cupos y precio),
+  recargas, saldo y suspensión.
+- [Listo] **Precios estándar con versiones por periodo** (§8), y precios personalizados por cliente.
+- [Listo] Cobros: cuentas mensuales con prorrateo, avisos y suspensión por mora. [Pendiente] El cobro automático (hoy
+  el pago se registra a mano).
+- [Listo] Métricas por cliente, equipo de ProjectApp y doble factor.
+
+### Qué destacar en la landing (y qué no)
+
+| Destacar (Listo y diferenciador) | Mostrar con cuidado | No prometer todavía |
+|---|---|---|
+| Menú con tu marca por NFC/QR, sin app | Pago en línea (Demo, «Próximamente») | Validación DIAN |
+| Domicilios propios sin comisión, con mapa propio y cobro flexible | Pedido por WhatsApp (Demo, «Próximamente») | Datáfono integrado |
+| Mesero virtual con 6 tonos que vende y hace domicilios en el chat | Anticipo de reservas | Doble factor para dueños |
+| Cocina sin papel y salón en vivo | | Otros idiomas (solo hay español) |
+| Inventario con recetas y rentabilidad (ingeniería de menú) | | |
+| Modo sin internet | | |
+| Varias sedes en una consola | | |
+| Seguridad: datos con autorización, pagos cifrados | | |
+
+---
+
 ## 4. Motion graphics con GSAP: que no parezca hecho por IA
 
 ### 4.1 Principios
@@ -535,15 +740,29 @@ los botones (el que se ve en las capturas).
 
 ## 8. Precios desde la consola de ProjectApp (contrato de datos)
 
-Hoy la consola guarda el precio **por organización y por módulo** (contratos de cada cliente: `OrganizationModule.price`,
-`unit_prices`). **No hay un catálogo público** que la landing pueda leer. Propuesta (por construir; no está hecha):
+**Lo que ya existe:** la consola de ProjectApp tiene una **lista de precios estándar** en Plataforma → Precios
+(`tenancy/price_lists.py`, `standard_pricing`). Tiene versiones por periodo y precios personalizados por cliente.
+Define:
 
-- **En la consola:** una pantalla «Catálogo público» para definir:
-  - los planes visibles (nombre, precio mensual, módulos incluidos y si va destacado);
-  - el precio de cada módulo adicional;
-  - el precio de cada unidad de uso: mensaje de IA, documento DIAN, pedido del asistente;
-  - el texto de «Precios a la medida» para mientras no se publiquen.
-- **API pública, solo de lectura y con caché:** `GET /api/public/v1/catalogo`
+| Concepto | Hoy en el código (valor por omisión, editable en la consola) |
+|---|---|
+| Mensualidad por sede (`local_monthly`) | $150.000 |
+| Precio mensual de cada módulo (`modules`) | $0 (todos, por definir) |
+| Precios por uso (`unit_prices`) | Pedido del asistente de WhatsApp $500; mensaje de IA, documento DIAN y código de verificación $0 |
+| Planes de WhatsApp | «Inicial»: $50.000 al mes con 100 pedidos incluidos |
+| Paquetes de recarga | 100, 500 y 1.000 pedidos a $500 c/u |
+| Al agotar lo incluido (`on_exhausted`) | Cobrar el excedente |
+
+Así que el **modelo de cobro** que la landing debe explicar es: **mensualidad por sede + módulos que actives + consumo
+por uso** (solo en los módulos con IA, DIAN o WhatsApp). La mensualidad se paga por adelantado; el consumo, mes
+vencido.
+
+**Lo que falta (por construir):**
+- una ruta pública, solo de lectura y con caché, que exponga la lista estándar **vigente**;
+- en la consola, 3 campos más: qué módulos salen en la landing, a qué grupo pertenecen (para las pestañas) y si van
+  «Próximamente».
+
+Propuesta: `GET /api/public/v1/catalogo`
 
 ```json
 {
@@ -560,6 +779,8 @@ Hoy la consola guarda el precio **por organización y por módulo** (contratos d
 
 - **En la landing:** si `publicado` es false, la sección 9 muestra `mensaje_sin_precios` y el CTA. Los nombres de los
   módulos salen de esta API, así que coinciden siempre con la consola.
+- **La calculadora «Arma tu plan»** suma: mensualidad × número de sedes + los módulos escogidos + (opcional) el plan de
+  WhatsApp. El consumo de IA o DIAN se explica aparte, como un estimado por pedidos al mes.
 
 ---
 
