@@ -68,6 +68,8 @@ class Organization(models.Model):
     greeting = models.CharField(max_length=60, blank=True, default='')
     waiter_name = models.CharField(max_length=40, blank=True, default='')
     welcome = models.CharField(max_length=140, blank=True, default='')
+    # Plan AS: cómo habla el mesero virtual (assistant/tones.py); el dueño lo escoge en la consola.
+    assistant_tone = models.CharField(max_length=20, default='neutro')
     suspension_by_billing = models.BooleanField(default=False)
     suspended_at = models.DateTimeField(null=True, blank=True)
     suspended_reason = models.TextField(blank=True, default='')

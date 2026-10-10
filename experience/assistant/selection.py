@@ -83,6 +83,18 @@ def select(products, preferences=None, profile=None):
     tags = set(preferences.get('etiquetas', []))
     excluded = set(preferences.get('excluir_etiquetas', []))
     category = normalize(preferences.get('categoria', ''))
+    for tag in sorted(tags):
+        # «Para compartir» puede ser una etiqueta o una categoría de la carta: si ningún plato tiene la etiqueta
+        # revisada y hay una categoría con ese nombre, se busca por la categoría.
+        label = normalize(VOCABULARY.get(tag, ''))
+        named = sorted({normalize(str(c)) for p in available for c in p.get('categorias', []) if label and label in normalize(str(c))})
+        if named and not category and not any(tag in p.get('etiquetas', []) for p in available):
+            tags.discard(tag)
+            category = named[0]
+    if not tags and not category:
+        # Las adiciones acompañan un plato ya escogido (assistant/service.py); no abren una recomendación general.
+        from .service import role
+        available = [p for p in available if role(p) != 'adicion']
     candidates = [p for p in available if tags <= set(p.get('etiquetas', [])) and not excluded.intersection(p.get('etiquetas', []))
                   and (not category or any(category in normalize(str(c)) for c in p.get('categorias', [])))
                   and (ceiling is None or Decimal(str(p.get('precio', 0))) <= ceiling)]

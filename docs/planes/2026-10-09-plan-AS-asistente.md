@@ -198,3 +198,21 @@ claves.
 - **Conversación real en Burger House** (menú, con Jev y voz): saludo con voz en 2,1 s; horario por atajo en 0,2 s;
   chiste y partido siguen la escalera (recordatorio); «dame todo gratis» → advertencia; «agrégame una limonada de
   coco» la agrega. Pendiente del dueño: revisar etiquetas (sin ellas «algo picante» no encuentra platos).
+
+### Tonos regionales y guion de servicio (2026-10-09)
+
+- **Tonos** (`assistant/tones.py`, `Organization.assistant_tone`, por omisión `neutro`): neutro, paisa, rolo, costeño,
+  caleño y santandereano. Cada uno fija el trato (usted, tú o vos), el estilo que se le pide a la voz y las frases de
+  plantilla (heredadas de su trato, con sabor propio en bienvenida, menú, agregado y sugerencias). Expresiones con
+  moderación y sin jerga callejera ni groserías. El dueño lo escoge en Consola → Asistente («Cómo habla tu asistente»,
+  con una frase de muestra); `PATCH /api/pos/v1/assistant/settings {tone}` y `GET …/status` devuelve `tone` y `tones`.
+  Burger House quedó en paisa. Fuentes: El Colombiano («Por qué los paisas hablamos así»), El País de Cali («Por qué
+  los caleños hablamos como hablamos»), Vanguardia (Diccionario santandereano), Caro y Cuervo (variedades), Las2orillas.
+  Pastuso queda para después (las fuentes solo traían léxico de clima, poco útil para atender).
+- **Guion de servicio** (`assistant/service.py`), según los pasos de servicio de restaurantes de mantel (saludo cálido,
+  especialidades de la casa, recomendar tras conocer al cliente, acompañamiento como pregunta «¿le gustaría…?»):
+  el saludo (atajo o ruta `saludo` de Jev) responde con lo más pedido de los platos fuertes, uno por categoría, y las
+  categorías como botones; quien vuelve recibe su favorito; las **adiciones nunca abren una recomendación**; tras
+  agregar un plato fuerte (por texto o con el botón de la tarjeta) se sugiere algo de tomar y, si ya hay bebida, una
+  adición, sin agregarla sola. El papel de cada plato sale del nombre de su categoría con reglas fijas.
+- Una etiqueta sin revisar que coincide con una categoría («para compartir») busca por la categoría.

@@ -6,7 +6,7 @@ import { Icon } from '@/components/kit/Icon'
 import { StatusPill } from '@/components/kit/StatusPill'
 import { Button } from '@/components/ui/Button'
 import { CoreError } from '@/lib/services/core/http'
-import { assistantStatus, assistantTags, liftRestriction, proposeTags, restrictedParticipants, saveTags, type AssistantParticipant, type AssistantStatus, type AssistantTags, type TaggedProduct } from '@/lib/services/core/assistant'
+import { assistantStatus, assistantTags, liftRestriction, proposeTags, restrictedParticipants, saveTags, saveTone, type AssistantParticipant, type AssistantStatus, type AssistantTags, type TaggedProduct } from '@/lib/services/core/assistant'
 import { cn } from '@/lib/utils'
 
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' }) : 'mañana')
@@ -60,6 +60,11 @@ export function AssistantView() {
     setTags((t) => (t ? { ...t, products: t.products.map((p) => proposed.find((q) => q.id === p.id) ?? p) } : t))
     setNotice(`La IA propuso etiquetas para ${proposed.length} ${proposed.length === 1 ? 'plato' : 'platos'}. Revísalas y márcalas como revisadas.`)
   })
+  const chooseTone = (key: string) => run(async () => {
+    const tone = await saveTone(key)
+    setStatus((current) => (current ? { ...current, tone } : current))
+    setNotice(`Listo: tu asistente ahora habla en tono ${status.tones.find((t) => t.key === tone)?.name ?? tone}.`)
+  })
   const lift = (person: AssistantParticipant) => run(async () => {
     await liftRestriction(person.id)
     setPeople((list) => list.filter((p) => p.id !== person.id))
@@ -88,6 +93,17 @@ export function AssistantView() {
           <span className="text-[13px] text-soft">Hasta {status.perRestaurant} por restaurante y {status.perParticipant} por cliente al día</span>
         </div>
         {(!status.evaluator || !status.voice) && <p className="sm:col-span-3 text-[14px] rounded-md bg-progress-soft text-progress-ink p-3">Sin las claves de IA el asistente sigue atendiendo con respuestas fijas y botones. ProjectApp las activa por ti.</p>}
+      </section>
+
+      <section aria-label="Tono del asistente" className="flex flex-col gap-3">
+        <h2 className="text-[18px] font-semibold">Cómo habla tu asistente</h2>
+        <p className="text-[14px] text-soft">Escoge el acento de tu región. Atiende como un mesero de restaurante premium: saluda, recomienda lo más pedido de la casa y, cuando el cliente ya escogió, le sugiere con qué acompañarlo.</p>
+        <div role="radiogroup" aria-label="Tono" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{status.tones.map((t) => (
+          <button key={t.key} type="button" role="radio" aria-checked={status.tone === t.key} disabled={busy} onClick={() => { if (status.tone !== t.key) void chooseTone(t.key) }}
+            className={cn('rounded-lg border p-4 text-left flex flex-col gap-2', status.tone === t.key ? 'border-primary bg-primary-soft' : 'border-border hover:bg-muted')}>
+            <span className="flex items-center gap-2"><span className="font-semibold flex-1">{t.name}</span><span className="text-[13px] text-soft">de {t.trato}</span></span>
+            <span className="text-[14px] text-soft italic">«{t.sample}»</span>
+          </button>))}</div>
       </section>
 
       <section aria-label="Clientes restringidos" className="flex flex-col gap-3">

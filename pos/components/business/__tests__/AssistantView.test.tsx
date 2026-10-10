@@ -2,17 +2,19 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 
 import { AssistantView } from '@/components/business/AssistantView'
 import { CoreError } from '@/lib/services/core/http'
-import { assistantStatus, assistantTags, liftRestriction, proposeTags, restrictedParticipants, saveTags, type AssistantStatus, type AssistantTags } from '@/lib/services/core/assistant'
+import { assistantStatus, assistantTags, liftRestriction, proposeTags, restrictedParticipants, saveTags, saveTone, type AssistantStatus, type AssistantTags } from '@/lib/services/core/assistant'
 
 jest.mock('@/lib/services/core/assistant', () => ({
-  assistantTags: jest.fn(), saveTags: jest.fn(), proposeTags: jest.fn(), restrictedParticipants: jest.fn(), liftRestriction: jest.fn(), assistantStatus: jest.fn(),
+  assistantTags: jest.fn(), saveTags: jest.fn(), saveTone: jest.fn(), proposeTags: jest.fn(), restrictedParticipants: jest.fn(), liftRestriction: jest.fn(), assistantStatus: jest.fn(),
 }))
 
 const TAGS: AssistantTags = {
   vocabulary: [{ key: 'picante', name: 'Picante' }, { key: 'vegetariano', name: 'Vegetariano' }],
   products: [{ id: 1, name: 'Hamburguesa diabla', tags: ['picante'], reviewed: false }, { id: 2, name: 'Ensalada', tags: ['vegetariano'], reviewed: true }],
 }
-const READY: AssistantStatus = { evaluator: true, voice: true, messages: 12, perRestaurant: 300, perParticipant: 30 }
+const TONES = [{ key: 'neutro', name: 'Colombiano neutro', trato: 'usted' as const, sample: '¡Buenas noches! Bienvenido.' },
+  { key: 'paisa', name: 'Paisa (Antioquia)', trato: 'usted' as const, sample: '¡Buenas noches! ¿Qué le provoca, pues?' }]
+const READY: AssistantStatus = { evaluator: true, voice: true, messages: 12, perRestaurant: 300, perParticipant: 30, tone: 'neutro', tones: TONES }
 const PERSON = { id: 9, channel: 'whatsapp' as const, standing: 'restricted' as const, reason: 'Mensajes fuera de tema', until: '2026-10-09T18:30:00Z' }
 beforeEach(() => {
   jest.clearAllMocks()
@@ -76,4 +78,20 @@ it('muestra el error al leer o al guardar', async () => {
   render(<AssistantView />)
   fireEvent.click(await screen.findByRole('button', { name: 'Quitar restricción' }))
   expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo completar.')
+})
+
+// Falla si el dueño no ve el tono actual con su muestra, si escoger otro no lo guarda o si la pantalla no lo refleja.
+it('escoge el tono del asistente', async () => {
+  jest.mocked(saveTone).mockResolvedValue('paisa')
+  render(<AssistantView />)
+  const actual = await screen.findByRole('radio', { name: /Colombiano neutro/ })
+  expect(actual).toHaveAttribute('aria-checked', 'true')
+  fireEvent.click(actual)
+  expect(saveTone).not.toHaveBeenCalled()
+  const paisa = screen.getByRole('radio', { name: /Paisa/ })
+  expect(paisa).toHaveTextContent('¿Qué le provoca, pues?')
+  fireEvent.click(paisa)
+  await waitFor(() => expect(saveTone).toHaveBeenCalledWith('paisa'))
+  expect(await screen.findByText(/ahora habla en tono Paisa \(Antioquia\)/)).toBeInTheDocument()
+  expect(paisa).toHaveAttribute('aria-checked', 'true')
 })

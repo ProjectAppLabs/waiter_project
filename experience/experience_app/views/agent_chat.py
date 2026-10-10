@@ -74,4 +74,9 @@ def add_to_cart(request, session_id):
         agent_cart.add(session, diner, body.validated_data)
     except (DatabaseError, Problem):
         return Response({'detail': 'No pudimos verificar el plato. Inténtalo de nuevo.'}, status=503)
-    return Response({'carrito': cart_of(session, diner), 'selecciones': agent_cart.selected(diner)})
+    response = {'carrito': cart_of(session, diner), 'selecciones': agent_cart.selected(diner)}
+    from assistant.service import suggestion
+    extra = suggestion(session, diner, body.validated_data['producto'])
+    if extra:
+        response['sugerencia'] = extra
+    return Response(response)

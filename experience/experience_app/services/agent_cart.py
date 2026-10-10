@@ -33,7 +33,7 @@ def prepare(session, diner, data):
         raise ValidationError({'detail': 'Este plato ya no está disponible.'})
     row = rows[0]
     if row.get('attribute_line_ids') or row.get('type') == 'combo':
-        raise ValidationError({'detail': 'Este plato tiene opciones para escoger. Abra su ficha para elegirlas, pues.'})
+        raise ValidationError({'detail': 'Este plato tiene opciones para escoger. Abra su ficha para elegirlas.'})
     if product.sold_out or (row.get('is_storable') and row.get('qty_available', 0) < data['cantidad']):
         raise ValidationError({'detail': 'No hay disponibilidad para esa cantidad. Elige otro plato o menos unidades.'})
     return product
@@ -79,19 +79,21 @@ def apply_requested(session, diner, chat, turn):
     from experience_app.services.agent_chat import explicit_add
     from experience_app.views.sessions import cart_of
 
+    from assistant.tones import phrases, tone_of
+    from tenancy.models import Organization
+    tone = tone_of(Organization.objects.filter(slug=session.restaurant_slug).first())
     if not explicit_add(turn['mensaje']):
-        return {**turn, 'respuesta': 'Para añadirlos, utiliza los botones de cada plato.'}
+        return {**turn, 'respuesta': phrases(tone, 'use_buttons')[0]}
     updated = dict(turn)
     if not turn.get('resultado_carrito'):
         try:
             add_many(session, diner, [{'mensaje': turn['id'], 'producto': line['producto'],
                 'cantidad': line['cantidad'], 'nota': line.get('nota', '')} for line in turn['lineas']])
-            import re
-            aviso = re.search(r'Te quedan [0-9]+ mensajes con el asistente por hoy\.', turn.get('respuesta', ''))
-            updated.update(resultado_carrito='agregado', respuesta='¡De una! Ya le agregué eso a Mi pedido. Allá lo puede revisar antes de mandarlo a cocina.' + (' ' + aviso[0] if aviso else ''))
+            # El núcleo ya redactó el «listo» con su sugerencia de acompañamiento y el cupo que queda.
+            updated.update(resultado_carrito='agregado')
         except (APIException, DatabaseError, Problem):
             import re
-            aviso = re.search(r'Te quedan [0-9]+ mensajes con el asistente por hoy\.', turn.get('respuesta', ''))
+            aviso = re.search(r'(?:Le|Te) quedan [0-9]+ mensajes con el asistente por hoy\.', turn.get('respuesta', ''))
             updated.update(resultado_carrito='no_agregado', respuesta='No pude añadir la selección completa. Revisa disponibilidad y opciones en las fichas de los platos; no añadí nuevos platos de esta solicitud.' + (' ' + aviso[0] if aviso else ''))
         # Actualiza solo este turno y conserva los mensajes nuevos creados en otra pestaña.
         with transaction.atomic():

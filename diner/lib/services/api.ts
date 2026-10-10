@@ -144,7 +144,9 @@ export async function sendChat(sessionId: string, id: string, mensaje: string): 
 }
 
 export interface ChatSelection { message_id: string; product_id: number; qty: number }
-export async function addChatSelection(sessionId: string, mensaje: string, producto: number, cantidad: number, nota: string): Promise<{carrito: Cart; selecciones: ChatSelection[]}> {
+// Plan AS: tras añadir un plato fuerte, el mesero sugiere con qué acompañarlo (una pregunta, nunca un agregado solo).
+export interface ChatSuggestion { texto: string; opciones: string[] }
+export async function addChatSelection(sessionId: string, mensaje: string, producto: number, cantidad: number, nota: string): Promise<{carrito: Cart; selecciones: ChatSelection[]; sugerencia?: ChatSuggestion}> {
   return (await http.post(`/api/v1/sesiones/${sessionId}/asistente/agregar/`, {mensaje, producto, cantidad, nota}, {timeout: 45_000})).data
 }
 

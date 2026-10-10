@@ -149,3 +149,17 @@ it('lleva al pedido desde el encabezado con el número de platos propios', async
   fireEvent.click(screen.getByRole('button', { name: 'Cerrar conversación' }))
   expect(screen.getByRole('button', { name: /Mi mesero/ })).toHaveAttribute('aria-expanded', 'false')
 })
+
+// Falla si tras añadir un plato no se muestra la sugerencia del mesero, o si tocar una opción no se la pregunta.
+it('sugiere con qué acompañar lo que se añadió', async () => {
+  jest.mocked(getChat).mockResolvedValue({ disponible: true, mensajes: [turn as never] })
+  jest.mocked(addChatSelection).mockResolvedValue({ carrito: { lineas: [] } as never, selecciones: [{ message_id: 'reply', product_id: 7, qty: 1 }],
+    sugerencia: { texto: '¿Le gustaría acompañarlo con algo de tomar?', opciones: ['Limonada de Coco'] } })
+  jest.mocked(sendChat).mockResolvedValue({ ...turn, id: 'otro', mensaje: 'Limonada de Coco' } as never)
+  render(<SmartChat entry={entry} rest="demo" venue="salon" token={null}/>)
+  fireEvent.click(screen.getByRole('button', { name: /Mi mesero/ }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Añadir a mi pedido' }))
+  expect(await screen.findByText('¿Le gustaría acompañarlo con algo de tomar?')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Limonada de Coco' }))
+  await waitFor(() => expect(sendChat).toHaveBeenCalledWith('session', expect.any(String), 'Limonada de Coco'))
+})

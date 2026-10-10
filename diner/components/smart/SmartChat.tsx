@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { formatCop } from '@/lib/domain/cart'
 import { pathFor } from '@/lib/domain/route'
 import { announceAdd, myCount } from '@/lib/domain/cartEvents'
-import { addChatSelection, getChat, newChat, sendChat, type ChatNotice, type ChatTurn, type ChatSelection } from '@/lib/services/api'
+import { addChatSelection, getChat, newChat, sendChat, type ChatNotice, type ChatTurn, type ChatSelection, type ChatSuggestion } from '@/lib/services/api'
 import { useDinerStore } from '@/lib/stores/dinerStore'
 import type { Entry } from '@/lib/types'
 import { ChatReply, ChatCarousel } from './ChatReply'
@@ -45,6 +45,7 @@ export function SmartChat({ entry, rest, venue, token }: { entry: Entry; rest: s
   const [open, setOpen] = useState(false)
   const [history, setHistory] = useState<ChatTurn[]>([])
   const [selections, setSelections] = useState<ChatSelection[]>([])
+  const [suggestions, setSuggestions] = useState<Record<string, ChatSuggestion>>({})
   const [quantities, setQuantities] = useState<Record<string, number>>({})
   const [notes, setNotes] = useState<Record<string, string>>({})
   const [adding, setAdding] = useState<string | null>(null)
@@ -105,6 +106,7 @@ export function SmartChat({ entry, rest, venue, token }: { entry: Entry; rest: s
       useDinerStore.setState({cart: result.carrito})
       setSelections(result.selecciones)
       announceAdd()
+      if (result.sugerencia) setSuggestions(current => ({...current, [key]: result.sugerencia!}))
     } catch (e) { setError(e instanceof Error ? e.message : 'No pudimos añadir el plato. Inténtalo de nuevo.') }
     finally { addingLock.current = false; setAdding(null) }
   }
@@ -191,7 +193,8 @@ export function SmartChat({ entry, rest, venue, token }: { entry: Entry; rest: s
                 <Link className="sm-chat-dish" href={dishHref(dish.id)} onClick={close}>
                   {dish.foto && <img src={dish.foto} alt=""/>}<span><strong>{dish.nombre}</strong><small>{formatCop(dish.precio)} · {dish.agotado ? 'Agotado por ahora' : 'Ver detalles'}</small></span><span aria-hidden="true">↗</span>
                 </Link>
-                {selected ? <div className="sm-chat-added" role="status">✓ Añadido a tu pedido<Link href={pathFor(rest, venue, token, 'pedido', undefined, previewDraft)} onClick={close}>Ver mi pedido →</Link></div> : <>
+                {selected ? <><div className="sm-chat-added" role="status">✓ Añadido a tu pedido<Link href={pathFor(rest, venue, token, 'pedido', undefined, previewDraft)} onClick={close}>Ver mi pedido →</Link></div>
+                  {suggestions[key] && <div className="sm-chat-suggest"><p>{suggestions[key].texto}</p><div className="sm-chat-choices" aria-label="Para acompañar">{suggestions[key].opciones.map(option => <button type="button" key={option} disabled={busy || loading || resetting || !available || !!preview} onClick={() => void send(option)}>{option}</button>)}</div></div>}</> : <>
                   <div className="sm-chat-quantity"><span>Cantidad</span><button type="button" aria-label={`Menos ${dish.nombre}`} disabled={qty <= 1 || !!adding} onClick={() => setQuantities(q => ({...q, [key]: qty - 1}))}>−</button><output aria-label={`Cantidad de ${dish.nombre}`}>{qty}</output><button type="button" aria-label={`Más ${dish.nombre}`} disabled={qty >= 50 || !!adding} onClick={() => setQuantities(q => ({...q, [key]: qty + 1}))}>+</button></div>
                   <input className="sm-chat-note" aria-label={`Indicaciones para ${dish.nombre}`} placeholder="¿Alguna indicación? (opcional)" maxLength={200} value={notes[key] ?? line.nota ?? ''} disabled={!!adding} onChange={e => setNotes(n => ({...n, [key]: e.target.value}))}/>
                   <button className="sm-chat-add" disabled={dish.agotado || !!adding || resetting || !!preview} onClick={() => void addSelection(turn, dish.id, qty, notes[key] ?? line.nota ?? '')}>{adding === key ? 'Añadiendo…' : 'Añadir a mi pedido'}</button>

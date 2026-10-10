@@ -20,6 +20,8 @@ from .models import (AssistantConversationState, AssistantDailyUsage, AssistantD
 from .profiles import identity, profile_data, remember
 from .selection import VOCABULARY, catalog_for, fingerprint, named_products, normalize, select
 from .voice import OpenAIVoice, TemplateVoice
+from . import service
+from .tones import phrases, tone_of
 
 
 class Reply(dict):
@@ -31,6 +33,8 @@ class Reply(dict):
 
 
 TAG_THRESHOLD = .65
+GREETING = re.compile(r'(?:hola|holi|hey|buenas|buen dia|buenos dias|buenas tardes|buenas noches|que mas|que hubo|quiubo|saludos)'
+                      r'(?: (?:hola|buenas|buen dia|buenos dias|buenas tardes|buenas noches|que mas|como estas|como esta|como vas|como va|amigo|mesero))*')
 
 
 def noul(answers, key):
@@ -109,6 +113,10 @@ def execute(action, state, products):
             return 'invalid_action', []
         if value.startswith('pick:'):
             return execute({'type': 'pick', 'product_id': int(value[5:])}, state, products)
+        if value.startswith('cat:') and state.state not in ('esperando_pago', 'pagado'):
+            state.state = 'explorando'
+            chosen = service.by_category(products, value[4:])
+            return ('menu' if chosen else 'empty'), chosen
         return execute({'type': value}, state, products)
     if kind == 'menu' and state.state not in ('esperando_pago', 'pagado'):
         state.state, state.selection = 'explorando', []
@@ -132,6 +140,31 @@ def execute(action, state, products):
     return 'invalid_action', []
 
 
+def welcome(products, profile):
+    favorite = service.favorite(products, profile)
+    if favorite:
+        return 'welcome_back', [favorite], service.category_options(products)
+    featured = service.featured(products)
+    return ('welcome' if featured else 'clarify'), featured, service.category_options(products) or None
+
+
+def greeting(restaurant, name=''):
+    """El saludo de la casa si el dueño lo escribió; si no, el de la hora local, con el nombre del cliente."""
+    if restaurant.organization.greeting:
+        return restaurant.organization.greeting
+    hour = timezone.now().astimezone(ZoneInfo(restaurant.organization.timezone)).hour
+    moment = 'Buenos días' if 5 <= hour < 12 else 'Buenas tardes' if 12 <= hour < 19 else 'Buenas noches'
+    return f'¡{moment}, {name}!' if name else f'¡{moment}!'
+
+
+def cart_ids(participant):
+    """Lo que el comensal ya tiene en su carrito abierto, para no sugerirle otra bebida si ya pidió una."""
+    from experience_app.models import CartLine, Diner
+    if not isinstance(participant, Diner):
+        return []
+    return list(CartLine.objects.filter(session=participant.session, diner=participant, order__isnull=True).values_list('product_id', flat=True))
+
+
 @transaction.atomic
 @audited
 def handle(channel, restaurant, participant, text=None, action=None, *, products=None):
@@ -143,6 +176,7 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
     # Un solo orden de bloqueo protege cupos compartidos y perfiles en ambos canales.
     Organization.objects.select_for_update().get(pk=restaurant.organization_id)
     key, account = identity(channel, participant, restaurant.organization)
+    tone = tone_of(restaurant.organization)
     now = timezone.now()
     day = now.astimezone(ZoneInfo(restaurant.organization.timezone)).date()
     standing, _ = AssistantStanding.objects.get_or_create(organization=restaurant.organization, participant=key,
@@ -179,6 +213,7 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
     confidence = None
     source, route, template = 'shortcut', 'menu', 'menu'
     chosen, notice, extra, can_voice, add = [], None, '', False, False
+    welcome_options, upsell = None, []
     raw = (text or '').strip()
     normalized = normalize(raw)
     restricted_free = channel == 'whatsapp' and action is None and standing.level in ('restricted', 'paused')
@@ -228,10 +263,10 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
             daily.save()
             remaining = min(settings.ASSISTANT_DAILY_PER_PARTICIPANT - standing.attempts, settings.AGENT_DAILY_LIMIT - daily.attempts)
             if 0 <= remaining <= 5:
-                extra = f' Te quedan {remaining} mensajes con el asistente por hoy.'
+                extra = phrases(tone, 'remaining')[0].format(remaining=remaining)
                 notice = {'kind': 'quota', 'until': None}
             business_data = business.data_for(restaurant)
-            fixed = business.answer(raw, business_data, restaurant, participant)
+            fixed = business.answer(raw, business_data, restaurant, participant, tone)
             named = named_products(raw, products)
             from experience_app.services.agent_chat import explicit_add
             if named and explicit_add(raw):
@@ -249,7 +284,11 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
                 template, route = 'business', 'estado' if 'mi pedido' in normalized else 'negocio'
             elif named:
                 chosen, template = safe_named[:3], 'menu' if safe_named else 'empty'
-            elif (normalized in ('hola', 'buenas', 'buenos dias') or re.search(r'\b(menu|carta)\b', normalized)) or prefs['etiquetas'] or prefs['excluir_etiquetas'] or prefs.get('presupuesto') or prefs.get('categoria'):
+            elif GREETING.fullmatch(normalized.strip(' !.?')):
+                # Bienvenida del guion de servicio: lo más pedido de la casa y las categorías para explorar.
+                template, chosen, welcome_options = welcome(products, profile_info)
+                can_voice = True
+            elif re.search(r'\b(menu|carta)\b', normalized) or prefs['etiquetas'] or prefs['excluir_etiquetas'] or prefs.get('presupuesto') or prefs.get('categoria'):
                 chosen = select(products, prefs, profile_info)
                 template = 'menu' if chosen else 'empty'
             else:
@@ -280,10 +319,13 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
                     if level:
                         notice = {'kind': level, 'until': standing.until.isoformat() if standing.until else None}
                     if manipulation and standing.consecutive == 1:
-                        extra = ' ' + TemplateVoice().phrase('reminder', {}) + extra
+                        extra = ' ' + TemplateVoice(tone).phrase('reminder', {}) + extra
                     route, chosen = 'fuera', select(products)
                 elif selected_route == 'reclamo' or (answers or {}).get('frustracion', {}).get('score', 0) >= 2:
                     template, route = 'human', 'reclamo'
+                elif choice(answers, 'ruta') == 'saludo':
+                    template, chosen, welcome_options = welcome(products, profile_info)
+                    can_voice = source != 'cache'
                 else:
                     dynamic = choice(answers, 'opcion', .9)
                     if dynamic in [o['value'] for o in state.options]:
@@ -311,8 +353,16 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
                 if channel == 'whatsapp':
                     remember(restaurant.organization, key, chosen)
             if account and account.allergens and chosen:
-                extra += ' Como tiene alergias registradas, confirme los ingredientes con el equipo antes de pedir, por favor.'
+                extra += phrases(tone, 'allergy')[0]
                 add = False
+            if add and channel == 'menu':
+                template = 'added'
+                # Ya escogió: el mesero sugiere con qué acompañarlo, como pregunta y sin agregarlo solo.
+                upsell_key, upsell = service.complements(products, [p['id'] for p in chosen], cart_ids(participant))
+                if upsell_key and upsell:
+                    extra += ' ' + TemplateVoice(tone).phrase(upsell_key, {'conversation': key})
+                else:
+                    upsell = []
             if fixed:
                 extra = fixed + extra
                 template = 'business'
@@ -333,6 +383,12 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
         if state.state not in ('resumen', 'esperando_pago', 'pagado'):
             state.state = 'eligiendo'
     options = option_cards(cards) or [{'label': 'Ver menú', 'value': 'menu'}]
+    if welcome_options:
+        options = welcome_options
+    if upsell:
+        # Las sugerencias entran a las tarjetas del estado para que tocarlas funcione como cualquier opción.
+        state.cards = cards + [card(p) for p in upsell]
+        options = option_cards([card(p) for p in upsell]) + [{'label': 'Ver menú', 'value': 'menu'}]
     if template in ('summary', 'confirmed'):
         options = [{'label': 'Confirmar selección', 'value': 'confirm'}, {'label': 'Ver menú', 'value': 'menu'}]
     state.options = options
@@ -340,8 +396,11 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
         state.state = 'falta_dato'
     state.save()
     standing.save()
-    data = {'cards': cards, 'conversation': fingerprint([key, state.state, normalized]), 'text': '', 'message': raw[:300]}
-    voice = OpenAIVoice(catalog=[p['nombre'] for p in products]) if can_voice else TemplateVoice()
+    name = (account.name.split() or [''])[0] if account and account.name else ''
+    fields = {'greeting': greeting(restaurant, name), 'name': name, 'featured': service.listed(c['name'] for c in cards),
+              'favorite': cards[0]['name'] if cards else ''}
+    data = {'cards': cards, 'conversation': fingerprint([key, state.state, normalized]), 'text': '', 'message': raw[:300], 'fields': fields}
+    voice = OpenAIVoice(catalog=[p['nombre'] for p in products], tone=tone) if can_voice else TemplateVoice(tone)
     voice_key = 'confirmed_menu' if template == 'confirmed' and channel == 'menu' else template
     result_text = voice.phrase(voice_key, data) + extra
     if can_voice:

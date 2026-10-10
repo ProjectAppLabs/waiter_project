@@ -194,7 +194,7 @@ def scenario(s, method, route):
     if method == 'post' and route == 'payment-methods':
         target, body = True, {'name': 'Banco A', 'type': 'bank', 'restaurant_ids': [rid]}
     # Rutas sin selección de un recurso: los datos y las escrituras pertenecen siempre a la sesión A.
-    implicit = {'assistant', 'assistant/status', 'assistant/tags', 'assistant/participants', 'whatsapp', 'whatsapp/connect', 'whatsapp/disconnect', 'whatsapp/test', 'audit/actions', 'support', 'recharges', 'consumption', 'subscription', 'org', 'restaurants', 'team', 'notifications', 'notifications/read_all',
+    implicit = {'assistant', 'assistant/status', 'assistant/settings', 'assistant/tags', 'assistant/participants', 'whatsapp', 'whatsapp/connect', 'whatsapp/disconnect', 'whatsapp/test', 'audit/actions', 'support', 'recharges', 'consumption', 'subscription', 'org', 'restaurants', 'team', 'notifications', 'notifications/read_all',
         'products', 'categories', 'taxes', 'taxes/regime', 'units', 'suppliers', 'catalog/overview', 'catalog/restaurants',
         'payment-methods', 'settings/cash', 'settings/roles', 'customers', 'customers/id-types', 'loyalty/program',
         'benefits', 'banners', 'me/notify-prefs', 'reports/summary', 'company', 'brand', 'brand/logo',
@@ -203,7 +203,7 @@ def scenario(s, method, route):
         assert route in implicit or route.startswith('auth/'), f'Falta un escenario para {method} {route}'
         if method in ('post', 'put', 'patch'):
             bodies = {
-                'support': {'reason': 'Ayuda autorizada'},
+                'support': {'reason': 'Ayuda autorizada'}, 'assistant/settings': {'tone': 'paisa'},
                 'auth/support': {'token': 'token-de-otra-organizacion'},
                 'recharges': {'pack': 'pedidos_100'},
                 'products': {'name': 'Plato A', 'kind': 'dish', 'price': 10, 'category_ids': [], 'tax_ids': []},

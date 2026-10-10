@@ -16,6 +16,7 @@ from .models import (AssistantConversationState, AssistantDailyUsage, AssistantD
 from .profiles import identity, profile_data
 from .selection import VOCABULARY
 from .voice import propose_tags
+from . import tones
 
 
 def product_dict(product):
@@ -60,11 +61,19 @@ class AssistantView(ContractView):
                          'day': day.isoformat(), 'usage': {'messages': usage.aggregate(total=Sum('attempts'))['total'] or 0,
                          'restaurants': [{'restaurant_id': r.restaurant_id, 'messages': r.attempts,
                                           'limit': settings.AGENT_DAILY_LIMIT} for r in usage.order_by('restaurant_id')]},
-                         'limits': {'per_participant': settings.ASSISTANT_DAILY_PER_PARTICIPANT, 'per_restaurant': settings.AGENT_DAILY_LIMIT}})
+                         'limits': {'per_participant': settings.ASSISTANT_DAILY_PER_PARTICIPANT, 'per_restaurant': settings.AGENT_DAILY_LIMIT},
+                         'tone': tones.tone_of(self.org), 'tones': tones.options()})
 
     @transaction.atomic
     def patch(self, request, product_id=None):
-        require(self.action == 'tag', 'El método no está permitido.', 'method_not_allowed', 405)
+        require(self.action in ('tag', 'settings'), 'El método no está permitido.', 'method_not_allowed', 405)
+        if self.action == 'settings':
+            data = payload(request.data, ('tone',), ('tone',))
+            require(data['tone'] in tones.TONES, 'Escoge uno de los tonos disponibles.', 'invalid_data', 400)
+            org = Organization.objects.select_for_update().get(pk=self.org.pk)
+            org.assistant_tone = data['tone']
+            org.save(update_fields=['assistant_tone'])
+            return Response({'tone': org.assistant_tone})
         data = payload(request.data, ('tags',), ('tags',))
         tags = data['tags']
         require(isinstance(tags, list) and len(tags) <= len(VOCABULARY) and all(isinstance(t, str) and t in VOCABULARY for t in tags),
