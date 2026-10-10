@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { formatCop } from '@/lib/domain/cart'
 import { pathFor } from '@/lib/domain/route'
+import { announceAdd, myCount } from '@/lib/domain/cartEvents'
 import { addChatSelection, getChat, newChat, sendChat, type ChatNotice, type ChatTurn, type ChatSelection } from '@/lib/services/api'
 import { useDinerStore } from '@/lib/stores/dinerStore'
 import type { Entry } from '@/lib/types'
@@ -58,6 +59,7 @@ export function SmartChat({ entry, rest, venue, token }: { entry: Entry; rest: s
   const categories = new Map(entry.carta.categorias.map(c => [c.id, c.nombre]))
   const dishes = new Map(entry.carta.categorias.flatMap(c => c.productos).map(p => [p.id, p]))
   const previewDraft = useDinerStore(s => s.draftToken)
+  const count = useDinerStore(s => myCount(s.cart))
   const dishHref = (id: number) => pathFor(rest, venue, token, 'plato', id, previewDraft)
 
   useEffect(() => {
@@ -102,6 +104,7 @@ export function SmartChat({ entry, rest, venue, token }: { entry: Entry; rest: s
       const result = await addChatSelection(session.id, turn.id, product, quantity, note)
       useDinerStore.setState({cart: result.carrito})
       setSelections(result.selecciones)
+      announceAdd()
     } catch (e) { setError(e instanceof Error ? e.message : 'No pudimos añadir el plato. Inténtalo de nuevo.') }
     finally { addingLock.current = false; setAdding(null) }
   }
@@ -144,7 +147,7 @@ export function SmartChat({ entry, rest, venue, token }: { entry: Entry; rest: s
       const session = await ensureSession()
       if (!session) throw new Error('No pudimos abrir tu conversación.')
       const turn = await sendChat(session.id, pending.current!.id, message)
-      if (turn.carrito) useDinerStore.setState({cart: turn.carrito})
+      if (turn.carrito) { useDinerStore.setState({cart: turn.carrito}); if (turn.accion === 'agregar') announceAdd() }
       if (turn.selecciones) setSelections(turn.selecciones)
       setFresh(turn.id)
       setHistory(old => [...old.filter(t => t.id !== turn.id), turn].slice(-30))
@@ -160,7 +163,12 @@ export function SmartChat({ entry, rest, venue, token }: { entry: Entry; rest: s
       <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-3 2 2-6a8.5 8.5 0 1 1 18-4.5Z"/></svg><span>Mi mesero</span>
     </button>
     <dialog id="waiter-chat" className="sm-chat-dialog" ref={dialog} aria-labelledby="waiter-chat-title" onClose={() => setOpen(false)}>
-      <header className="sm-chat-header"><div><h2 id="waiter-chat-title">Tu mesero virtual</h2><p>{entry.contexto.marca.nombre}</p></div><button type="button" aria-label="Cerrar conversación" onClick={close}>×</button></header>
+      <header className="sm-chat-header"><div><h2 id="waiter-chat-title">Tu mesero virtual</h2><p>{entry.contexto.marca.nombre}</p></div>
+        <Link className="sm-chat-cart" data-cart-target href={pathFor(rest, venue, token, 'pedido', undefined, previewDraft)} onClick={close} aria-label={count ? `Mi pedido, ${count} ${count === 1 ? 'plato' : 'platos'}` : 'Mi pedido'}>
+          <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 7h12l-1 13H7L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>
+          {count > 0 && <span className="sm-chat-cart-count">{count}</span>}
+        </Link>
+        <button type="button" className="sm-chat-close" aria-label="Cerrar conversación" onClick={close}><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></header>
       <div className="sm-chat-toolbar"><button type="button" onClick={() => void startNew()} disabled={busy || loading || resetting || !!adding || !!preview}><span aria-hidden="true">＋</span>{resetting ? 'Iniciando…' : 'Nueva conversación'}</button></div>
       <div className="sm-chat-log" role="log" aria-label="Conversación con tu mesero" aria-live="polite" ref={log} onWheel={() => { reading.current = true }} onTouchStart={() => { reading.current = true }} onKeyDown={e => { if (['ArrowUp', 'PageUp', 'Home'].includes(e.key)) reading.current = true }}>
         <div className="sm-chat-welcome"><h3>¿Qué se te antoja hoy?</h3><p>Cuéntame tus gustos y buscamos algo rico en el menú.</p></div>

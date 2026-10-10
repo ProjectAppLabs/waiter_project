@@ -1,4 +1,4 @@
-"""Menu adapter: explicit card clicks or customer requests can mutate the cart, never kitchen/payment."""
+"""Adaptador del menú: tarjetas y solicitudes explícitas modifican el carrito, nunca cocina ni pagos."""
 from tenancy.http import Problem
 from experience_app.adapters.core.pos import Client
 from django.db import transaction
@@ -23,7 +23,7 @@ def prepare(session, diner, data):
                                             channel='menu', participant=str(diner.id)).first()
     turn = next((t for t in chat.history if t['id'] == str(data['mensaje'])), None) if chat else None
     if not turn or data['producto'] not in {line['producto'] for line in turn['lineas']}:
-        raise ValidationError({'detail': 'Este plato no pertenece a tus recomendaciones actuales.'})
+        raise ValidationError({'detail': 'Este plato no está entre las recomendaciones de ahora.'})
     tenant = resolve(session.restaurant_slug, session.venue_slug, session.table_token)
     catalog.invalidate(session.restaurant_slug, session.venue_slug)
     product = catalog.find_product(tenant, data['producto'])
@@ -33,7 +33,7 @@ def prepare(session, diner, data):
         raise ValidationError({'detail': 'Este plato ya no está disponible.'})
     row = rows[0]
     if row.get('attribute_line_ids') or row.get('type') == 'combo':
-        raise ValidationError({'detail': 'Este plato requiere opciones. Abre su ficha para revisar tu selección.'})
+        raise ValidationError({'detail': 'Este plato tiene opciones para escoger. Abra su ficha para elegirlas, pues.'})
     if product.sold_out or (row.get('is_storable') and row.get('qty_available', 0) < data['cantidad']):
         raise ValidationError({'detail': 'No hay disponibilidad para esa cantidad. Elige otro plato o menos unidades.'})
     return product
@@ -46,7 +46,7 @@ def add(session, diner, data):
 def add_many(session, diner, items):
     prepared = [(data, prepare(session, diner, data)) for data in items]
     with transaction.atomic():
-        # Same row used by order confirmation; no database transaction is held during external calls.
+        # La confirmación del pedido bloquea la misma fila; las consultas anteriores quedan fuera de esta transacción.
         current = TableSession.objects.select_for_update().get(pk=session.pk)
         if current.confirming or current.state not in TableSession.OPEN_STATES:
             raise ConfirmationBusy()
@@ -60,6 +60,8 @@ def add_many(session, diner, items):
                 continue
             selection.line = sessions.add_line(current, diner, product, data['cantidad'], data['nota'])
             selection.save(update_fields=['line'])
+            from assistant.profiles import record_pick
+            record_pick(diner, data['producto'])
             selections.append(selection)
         return selections
 
@@ -84,10 +86,14 @@ def apply_requested(session, diner, chat, turn):
         try:
             add_many(session, diner, [{'mensaje': turn['id'], 'producto': line['producto'],
                 'cantidad': line['cantidad'], 'nota': line.get('nota', '')} for line in turn['lineas']])
-            updated.update(resultado_carrito='agregado', respuesta='Listo, añadí tu selección a Mi pedido. Allí puedes revisarla antes de confirmar a cocina.')
+            import re
+            aviso = re.search(r'Te quedan [0-9]+ mensajes con el asistente por hoy\.', turn.get('respuesta', ''))
+            updated.update(resultado_carrito='agregado', respuesta='¡De una! Ya le agregué eso a Mi pedido. Allá lo puede revisar antes de mandarlo a cocina.' + (' ' + aviso[0] if aviso else ''))
         except (APIException, DatabaseError, Problem):
-            updated.update(resultado_carrito='no_agregado', respuesta='No pude añadir la selección completa. Revisa disponibilidad y opciones en las fichas de los platos; no añadí nuevos platos de esta solicitud.')
-        # Merge just this turn, preserving any newer turns created in another tab.
+            import re
+            aviso = re.search(r'Te quedan [0-9]+ mensajes con el asistente por hoy\.', turn.get('respuesta', ''))
+            updated.update(resultado_carrito='no_agregado', respuesta='No pude añadir la selección completa. Revisa disponibilidad y opciones en las fichas de los platos; no añadí nuevos platos de esta solicitud.' + (' ' + aviso[0] if aviso else ''))
+        # Actualiza solo este turno y conserva los mensajes nuevos creados en otra pestaña.
         with transaction.atomic():
             current = AgentConversation.objects.select_for_update().get(pk=chat.pk)
             current.history = [updated if t['id'] == turn['id'] else t for t in current.history]

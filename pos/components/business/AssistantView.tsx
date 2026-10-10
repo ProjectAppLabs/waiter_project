@@ -11,8 +11,7 @@ import { cn } from '@/lib/utils'
 
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' }) : 'mañana')
 const message = (e: unknown, fallback: string) => (e instanceof CoreError || e instanceof Error ? e.message || fallback : fallback)
-const money = (value: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value)
-const CHANNEL = { menu: 'Menú', whatsapp: 'WhatsApp' } as const
+const CHANNEL = { menu: 'el menú', whatsapp: 'WhatsApp' } as const
 const same = (a: string[], b: string[]) => a.length === b.length && a.every((t) => b.includes(t))
 
 // Plan AS: el mismo asistente atiende el menú y WhatsApp. El dueño revisa las etiquetas con las que el asistente elige
@@ -64,7 +63,7 @@ export function AssistantView() {
   const lift = (person: AssistantParticipant) => run(async () => {
     await liftRestriction(person.id)
     setPeople((list) => list.filter((p) => p.id !== person.id))
-    setNotice(`${person.name || 'El cliente'} puede volver a escribirle al asistente.`)
+    setNotice('El cliente puede volver a escribirle al asistente.')
   })
 
   return (
@@ -85,8 +84,8 @@ export function AssistantView() {
         </div>
         <div className="rounded-lg border border-border p-4 flex flex-col gap-1">
           <span className="text-[13px] text-soft">Hoy</span>
-          <span className="text-[17px] font-semibold">{status.today.turns} {status.today.turns === 1 ? 'mensaje' : 'mensajes'}{status.limit ? ` de ${status.limit}` : ''}</span>
-          <span className="text-[13px] text-soft">{status.today.model_turns} con IA · {money(status.today.cost)}</span>
+          <span className="text-[17px] font-semibold">{status.messages} {status.messages === 1 ? 'mensaje' : 'mensajes'}</span>
+          <span className="text-[13px] text-soft">Hasta {status.perRestaurant} por restaurante y {status.perParticipant} por cliente al día</span>
         </div>
         {(!status.evaluator || !status.voice) && <p className="sm:col-span-3 text-[14px] rounded-md bg-progress-soft text-progress-ink p-3">Sin las claves de IA el asistente sigue atendiendo con respuestas fijas y botones. ProjectApp las activa por ti.</p>}
       </section>
@@ -97,7 +96,7 @@ export function AssistantView() {
         {people.length === 0 ? <p className="text-soft">Nadie está restringido.</p> : (
           <ul className="flex flex-col gap-2">{people.map((p) => (
             <li key={p.id} className="rounded-md border border-border p-3 flex flex-wrap items-center gap-3">
-              <span className="flex-1 min-w-0"><span className="block font-semibold">{p.name || 'Cliente sin nombre'} · {CHANNEL[p.channel]}</span>
+              <span className="flex-1 min-w-0"><span className="block font-semibold">Cliente de {CHANNEL[p.channel]}</span>
                 <span className="block text-[14px] text-soft">{p.reason} · hasta {when(p.until)}</span></span>
               <StatusPill tone={p.standing === 'paused' ? 'danger' : 'progress'}>{p.standing === 'paused' ? 'Pausado' : 'Restringido'}</StatusPill>
               <Button disabled={busy} onClick={() => void lift(p)}>Quitar restricción</Button>

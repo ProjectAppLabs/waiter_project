@@ -1,6 +1,7 @@
 'use client'
 
 import { create } from 'zustand'
+import { announceAdd } from '@/lib/domain/cartEvents'
 
 import { DEFAULT_TEMPLATE, applyPreview, parsePreview, templateFromSpec } from '@/lib/domain/template'
 import { setPreviewReadOnly } from '@/lib/domain/preview'
@@ -147,13 +148,13 @@ export const useDinerStore = create<DinerState>((set, get) => {
       if (get().preview || get().draftToken !== null) { set({ error: 'Estás viendo una vista previa. Abre el menú para realizar esta acción.' }); return  }
       const session = await get().ensureSession()
       if (!session) return
-      await run(async () => set({ cart: await addLine(session.id, productId, qty, note) }))
+      await run(async () => { set({ cart: await addLine(session.id, productId, qty, note) }); announceAdd() })
     },
     addBundle: async (lines) => {
       if (get().preview || get().draftToken !== null) { set({error:'Estás viendo una vista previa. Abre el menú para realizar esta acción.'}); return }
       const session = await get().ensureSession()
       if (!session) return
-      await run(async () => set({cart: await addBundle(session.id,lines)}))
+      await run(async () => { set({cart: await addBundle(session.id,lines)}); announceAdd() })
     },
     setQty: async (lineId, qty) => {
       if (get().preview || get().draftToken !== null) { set({ error: 'Estás viendo una vista previa. Abre el menú para realizar esta acción.' }); return  }

@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'billing',
     'reservations',
     'whatsapp',
+    'assistant',
 ]
 
 MIDDLEWARE = [
@@ -150,9 +151,9 @@ MAILERS = {'default': {
 }}
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'no-reply@example.invalid')
 
-# Agente: solo backend. Sin modelo implícito ni clave en el repositorio.
+# Agente: solo en el servidor, sin claves en el repositorio; el modelo de voz es configurable.
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
-WA_AGENT_MODEL = os.getenv('WA_AGENT_MODEL', '')
+WA_AGENT_MODEL = os.getenv('WA_AGENT_MODEL', 'gpt-6-luna')
 
 AGENT_DAILY_LIMIT = int(os.getenv('AGENT_DAILY_LIMIT', '200'))
 
@@ -197,3 +198,10 @@ WA_GRAPH_VERSION = os.getenv('WA_GRAPH_VERSION', 'v25.0')
 META_APP_ID = os.getenv('META_APP_ID', '')
 WA_SIGNUP_CONFIG_ID = os.getenv('WA_SIGNUP_CONFIG_ID', '')
 WA_TEST_RECIPIENTS = [n.strip() for n in os.getenv('WA_TEST_RECIPIENTS', '').split(',') if n.strip()]
+
+# El asistente funciona con reglas y plantillas cuando las claves están vacías.
+TYPESAFE_API_KEY = os.getenv('TYPESAFE_API_KEY', '')
+ASSISTANT_JEV_MODEL = os.getenv('ASSISTANT_JEV_MODEL', 'jev-1.13.0')
+ASSISTANT_DAILY_PER_PARTICIPANT = int(os.getenv('ASSISTANT_DAILY_PER_PARTICIPANT', '30'))
+WA_AGENT_REASONING_EFFORT = os.getenv('WA_AGENT_REASONING_EFFORT', '')
+WA_AGENT_TEMPERATURE = os.getenv('WA_AGENT_TEMPERATURE', '')

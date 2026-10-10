@@ -47,7 +47,8 @@ def test_comando_procesa_pendientes(entorno, meta):
     call_command('process_whatsapp_events', stdout=output)
     row.refresh_from_db()
     assert row.processed_at and row.attempts == 1
-    assert WhatsAppMessage.objects.count() == 1
+    assert WhatsAppMessage.objects.filter(direction='in').count() == 1
+    assert WhatsAppMessage.objects.filter(direction='out').count() == 1
 
 
 def test_comando_simula_firma_sin_filtrar(settings):

@@ -137,3 +137,15 @@ it('muestra los avisos del asistente como mensajes suyos', async () => {
   expect(texto.closest('.sm-chat-bubble')).toHaveAttribute('data-aviso', 'restringido')
   expect(screen.getByRole('button', { name: 'Ver el menú' })).toBeInTheDocument()
 })
+
+// Falla si el encabezado del chat pierde el acceso al pedido, cuenta platos ajenos o el cierre deja de funcionar.
+it('lleva al pedido desde el encabezado con el número de platos propios', async () => {
+  useDinerStore.setState({ cart: { lineas: [{ mio: true, cantidad: 2 }, { mio: false, cantidad: 4 }] } as never })
+  render(<SmartChat entry={entry} rest="demo" venue="salon" token="mesa8"/>)
+  fireEvent.click(screen.getByRole('button', { name: /Mi mesero/ }))
+  const carrito = screen.getByRole('link', { name: 'Mi pedido, 2 platos' })
+  expect(carrito).toHaveAttribute('href', '/demo/salon/t/mesa8/pedido')
+  expect(carrito).toHaveAttribute('data-cart-target')
+  fireEvent.click(screen.getByRole('button', { name: 'Cerrar conversación' }))
+  expect(screen.getByRole('button', { name: /Mi mesero/ })).toHaveAttribute('aria-expanded', 'false')
+})

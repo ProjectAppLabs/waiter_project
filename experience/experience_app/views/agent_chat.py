@@ -22,7 +22,7 @@ class MessageSerializer(StrictSerializer):
 def messages(request, session_id):
     session = get_object_or_404(TableSession, id=session_id, state__in=TableSession.OPEN_STATES)
     diner = diner_for(request, session)
-    # Browser POST must come from the configured menu origin; API clients still require the owner cookie.
+    # Las escrituras del navegador vienen del menú configurado y requieren la cookie de su comensal.
     origin = request.headers.get('Origin')
     if request.method != 'GET' and origin and origin.rstrip('/') != settings.DINER_PUBLIC_URL:
         return Response({'detail': 'Origen no permitido.'}, status=403)
@@ -36,11 +36,10 @@ def messages(request, session_id):
     body.is_valid(raise_exception=True)
 
     def products():
-        tenant = resolve(session.restaurant_slug, session.venue_slug, session.table_token)
-        menu = catalog.get_catalog(tenant)
-        categories = {c.id: c.name for c in menu.categories}
-        return [{'categorias': [categories[c] for c in p.category_ids if c in categories], 'id': p.id, 'nombre': p.name, 'agotado': p.sold_out, 'descripcion': p.description,
-                 'ingredientes': p.attributes.get('ingredientes', []), 'precio': p.final_price} for p in menu.products]
+        from assistant.selection import catalog_for
+        from tenancy.models import Restaurant
+        local = get_object_or_404(Restaurant.objects.select_related('organization'), organization__slug=session.restaurant_slug, slug=session.venue_slug)
+        return catalog_for(local)
 
     try:
         turn = agent_chat.send(chat, body.validated_data['id'], body.validated_data['mensaje'], products)

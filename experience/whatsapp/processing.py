@@ -22,7 +22,34 @@ MAX_ATTEMPTS = 5
 
 
 def on_incoming_message(message):
-    """Gancho para el asistente de la segunda parte; debe conservar la idempotencia por wamid."""
+    """Un mensaje entrante persistido produce como máximo una respuesta del núcleo."""
+    from assistant.engine import handle
+    from .services import send_text, window_open
+    conversation = message.conversation
+    from datetime import timedelta
+    if (message.received_at and message.received_at <= timezone.now() - timedelta(hours=24)) or not window_open(conversation):
+        return
+    account = conversation.account
+    restaurant = account.restaurant
+    if restaurant is None:
+        # Sin una sede inequívoca no se mezclan cartas ni se inventa una elección.
+        locations = list(account.organization.restaurants.filter(active=True).order_by('id')[:2])
+        if len(locations) != 1:
+            return
+        restaurant = locations[0]
+    action = None
+    if message.type == 'interactive':
+        interactive = message.raw.get('interactive', {})
+        item = interactive.get('button_reply') or interactive.get('list_reply') or {}
+        value = item.get('id')
+        if isinstance(value, str):
+            action = {'type': 'option', 'value': value}
+    if message.type not in ('text', 'interactive'):
+        return
+    reply = handle('whatsapp', restaurant, conversation.wa_id, text=message.text, action=action)
+    if reply['text']:
+        details = '\n'.join(f"{c['name']}: $ {c['price']}" for c in reply['cards'])
+        send_text(conversation, reply['text'] + ('\n' + details if details else ''))
 
 
 def event_time(value):

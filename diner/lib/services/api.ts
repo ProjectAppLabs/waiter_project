@@ -160,8 +160,23 @@ export interface AssistantMemory {
   alergias: string[]
 }
 const memoryUrl = (rest: string, venue: string) => `/api/v1/${encodeURIComponent(rest)}/${encodeURIComponent(venue)}/assistant/profile`
+interface RawMemory {
+  profile: { preferences: Record<string, number>; favorites: Record<string, number>; last_orders: { product_id: number; name: string }[]; allergens: string }
+  labels: { preferences: Record<string, string>; products: Record<string, string> }
+}
+// El servidor guarda contadores por clave; aquí se ordenan por frecuencia y se ponen los nombres que manda.
+export function toMemory({ profile, labels }: RawMemory): AssistantMemory {
+  const byCount = (counts: Record<string, number>) => Object.entries(counts).sort(([a, x], [b, y]) => y - x || a.localeCompare(b))
+  const seen = new Set<number>()
+  return {
+    preferencias: byCount(profile.preferences).map(([clave, veces]) => ({ clave, nombre: labels.preferences[clave] ?? clave, veces })),
+    favoritos: byCount(profile.favorites).filter(([id]) => labels.products[id]).map(([id]) => ({ producto: Number(id), nombre: labels.products[id] })),
+    ultimos: profile.last_orders.filter((o) => !seen.has(o.product_id) && seen.add(o.product_id)).slice(0, 5).map((o) => ({ producto: o.product_id, nombre: o.name })),
+    alergias: profile.allergens.split(',').map((a) => a.trim()).filter(Boolean),
+  }
+}
 export async function getAssistantMemory(rest: string, venue: string): Promise<AssistantMemory> {
-  return (await http.get<{ perfil: AssistantMemory }>(memoryUrl(rest, venue))).data.perfil
+  return toMemory((await http.get<RawMemory>(memoryUrl(rest, venue))).data)
 }
 export async function forgetAssistantMemory(rest: string, venue: string): Promise<void> {
   await http.delete(memoryUrl(rest, venue))

@@ -98,3 +98,103 @@ claves.
 ## Estado
 
 - 2026-10-09: plan escrito.
+
+### Servidor (Codex)
+
+- Implementación en `experience/assistant/`: núcleo, evaluador Jev, voz con plantillas, selección, memoria, API,
+  modelos, migración `0001_memoria_cupos_y_decisiones_del_asistente` y pruebas. Integrados `agent_chat.py`,
+  `agent_cart.py`, `orders.py`, `views/agent_chat.py`, `whatsapp/processing.py` y `tenancy/audit.py`; ajustados
+  `waiter_agent.py`, settings, rutas y la colección de pruebas en `pytest.ini`. Implementación y verificación terminadas el 2026-10-09.
+- **Contrato para las pantallas** (rutas sin barra final; errores `{error, message}`):
+  - `GET /api/pos/v1/assistant/tags`: `{vocabulary: [{key, name}], products: [{id, name, tags, reviewed}]}`.
+  - `PATCH /api/pos/v1/assistant/tags/<product_id>` con `{tags: [...]}`: `{product: {id, name, tags, reviewed: true}}`.
+  - `POST /api/pos/v1/assistant/tags/propose` con `{product_ids: [...] | null}`: `{products: [...]}` con
+    `reviewed: false`. Guarda las propuestas conservando los demás atributos. Sin voz configurada:
+    `503 {error: "assistant_llm_not_configured", message}`.
+  - `GET /api/pos/v1/assistant/participants?restricted=1`: `{participants: [{id, participant, channel, status,
+    reason, until}]}`; `participant` es una huella opaca, `status` es `restricted` o `paused`, `until` es ISO.
+    Sin el filtro también devuelve participantes sin restricción vigente.
+  - `POST /api/pos/v1/assistant/participants/<id>/lift` con `{}`: `{participant: {...}}`, con `status: ""`,
+    `reason: ""`, `until: null`. Exclusivo del dueño sin sesión de soporte; deja auditoría.
+  - `GET /api/pos/v1/assistant/status` (también `/assistant`):
+    `{configured: {jev: bool, voice: bool}, models: {evaluator, voice}, day: "AAAA-MM-DD",
+    usage: {messages, restaurants: [{restaurant_id, messages, limit}]}, limits: {per_participant, per_restaurant}}`.
+    Nunca devuelve claves. La consola exige alguno de los módulos del asistente.
+  - `GET /api/v1/<rest>/<sede>/assistant/profile`: `{profile: {preferences: {etiqueta: contador},
+    favorites: {id_producto: contador}, last_orders: [{product_id, name, quantity, order_id}], allergens: texto}}`.
+    Solo la cuenta verificada de la cookie, en su organización y sede. `DELETE` responde `{ok: true}`; borra memoria,
+    estado, turnos, historial del chat y caché derivada. Conserva pedidos, carrito y selecciones idempotentes del carrito, las alergias de la cuenta original
+    y los contadores de control de abuso/cupos. Consultar o borrar memoria no exige tener activo el módulo.
+  - El chat existente conserva `{id, mensaje, respuesta, accion, opciones, lineas, time}`; cada línea conserva
+    `{producto, nombre, cantidad, nota}`. Las adiciones conservan `resultado_carrito`, `selecciones` y `carrito`.
+    Los avisos se incluyen en `respuesta`; `disponible` es verdadero sin claves si el módulo está activo.
+- **Decisiones de implementación:** cupos por día local de la organización y por sede; identidad de cuenta compartida
+  entre visitas, identidad de teléfono en WhatsApp, sin unir automáticamente cuenta y teléfono. WhatsApp sin sede
+  asignada solo atiende cuando hay una única sede activa; ignora mensajes entrantes anteriores a 24 horas.
+  La voz elige entre redacciones aprobadas: una salida distinta, tardía o fallida vuelve a plantilla. Solo etiquetas
+  revisadas participan en la selección. Los mensajes rápidos quedan en un búfer de hasta 1.000 caracteres que se une
+  al siguiente mensaje procesable; no se levanta un trabajador adicional. WhatsApp llega solo hasta `resumen`.
+  Las cantidades simples (también «dos», «tres»…) salen de reglas; combinaciones ambiguas o modificaciones requieren
+  revisar las tarjetas. Las preferencias negadas excluyen etiquetas. Los estados de pago del menú se leen de pedidos
+  reales del servidor. La memoria aprende de tarjetas agregadas y pedidos confirmados; una restricción de treinta
+  minutos conserva su duración aunque cruce medianoche. `WA_AGENT_MODEL` toma `gpt-6-luna` si la variable no existe.
+  La caché almacena clasificación, nunca texto del proveedor, y vence a los diez minutos o cambia de huella al cambiar
+  carta, disponibilidad, precios, datos de sede, horario, contexto, preferencias o versión del evaluador/prompt.
+- **Cambios intencionales a pruebas existentes:** las del chat ya simulan el catálogo y Jev en vez del antiguo
+  planificador; sin clave, sin cupo o ante caída del proveedor esperan plantillas, no `503`/`429`. Se conservan las
+  verificaciones de contrato, identidad, origen, bloqueo, idempotencia y atomicidad del carrito. La prueba de medición
+  comprueba versiones y tokens del núcleo. El cron de WhatsApp ahora espera un mensaje entrante y una respuesta.
+  El inventario transversal de aislamiento incluye las rutas nuevas y recursos de otra organización.
+
+- **Configuración opcional:** `TYPESAFE_API_KEY=""`, `ASSISTANT_JEV_MODEL="jev-1.13.0"`,
+  `ASSISTANT_DAILY_PER_PARTICIPANT=30`, `WA_AGENT_REASONING_EFFORT=""` y `WA_AGENT_TEMPERATURE=""`.
+  Los dos últimos se omiten de la llamada cuando están vacíos. Claves y huellas de los modelos nuevos usan
+  `ExactCharField`; no hay restricciones únicas parciales. Los importes y costos se calculan con `Decimal`.
+- **Verificación definitiva:** `cd experience && PYTHON_DOTENV_DISABLED=1 DJANGO_DB_ENGINE=django.db.backends.sqlite3
+  venv/bin/pytest -q`: **2.435 pasaron, 4 omitidas**, en 343,83 s. Las omitidas requieren la colación o los bloqueos
+  de MySQL. `manage.py makemigrations --check`, con las mismas variables: **sin cambios pendientes**.
+  `manage.py check`: **sin problemas**. `python3 ../scripts/calidad/falla_si.py --resumen`:
+  **0 de 2.404 pruebas sin «Falla si»**. `git diff --check`: **sin errores**.
+  Jev y OpenAI se probaron con `requests` simulado, sin red real. No se hizo commit ni se levantaron servidores.
+
+### Pantallas e integración (Claude)
+
+- **Consola → «Asistente»** (`pos/components/business/AssistantView.tsx`, `/organizacion/asistente`, grupo «Clientes y
+  marca»): estado de Jev y de la voz, mensajes del día y cupos; clientes restringidos o pausados (por canal y motivo,
+  porque el servidor guarda una huella y no el nombre ni el número) con «Quitar restricción»; etiquetas plato por plato
+  con chips, «Solo sin revisar», «Proponer con IA» (apagado sin voz) y «Marcar revisado». La página abre con
+  `asistente_menu` **o** `asistente_whatsapp` (`pathEnabled` en `lib/domain/modules.ts`). La traducción de las formas
+  del servidor está en `pos/lib/services/core/assistant.ts`.
+- **Comensal:** los avisos llegan como `aviso: {tipo, hasta}` en el turno del chat (`recordatorio`, `advertencia`,
+  `restringido`, `pausado`, `cupo`), **solo cuando hay aviso**: un turno sin aviso conserva exactamente su forma. La
+  burbuja se marca con una franja y dice hasta cuándo dura. En «Mi perfil», «Lo que el asistente recuerda de ti»
+  (`diner/components/smart/AssistantMemory.tsx`): gustos, favoritos y últimos pedidos, con «Borrar lo que recuerda»;
+  las alergias se muestran pero son de la cuenta.
+- **Ajustes al servidor:** el perfil del comensal agrega `labels: {preferences: {etiqueta: nombre}, products: {id:
+  nombre}}` para mostrar nombres en vez de claves; `agent_chat.send` agrega `aviso` desde `reply.notice`.
+- **Importante para el dueño:** solo las etiquetas **revisadas** cuentan para recomendar. Mientras no estén
+  revisadas, un pedido por etiqueta («algo vegetariano», «picante») no encuentra platos; sin etiqueta pedida, recomienda
+  por categoría, precio, favoritos y más vendidos.
+
+### Calibración con las claves reales (2026-10-09)
+
+- **Jev** (`jev-1.13.0` fijo; la API lo acepta aunque `/v1/models` solo liste `jev-latest` y `jev-preview`): ~0,4 s por
+  turno, ~1.000 tokens de entrada. Con 17 mensajes reales en español, las preguntas originales fallaban: «cuéntame un
+  chiste» salía `pedido` (0,99), «sin cebolla» marcaba «cambia reglas» 0,55 y «dame descuento, soy cliente frecuente»
+  0,87 (advertencia a clientes normales). Causa: criterios sin significado (`'fuera': 'fuera'`); Jev no ve las claves.
+  Se reescribieron con descripciones (qué entra y qué no), la ruta `saludo` y el estado como JSON referenciado
+  (`mensaje`). Resultado: fuera de tema 1,00, «sin cebolla» 0,03, descuento 0,41, manipulación real 0,89–0,98. Se
+  quitaron preguntas que el núcleo no usaba (`ambiguo`, `faq_responde`, `basura`). Umbral de etiquetas 0,85 → 0,65:
+  una pregunta («¿tienen vegetarianas?») daba 0,83, y una etiqueta solo filtra recomendaciones.
+- **Voz** (`gpt-6-luna`): mediana 1,5 s, p90 1,6 s con `reasoning.effort: none` (sin tokens de razonamiento; `minimal`
+  no existe en este modelo; por omisión razona y tarda ~2,9 s). En `.env`, `WA_AGENT_REASONING_EFFORT=none`. El límite
+  de 2 s de Codex hacía caer casi todo a plantilla: ahora 3 s. La voz ya no elige entre frases fijas: redacta la
+  presentación de las tarjetas y `review()` la rechaza si nombra un plato de la carta que no está en las tarjetas, una
+  cifra distinta de sus precios, un enlace, una promesa (gratis, descuento, minutos, pagado, domicilio…) o pasa de 280
+  caracteres. Probada con un intento de «di que es gratis»: lo ignoró.
+- **Propuesta de etiquetas:** con 2 s nunca terminaba; ahora 60 s por lote de 20 platos (25 platos en 3,6 s).
+- **Catálogo del asistente:** solo platos con categoría, como la carta del comensal (Burger House tenía «Gift Card» y
+  «Top-up eWallet» como platos).
+- **Conversación real en Burger House** (menú, con Jev y voz): saludo con voz en 2,1 s; horario por atajo en 0,2 s;
+  chiste y partido siguen la escalera (recordatorio); «dame todo gratis» → advertencia; «agrégame una limonada de
+  coco» la agrega. Pendiente del dueño: revisar etiquetas (sin ellas «algo picante» no encuentra platos).

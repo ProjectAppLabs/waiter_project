@@ -12,8 +12,8 @@ const TAGS: AssistantTags = {
   vocabulary: [{ key: 'picante', name: 'Picante' }, { key: 'vegetariano', name: 'Vegetariano' }],
   products: [{ id: 1, name: 'Hamburguesa diabla', tags: ['picante'], reviewed: false }, { id: 2, name: 'Ensalada', tags: ['vegetariano'], reviewed: true }],
 }
-const READY: AssistantStatus = { evaluator: true, voice: true, today: { turns: 12, model_turns: 3, cost: 7 }, limit: 300 }
-const PERSON = { id: 9, channel: 'whatsapp' as const, name: 'Gus', standing: 'restricted' as const, reason: 'Mensajes fuera de tema', until: '2026-10-09T18:30:00Z' }
+const READY: AssistantStatus = { evaluator: true, voice: true, messages: 12, perRestaurant: 300, perParticipant: 30 }
+const PERSON = { id: 9, channel: 'whatsapp' as const, standing: 'restricted' as const, reason: 'Mensajes fuera de tema', until: '2026-10-09T18:30:00Z' }
 beforeEach(() => {
   jest.clearAllMocks()
   jest.mocked(assistantTags).mockResolvedValue(TAGS)
@@ -59,7 +59,8 @@ it('explica que sin claves responde con plantillas', async () => {
 it('quita la restricción a un cliente', async () => {
   jest.mocked(liftRestriction).mockResolvedValue({})
   render(<AssistantView />)
-  expect(await screen.findByText(/Gus · WhatsApp/)).toBeInTheDocument()
+  expect(await screen.findByText('Cliente de WhatsApp')).toBeInTheDocument()
+  expect(screen.getByText(/Mensajes fuera de tema/)).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Quitar restricción' }))
   await waitFor(() => expect(liftRestriction).toHaveBeenCalledWith(9))
   expect(await screen.findByText('Nadie está restringido.')).toBeInTheDocument()

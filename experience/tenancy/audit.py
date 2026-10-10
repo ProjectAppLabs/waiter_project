@@ -53,6 +53,7 @@ SUPPORT_ENTITIES = {
     "billing.resolution": "Resolución de facturación",
     "billing.salesdocument": "Documento de venta",
 }
+ENTITIES['assistant.assistantstanding'] = 'Aviso del asistente'
 ENTITIES.update(SUPPORT_ENTITIES)
 VERBS = {"created": "Creación", "updated": "Cambio", "deleted": "Eliminación"}
 ACTIONS = {
@@ -88,6 +89,8 @@ def set_actor(actor, support=False):
 
 
 def snapshot(obj):
+    if obj is not None and obj._meta.label_lower == 'assistant.assistantstanding':
+        return {name: json_value(getattr(obj, name)) for name in ('level', 'reason', 'until', 'restricted_day')}
     if obj is None:
         return {}
     data = {}

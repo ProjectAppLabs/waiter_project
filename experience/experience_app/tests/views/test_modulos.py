@@ -31,20 +31,25 @@ def test_chat_apagado_y_configuracion(api_client, table_tenant, catalog_stub, tw
 # Falla si el mensaje respondido o sus tokens se cuentan dos veces al repetir el UUID.
 def test_medicion_chat_y_tokens(api_client, two_diners, settings):
     from experience_app.services import agent_chat
-    from experience_app.services.waiter_agent import ModelPlan
-    settings.OPENAI_API_KEY = 'prueba'
-    settings.WA_AGENT_MODEL = 'prueba'
-    plan = ModelPlan(accion='recomendar', pregunta='ninguna', lineas=[])
-    plan.usage = {'input_tokens': 12, 'output_tokens': 8}
+    from unittest.mock import Mock
+    from assistant.evaluator import JevEvaluator
+    settings.TYPESAFE_API_KEY = 'prueba'
+    settings.OPENAI_API_KEY = ''
+    evaluador = JevEvaluator()
+    evaluador.usage = {'input_tokens': 12, 'output_tokens': 8}
+    evaluador.evaluate = Mock(return_value={'ruta': {'choice': 'menu', 'confidence': .99}})
     chat = agent_chat.conversation('burger-house', 'poblado', 'menu', 'ana')
     clave = uuid4()
-    with patch('experience_app.services.waiter_agent.propose', return_value=plan) as modelo:
-        agent_chat.send(chat, clave, 'Hola', lambda: [])
-        agent_chat.send(chat, clave, 'Hola', lambda: [])
-    assert modelo.call_count == 1
+    with patch('assistant.engine.JevEvaluator', return_value=evaluador):
+        agent_chat.send(chat, clave, 'Una sugerencia diferente', lambda: [])
+        agent_chat.send(chat, clave, 'Una sugerencia diferente', lambda: [])
+    assert evaluador.evaluate.call_count == 1
     assert UsageRecord.objects.get(unit='mensaje_ia').quantity == 1
     assert UsageRecord.objects.get(unit='tokens_ia').quantity == 20
-    assert UsageRecord.objects.get(unit='tokens_ia').detail == {'input_tokens': 12, 'output_tokens': 8}
+    detalle = UsageRecord.objects.get(unit='tokens_ia').detail
+    assert detalle['input_tokens'] == 12 and detalle['output_tokens'] == 8
+    assert detalle['evaluator_version'] == settings.ASSISTANT_JEV_MODEL
+
 
 
 # Falla si apagar los módulos impide liberar al POS un pedido ya pagado y consumir su premio reservado.

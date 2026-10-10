@@ -201,3 +201,18 @@ it('recupera el local y sus beneficios y permite consultar un borrador identific
   expect(await api.getDesignContract()).toEqual({ componentes: [] })
   enviado('get', '/api/v1/diseno/')
 })
+
+// Falla si lo que recuerda el asistente pierde el orden por frecuencia, muestra claves en vez de nombres, repite un plato
+// en los últimos pedidos o muestra un favorito que ya no está en la carta.
+it('traduce la memoria del asistente a lo que lee el comensal', () => {
+  expect(api.toMemory({
+    profile: { preferences: { dulce: 1, picante: 3 }, favorites: { '7': 2, '9': 5 }, allergens: 'Maní, mariscos',
+      last_orders: [{ product_id: 7, name: 'Sopa' }, { product_id: 7, name: 'Sopa' }, { product_id: 8, name: 'Limonada' }] },
+    labels: { preferences: { picante: 'Picante' }, products: { '7': 'Sopa' } },
+  })).toEqual({
+    preferencias: [{ clave: 'picante', nombre: 'Picante', veces: 3 }, { clave: 'dulce', nombre: 'dulce', veces: 1 }],
+    favoritos: [{ producto: 7, nombre: 'Sopa' }],
+    ultimos: [{ producto: 7, nombre: 'Sopa' }, { producto: 8, nombre: 'Limonada' }],
+    alergias: ['Maní', 'mariscos'],
+  })
+})

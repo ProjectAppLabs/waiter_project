@@ -148,6 +148,8 @@ def _confirm(session: TableSession, diner: Diner | None = None, takeaway: bool |
                 line.account_id = line.diner.account_id
                 line.save(update_fields=['account'])
         session.lines.filter(id__in=[line.id for line in new_lines]).update(status=CartLine.CONFIRMED, order=order)
+        from assistant.profiles import record_order
+        record_order(order, new_lines)
         if not order.requires_payment:
             DinerAccount.objects.filter(discount_order=order, discount_used_at=None).update(discount_used_at=timezone.now())
             rewards.use_reserved(order)

@@ -3,6 +3,8 @@
 /* eslint-disable @next/next/no-img-element -- Photos already come resized from the restaurant API; logos can be local upload previews. */
 
 import Link from 'next/link'
+import { CartToss } from './CartToss'
+import { myCount } from '@/lib/domain/cartEvents'
 import { useRouter } from 'next/navigation'
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { gsap } from 'gsap'
@@ -721,9 +723,7 @@ export function SmartExperience({
   // Plan W: sin fidelización, las pantallas de cuenta muestran un aviso en lugar de su contenido.
   const accountOff = accountScreen(route.screen) && !dinerHas(props.entry, 'fidelizacion')
   const screen = accountOff ? 'no-disponible' : route.screen
-  const count = (cart?.lineas ?? [])
-    .filter((l) => l.mio)
-    .reduce((n, l) => n + l.cantidad, 0)
+  const count = myCount(cart)
   const showConfirm = screen === 'pedido' && !!cart?.lineas.length
   const showCart = count > 0 && ['portada', 'carta', 'favoritos', 'historial', 'cuenta'].includes(screen)
   // Solo en la ficha del plato: «Mi mesero» se queda con su icono (el comensal ya lo conoce de la carta) y deja sitio a la
@@ -782,11 +782,12 @@ export function SmartExperience({
         {screen === 'cuenta/codigo' && <SmartCode />}
       </div>
       {/* En el pago no hay muelle: la persona ya está pagando y «Mi mesero» solo la distraería (tampoco en la reserva). */}
+      <CartToss />
       {!['reserva', 'pago'].includes(screen) && <div ref={dockRef} className={`sm-action-dock${showCart || showConfirm || compactDock ? ' sm-action-dock-pair' : ''}${compactDock ? ' sm-action-dock-compacto' : ''}`}>
         {dinerHas(props.entry, 'asistente_menu') && <SmartChat key={`${props.rest}/${props.venue}/${props.token}`} entry={props.entry} rest={props.rest} venue={props.venue} token={props.token}/>}
         {showConfirm && <div className="sm-confirm-slot" ref={setCartActionTarget}/>}
         {screen === 'plato' && <div className="sm-confirm-slot" ref={setDishActionTarget}/>}
-        {showCart && <Link href={href('pedido')} className="sm-cart-float">
+        {showCart && <Link href={href('pedido')} className="sm-cart-float" data-cart-target>
           <span className="sm-count">{count}</span>
           <span>Mi pedido<small>{money(cart?.mio ?? 0)}</small></span>
         </Link>}
