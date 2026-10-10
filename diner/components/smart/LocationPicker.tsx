@@ -4,12 +4,12 @@ import { useEffect, useRef, useState } from 'react'
 import type { Map as MapLibreMap, MapMouseEvent } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
-import { flavorOverrides, HIDDEN_POIS, MAP_VARIANTS, mapPalette, type MapPalette, type MapVariant } from '@/lib/domain/mapTheme'
+import { flavorOverrides, MAP_VARIANTS, mapPalette, referenceColors, referenceLayer, type MapPalette, type MapVariant } from '@/lib/domain/mapTheme'
 
 export interface Point { lat: number; lng: number }
 const same = (a: Point, b: Point) => Math.abs(a.lat - b.lat) < 1e-6 && Math.abs(a.lng - b.lng) < 1e-6
-// El mapa vectorial (Protomaps) que sirve el comensal; en producción, el recorte de Colombia.
-const TILES = process.env.NEXT_PUBLIC_MAP_TILES || '/mapas/medellin.pmtiles'
+// El mapa vectorial de Colombia (Protomaps, ~920 MB, servido por rangos); se puede apuntar a otro con NEXT_PUBLIC_MAP_TILES.
+const TILES = process.env.NEXT_PUBLIC_MAP_TILES || '/mapas/colombia.pmtiles'
 const ASSETS = 'https://protomaps.github.io/basemaps-assets'
 let protocolReady = false
 
@@ -56,8 +56,9 @@ export function LocationPicker({ center, value, onChange, label = 'Mapa para ubi
         const theme = themeOf(wrap.current)
         setPalette(theme)
         const flavor = { ...namedFlavor(theme.palette.base), ...flavorOverrides(theme.palette) }
-        const style = layers('protomaps', flavor as ReturnType<typeof namedFlavor>, { lang: 'es' }).map((layer) => (layer.id === 'pois' && 'filter' in layer && layer.filter
-          ? { ...layer, filter: ['all', layer.filter, ['!', ['in', ['get', 'kind'], ['literal', HIDDEN_POIS]]]] } : layer))
+        // Los lugares del mapa son puntos de referencia (droguerías, supermercados, bancos, iglesias…), nunca la competencia.
+        const style = layers('protomaps', flavor as ReturnType<typeof namedFlavor>, { lang: 'es' }).map((layer) => (layer.id === 'pois'
+          ? referenceLayer(layer as never, theme.palette) : layer))
         const start = latest.current ?? center
         const url = TILES.startsWith('http') ? TILES : `${window.location.origin}${TILES}`
         const m = new maplibregl.Map({
@@ -107,6 +108,7 @@ export function LocationPicker({ center, value, onChange, label = 'Mapa para ubi
     // La paleta queda en atributos para que el verificador de diseño mida su contraste (el mapa es un lienzo WebGL).
     <div ref={wrap} className="sm-map-wrap" data-mapa-estilo={palette?.variant} data-mapa-terreno={p?.earth} data-mapa-etiqueta={p?.label}
       data-mapa-pin={p?.pin} data-mapa-fondos={p ? [p.earth, p.park, p.water, p.buildings, p.minor, p.major].join(' ') : undefined}
+      data-mapa-lugares={p ? Object.values(referenceColors(p)).join(' ') : undefined}
       style={p ? { ['--sm-map-pin' as string]: p.pin, ['--sm-map-pin-ring' as string]: p.pinRing } : undefined}>
       <div ref={box} className="sm-map" role="application" aria-label={label} />
       {failed && <p className="sm-map-fallback" role="status">No pudimos mostrar el mapa. Escribe la dirección o usa tu ubicación.</p>}

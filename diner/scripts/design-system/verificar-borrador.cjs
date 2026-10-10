@@ -227,6 +227,11 @@ function mapCheck() {
       const label = ratio(wrap.dataset.mapaEtiqueta, f), pin = ratio(wrap.dataset.mapaPin, f)
       if (label < 4.5) problems.push(`${name}: las etiquetas ${wrap.dataset.mapaEtiqueta} sobre ${f} tienen ${label.toFixed(2)}:1 (mínimo 4.5)`)
       if (pin < 3) problems.push(`${name}: el pin ${wrap.dataset.mapaPin} sobre ${f} tiene ${pin.toFixed(2)}:1 (mínimo 3)`)
+      // Los puntos de referencia (droguerías, bancos…) también son texto que el cliente lee.
+      for (const color of (wrap.dataset.mapaLugares || '').split(' ').filter(Boolean)) {
+        const r2 = ratio(color, f)
+        if (r2 < 4.5) problems.push(`${name}: los lugares ${color} sobre ${f} tienen ${r2.toFixed(2)}:1 (mínimo 4.5)`)
+      }
     }
     const canvas = wrap.querySelector('canvas')
     if (!canvas || canvas.width < 2) problems.push(`${name}: el mapa no dibujó su lienzo`)

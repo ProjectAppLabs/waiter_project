@@ -99,5 +99,48 @@ export function flavorOverrides(p: MapPalette): Record<string, string> {
   }
 }
 
-// Lugares de interés que ayudan a ubicarse. Nunca restaurantes, cafés ni bares: el mapa no le muestra la competencia.
-export const HIDDEN_POIS = ['restaurant', 'fast_food', 'cafe', 'bar', 'pub', 'food_court', 'ice_cream', 'bakery', 'biergarten', 'nightclub', 'confectionery', 'deli']
+// Lugares que nunca se muestran: restaurantes, cafés y bares (la competencia) ni sitios inapropiados para el menú.
+export const HIDDEN_POIS = ['restaurant', 'fast_food', 'cafe', 'bar', 'pub', 'food_court', 'ice_cream', 'bakery', 'biergarten', 'nightclub', 'confectionery', 'deli',
+  'pastry', 'snack', 'erotic', 'casino', 'brothel', 'stripclub', 'love_hotel', 'alcohol']
+
+// Puntos de referencia para ubicar la entrega («al lado de la droguería»), por grupo; cada grupo con su color legible.
+export const REFERENCE_GROUPS = {
+  salud: ['pharmacy', 'chemist', 'clinic', 'hospital', 'doctors', 'dentist', 'veterinary'],
+  compras: ['supermarket', 'convenience', 'mall', 'department_store', 'marketplace', 'greengrocer', 'hardware', 'doityourself', 'butcher', 'optician', 'florist', 'stationery'],
+  servicios: ['bank', 'atm', 'fuel', 'post_office', 'police', 'fire_station', 'hotel', 'laundry', 'fitness_centre', 'charging_station', 'car_wash', 'car_repair'],
+  comunidad: ['school', 'university', 'college', 'kindergarten', 'library', 'place_of_worship', 'community_centre', 'townhall'],
+  transporte: ['bus_station', 'station', 'tram_stop', 'taxi', 'aerodrome', 'ferry_terminal'],
+  naturaleza: ['park', 'garden', 'playground', 'sports_centre', 'stadium', 'dog_park', 'recreation_ground'],
+  cultura: ['museum', 'theatre', 'cinema', 'attraction', 'arts_centre', 'monument', 'viewpoint'],
+} as const
+export type ReferenceGroup = keyof typeof REFERENCE_GROUPS
+const GROUP_HUES: Record<ReferenceGroup, string> = {
+  salud: '#C62F3B', compras: '#1A6FA8', servicios: '#5E4FA2', comunidad: '#6B5A2E', transporte: '#2F55C4', naturaleza: '#1F7A45', cultura: '#A8327A',
+}
+const DARK_HUES: Record<ReferenceGroup, string> = {
+  salud: '#FF8A8A', compras: '#7CC4F2', servicios: '#B9A8F5', comunidad: '#E3CC8A', transporte: '#93B1FF', naturaleza: '#7FD6A0', cultura: '#F59AD0',
+}
+
+// El color de cada grupo, ajustado para leerse con 4.5:1 sobre todo lo que puede quedar detrás de la etiqueta.
+export function referenceColors(p: MapPalette): Record<ReferenceGroup, string> {
+  const surfaces = [p.earth, p.halo, p.park, p.buildings, p.minor, p.major, p.water]
+  const hues = p.base === 'dark' ? DARK_HUES : p.base === 'grayscale' ? null : GROUP_HUES
+  return Object.fromEntries((Object.keys(REFERENCE_GROUPS) as ReferenceGroup[]).map((g) =>
+    [g, readableText(hues ? hues[g] : p.place, surfaces, p.place)])) as Record<ReferenceGroup, string>
+}
+
+type Layer = { id: string; filter?: unknown; paint?: Record<string, unknown>; layout?: Record<string, unknown> } & Record<string, unknown>
+// La capa de lugares del mapa: solo los puntos de referencia, nunca la competencia, con colores legibles por grupo.
+export function referenceLayer(layer: Layer, p: MapPalette): Layer {
+  const colors = referenceColors(p)
+  const kinds = Object.values(REFERENCE_GROUPS).flat()
+  const color: unknown[] = ['match', ['get', 'kind']]
+  for (const [group, list] of Object.entries(REFERENCE_GROUPS)) color.push([...list], colors[group as ReferenceGroup])
+  color.push(p.place)
+  return {
+    ...layer,
+    // A partir del zoom de cada lugar (el mapa decide cuáles caben); en el zoom de entrega se ven los del barrio.
+    filter: ['all', ['in', ['get', 'kind'], ['literal', kinds.filter((k) => !HIDDEN_POIS.includes(k))]], ['>=', ['zoom'], ['-', ['get', 'min_zoom'], 1]]],
+    paint: { ...(layer.paint ?? {}), 'text-color': color, 'text-halo-color': p.halo, 'text-halo-width': 1.6 },
+  }
+}

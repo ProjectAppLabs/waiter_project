@@ -290,3 +290,15 @@ es único por organización. El inventario transversal incorpora GET/PUT de ajus
   sale de OpenStreetMap. Si Google falla, busca Nominatim. `delivery.MapsUsage` cuenta las consultas pagas por
   organización, día y tipo; `manage.py consumo_mapas [--dias 30]` las resume con su costo sin cuota gratis. Las rutas de
   sugerencias y lugar quedan en el servidor por si se vuelven a usar, pero el comensal ya no las llama.
+- **Colombia completa y puntos de referencia (2026-10-10):** el mapa usa `public/mapas/colombia.pmtiles` (recorte de
+  Colombia, 918 MB, zoom 15; `diner/scripts/mapas/descargar.sh [colombia|medellin]` lo descarga o actualiza; no va a
+  git). La capa de lugares muestra **puntos de referencia** para ubicar la entrega, por grupos y con color legible
+  (`REFERENCE_GROUPS` en `mapTheme.ts`): salud (droguerías, clínicas, hospitales), compras (supermercados, tiendas,
+  centros comerciales), servicios (bancos, cajeros, gasolineras, hoteles, mensajería), comunidad (colegios, iglesias,
+  bibliotecas), transporte, naturaleza y cultura; nunca restaurantes, cafés, bares ni sitios inapropiados. Los colores
+  de Protomaps por defecto no cumplían 4.5:1; los nuestros sí (pruebas y `mapCheck` con `data-mapa-lugares`). Sin
+  costo: los lugares vienen en los datos del mapa.
+- **Sede de prueba en Duitama:** Burger House pasa a 3 sedes (límite del plan de prueba subido a 3) con `duitama`
+  (5.8267, −73.0337; copia de Poblado: precios, medios de pago y ajustes; el diseño es de la organización), domicilio
+  activo (5 km, $3.000 hasta 2 km y $5.000 hasta 5 km, mínimo $15.000, los tres métodos). Verificación del navegador
+  sobre Duitama: sin problemas.
