@@ -21,6 +21,8 @@
   --kit-danger: #EF4444; --kit-danger-soft: #FEF3F2; --kit-danger-ink: #B91C1C;
   --kit-info: #6172F3; --kit-info-soft: #EEF4FF; --kit-info-ink: #3538CD;
   --kit-reserved: #0F172A; --kit-reserved-ink: #FFFFFF;
+  /* Plan D: los domicilios se distinguen en caja con su propio color (verde azulado). */
+  --kit-delivery: #0D9488; --kit-delivery-soft: #F0FDFA; --kit-delivery-ink: #0F766E;
   color-scheme: light;
 }
 [data-theme=dark] {
@@ -32,6 +34,7 @@
   --kit-danger-soft: #7F1D1D; --kit-danger-ink: #FECACA;
   --kit-info-soft: #1E2A44; --kit-info-ink: #C7D2FE;
   --kit-reserved: #F7F7F7; --kit-reserved-ink: #131316;
+  --kit-delivery: #2DD4BF; --kit-delivery-soft: #134E4A; --kit-delivery-ink: #99F6E4;
   color-scheme: dark;
 }
 
@@ -57,6 +60,7 @@
   --color-danger: var(--kit-danger); --color-danger-soft: var(--kit-danger-soft); --color-danger-ink: var(--kit-danger-ink);
   --color-info: var(--kit-info); --color-info-soft: var(--kit-info-soft); --color-info-ink: var(--kit-info-ink);
   --color-reserved: var(--kit-reserved); --color-reserved-ink: var(--kit-reserved-ink);
+  --color-delivery: var(--kit-delivery); --color-delivery-soft: var(--kit-delivery-soft); --color-delivery-ink: var(--kit-delivery-ink);
   --font-ui: 'Open Sans', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
   --tracking-wordmark: -0.035em; --tracking-monogram: -0.05em; --tracking-title: -0.02em;
@@ -142,6 +146,12 @@ body { background: var(--color-canvas); color: var(--color-ink); font-family: va
   .comanda-dish { font-size: 17px; }
   .comanda-option { font-size: 14px; padding-left: 4mm; }
   .comanda-note { font-size: 15px; font-weight: 800; }
+  .delivery-receipt { padding: var(--paper-pad); font-size: 13px; line-height: 1.35; }
+  .delivery-receipt h2 { font-size: 18px; font-weight: 800; text-align: center; border-bottom: 2px solid #000; }
+  .delivery-receipt .dr-block { margin-top: 2mm; padding-bottom: 2mm; border-bottom: 1px dashed #000; }
+  .delivery-receipt .dr-strong { font-size: 15px; font-weight: 800; }
+  .delivery-receipt .dr-row { display: flex; justify-content: space-between; gap: 2mm; }
+  .delivery-receipt .dr-total { font-size: 17px; font-weight: 800; }
 }
 
 /* Globitos de la línea de tiempo de reservas: la flecha se mece hacia el lado donde hay reservas fuera de la vista. */

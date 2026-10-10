@@ -9,6 +9,7 @@ import { OrderLocationRow } from '@/components/orders/OrderLocationRow'
 import type { OrderLocation } from '@/lib/domain/orderLocation'
 import { ProgressRing } from '@/components/orders/ProgressRing'
 import { Button } from '@/components/ui/Button'
+import { DeliveryBadge } from '@/components/orders/DeliveryPanel'
 import { formatCop } from '@/lib/domain/money'
 import { canCharge, lineGroup, type KitLine, type KitOrder, type KitStatus, type LineGroup } from '@/lib/domain/orderState'
 import { cn } from '@/lib/utils'
@@ -130,9 +131,11 @@ export function OrderCard({ order, location, status, percent, variant = 'full', 
   const t = useTranslations('orders')
   const chargeable = canCharge(order) && mayCharge
   return (
-    <article aria-label={`${t('card.orderNo')} ${order.number}`} className="bg-surface border border-border rounded-lg p-3 flex flex-col gap-3 shrink-0">
+    <article aria-label={`${t('card.orderNo')} ${order.number}`} data-delivery={order.type === 'delivery' || undefined}
+      className={cn('rounded-lg p-3 flex flex-col gap-3 shrink-0', order.type === 'delivery' ? 'bg-delivery-soft border-2 border-delivery' : 'bg-surface border border-border')}>
       <OrderHeadline order={order} />
       <CustomerRow order={order} />
+      <DeliveryBadge order={order} />
       {order.tableId !== null && <OrderLocationRow location={location} />}
       <StatusBar order={order} status={status} percent={percent} onItems={onDetails} />
       {variant === 'full' && (

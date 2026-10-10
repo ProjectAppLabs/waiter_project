@@ -74,7 +74,9 @@ export type IconName =
   | 'cutlery'
   | 'gift'
   | 'ticket'
+  | 'pin'
 const paths: Record<IconName, ReactNode> = {
+  pin: (<><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11Z" /><circle cx="12" cy="10" r="2.5" /></>),
   star: <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9Z"/>,
   menu: (
     <>

@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { isPreviewReadOnly, PREVIEW_MESSAGE } from '@/lib/domain/preview'
 
-import type { Account, AccountSummary, Bill, Cart, DesignContract, Entry, OrderStatus, PayMethod, PayScope, PayResult, RegisterForm, Session, Template, TemplateCatalog } from '@/lib/types'
+import type { Account, AccountSummary, Bill, Cart, DeliveryMethod, DeliveryQuote, SavedAddress, DesignContract, Entry, OrderStatus, PayMethod, PayScope, PayResult, RegisterForm, Session, Template, TemplateCatalog } from '@/lib/types'
 
 // Único punto de I/O del comensal: la API pública del bloque 3, por el proxy same-origin (/api → experience).
 export const http = axios.create({ baseURL: '', withCredentials: true, timeout: 15_000 })
@@ -57,7 +57,7 @@ export async function updateLine(sessionId: string, lineId: number, patch: { can
 export async function removeLine(sessionId: string, lineId: number): Promise<Cart> {
   return (await http.delete<Cart>(`/api/v1/sesiones/${sessionId}/lineas/${lineId}/`)).data
 }
-export async function confirmOrder(sessionId: string, takeaway?: boolean, details?: {notas: string; alergenos: string}): Promise<{ pedido: string; estado: string; total: number; cuenta: Bill }> {
+export async function confirmOrder(sessionId: string, takeaway?: boolean, details?: {notas: string; alergenos: string; metodo_pago?: DeliveryMethod}): Promise<{ pedido: string; estado: string; total: number; cuenta: Bill }> {
   return (await http.post(`/api/v1/sesiones/${sessionId}/confirmar/`, details ? {...details, ...(takeaway === undefined ? {} : {para_llevar:takeaway})} : takeaway === undefined ? undefined : {para_llevar: takeaway})).data
 }
 export async function getOrder(orderId: string): Promise<OrderStatus> {
@@ -126,7 +126,7 @@ export interface ChatTurn {
   id: string
   mensaje: string
   respuesta: string
-  accion: 'preguntar' | 'recomendar' | 'cotizar' | 'agregar' | 'humano'
+  accion: 'preguntar' | 'recomendar' | 'cotizar' | 'agregar' | 'humano' | 'domicilio'
   opciones?: string[]
   selecciones?: ChatSelection[]
   carrito?: Cart
@@ -184,4 +184,33 @@ export async function getAssistantMemory(rest: string, venue: string): Promise<A
 }
 export async function forgetAssistantMemory(rest: string, venue: string): Promise<void> {
   await http.delete(memoryUrl(rest, venue))
+}
+
+// ---- Plan D: domicilios ---------------------------------------------------------------------------------------
+const org = (rest: string) => `/api/v1/${encodeURIComponent(rest)}`
+export type Coverage = { cobertura: true; sede: { slug: string; nombre: string }; distancia_km: number; envio: number; minimo: number; metodos: DeliveryMethod[]; nota?: string }
+  | { cobertura: false; motivo: 'fuera_de_zona' | 'sin_domicilio'; recoger: { slug: string; nombre: string; direccion: string }[] }
+export async function quoteDelivery(rest: string, lat: number, lng: number): Promise<Coverage> {
+  return (await http.post(`${org(rest)}/domicilio/cotizar`, { lat, lng })).data
+}
+// Buscar una dirección escrita. Sin la clave de mapas del servidor responde 503 y el buscador se oculta.
+export async function searchAddress(rest: string, texto: string): Promise<{ texto: string; lat: number; lng: number }[]> {
+  return (await http.post(`${org(rest)}/domicilio/buscar`, { texto })).data.resultados
+}
+export interface DeliveryForm { lat: number; lng: number; direccion: string; indicaciones: string; telefono: string; nombre: string; etiqueta?: string; direccion_id?: number; guardar: boolean; acepta_datos: boolean }
+export async function setDelivery(sessionId: string, form: DeliveryForm): Promise<{ domicilio: DeliveryQuote; carrito: Cart }> {
+  return (await http.put(`/api/v1/sesiones/${sessionId}/domicilio`, form)).data
+}
+export async function savedAddresses(rest: string): Promise<SavedAddress[]> {
+  const raw = (await http.get(`${org(rest)}/domicilio/direcciones`)).data
+  return (raw.direcciones ?? []) as SavedAddress[]
+}
+export async function deleteAddress(rest: string, id: number): Promise<void> { await http.delete(`${org(rest)}/domicilio/direcciones/${id}`) }
+export async function revokeData(rest: string): Promise<void> { await http.delete(`${org(rest)}/datos`) }
+// El enlace «Ubica la entrega» que llega por WhatsApp.
+export async function getLocateLink(token: string): Promise<{ restaurante: string; nombre?: string; lat?: number | null; lng?: number | null }> {
+  return (await http.get(`/api/v1/domicilio/ubicar/${encodeURIComponent(token)}`)).data
+}
+export async function sendLocateLink(token: string, body: { lat: number; lng: number; direccion: string; indicaciones: string }): Promise<{ ok?: boolean; cobertura?: boolean }> {
+  return (await http.post(`/api/v1/domicilio/ubicar/${encodeURIComponent(token)}`, body)).data
 }

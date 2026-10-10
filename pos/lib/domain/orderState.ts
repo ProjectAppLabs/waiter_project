@@ -25,6 +25,9 @@ export interface KitOrder {
   refunded?: number
   // Para derivar de aquí la lista del salón (`openOrderFromKit`) sin pedir los mismos pedidos otra vez.
   waiter?: string; tracking?: string | null
+  // Plan D: los datos de entrega de un domicilio (dirección, coordenadas, envío y cómo paga).
+  delivery?: import('@/lib/domain/delivery').DeliveryInfo | null
+  paid?: number
 }
 
 const PREFIX: Record<OrderType, string> = { dine_in: 'DI', takeout: 'TA', delivery: 'DE' }

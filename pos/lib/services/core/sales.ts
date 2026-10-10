@@ -18,6 +18,9 @@ export interface CoreOrder {
   table_id: number | null; table_number: number | null; guests: number; baby_chair: boolean; customer_name: string; delivery_address: string; delivery_phone: string
   note: string; billing: boolean; created_at: string; paid_at: string | null; waiter: CorePerson | null
   subtotal: number; tax: number; tip: number; total: number; paid: number; change: number; refunded?: number; lines: CoreLine[]; courses: CoreCourse[]; payments: CorePayment[]
+  // Plan D: domicilio pedido desde el menú o WhatsApp.
+  delivery_lat?: number | null; delivery_lng?: number | null; delivery_details?: string; delivery_fee?: number
+  delivery_payment?: '' | 'online' | 'cash' | 'card_on_delivery'; delivery_distance_km?: number | null
 }
 export interface LineInput { uuid: string; product_id: number; qty: number; note?: string; options?: { group: string; name: string; price_extra: number }[]; children?: { uuid: string; product_id: number; qty: number }[] }
 export interface OrderInput {

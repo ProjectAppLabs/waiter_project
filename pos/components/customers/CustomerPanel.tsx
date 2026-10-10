@@ -9,13 +9,15 @@ import { KitEmptyState } from '@/components/kit/KitEmptyState'
 import { Button } from '@/components/ui/Button'
 import { formatCop } from '@/lib/domain/money'
 import type { Customer, CustomerOrder, LoyaltyCard } from '@/lib/services/customers'
+import type { CoreCustomerProfile } from '@/lib/services/core/loyalty'
+import { CustomerInsights } from '@/components/customers/CustomerInsights'
 import { initials } from '@/lib/utils'
 
-interface CustomerPanelProps { customer: Customer | null; loyalty: LoyaltyCard | null | undefined; history: CustomerOrder[]; onEdit: () => void }
+interface CustomerPanelProps { customer: Customer | null; loyalty: LoyaltyCard | null | undefined; history: CustomerOrder[]; onEdit: () => void; profile?: CoreCustomerProfile | null }
 const day = (at: string) => serverDate(at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })
 
 // Panel derecho del kit (Order History / Bill Selected.png): cabecera con avatar, bloques de datos, puntos e historial.
-export function CustomerPanel({ customer, loyalty, history, onEdit }: CustomerPanelProps) {
+export function CustomerPanel({ customer, loyalty, history, onEdit, profile }: CustomerPanelProps) {
   const t = useTranslations('admin.customers.panel')
   const field = (label: string, value: string) => <div className="min-w-0"><p className="text-[13px] text-soft">{label}</p><p className="text-[15px] text-ink truncate">{value || '—'}</p></div>
   return (
@@ -43,6 +45,7 @@ export function CustomerPanel({ customer, loyalty, history, onEdit }: CustomerPa
               </div>
             ) : <div className="rounded-md bg-muted p-4"><p className="text-[15px] font-medium text-ink">{t('noLoyalty')}</p><p className="text-[13px] text-soft">{t('noLoyaltyBody')}</p></div>}
           </section>
+          {profile && <CustomerInsights profile={profile} />}
           <section aria-label={t('history')} className="p-5 flex flex-col gap-2">
             <p className="text-[15px] font-semibold text-ink">{t('history')}</p>
             {history.length === 0 && <p className="text-[14px] text-soft">{t('noHistory')}</p>}

@@ -49,7 +49,7 @@ interface DinerState {
   setQty: (lineId: number, qty: number) => Promise<void>
   remove: (lineId: number) => Promise<void>
   addBundle: (lines: {producto_id:number;cantidad:number;nota:string}[]) => Promise<void>
-  confirm: (takeaway?: boolean, details?: {notas: string; alergenos: string}) => Promise<string | null>
+  confirm: (takeaway?: boolean, details?: {notas: string; alergenos: string; metodo_pago?: import('@/lib/types').DeliveryMethod}) => Promise<string | null>
   refreshOrder: (orderId: string) => Promise<void>
   call: () => Promise<boolean>
   askBill: () => Promise<Bill | null>

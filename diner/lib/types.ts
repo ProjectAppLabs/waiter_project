@@ -89,7 +89,17 @@ export interface CartLine { id: number; comensal: string; mio: boolean; producto
 export interface Discount {
   codigo?: string; error?: string;
   registrado?: boolean; porcentaje: number; monto: number; aplicable: boolean; aplicado: boolean }
-export interface Cart { sesion: string; lineas: CartLine[]; total: number; mio: number; por_comensal: { comensal: string; total: number }[]; descuento?: Discount }
+export interface Cart { sesion: string; lineas: CartLine[]; total: number; mio: number; por_comensal: { comensal: string; total: number }[]; descuento?: Discount
+  // Plan D: el envío y los datos del domicilio cuando la visita es sin mesa y ya se cotizó.
+  envio?: number; domicilio?: DeliveryQuote | null }
+// Plan D: un domicilio cotizado (coordenadas, dirección, envío y cómo se puede pagar).
+export type DeliveryMethod = 'online' | 'cash' | 'card_on_delivery'
+export interface DeliveryQuote {
+  lat: number; lng: number; direccion: string; indicaciones: string; telefono: string; nombre: string
+  envio: number; distancia_km: number; sede: { slug: string; nombre: string }; metodos: DeliveryMethod[]; minimo?: number; nota?: string
+  sugerida?: { slug: string; nombre: string } | null
+}
+export interface SavedAddress { id: number; etiqueta: string; direccion: string; indicaciones: string; lat: number; lng: number }
 export type OrderState = 'pendiente_pago' | 'enviado' | 'en_cocina' | 'listo' | 'servido' | 'pagado' | 'fallido'
 export interface OrderStatus { recompensas?: DinerRewards; lineas?: AccountOrderLine[];
   descuento?: Pick<Discount, 'porcentaje' | 'monto' | 'aplicado'>; id: string; sesion: string; estado: OrderState; total: number; impuestos: number; intentos: number; detalle?: string }

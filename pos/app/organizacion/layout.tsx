@@ -26,7 +26,7 @@ const GROUPS: [string, [string, string, KitIcon][]][] = [
     ['/organizacion/rentabilidad', 'Rentabilidad', 'coins'], ['/organizacion/retorno', 'Retorno de inversión', 'chartLine']]],
   ['Contabilidad', [['/organizacion/facturacion', 'Facturación', 'billing'], ['/organizacion/pagos', 'Pagos', 'card'], ['/organizacion/empresa', 'Empresa e impuestos', 'lock']]],
   ['Clientes y marca', [['/organizacion/clientes', 'Clientes', 'customers'], ['/organizacion/promociones', 'Promociones', 'percentage'], ['/organizacion/diseno', 'Diseño del menú', 'layout'], ['/organizacion/whatsapp', 'WhatsApp', 'chat'], ['/organizacion/asistente', 'Asistente', 'sparkles']]],
-  ['Organización', [['/organizacion/restaurantes', 'Restaurantes', 'store'], ['/organizacion/catalogo', 'Catálogo', 'bag'], ['/organizacion/equipo', 'Equipo', 'users'], ['/organizacion/historial', 'Historial de cambios', 'history'], ['/organizacion/soporte', 'Soporte de ProjectApp', 'lock'],
+  ['Organización', [['/organizacion/restaurantes', 'Restaurantes', 'store'], ['/organizacion/domicilios', 'Domicilios', 'delivery'], ['/organizacion/catalogo', 'Catálogo', 'bag'], ['/organizacion/equipo', 'Equipo', 'users'], ['/organizacion/historial', 'Historial de cambios', 'history'], ['/organizacion/soporte', 'Soporte de ProjectApp', 'lock'],
     ['/organizacion/integraciones', 'Integraciones IA', 'sparkles']]],
 ]
 

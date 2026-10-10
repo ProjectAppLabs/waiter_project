@@ -16,6 +16,7 @@ import { SearchInput } from '@/components/ui/SearchInput'
 import { formatCop } from '@/lib/domain/money'
 import { customerOrders, identificationTypes, listCustomers, loyaltyCard, saveCustomer, type Customer, type CustomerInput, type CustomerOrder, type IdType, type LoyaltyCard } from '@/lib/services/customers'
 import { cn } from '@/lib/utils'
+import { customerProfile, type CoreCustomerProfile } from '@/lib/services/core/loyalty'
 
 type Filter = 'all' | 'withOrders' | 'invoiced'
 const FILTERS: Filter[] = ['all', 'withOrders', 'invoiced']
@@ -31,13 +32,15 @@ export function CustomersView() {
   const [filter, setFilter] = useState<Filter>('all')
   const [selected, setSelected] = useState<number | null>(null)
   const [form, setForm] = useState<{ id: number | null } | null>(null)
-  const [detail, setDetail] = useState<{ id: number; orders: CustomerOrder[]; loyalty: LoyaltyCard | null } | null>(null)
+  const [detail, setDetail] = useState<{ id: number; orders: CustomerOrder[]; loyalty: LoyaltyCard | null; profile: CoreCustomerProfile | null } | null>(null)
 
   useEffect(() => { void identificationTypes().then(setIdTypes) }, [])
   useEffect(() => { const h = setTimeout(() => { void listCustomers(query).then(setCustomers) }, 250); return () => clearTimeout(h) }, [query])
   useEffect(() => {
     if (selected === null) return
-    void Promise.all([customerOrders(selected), loyaltyCard(selected).catch(() => null)]).then(([orders, loyalty]) => setDetail({ id: selected, orders, loyalty }))
+    // Plan D: el perfil (direcciones e indicadores) es un extra: si falla, la ficha sigue con lo de siempre.
+    void Promise.all([customerOrders(selected), loyaltyCard(selected).catch(() => null), customerProfile(selected).catch(() => null)])
+      .then(([orders, loyalty, profile]) => setDetail({ id: selected, orders, loyalty, profile }))
   }, [selected])
 
   const visible = customers.filter((c) => pass(c, filter))
@@ -76,7 +79,7 @@ export function CustomersView() {
             ))}
           </div>
         </Card>
-        <CustomerPanel customer={current} loyalty={detail?.id === selected ? detail.loyalty : undefined} history={detail?.id === selected ? detail.orders : []} onEdit={() => setForm({ id: selected })} />
+        <CustomerPanel customer={current} loyalty={detail?.id === selected ? detail.loyalty : undefined} history={detail?.id === selected ? detail.orders : []} profile={detail?.id === selected ? detail.profile : null} onEdit={() => setForm({ id: selected })} />
       </div>
       {form && (
         <CustomerForm key={form.id ?? 'new'} initial={editing ? { name: editing.name, phone: editing.phone, email: editing.email, vat: editing.vat, idTypeId: editing.idTypeId, street: editing.street, city: editing.city } : EMPTY}
