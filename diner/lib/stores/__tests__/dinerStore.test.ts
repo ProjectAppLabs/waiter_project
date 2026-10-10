@@ -50,11 +50,11 @@ test('a 409 on confirm reopens a fresh session and keeps the message for the din
 test('a 409 for a closed venue keeps the session and the message', async () => {
   useDinerStore.setState({ keys, session: { id: 'old' } as never, cart: { lineas: [1] } as never })
   api.openSession.mockClear()
-  api.confirmOrder.mockRejectedValue(new ApiError('El restaurante no está recibiendo pedidos en este momento', 409, 'restaurant_closed'))
+  api.confirmOrder.mockRejectedValue(new ApiError('Por ahora no tenemos abierto. Podrás pedir cuando abramos.', 409, 'restaurant_closed'))
   expect(await useDinerStore.getState().confirm()).toBeNull()
   expect(useDinerStore.getState().session?.id).toBe('old')
   expect(useDinerStore.getState().cart).toEqual({ lineas: [1] })
-  expect(useDinerStore.getState().error).toMatch(/no está recibiendo pedidos/)
+  expect(useDinerStore.getState().error).toMatch(/no tenemos abierto/)
   expect(api.openSession).not.toHaveBeenCalled()
 })
 

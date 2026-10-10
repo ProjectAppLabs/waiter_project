@@ -62,7 +62,7 @@ def receiving(restaurant):
     return CashShift.objects.filter(restaurant=restaurant, state='open').exists()
 
 
-NOT_RECEIVING = 'La sede {name} no está recibiendo pedidos en este momento.'
+NOT_RECEIVING = 'Por ahora la sede {name} no tiene abierto. Podrás pedir cuando abramos.'
 
 
 def closed_message(name, info):

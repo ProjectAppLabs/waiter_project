@@ -72,7 +72,7 @@ def catalog_session(client, config_id):
 def ensure_open_session(client, config_id):
     catalog_session(client, config_id)
     shift = CashShift.objects.filter(restaurant=client.restaurant, state='open').first()
-    require(shift, 'El restaurante no está recibiendo pedidos en este momento', 'restaurant_closed', 409)
+    require(shift, 'Por ahora no tenemos abierto. Podrás pedir cuando abramos.', 'restaurant_closed', 409)
     return shift.pk
 
 

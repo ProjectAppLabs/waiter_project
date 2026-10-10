@@ -660,12 +660,12 @@ def test_markup_and_free_from(env):
 
 
 # Falla si una sede sin caja abierta en el POS recibe domicilios: la cotización debe pasar a otra sede que sí reciba o
-# decir que esa sede no está recibiendo pedidos, y el menú debe saberlo desde la entrada.
+# decir que esa sede por ahora no tiene abierto, y el menú debe saberlo desde la entrada.
 def test_sede_sin_caja_no_recibe_pedidos(env):
     e = env
     CashShift.objects.filter(restaurant=e['venue']).update(state='closed')
     cerrada = quote(e['org'], '4.651', '-74.05')
-    assert cerrada['motivo'] == 'cerrado' and 'no está recibiendo pedidos' in cerrada['mensaje']
+    assert cerrada['motivo'] == 'cerrado' and 'no tiene abierto' in cerrada['mensaje']
     assert put_delivery(e).status_code == 409
     assert e['client'].get(f'/api/v1/{e["org"].slug}/{e["venue"].slug}/').data['pedidos'] is False
     otra = restaurant(e['org'], 'otra', latitude=4.652, longitude=-74.05)
