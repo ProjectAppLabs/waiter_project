@@ -43,6 +43,9 @@ def entry(request, restaurant, venue, token=None):
     from django.conf import settings
     from delivery.models import DeliverySettings
     from delivery import geocoding
-    delivery = {'enabled': bool(local and DeliverySettings.objects.filter(restaurant=local, enabled=True).exists()),
-                'buscador': bool(geocoding.provider())}
+    own = DeliverySettings.objects.filter(restaurant=local, enabled=True).first() if local else None
+    delivery = {'enabled': bool(own), 'buscador': bool(geocoding.provider())}
+    if own and local.latitude is not None and local.longitude is not None:
+        # Plan D: el mapa del comensal solo se mueve dentro de la zona de entrega de esta sede.
+        delivery.update(centro={'lat': float(local.latitude), 'lng': float(local.longitude)}, radio_km=float(own.radius_km))
     return Response({'domicilio': delivery, 'modulos': modulos, 'contexto': _context(tenant), 'carta': menu, 'banners': for_menu(tenant, menu)})

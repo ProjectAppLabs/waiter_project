@@ -9,7 +9,8 @@ import { Icon } from '@/components/smart/SmartMenu'
 import { designSystemAttributes } from '@/lib/domain/designVariants'
 import { applyGoogleFonts, templateVars } from '@/lib/domain/template'
 import { themeVars } from '@/lib/domain/theme'
-import { getEntry, getOrganization } from '@/lib/services/api'
+import { getEntry, getOrganization, quoteDelivery } from '@/lib/services/api'
+import { alreadyAsked, carryTo, markAsked } from '@/lib/domain/venueRedirect'
 import type { Entry, OrganizationEntry } from '@/lib/types'
 
 // Plan O: portada de la organización (/<org>/). Con un solo restaurante lleva directo a su menú; con varios, se elige.
@@ -31,6 +32,21 @@ export default function OrganizationLanding() {
     return () => { alive = false }
   }, [rest, router])
   useEffect(() => { if (entry?.contexto.plantilla) applyGoogleFonts(entry.contexto.plantilla) }, [entry])
+  // Plan D: con varias sedes, se pide la ubicación y se lleva al cliente a la que le queda más cerca y le llega.
+  const [nearby, setNearby] = useState<'buscando' | 'fuera' | ''>('')
+  useEffect(() => {
+    if (!org || org.restaurantes.length < 2 || alreadyAsked(rest) || typeof navigator === 'undefined' || !navigator.geolocation) return
+    markAsked(rest)
+    void Promise.resolve().then(() => setNearby('buscando'))
+    navigator.geolocation.getCurrentPosition(async (p) => {
+      try {
+        const q = await quoteDelivery(rest, p.coords.latitude, p.coords.longitude)
+        if (!q.cobertura) { setNearby('fuera'); return }
+        carryTo(rest, q.sede.slug, { lat: p.coords.latitude, lng: p.coords.longitude, direccion: '' }, `Te mostramos la sede ${q.sede.nombre}, la más cercana a ti.`)
+        router.replace(`/${encodeURIComponent(rest)}/${encodeURIComponent(q.sede.slug)}/`)
+      } catch { setNearby('') }
+    }, () => setNearby(''), { enableHighAccuracy: false, timeout: 10_000, maximumAge: 300_000 })
+  }, [org, rest, router])
   if (error) return <main className="min-h-screen grid place-items-center p-6 text-center"><p role="alert">{error}</p></main>
   if (!org) return <main className="min-h-screen grid place-items-center p-6 text-center text-soft"><p role="status">Buscando los restaurantes…</p></main>
   const template = entry?.contexto.plantilla
@@ -43,6 +59,8 @@ export default function OrganizationLanding() {
           {logo ? <img src={logo} alt={org.organizacion.nombre} className="sm-organization-logo" /> : <p className="sm-eyebrow">{org.organizacion.nombre}</p>}
           <h1>Elige tu restaurante</h1>
           <p>Cada local tiene su carta y sus mesas; tu cuenta sirve en todos.</p>
+          {nearby === 'buscando' && <p role="status">Buscando la sede más cercana a ti…</p>}
+          {nearby === 'fuera' && <p role="status">Ninguna sede lleva domicilios hasta tu ubicación. Puedes escoger una para recoger o comer allá.</p>}
         </header>
         <nav aria-label="Restaurantes">
           {org.restaurantes.map((r) => (

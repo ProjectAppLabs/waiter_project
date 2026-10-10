@@ -4,6 +4,7 @@
 
 import Link from 'next/link'
 import { CartToss } from './CartToss'
+import { VenueGuide } from './VenueGuide'
 import { myCount } from '@/lib/domain/cartEvents'
 import { useRouter } from 'next/navigation'
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
@@ -785,6 +786,7 @@ export function SmartExperience({
       </div>
       {/* En el pago no hay muelle: la persona ya está pagando y «Mi mesero» solo la distraería (tampoco en la reserva). */}
       <CartToss />
+      <VenueGuide />
       {!['reserva', 'pago'].includes(screen) && <div ref={dockRef} className={`sm-action-dock${showCart || showConfirm || compactDock ? ' sm-action-dock-pair' : ''}${compactDock ? ' sm-action-dock-compacto' : ''}`}>
         {dinerHas(props.entry, 'asistente_menu') && <SmartChat key={`${props.rest}/${props.venue}/${props.token}`} entry={props.entry} rest={props.rest} venue={props.venue} token={props.token}/>}
         {showConfirm && <div className="sm-confirm-slot" ref={setCartActionTarget}/>}

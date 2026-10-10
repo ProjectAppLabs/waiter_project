@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Map as MapLibreMap, MapMouseEvent } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
+import { areaBounds } from '@/lib/domain/venueRedirect'
 import { flavorOverrides, MAP_VARIANTS, mapPalette, referenceColors, referenceLayer, type MapPalette, type MapVariant } from '@/lib/domain/mapTheme'
 
 export interface Point { lat: number; lng: number }
@@ -27,7 +28,9 @@ function themeOf(element: HTMLElement): { variant: MapVariant; palette: MapPalet
 // entrega. Mapa vectorial propio (MapLibre + Protomaps, datos de OpenStreetMap) con los colores de la marca, sin
 // restaurantes de la competencia y con etiquetas legibles. Si el punto cambia desde afuera (GPS o una dirección
 // escogida), el mapa vuela hasta él.
-export function LocationPicker({ center, value, onChange, label = 'Mapa para ubicar la entrega' }: { center: Point; value: Point | null; onChange: (p: Point) => void; label?: string }) {
+// `area` (centro y radio de domicilio de la sede) limita el mapa a la zona de entrega: el cliente no se va a otra ciudad
+// y solo se cargan los mosaicos de esa zona.
+export function LocationPicker({ center, value, onChange, label = 'Mapa para ubicar la entrega', area }: { center: Point; value: Point | null; onChange: (p: Point) => void; label?: string; area?: { center: Point; radiusKm: number } | null }) {
   const wrap = useRef<HTMLDivElement>(null)
   const box = useRef<HTMLDivElement>(null)
   const map = useRef<MapLibreMap | null>(null)
@@ -59,10 +62,15 @@ export function LocationPicker({ center, value, onChange, label = 'Mapa para ubi
         // Los lugares del mapa son puntos de referencia (droguerías, supermercados, bancos, iglesias…), nunca la competencia.
         const style = layers('protomaps', flavor as ReturnType<typeof namedFlavor>, { lang: 'es' }).map((layer) => (layer.id === 'pois'
           ? referenceLayer(layer as never, theme.palette) : layer))
-        const start = latest.current ?? center
+        const bounds = area ? areaBounds(area.center, area.radiusKm) : undefined
+        const inside = (p: Point) => !bounds || (p.lng >= bounds[0][0] && p.lng <= bounds[1][0] && p.lat >= bounds[0][1] && p.lat <= bounds[1][1])
+        // Un punto fuera de la zona (por ejemplo, un GPS de otra ciudad) no arrastra el mapa afuera: arranca en la sede.
+        const start = latest.current && inside(latest.current) ? latest.current : area?.center ?? center
         const url = TILES.startsWith('http') ? TILES : `${window.location.origin}${TILES}`
         const m = new maplibregl.Map({
           container: box.current, center: [start.lng, start.lat], zoom: latest.current ? 17 : 16, maxZoom: 19, attributionControl: { compact: true },
+          // Con zona: no sale de ella ni se aleja más allá de la ciudad (nunca se piden mosaicos de todo el país).
+          ...(bounds ? { maxBounds: bounds, minZoom: 12 } : { minZoom: 10 }),
           style: { version: 8, glyphs: `${ASSETS}/fonts/{fontstack}/{range}.pbf`, sprite: `${ASSETS}/sprites/v4/${theme.palette.base === 'dark' ? 'dark' : 'light'}`,
             sources: { protomaps: { type: 'vector', url: `pmtiles://${url}`, attribution: '© OpenStreetMap' } }, layers: style as never },
         })

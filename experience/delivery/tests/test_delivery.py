@@ -280,7 +280,7 @@ def test_public_entry_delivery_capabilities(env, settings):
     e = env
     response = e['client'].get(f'/api/v1/{e["org"].slug}/{e["venue"].slug}/')
     assert response.status_code == 200, response.data
-    assert response.data['domicilio'] == {'enabled': True, 'buscador': True}
+    assert response.data['domicilio'] == {'enabled': True, 'buscador': True, 'centro': {'lat': 4.65, 'lng': -74.05}, 'radio_km': 5.0}
     settings.NOMINATIM_ENABLED = False
     assert e['client'].get(f'/api/v1/{e["org"].slug}/{e["venue"].slug}/').data['domicilio']['buscador'] is False
     settings.GOOGLE_MAPS_API_KEY = 'clave-simulada'
@@ -454,12 +454,12 @@ def test_nominatim_busca_y_lee_direcciones(env, settings, monkeypatch):
     e = env
     cache.clear()
     settings.GOOGLE_MAPS_API_KEY = ''
-    lugar = {'lat': '6.2087', 'lon': '-75.5671', 'display_name': 'largo', 'address': {
+    lugar = {'lat': '4.6512', 'lon': '-74.0518', 'display_name': 'largo', 'address': {
         'road': 'Calle 10', 'house_number': '43-12', 'suburb': 'El Poblado', 'city': 'Medellín', 'country': 'Colombia', 'postcode': '050021'}}
     remote = Mock(side_effect=lambda url, **kw: Mock(status_code=200, json=lambda: [lugar] if url.endswith('/search') else lugar))
     monkeypatch.setattr('requests.get', remote)
     buscar = e['client'].post(f'/api/v1/{e["org"].slug}/domicilio/buscar', {'texto': 'calle 10 43-12'}, format='json')
-    assert buscar.status_code == 200 and buscar.data['resultados'] == [{'texto': 'Calle 10 43-12, El Poblado, Medellín', 'lat': 6.2087, 'lng': -75.5671}]
+    assert buscar.status_code == 200 and buscar.data['resultados'] == [{'texto': 'Calle 10 43-12, El Poblado, Medellín', 'lat': 4.6512, 'lng': -74.0518}]
     params, headers = remote.call_args.kwargs['params'], remote.call_args.kwargs['headers']
     assert params['countrycodes'] == 'co' and 'Waiter' in headers['User-Agent'] and params['bounded'] == 1 and 'viewbox' in params
     url = f'/api/v1/{e["org"].slug}/domicilio/direccion'
@@ -563,3 +563,25 @@ def test_buscar_con_google_una_consulta(env, settings, monkeypatch):
     assert MapsUsage.objects.get(organization=e['org'], kind='geocoding').count == 1
     monkeypatch.setattr('requests.get', Mock(side_effect=lambda url, **kw: Mock(status_code=200, json=lambda: {'status': 'REQUEST_DENIED'} if 'googleapis' in url else [])))
     assert e['client'].post(url, {'texto': 'Carrera 70 # 1-2'}, format='json').status_code == 200
+
+
+# Falla si con sedes en varias ciudades la búsqueda solo mira la primera (una dirección de la otra ciudad no aparece), o
+# si deja pasar resultados de ciudades donde no hay sede.
+def test_busqueda_en_las_zonas_de_todas_las_sedes(env, settings, monkeypatch):
+    from django.core.cache import cache
+    from delivery.models import DeliverySettings
+    from tenancy.tests.helpers import restaurant
+    e = env
+    cache.clear()
+    settings.GOOGLE_MAPS_API_KEY = 'clave-simulada'
+    otra = restaurant(e['org'], slug='duitama')
+    otra.latitude, otra.longitude = 5.8267, -73.0337
+    otra.save()
+    DeliverySettings.objects.create(restaurant=otra, enabled=True, radius_km=5, tiers=[{'up_to_km': '5', 'fee': '5000'}], methods=['cash'])
+    fila = lambda lat, lng, texto: {'formatted_address': texto, 'geometry': {'location': {'lat': lat, 'lng': lng}, 'location_type': 'ROOFTOP'}}
+    google = Mock(return_value=Mock(status_code=200, json=lambda: {'status': 'OK', 'results': [
+        fila(4.66, -74.05, 'Cl 10 #43-12, Bogotá'), fila(5.83, -73.03, 'Cl 10 #43-12, Duitama'), fila(6.21, -75.57, 'Cl 10 #43-12, Medellín')]}))
+    monkeypatch.setattr('requests.get', google)
+    data = e['client'].post(f'/api/v1/{e["org"].slug}/domicilio/buscar', {'texto': 'Calle 10 # 43-12'}, format='json').data['resultados']
+    assert [r['texto'] for r in data] == ['Cl 10 #43-12, Bogotá', 'Cl 10 #43-12, Duitama']
+    assert 'bounds' not in google.call_args.kwargs['params']

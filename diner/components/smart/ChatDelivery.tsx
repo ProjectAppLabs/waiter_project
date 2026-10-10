@@ -11,6 +11,8 @@ import { useDinerStore } from '@/lib/stores/dinerStore'
 import type { Point } from './LocationPicker'
 import { Icon } from './SmartMenu'
 import { usePinAddress } from './usePinAddress'
+import { useVenueSwitch } from './VenueGuide'
+import { zoneOf } from './zone'
 import { AddressSearch, type FoundAddress } from './AddressSearch'
 
 const LocationPicker = dynamic(() => import('./LocationPicker').then((m) => m.LocationPicker), { ssr: false, loading: () => <div className="sm-map" aria-busy="true" /> })
@@ -25,6 +27,8 @@ export function ChatDelivery({ pedido, onLeave, onSend }: { pedido: string; onLe
   const [point, setPoint] = useState<Point | null>(null), [center, setCenter] = useState<Point>(MEDELLIN)
   const [address, setAddress] = useState('')
   const [coverage, setCoverage] = useState<Coverage | null>(null), [confirmed, setConfirmed] = useState('')
+  const venues = useVenueSwitch()
+  const [checked, setChecked] = useState<Point | null>(null)
   const [busy, setBusy] = useState(false), [error, setError] = useState('')
   // Como en la hoja del pedido: el pin llena la dirección y lo escrito lleva el mapa hasta allá.
   const typed = useRef(false), flying = useRef<Point | null>(null)
@@ -43,8 +47,13 @@ export function ChatDelivery({ pedido, onLeave, onSend }: { pedido: string; onLe
     try {
       // Con el GPS no hay texto: se busca la dirección aproximada para confirmársela al cliente.
       const [result, text] = await Promise.all([quoteDelivery(keys.rest, p.lat, p.lng), direccion ? Promise.resolve(direccion) : reverseAddress(keys.rest, p.lat, p.lng).catch(() => '')])
-      setCoverage(result); setConfirmed(text ?? ''); setMode('done')
-      if (result.cobertura) useDinerStore.setState({ deliveryDraft: { lat: p.lat, lng: p.lng, direccion: text ?? '' } })
+      // La atiende otra sede: sin platos se pasa de una (con la ubicación puesta); con platos, se le ofrece ir.
+      if (result.cobertura && result.sede.slug !== venues.venue && !venues.hasItems) {
+        venues.go(result.sede.slug, result.sede.nombre, { lat: p.lat, lng: p.lng, direccion: text ?? '' })
+        return
+      }
+      setCoverage(result); setConfirmed(text ?? ''); setChecked(p); setMode('done')
+      if (result.cobertura && result.sede.slug === venues.venue) useDinerStore.setState({ deliveryDraft: { lat: p.lat, lng: p.lng, direccion: text ?? '' } })
     } catch (e) { setError(e instanceof Error ? e.message : 'No pudimos revisar la cobertura.') }
     finally { setBusy(false) }
   }
@@ -82,11 +91,15 @@ export function ChatDelivery({ pedido, onLeave, onSend }: { pedido: string; onLe
       {mode === 'map' && <div className="sm-delivery">
         <AddressSearch rest={keys.rest} value={address} enabled={!!entry.domicilio.buscador} onPick={pickFound}
           onType={(text) => { typed.current = true; setAddress(text) }} />
-        <LocationPicker center={center} value={point} onChange={moved} label="Mapa para marcar la entrega" />
+        <LocationPicker area={zoneOf(entry)} center={center} value={point} onChange={moved} label="Mapa para marcar la entrega" />
         <p className="sm-map-address" role="status"><Icon name="pin" /><span>{pin.loading ? 'Buscando la dirección…' : pin.address || 'Mueve el mapa hasta la puerta de la entrega.'}</span></p>
         <button type="button" className="sm-primary" disabled={busy || !point} onClick={() => point && void check(point, address.trim())}>{busy ? 'Revisando…' : 'Usar esta ubicación'}</button>
       </div>}
-      {mode === 'done' && coverage && (coverage.cobertura ? <div className="sm-delivery-quote" role="status">
+      {mode === 'done' && coverage?.cobertura && coverage.sede.slug !== venues.venue && <div className="sm-delivery-quote" role="status">
+        <p>Esa dirección la atiende la sede <strong>{coverage.sede.nombre}</strong>. Tu pedido de esta sede no pasa allá: lo armas de nuevo en su menú.</p>
+        <button type="button" className="sm-chat-help" onClick={() => checked && venues.go(coverage.sede.slug, coverage.sede.nombre, { lat: checked.lat, lng: checked.lng, direccion: confirmed })}>Ir a la sede {coverage.sede.nombre} →</button>
+      </div>}
+      {mode === 'done' && coverage && (coverage.cobertura ? coverage.sede.slug === venues.venue && <div className="sm-delivery-quote" role="status">
         <p>✓ Te lo llevamos a <strong>{confirmed || 'la ubicación que marcaste'}</strong></p>
         <p>Te lo lleva {coverage.sede.nombre} · {coverage.distancia_km.toLocaleString('es-CO', { maximumFractionDigits: 1 })} km · Envío <strong>{formatCop(coverage.envio)}</strong>{coverage.minimo ? ` · Pedido mínimo ${formatCop(coverage.minimo)}` : ''}</p>
         {items > 0 ? <>

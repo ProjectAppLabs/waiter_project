@@ -183,6 +183,7 @@ it('pide a domicilio con la ubicación y paga contra entrega', async () => {
   const cotizado = { lat: 6.21, lng: -75.57, direccion: 'Calle 9 # 40-10', indicaciones: 'Apto 301', telefono: '3001234567', nombre: 'Ana',
     envio: 5000, distancia_km: 2.4, sede: { slug: 'salon', nombre: 'El Poblado' }, metodos: ['online', 'cash'], minimo: 0 }
   api.setDelivery.mockResolvedValue({ domicilio: cotizado, carrito: { ...carrito, total: 29000, envio: 5000, domicilio: cotizado } })
+  api.quoteDelivery.mockResolvedValue({ cobertura: true, sede: { slug: 'salon', nombre: 'El Poblado' }, distancia_km: 2.4, envio: 5000, minimo: 0, metodos: ['online', 'cash'] })
   const confirmar = jest.fn().mockResolvedValue('pedido-9')
   useDinerStore.setState({ cart: carrito, confirm: confirmar, session: { id: 'visita', estado: 'abierta', mesa: null }, entry: { domicilio: { enabled: true, buscador: false }, contexto: { mesa: null }, carta: { categorias: [] } } as unknown as Entry })
   Object.defineProperty(navigator, 'geolocation', { configurable: true, value: { getCurrentPosition: (ok: (p: unknown) => void) => ok({ coords: { latitude: 6.21, longitude: -75.57 } }) } })

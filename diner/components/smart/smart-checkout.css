@@ -70,3 +70,7 @@
 [data-ds-mapa="oscuro"] .sm-map-wrap { --sm-map-espera: #1F2023; }
 [data-ds-mapa="gris"] .sm-map-wrap { --sm-map-espera: #EDEDED; }
 .sm-map-fallback { position:absolute; inset:auto var(--ds-espacio-8) var(--ds-espacio-8); z-index:2; margin:0; padding:var(--ds-espacio-8); border-radius:calc(10px * var(--ds-forma-tarjeta)); background:var(--sm-surface); font-size:calc(14px * var(--ds-texto)); }
+/* Plan D: el aviso de cambio de sede (por qué se le llevó a esta sede o que otra le queda más cerca). */
+.sm-venue-notice { position:sticky; top:var(--ds-espacio-8); z-index:30; display:flex; align-items:flex-start; gap:var(--ds-espacio-8); margin:var(--ds-espacio-8) var(--ds-espacio-16) 0; padding:var(--ds-espacio-12); border-radius:calc(14px * var(--ds-forma-tarjeta)); background:var(--sm-surface); border:1px solid var(--sm-border); box-shadow:0 8px 24px #19193220; font-size:calc(15px * var(--ds-texto)); line-height:1.45; }
+.sm-venue-notice span { flex:1; }
+.sm-venue-notice button { flex-shrink:0; width:44px; height:44px; border:0; border-radius:50%; background:transparent; color:var(--sm-ink); font-size:calc(22px * var(--ds-texto)); cursor:pointer; }

@@ -7,7 +7,8 @@ import { deleteAddress, getLocateLink, revokeData, savedAddresses, sendLocateLin
 import { useDinerStore } from '@/lib/stores/dinerStore'
 import type { Cart, Entry } from '@/lib/types'
 
-jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }), useSearchParams: () => null }))
+const mockPush = jest.fn()
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush, replace: mockPush }), useSearchParams: () => null }))
 jest.mock('@/lib/services/api')
 // El mapa real necesita un navegador; aquí basta un pin que se mueve con un botón.
 jest.mock('next/dynamic', () => () => function Mapa({ onChange, value }: { onChange: (p: { lat: number; lng: number }) => void; value: { lat: number; lng: number } | null }) {
@@ -151,4 +152,25 @@ it('busca la dirección una sola vez y deja escoger entre varias', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Cl 10 #43-12, Envigado' }))
   expect(escoger).toHaveBeenCalledWith({ texto: 'Cl 10 #43-12, Envigado', lat: 6.17, lng: -75.59 })
   expect(api.searchAddress).toHaveBeenCalledTimes(1)
+})
+
+// Falla si una dirección que atiende otra sede se guarda en esta, si sin platos no se lleva al cliente a esa sede con su
+// ubicación, o si con platos se le cambia de sede sin preguntarle.
+it('manda a la sede que atiende la dirección', async () => {
+  const { DeliverySheet } = await import('../DeliverySheet')
+  const api = jest.requireMock('@/lib/services/api')
+  api.getVenueLocation.mockResolvedValue({ direccion: '', latitud: 6.2, longitud: -75.5 })
+  api.reverseAddress.mockResolvedValue('')
+  api.quoteDelivery.mockResolvedValue({ cobertura: true, sede: { slug: 'duitama', nombre: 'Duitama' }, distancia_km: .5, envio: 3000, minimo: 0, metodos: ['cash'] })
+  useDinerStore.setState({ cart: { lineas: [{ mio: true, cantidad: 1 }] } as never, session: { id: 'visita', estado: 'abierta', mesa: null }, entry: { domicilio: { enabled: true, buscador: false }, contexto: { mesa: null }, carta: { categorias: [] } } as unknown as Entry })
+  render(<DeliverySheet onReady={jest.fn()} />)
+  fireEvent.click(await screen.findByRole('button', { name: 'Marcar en el mapa' }))
+  fireEvent.change(screen.getByLabelText('Dirección'), { target: { value: 'Calle 15 # 16-55' } })
+  fireEvent.change(screen.getByLabelText('¿A nombre de quién?'), { target: { value: 'Ana' } })
+  fireEvent.change(screen.getByLabelText('Celular'), { target: { value: '3001234567' } })
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Calcular envío' })))
+  expect(api.setDelivery).not.toHaveBeenCalled()
+  expect(screen.getByText(/la atiende la sede/)).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Ir a la sede Duitama' }))
+  expect(JSON.parse(sessionStorage.getItem('waiter:domicilio:demo')!)).toMatchObject({ venue: 'duitama', location: { lat: 6.2, lng: -75.57, direccion: 'Calle 15 # 16-55' } })
 })

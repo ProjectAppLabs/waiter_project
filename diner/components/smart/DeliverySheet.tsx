@@ -5,11 +5,13 @@ import { useEffect, useRef, useState } from 'react'
 
 import { Icon } from './SmartMenu'
 import { formatCop } from '@/lib/domain/cart'
-import { getVenueLocation, savedAddresses, setDelivery } from '@/lib/services/api'
+import { getVenueLocation, quoteDelivery, savedAddresses, setDelivery } from '@/lib/services/api'
+import { useVenueSwitch } from './VenueGuide'
 import { useDinerStore } from '@/lib/stores/dinerStore'
 import type { DeliveryMethod, DeliveryQuote, SavedAddress } from '@/lib/types'
 import type { Point } from './LocationPicker'
 import { usePinAddress } from './usePinAddress'
+import { zoneOf } from './zone'
 import { AddressSearch, type FoundAddress } from './AddressSearch'
 
 // El mapa usa `window`: se carga solo en el navegador.
@@ -38,6 +40,8 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
   useEffect(() => { if (pin.address && !typed.current) setAddress(pin.address) }, [pin.address])
   const [quote, setQuote] = useState<DeliveryQuote | null>(null), [method, setMethod] = useState<DeliveryMethod | null>(null)
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [locating, setLocating] = useState(false)
+  const venues = useVenueSwitch()
+  const [other, setOther] = useState<{ slug: string; nombre: string } | null>(null)
 
   useEffect(() => {
     if (!keys) return
@@ -75,9 +79,23 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
   function pickSaved(a: SavedAddress) { typed.current = true; goTo({ lat: a.lat, lng: a.lng }); setAddress(a.direccion); setDetails(a.indicaciones); setAddressId(a.id) }
   const ready = !!point && address.trim().length >= 3 && name.trim().length >= 2 && phoneOk(phone) && (!save || consent)
   async function calculate() {
-    if (!session || !point || !ready) return
-    setBusy(true); setError('')
+    if (!session || !point || !ready || !keys) return
+    setBusy(true); setError(''); setOther(null)
     try {
+      // Si la dirección la atiende otra sede, el pedido se arma allá: sin platos se va de una; con platos, decide él.
+      const coverage = await quoteDelivery(keys.rest, point.lat, point.lng)
+      if (!coverage.cobertura) {
+        setQuote(null)
+        setError(`Esa dirección queda fuera de nuestra zona de domicilios.${coverage.recoger.length ? ` Puedes recogerlo en ${coverage.recoger.map((r) => r.nombre).join(' o ')}.` : ''}`)
+        return
+      }
+      if (coverage.sede.slug !== venues.venue) {
+        setQuote(null)
+        const location = { lat: point.lat, lng: point.lng, direccion: address.trim() }
+        if (!venues.hasItems) { venues.go(coverage.sede.slug, coverage.sede.nombre, location); return }
+        setOther(coverage.sede)
+        return
+      }
       const r = await setDelivery(session.id, { lat: point.lat, lng: point.lng, direccion: address.trim(), indicaciones: details.trim(), telefono: phone.trim(), nombre: name.trim(),
         etiqueta: save ? label.trim() || 'Casa' : undefined, direccion_id: addressId, guardar: save, acepta_datos: consent })
       useDinerStore.setState({ cart: r.carrito })
@@ -97,7 +115,7 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
         <button type="button" key={a.id} aria-pressed={addressId === a.id} disabled={off} onClick={() => pickSaved(a)}>{a.etiqueta || 'Dirección'} · {a.direccion}</button>))}</div>}
       <AddressSearch rest={keys?.rest} value={address} enabled={searchable} disabled={off} onPick={pickFound}
         onType={(text) => { typed.current = true; setAddress(text); setQuote(null) }} />
-      {center && <LocationPicker center={center} value={point} onChange={moved} />}
+      {center && <LocationPicker area={zoneOf(entry)} center={center} value={point} onChange={moved} />}
       <p className="sm-map-address" role="status"><Icon name="pin" /><span>{pin.loading ? 'Buscando la dirección…' : pin.address || 'Mueve el mapa hasta la puerta de la entrega.'}</span></p>
       <label className="sm-field"><span>Indicaciones (opcional)</span><input value={details} disabled={off} onChange={(e) => { setDetails(e.target.value); setQuote(null) }} maxLength={200} placeholder="Torre, apartamento, portería…" /></label>
       <div className="sm-delivery-pair">
@@ -112,6 +130,10 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
       {phone && !phoneOk(phone) && <p className="sm-error" role="alert">Escribe un celular colombiano de 10 dígitos.</p>}
       <button type="button" className="sm-primary" disabled={off || !ready} onClick={() => void calculate()}>{busy ? 'Calculando…' : quote ? 'Recalcular envío' : 'Calcular envío'}</button>
       {error && <p className="sm-error" role="alert">{error}</p>}
+      {other && keys && point && <div className="sm-delivery-quote" role="status">
+        <p>Esa dirección la atiende la sede <strong>{other.nombre}</strong>. Tu pedido de esta sede no pasa allá: lo armas de nuevo en su menú.</p>
+        <button type="button" className="sm-primary" onClick={() => venues.go(other.slug, other.nombre, { lat: point.lat, lng: point.lng, direccion: address.trim() })}>Ir a la sede {other.nombre}</button>
+      </div>}
       {quote && <div className="sm-delivery-quote" role="status">
         <p>✓ Te lo llevamos a <strong>{quote.direccion}</strong>{quote.indicaciones ? ` (${quote.indicaciones})` : ''}</p>
         <p><strong>Te lo lleva {quote.sede.nombre}</strong> · {quote.distancia_km.toLocaleString('es-CO', { maximumFractionDigits: 1 })} km</p>

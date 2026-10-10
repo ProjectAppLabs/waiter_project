@@ -70,9 +70,10 @@ class SearchView(DinerView):
         query = text(data['texto'], 250, True)
         count_search(org, diner, 'searches', 20)
         try:
-            # Cerca de la primera sede con domicilio y ubicación: «Parque Lleras» es el de Medellín, no otro.
-            first = coverage.candidates(org).first()
-            results = geocoding.search(query, (first.restaurant.latitude, first.restaurant.longitude) if first else None)
+            # En las zonas de todas las sedes con domicilio: si la dirección existe en dos ciudades con sede, salen ambas y
+            # el cliente escoge; la cotización lleva el pedido a la sede que la cubre.
+            areas = [(row.restaurant.latitude, row.restaurant.longitude) for row in coverage.candidates(org)]
+            results = geocoding.search(query, areas or None)
             count_google(org, 'geocoding')
         except geocoding.Unavailable:
             require(False, 'No pudimos consultar el buscador. Intente de nuevo o use el mapa.', 'maps_unavailable', 502)

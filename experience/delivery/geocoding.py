@@ -76,16 +76,21 @@ def clean_address(text):
     return ', '.join(dict.fromkeys(x.strip() for x in (text or '').split(',') if x.strip() and x.strip() != 'Colombia'))
 
 
+def near_any(lat, lng, areas, margin=.3):
+    # Las zonas de las sedes con domicilio: lo que cae lejos de todas (otra ciudad sin sede) se descarta.
+    return not areas or any(abs(float(lat) - float(a[0])) <= margin and abs(float(lng) - float(a[1])) <= margin for a in areas)
+
+
 def google_search(query, near):
+    areas = near if isinstance(near, list) else ([near] if near else [])
     params = {'address': query, 'components': 'country:CO'}
-    if near:
-        lat, lng = float(near[0]), float(near[1])
+    if len(areas) == 1:
+        lat, lng = float(areas[0][0]), float(areas[0][1])
         params['bounds'] = f'{lat - .25},{lng - .25}|{lat + .25},{lng + .25}'
     results = []
     for row in _google(params):
         lat, lng = coordinates(row['geometry']['location']['lat'], row['geometry']['location']['lng'])
-        # `bounds` solo da preferencia: lo que queda lejos de la sede (otra ciudad) se descarta.
-        if near and (abs(float(lat) - float(near[0])) > .3 or abs(float(lng) - float(near[1])) > .3):
+        if not near_any(lat, lng, areas):
             continue
         results.append({'texto': clean_address(row['formatted_address']), 'lat': float(lat), 'lng': float(lng),
                         'exacta': row['geometry'].get('location_type') in ('ROOFTOP', 'RANGE_INTERPOLATED')})
@@ -112,15 +117,20 @@ def search(query, near=None):
             if not kind:
                 raise
     # Huella del texto: las claves de caché no admiten espacios ni tildes.
-    around = f'{float(near[0]):.2f},{float(near[1]):.2f}' if near else ''
+    around = ';'.join(f'{float(a[0]):.2f},{float(a[1]):.2f}' for a in (near if isinstance(near, list) else [near] if near else []))
     key = f'geocoding:buscar:{kind}:' + hashlib.sha256(f'{around}|{query.strip().lower()}'.encode()).hexdigest()
     cached = cache.get(key)
     if cached is not None:
         return cached
     results = []
-    box = {'viewbox': f'{float(near[1]) - .25},{float(near[0]) + .25},{float(near[1]) + .25},{float(near[0]) - .25}', 'bounded': 1} if near else {}
-    for row in (_nominatim('search', {'q': query, 'countrycodes': 'co', 'limit': 5, 'addressdetails': 1, **box}) or [])[:5]:
+    areas = near if isinstance(near, list) else ([near] if near else [])
+    box = {'viewbox': f'{float(areas[0][1]) - .25},{float(areas[0][0]) + .25},{float(areas[0][1]) + .25},{float(areas[0][0]) - .25}', 'bounded': 1} if len(areas) == 1 else {}
+    for row in (_nominatim('search', {'q': query, 'countrycodes': 'co', 'limit': 10 if len(areas) > 1 else 5, 'addressdetails': 1, **box}) or []):
         lat, lng = coordinates(row['lat'], row['lon'])
+        if not near_any(lat, lng, areas):
+            continue
+        if len(results) == 5:
+            break
         results.append({'texto': short(row.get('address') or {}) or row.get('display_name', ''), 'lat': float(lat), 'lng': float(lng)})
     cache.set(key, results, DAY)
     return results

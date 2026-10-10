@@ -302,3 +302,18 @@ es único por organización. El inventario transversal incorpora GET/PUT de ajus
   (5.8267, −73.0337; copia de Poblado: precios, medios de pago y ajustes; el diseño es de la organización), domicilio
   activo (5 km, $3.000 hasta 2 km y $5.000 hasta 5 km, mínimo $15.000, los tres métodos). Verificación del navegador
   sobre Duitama: sin problemas.
+- **Cada sede con su zona y el cliente en la sede correcta (2026-10-10):**
+  - La entrada del menú trae `domicilio.centro` y `domicilio.radio_km`; el mapa usa `maxBounds` (radio + 1,5 km) y
+    `minZoom` 12: no sale de la zona de entrega ni pide mosaicos de otras ciudades. Un GPS de otra ciudad no arrastra el
+    mapa afuera.
+  - Al entrar sin mesa (una vez por pestaña, `VenueGuide`) se pide la ubicación; si otra sede le llega y el cliente no
+    tiene platos, se le lleva a esa sede con la ubicación puesta y un aviso; si tiene platos, solo se le avisa. La
+    portada del restaurante (`/<rest>/`) con varias sedes hace lo mismo y, si ninguna le llega, lo dice. Desde una mesa
+    nunca se pide la ubicación.
+  - Al calcular el domicilio (hoja del pedido o chat) se cotiza primero: si la dirección la atiende otra sede, sin
+    platos se pasa de una; con platos se ofrece «Ir a la sede X» (el pedido empieza de nuevo allá). La ubicación viaja
+    entre sedes en `sessionStorage` (`lib/domain/venueRedirect.ts`) y se lee una sola vez.
+  - La búsqueda de direcciones mira las zonas de **todas** las sedes con domicilio (antes solo la primera): si la
+    dirección existe en dos ciudades con sede, salen ambas para escoger.
+  - Producción: servir `colombia.pmtiles` desde un CDN con soporte de rangos y caché; con la zona limitada, cada ciudad
+    pide solo sus mosaicos.
