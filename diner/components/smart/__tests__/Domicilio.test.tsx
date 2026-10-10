@@ -64,22 +64,30 @@ it('no ofrece domicilio si la sede no lo tiene', async () => {
 })
 
 // Falla si al pedir domicilio en el chat no aparecen los dos caminos (mi ubicación u otra persona), si la ubicación no
-// se cotiza, si no queda lista para el pedido o si fuera de zona no se ofrece recoger.
+// se cotiza, si no se le confirma al cliente la dirección y se sigue con el pedido (categorías de un toque), si no queda
+// lista para el pedido o si fuera de zona no se ofrece recoger.
 it('comparte la ubicación desde el chat del mesero', async () => {
   const { ChatDelivery } = await import('../ChatDelivery')
-  const { quoteDelivery, getVenueLocation } = jest.requireMock('@/lib/services/api')
+  const { quoteDelivery, getVenueLocation, reverseAddress } = jest.requireMock('@/lib/services/api')
   jest.mocked(getVenueLocation).mockResolvedValue({ direccion: '', latitud: 6.2, longitud: -75.5 })
+  jest.mocked(reverseAddress).mockResolvedValue('Calle 9A 37-16, El Poblado, Medellín')
   jest.mocked(quoteDelivery).mockResolvedValueOnce({ cobertura: true, sede: { slug: 'salon', nombre: 'El Poblado' }, distancia_km: 0.9, envio: 4000, minimo: 20000, metodos: ['cash'] })
     .mockResolvedValueOnce({ cobertura: false, motivo: 'fuera_de_zona', recoger: [{ slug: 'salon', nombre: 'El Poblado', direccion: '' }] })
-  useDinerStore.setState({ entry: { domicilio: { enabled: true, buscador: false }, contexto: { mesa: null }, carta: { categorias: [] } } as unknown as Entry })
+  useDinerStore.setState({ entry: { domicilio: { enabled: true, buscador: false }, contexto: { mesa: null }, carta: { categorias: [
+    { id: 1, nombre: 'Hamburguesas', productos: [{ id: 3 }] }, { id: 2, nombre: 'Vacía', productos: [] }] } } as unknown as Entry })
   Object.defineProperty(navigator, 'geolocation', { configurable: true, value: { getCurrentPosition: (ok: (p: unknown) => void) => ok({ coords: { latitude: 6.21, longitude: -75.57 } }) } })
-  const salir = jest.fn()
-  render(<ChatDelivery pedido="/demo/salon/pedido" onLeave={salir} />)
+  const salir = jest.fn(), enviar = jest.fn()
+  render(<ChatDelivery pedido="/demo/salon/pedido" onLeave={salir} onSend={enviar} />)
   await act(async () => fireEvent.click(screen.getByRole('button', { name: '📍 Compartir mi ubicación' })))
   expect(quoteDelivery).toHaveBeenCalledWith('demo', 6.21, -75.57)
-  expect(await screen.findByText(/Te lo lleva El Poblado/)).toBeInTheDocument()
-  expect(useDinerStore.getState().deliveryDraft).toEqual({ lat: 6.21, lng: -75.57, direccion: '' })
-  fireEvent.click(screen.getByRole('button', { name: 'Elegir mis platos →' }))
+  expect(await screen.findByText('Calle 9A 37-16, El Poblado, Medellín')).toBeInTheDocument()
+  expect(screen.getByText(/Te lo lleva El Poblado/)).toBeInTheDocument()
+  expect(screen.getByText('¡Listo! Continuemos con tu pedido: ¿qué te gustaría ordenar?')).toBeInTheDocument()
+  expect(useDinerStore.getState().deliveryDraft).toEqual({ lat: 6.21, lng: -75.57, direccion: 'Calle 9A 37-16, El Poblado, Medellín' })
+  expect(screen.queryByRole('button', { name: 'Vacía' })).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'Hamburguesas' }))
+  expect(enviar).toHaveBeenCalledWith('Hamburguesas')
+  fireEvent.click(screen.getByRole('button', { name: 'Ver la carta completa' }))
   expect(salir).toHaveBeenCalled()
   fireEvent.click(screen.getByRole('button', { name: 'Cambiar la ubicación' }))
   fireEvent.click(screen.getByRole('button', { name: 'Es para otra persona' }))
@@ -100,23 +108,25 @@ it('en una mesa no ofrece domicilio', async () => {
 })
 
 
-// Falla si al asentar el pin no aparece su dirección aproximada (y no llena el campo), si escribir una dirección no
-// lleva el mapa hasta allá, o si la dirección que el cliente escribió la pisa el pin.
+// Falla si al asentar el pin no aparece su dirección aproximada (y no llena el campo), si al escribir no salen
+// sugerencias con el barrio, si escoger una no lleva el mapa hasta allá, o si el pin pisa la dirección escogida.
 it('dirección y mapa en las dos direcciones', async () => {
   const { DeliverySheet } = await import('../DeliverySheet')
   const api = jest.requireMock('@/lib/services/api')
   api.getVenueLocation.mockResolvedValue({ direccion: '', latitud: 6.2, longitud: -75.5 })
   api.reverseAddress.mockResolvedValue('Calle 9A 37-16, El Poblado, Medellín')
-  api.searchAddress.mockResolvedValue([{ texto: 'Calle 10, El Poblado', lat: 6.2098, lng: -75.5684 }])
+  api.suggestAddresses.mockResolvedValue([{ titulo: 'Éxito Poblado', detalle: 'Calle 10 43E-135, El Poblado, Medellín', lat: 6.2098, lng: -75.5684 }])
   useDinerStore.setState({ session: { id: 'visita', estado: 'abierta', mesa: null }, entry: { domicilio: { enabled: true, buscador: true }, contexto: { mesa: null }, carta: { categorias: [] } } as unknown as Entry })
   render(<DeliverySheet onReady={jest.fn()} />)
   fireEvent.click(await screen.findByRole('button', { name: 'Marcar en el mapa' }))
   expect(await screen.findByText('Calle 9A 37-16, El Poblado, Medellín', {}, { timeout: 2000 })).toBeInTheDocument()
   await waitFor(() => expect(screen.getByLabelText('Dirección')).toHaveValue('Calle 9A 37-16, El Poblado, Medellín'))
-  fireEvent.change(screen.getByLabelText('Dirección'), { target: { value: 'Calle 10 # 43-12' } })
-  await act(async () => fireEvent.keyDown(screen.getByLabelText('Dirección'), { key: 'Enter' }))
-  expect(api.searchAddress).toHaveBeenCalledWith('demo', 'Calle 10 # 43-12')
+  fireEvent.change(screen.getByLabelText('Dirección'), { target: { value: 'Calle 10' } })
+  const sugerencia = await screen.findByRole('option', { name: /Éxito Poblado/ }, { timeout: 2000 })
+  expect(sugerencia).toHaveTextContent('Calle 10 43E-135, El Poblado, Medellín')
+  expect(api.suggestAddresses).toHaveBeenCalledWith('demo', 'Calle 10')
+  fireEvent.mouseDown(sugerencia)
   expect(screen.getByLabelText('Centro del mapa')).toHaveTextContent('6.2098,-75.5684')
   await waitFor(() => expect(api.reverseAddress).toHaveBeenLastCalledWith('demo', 6.2098, -75.5684), { timeout: 2000 })
-  expect(screen.getByLabelText('Dirección')).toHaveValue('Calle 10 # 43-12')
+  expect(screen.getByLabelText('Dirección')).toHaveValue('Éxito Poblado, Calle 10 43E-135, El Poblado, Medellín')
 })

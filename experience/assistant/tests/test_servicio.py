@@ -235,3 +235,10 @@ def test_nombre_dentro_de_una_frase(carta, reloj):
 # Falla si una frase de domicilio no se reconoce o una que no lo es se toma como domicilio.
 def test_frases_de_domicilio(texto, es):
     assert service.wants_delivery(texto) is es
+
+
+# Falla si tocar una categoría en el chat (su nombre exacto) no muestra sus platos.
+def test_nombre_de_categoria_muestra_sus_platos(carta, reloj):
+    org, local, platos = carta
+    respuesta = handle('menu', local, 'cata', 'Postres')
+    assert [c['name'] for c in respuesta['cards']] == ['Brownie']

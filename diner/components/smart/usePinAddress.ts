@@ -13,8 +13,8 @@ export function usePinAddress(rest: string | null | undefined, point: Point | nu
   useEffect(() => {
     if (!rest || lat === undefined || lng === undefined) return
     let alive = true
-    setLoading(true)
     const timer = setTimeout(() => {
+      setLoading(true)
       Promise.resolve().then(() => reverseAddress(rest, lat, lng)).then((text) => { if (alive) setAddress(text ?? '') }).catch(() => { if (alive) setAddress('') })
         .finally(() => { if (alive) setLoading(false) })
     }, 500)

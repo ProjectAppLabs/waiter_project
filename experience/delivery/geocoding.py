@@ -116,3 +116,64 @@ def reverse(lat, lng):
         found = short(data.get('address') or {}) if isinstance(data, dict) else ''
     cache.set(key, found, DAY)
     return found
+
+
+PHOTON = 'https://photon.komoot.io/api/'
+# Lugares que no deben aparecer como sugerencia en el menú de un restaurante.
+HIDDEN = {'erotic', 'brothel', 'stripclub', 'swingerclub', 'love_hotel', 'sex_shop', 'adult_gaming_centre'}
+
+
+def _photon(query, near):
+    params = {'q': query, 'limit': 8}
+    if near:
+        lat, lng = float(near[0]), float(near[1])
+        params.update({'lat': lat, 'lon': lng, 'bbox': f'{lng - .25},{lat - .25},{lng + .25},{lat + .25}'})
+    try:
+        response = requests.get(PHOTON, params=params, headers={'User-Agent': USER_AGENT}, timeout=(2, 3), allow_redirects=False)
+        if response.status_code != 200:
+            raise Unavailable(f'Photon {response.status_code}')
+        return response.json().get('features', [])
+    except (requests.RequestException, ValueError, AttributeError) as error:
+        raise Unavailable('Photon no respondió') from error
+
+
+def suggestion(props, lat, lng):
+    """Una sugerencia como la ven en las apps de transporte: arriba la calle y el número (o el lugar), abajo el barrio."""
+    street = ' '.join(filter(None, (props.get('street'), props.get('housenumber')))).strip()
+    name = props.get('name') or ''
+    title = street if props.get('type') in ('house', 'street') and street and not name else (name or street)
+    city = (props.get('city') or '').replace('Perímetro Urbano ', '')
+    area = [props.get('locality'), props.get('district'), city]
+    detail = ', '.join(dict.fromkeys(x for x in ([street] if name and street else []) + area if x and x != title))
+    return {'titulo': title, 'detalle': detail, 'lat': float(lat), 'lng': float(lng)}
+
+
+def suggest(query, near=None):
+    """Sugerencias mientras el cliente escribe (Photon, hecho para autocompletar; Nominatim no lo permite)."""
+    kind = provider()
+    if not kind:
+        raise Unavailable('Sin proveedor de mapas')
+    around = f'{float(near[0]):.2f},{float(near[1]):.2f}' if near else ''
+    key = f'geocoding:sugerir:{kind}:' + hashlib.sha256(f'{around}|{query.strip().lower()}'.encode()).hexdigest()
+    cached = cache.get(key)
+    if cached is not None:
+        return cached
+    results = []
+    if kind == 'google':
+        for row in search(query, near):
+            title, _, rest = row['texto'].partition(', ')
+            results.append({'titulo': title, 'detalle': rest.replace(', Colombia', ''), 'lat': row['lat'], 'lng': row['lng']})
+    else:
+        for feature in _photon(query, near):
+            props = feature.get('properties') or {}
+            if props.get('countrycode') != 'CO' or props.get('osm_value') in HIDDEN:
+                continue
+            lng, lat = feature['geometry']['coordinates'][:2]
+            lat, lng = coordinates(lat, lng)
+            item = suggestion(props, lat, lng)
+            # Una calle larga viene por tramos: basta una sugerencia por calle y barrio.
+            if item['titulo'] and all((r['titulo'], r['detalle']) != (item['titulo'], item['detalle']) for r in results):
+                results.append(item)
+    results = results[:6]
+    cache.set(key, results, DAY)
+    return results

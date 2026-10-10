@@ -250,3 +250,12 @@ es único por organización. El inventario transversal incorpora GET/PUT de ajus
   de 24 h y búsqueda limitada a ~25 km de la sede. Límites por visita y día: 20 búsquedas y 150 lecturas del pin
   (`SearchUsage.reverses`). `entrada.domicilio.buscador` es verdadero con cualquiera de los dos proveedores.
   Nota: la caché y el turno de Nominatim usan la caché de Django; con varios procesos en producción conviene Redis.
+- **Sugerencias al escribir la dirección y confirmación (2026-10-09):** `POST /api/v1/<rest>/domicilio/sugerencias
+  {texto}` → `{sugerencias: [{titulo, detalle, lat, lng}]}` (calle y número o lugar conocido arriba; barrio y ciudad
+  abajo). Sin clave de Google usa **Photon** (OpenStreetMap, hecho para autocompletar; la política de Nominatim lo
+  prohíbe), limitado a ~25 km de la sede, una sugerencia por calle y barrio, sin lugares para adultos ni de otro país;
+  caché de 24 h y 300 por visita y día (`SearchUsage.suggests`). En el comensal, `AddressAutocomplete` (combobox con
+  flechas y Enter) en la hoja del pedido y en el mapa del chat. Al confirmar la ubicación en el chat: «✓ Te lo llevamos
+  a <dirección>» (con GPS se busca la dirección aproximada), sede, distancia y envío, y «¡Listo! Continuemos con tu
+  pedido: ¿qué te gustaría ordenar?» con las categorías como botones (el núcleo responde al nombre exacto de una
+  categoría con sus platos). La hoja del pedido también muestra «✓ Te lo llevamos a …» al cotizar.

@@ -470,3 +470,29 @@ def test_nominatim_busca_y_lee_direcciones(env, settings, monkeypatch):
     monkeypatch.setattr('requests.get', Mock(side_effect=__import__('requests').Timeout('caído')))
     assert e['client'].post(url, {'lat': 6.3, 'lng': -75.5}, format='json').data == {'texto': ''}
     assert e['client'].post(url, {'lat': 99, 'lng': -75.5}, format='json').status_code == 400
+
+
+# Falla si las sugerencias no muestran el barrio, si repiten la misma calle por tramos, si muestran lugares de otro país
+# o para adultos, si no se limitan a la zona de la sede o si una caída de Photon rompe el campo de dirección.
+def test_sugerencias_de_direccion(env, settings, monkeypatch):
+    from django.core.cache import cache
+    e = env
+    cache.clear()
+    settings.GOOGLE_MAPS_API_KEY = ''
+    feature = lambda props, lng=-75.57, lat=6.21: {'geometry': {'coordinates': [lng, lat]}, 'properties': {'countrycode': 'CO', **props}}
+    respuesta = {'features': [
+        feature({'name': 'Éxito Poblado', 'street': 'Calle 10', 'housenumber': '43E-135', 'district': 'El Poblado', 'city': 'Medellín', 'type': 'house'}),
+        feature({'street': 'Carrera 70', 'district': 'Laureles', 'city': 'Perímetro Urbano Medellín', 'type': 'street', 'name': 'Carrera 70'}),
+        feature({'street': 'Carrera 70', 'district': 'Laureles', 'city': 'Perímetro Urbano Medellín', 'type': 'street', 'name': 'Carrera 70'}, lat=6.25),
+        feature({'name': 'Tienda', 'osm_value': 'erotic', 'type': 'house'}),
+        {'geometry': {'coordinates': [-74, 4.6]}, 'properties': {'countrycode': 'VE', 'name': 'Otro país'}}]}
+    remote = Mock(return_value=Mock(status_code=200, json=lambda: respuesta))
+    monkeypatch.setattr('requests.get', remote)
+    url = f'/api/v1/{e["org"].slug}/domicilio/sugerencias'
+    data = e['client'].post(url, {'texto': 'calle 10'}, format='json').data['sugerencias']
+    assert data == [{'titulo': 'Éxito Poblado', 'detalle': 'Calle 10 43E-135, El Poblado, Medellín', 'lat': 6.21, 'lng': -75.57},
+                    {'titulo': 'Carrera 70', 'detalle': 'Laureles, Medellín', 'lat': 6.21, 'lng': -75.57}]
+    assert 'bbox' in remote.call_args.kwargs['params'] and 'Waiter' in remote.call_args.kwargs['headers']['User-Agent']
+    assert e['client'].post(url, {'texto': 'ca'}, format='json').status_code == 400
+    monkeypatch.setattr('requests.get', Mock(side_effect=__import__('requests').Timeout('caído')))
+    assert e['client'].post(url, {'texto': 'otra calle'}, format='json').data == {'sugerencias': []}

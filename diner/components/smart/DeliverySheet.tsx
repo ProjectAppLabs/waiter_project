@@ -5,11 +5,12 @@ import { useEffect, useRef, useState } from 'react'
 
 import { Icon } from './SmartMenu'
 import { formatCop } from '@/lib/domain/cart'
-import { ApiError, getVenueLocation, savedAddresses, searchAddress, setDelivery } from '@/lib/services/api'
+import { getVenueLocation, savedAddresses, setDelivery, type AddressSuggestion } from '@/lib/services/api'
 import { useDinerStore } from '@/lib/stores/dinerStore'
 import type { DeliveryMethod, DeliveryQuote, SavedAddress } from '@/lib/types'
 import type { Point } from './LocationPicker'
 import { usePinAddress } from './usePinAddress'
+import { AddressAutocomplete } from './AddressAutocomplete'
 
 // El mapa usa `window`: se carga solo en el navegador.
 const LocationPicker = dynamic(() => import('./LocationPicker').then((m) => m.LocationPicker), { ssr: false, loading: () => <div className="sm-map" aria-busy="true" /> })
@@ -29,10 +30,10 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
   const [name, setName] = useState(account?.nombre ?? ''), [phone, setPhone] = useState(account?.celular ?? '')
   const [save, setSave] = useState(false), [consent, setConsent] = useState(false), [label, setLabel] = useState('Casa')
   const [saved, setSaved] = useState<SavedAddress[]>([]), [addressId, setAddressId] = useState<number | undefined>()
-  const [searchable, setSearchable] = useState(entry?.domicilio?.buscador ?? false)
+  const searchable = entry?.domicilio?.buscador ?? false
   // La dirección va en las dos direcciones: el pin llena el texto, y lo escrito mueve el mapa. Mientras el cliente
   // tenga su propio texto, el pin no se lo cambia; si vuelve a mover el mapa a mano, manda el pin.
-  const typed = useRef(!!deliveryDraft?.direccion), flying = useRef<Point | null>(null), lastSearch = useRef('')
+  const typed = useRef(!!deliveryDraft?.direccion), flying = useRef<Point | null>(null)
   const pin = usePinAddress(keys?.rest, point)
   useEffect(() => { if (pin.address && !typed.current) setAddress(pin.address) }, [pin.address])
   const [quote, setQuote] = useState<DeliveryQuote | null>(null), [method, setMethod] = useState<DeliveryMethod | null>(null)
@@ -64,19 +65,13 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
       () => { setLocating(false); setError('No pudimos obtener tu ubicación. Revisa el permiso o ubícala en el mapa.') },
       { enableHighAccuracy: true, timeout: 10_000 })
   }
-  // Lo escrito lleva el mapa hasta allá (Enter o al salir del campo); el cliente ajusta moviendo el mapa.
-  async function search() {
-    const text = address.trim()
-    if (!keys || !searchable || !typed.current || text.length < 6 || text === lastSearch.current) return
-    lastSearch.current = text
-    setError('')
-    try {
-      const [first] = await searchAddress(keys.rest, text)
-      if (first) goTo({ lat: first.lat, lng: first.lng })
-      else setError('No encontramos esa dirección en el mapa. Mueve el mapa hasta la puerta de la entrega.')
-    } catch (e) { if (e instanceof ApiError && e.status === 503) setSearchable(false); else setError(e instanceof Error ? e.message : 'No pudimos buscar la dirección.') }
+  // Escoger una sugerencia lleva el mapa hasta allá; el cliente ajusta moviendo el mapa.
+  function pickSuggestion(found: AddressSuggestion) {
+    typed.current = true
+    setAddress([found.titulo, found.detalle].filter(Boolean).join(', '))
+    goTo({ lat: found.lat, lng: found.lng })
   }
-  function useSaved(a: SavedAddress) { typed.current = true; goTo({ lat: a.lat, lng: a.lng }); setAddress(a.direccion); setDetails(a.indicaciones); setAddressId(a.id) }
+  function pickSaved(a: SavedAddress) { typed.current = true; goTo({ lat: a.lat, lng: a.lng }); setAddress(a.direccion); setDetails(a.indicaciones); setAddressId(a.id) }
   const ready = !!point && address.trim().length >= 3 && name.trim().length >= 2 && phoneOk(phone) && (!save || consent)
   async function calculate() {
     if (!session || !point || !ready) return
@@ -98,10 +93,10 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
         <button type="button" className="sm-secondary" disabled={off || locating} onClick={locate}><Icon name="pin" />{locating ? 'Buscando tu ubicación…' : 'Usar mi ubicación actual'}</button>
       </div>
       {saved.length > 0 && <div className="sm-chat-choices" aria-label="Tus direcciones">{saved.map((a) => (
-        <button type="button" key={a.id} aria-pressed={addressId === a.id} disabled={off} onClick={() => useSaved(a)}>{a.etiqueta || 'Dirección'} · {a.direccion}</button>))}</div>}
-      <label className="sm-field"><span>Dirección</span><input value={address} disabled={off} maxLength={200} placeholder={searchable ? 'Escribe la dirección o mueve el mapa' : 'Calle, número y barrio'}
-        onChange={(e) => { typed.current = true; setAddress(e.target.value); setQuote(null) }} onBlur={() => void search()}
-        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void search() } }} /></label>
+        <button type="button" key={a.id} aria-pressed={addressId === a.id} disabled={off} onClick={() => pickSaved(a)}>{a.etiqueta || 'Dirección'} · {a.direccion}</button>))}</div>}
+      <AddressAutocomplete rest={keys?.rest} value={address} enabled={searchable} disabled={off} onPick={pickSuggestion}
+        placeholder={searchable ? 'Escribe la dirección o mueve el mapa' : 'Calle, número y barrio'}
+        onType={(text) => { typed.current = true; setAddress(text); setQuote(null) }} />
       {center && <LocationPicker center={center} value={point} onChange={moved} />}
       <p className="sm-map-address" role="status"><Icon name="pin" /><span>{pin.loading ? 'Buscando la dirección…' : pin.address || 'Mueve el mapa hasta la puerta de la entrega.'}</span></p>
       <label className="sm-field"><span>Indicaciones (opcional)</span><input value={details} disabled={off} onChange={(e) => { setDetails(e.target.value); setQuote(null) }} maxLength={200} placeholder="Torre, apartamento, portería…" /></label>
@@ -118,6 +113,7 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
       <button type="button" className="sm-primary" disabled={off || !ready} onClick={() => void calculate()}>{busy ? 'Calculando…' : quote ? 'Recalcular envío' : 'Calcular envío'}</button>
       {error && <p className="sm-error" role="alert">{error}</p>}
       {quote && <div className="sm-delivery-quote" role="status">
+        <p>✓ Te lo llevamos a <strong>{quote.direccion}</strong>{quote.indicaciones ? ` (${quote.indicaciones})` : ''}</p>
         <p><strong>Te lo lleva {quote.sede.nombre}</strong> · {quote.distancia_km.toLocaleString('es-CO', { maximumFractionDigits: 1 })} km</p>
         <p>Envío: <strong>{formatCop(quote.envio)}</strong>{quote.minimo ? ` · Pedido mínimo ${formatCop(quote.minimo)}` : ''}</p>
         {quote.nota && <p className="sm-note">{quote.nota}</p>}

@@ -324,6 +324,10 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
                 can_voice = True
             elif named:
                 chosen, template = safe_named[:3], 'menu' if safe_named else 'empty'
+            elif (category := next((c for p in products for c in p.get('categorias', []) if normalize(str(c)) == normalized.strip(' ?!.')), None)):
+                # El nombre exacto de una categoría (un botón del chat): sus platos más pedidos.
+                chosen = service.by_category(products, category)
+                template = 'menu' if chosen else 'empty'
             elif GREETING.fullmatch(normalized.strip(' !.?')) and not known_name(account, profile_info) and not asked_name:
                 # Como un mesero de verdad: antes de recomendar, pregunta con quién tiene el gusto.
                 # Solo la pregunta: los botones de categorías en el saludo distraen (pedido del dueño).

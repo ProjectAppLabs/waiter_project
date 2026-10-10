@@ -27,8 +27,9 @@ export function SmartCart({ actionTarget }: { actionTarget?: HTMLElement | null 
   // Plan D: sin mesa (la entrada de la sede) se recoge en el local o se pide a domicilio.
   const noTable = !!entry && !entry.contexto?.mesa
   const draft = useDinerStore((s) => s.deliveryDraft)
-  const [delivery, setDeliveryMode] = useState(false)
-  useEffect(() => { if (draft && noTable && entry?.domicilio?.enabled) setDeliveryMode(true) }, [draft, noTable, entry?.domicilio?.enabled])
+  // Si compartió la ubicación en el chat, el pedido arranca en domicilio hasta que escoja otra cosa.
+  const [choice, setDeliveryMode] = useState<boolean | null>(null)
+  const delivery = choice ?? (!!draft && noTable && !!entry?.domicilio?.enabled)
   const [ready, setReady] = useState<{ quote: DeliveryQuote | null; method: DeliveryMethod | null }>({ quote: null, method: null })
   const onReady = useCallback((quote: DeliveryQuote | null, method: DeliveryMethod | null) => setReady({ quote, method }), [])
   const { go, href } = useSmartRoute()

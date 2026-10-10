@@ -219,3 +219,8 @@ export async function sendLocateLink(token: string, body: { lat: number; lng: nu
 export async function reverseAddress(rest: string, lat: number, lng: number): Promise<string> {
   return (await http.post<{ texto: string }>(`${org(rest)}/domicilio/direccion`, { lat, lng })).data.texto ?? ''
 }
+// Sugerencias mientras se escribe la dirección (calle arriba, barrio y ciudad abajo).
+export interface AddressSuggestion { titulo: string; detalle: string; lat: number; lng: number }
+export async function suggestAddresses(rest: string, texto: string): Promise<AddressSuggestion[]> {
+  return (await http.post<{ sugerencias: AddressSuggestion[] }>(`${org(rest)}/domicilio/sugerencias`, { texto })).data.sugerencias ?? []
+}

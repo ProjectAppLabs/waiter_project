@@ -6,11 +6,12 @@ import { useEffect, useRef, useState } from 'react'
 
 import { formatCop } from '@/lib/domain/cart'
 import { myCount } from '@/lib/domain/cartEvents'
-import { getVenueLocation, quoteDelivery, searchAddress, type Coverage } from '@/lib/services/api'
+import { getVenueLocation, quoteDelivery, reverseAddress, type AddressSuggestion, type Coverage } from '@/lib/services/api'
 import { useDinerStore } from '@/lib/stores/dinerStore'
 import type { Point } from './LocationPicker'
 import { Icon } from './SmartMenu'
 import { usePinAddress } from './usePinAddress'
+import { AddressAutocomplete } from './AddressAutocomplete'
 
 const LocationPicker = dynamic(() => import('./LocationPicker').then((m) => m.LocationPicker), { ssr: false, loading: () => <div className="sm-map" aria-busy="true" /> })
 const MEDELLIN: Point = { lat: 6.2442, lng: -75.5812 }
@@ -18,12 +19,12 @@ const MEDELLIN: Point = { lat: 6.2442, lng: -75.5812 }
 // Plan D: cuando el comensal habla de domicilio, el mesero le pide la ubicación ahí mismo en el chat: la suya (GPS) o,
 // si es para otra persona, un punto en el mapa. Le dice qué sede se lo lleva y cuánto vale el envío, y deja la ubicación
 // lista para cuando confirme el pedido.
-export function ChatDelivery({ pedido, onLeave }: { pedido: string; onLeave: () => void }) {
+export function ChatDelivery({ pedido, onLeave, onSend }: { pedido: string; onLeave: () => void; onSend?: (text: string) => void }) {
   const { keys, entry, cart } = useDinerStore()
   const [mode, setMode] = useState<'choose' | 'map' | 'done'>('choose')
   const [point, setPoint] = useState<Point | null>(null), [center, setCenter] = useState<Point>(MEDELLIN)
   const [address, setAddress] = useState('')
-  const [coverage, setCoverage] = useState<Coverage | null>(null)
+  const [coverage, setCoverage] = useState<Coverage | null>(null), [confirmed, setConfirmed] = useState('')
   const [busy, setBusy] = useState(false), [error, setError] = useState('')
   // Como en la hoja del pedido: el pin llena la dirección y lo escrito lleva el mapa hasta allá.
   const typed = useRef(false), flying = useRef<Point | null>(null)
@@ -40,9 +41,10 @@ export function ChatDelivery({ pedido, onLeave }: { pedido: string; onLeave: () 
     if (!keys) return
     setBusy(true); setError('')
     try {
-      const result = await quoteDelivery(keys.rest, p.lat, p.lng)
-      setCoverage(result); setMode('done')
-      if (result.cobertura) useDinerStore.setState({ deliveryDraft: { lat: p.lat, lng: p.lng, direccion } })
+      // Con el GPS no hay texto: se busca la dirección aproximada para confirmársela al cliente.
+      const [result, text] = await Promise.all([quoteDelivery(keys.rest, p.lat, p.lng), direccion ? Promise.resolve(direccion) : reverseAddress(keys.rest, p.lat, p.lng).catch(() => '')])
+      setCoverage(result); setConfirmed(text ?? ''); setMode('done')
+      if (result.cobertura) useDinerStore.setState({ deliveryDraft: { lat: p.lat, lng: p.lng, direccion: text ?? '' } })
     } catch (e) { setError(e instanceof Error ? e.message : 'No pudimos revisar la cobertura.') }
     finally { setBusy(false) }
   }
@@ -63,10 +65,14 @@ export function ChatDelivery({ pedido, onLeave }: { pedido: string; onLeave: () 
     else if (!target) typed.current = false
     setPoint(p)
   }
-  async function search() {
-    if (!keys || !entry?.domicilio?.buscador || !typed.current || address.trim().length < 6) return
-    try { const [first] = await searchAddress(keys.rest, address.trim()); if (first) { flying.current = { lat: first.lat, lng: first.lng }; setPoint(flying.current) } } catch { /* sigue con el mapa */ }
+  function pickSuggestion(found: AddressSuggestion) {
+    typed.current = true
+    setAddress([found.titulo, found.detalle].filter(Boolean).join(', '))
+    flying.current = { lat: found.lat, lng: found.lng }
+    setPoint(flying.current)
   }
+  // Las categorías con platos, para seguir con el pedido de un toque.
+  const categories = (entry.carta?.categorias ?? []).filter((c) => c.productos?.length).map((c) => c.nombre).slice(0, 4)
   return (
     <div className="sm-chat-delivery">
       {mode === 'choose' && <div className="sm-chat-choices" aria-label="¿A dónde lo llevamos?">
@@ -74,19 +80,23 @@ export function ChatDelivery({ pedido, onLeave }: { pedido: string; onLeave: () 
         <button type="button" disabled={busy} onClick={() => setMode('map')}>Es para otra persona</button>
       </div>}
       {mode === 'map' && <div className="sm-delivery">
-        <label className="sm-field"><span>Dirección</span><input value={address} maxLength={200} placeholder="Escribe la dirección o mueve el mapa"
-          onChange={(e) => { typed.current = true; setAddress(e.target.value) }} onBlur={() => void search()} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void search() } }} /></label>
+        <AddressAutocomplete rest={keys.rest} value={address} enabled={!!entry.domicilio.buscador} onPick={pickSuggestion}
+          placeholder="Escribe la dirección o mueve el mapa" onType={(text) => { typed.current = true; setAddress(text) }} />
         <LocationPicker center={center} value={point} onChange={moved} label="Mapa para marcar la entrega" />
         <p className="sm-map-address" role="status"><Icon name="pin" /><span>{pin.loading ? 'Buscando la dirección…' : pin.address || 'Mueve el mapa hasta la puerta de la entrega.'}</span></p>
         <button type="button" className="sm-primary" disabled={busy || !point} onClick={() => point && void check(point, address.trim())}>{busy ? 'Revisando…' : 'Usar esta ubicación'}</button>
       </div>}
       {mode === 'done' && coverage && (coverage.cobertura ? <div className="sm-delivery-quote" role="status">
-        <p><strong>¡Sí llegamos!</strong> Te lo lleva {coverage.sede.nombre} · {coverage.distancia_km.toLocaleString('es-CO', { maximumFractionDigits: 1 })} km</p>
-        <p>Envío: <strong>{formatCop(coverage.envio)}</strong>{coverage.minimo ? ` · Pedido mínimo ${formatCop(coverage.minimo)}` : ''}</p>
-        <p className="sm-note">Guardé la ubicación: al confirmar tu pedido escoges «A domicilio» y ya estará marcada.</p>
-        {items > 0
-          ? <Link className="sm-chat-help" href={pedido} onClick={onLeave}>Ir a mi pedido →</Link>
-          : <button type="button" className="sm-chat-help" onClick={onLeave}>Elegir mis platos →</button>}
+        <p>✓ Te lo llevamos a <strong>{confirmed || 'la ubicación que marcaste'}</strong></p>
+        <p>Te lo lleva {coverage.sede.nombre} · {coverage.distancia_km.toLocaleString('es-CO', { maximumFractionDigits: 1 })} km · Envío <strong>{formatCop(coverage.envio)}</strong>{coverage.minimo ? ` · Pedido mínimo ${formatCop(coverage.minimo)}` : ''}</p>
+        {items > 0 ? <>
+          <p>¡Listo! Ya tienes platos en tu pedido. ¿Quieres agregar algo más o lo confirmamos?</p>
+          <Link className="sm-chat-help" href={pedido} onClick={onLeave}>Ir a mi pedido →</Link>
+        </> : <>
+          <p><strong>¡Listo! Continuemos con tu pedido: ¿qué te gustaría ordenar?</strong></p>
+          {onSend && categories.length > 0 && <div className="sm-chat-choices" aria-label="Categorías de la carta">{categories.map((c) => <button type="button" key={c} onClick={() => onSend(c)}>{c}</button>)}</div>}
+          <button type="button" className="sm-text-button" onClick={onLeave}>Ver la carta completa</button>
+        </>}
         <button type="button" className="sm-text-button" onClick={() => { setMode('choose'); setCoverage(null) }}>Cambiar la ubicación</button>
       </div> : <div className="sm-delivery-quote" role="status">
         <p>Esa ubicación queda fuera de nuestra zona de domicilios.</p>

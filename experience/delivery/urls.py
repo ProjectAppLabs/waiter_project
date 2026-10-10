@@ -7,6 +7,7 @@ urlpatterns = [
     path('api/v1/<slug:rest>/domicilio/cotizar', api.QuoteView.as_view()),
     path('api/v1/<slug:rest>/domicilio/buscar', api.SearchView.as_view()),
     path('api/v1/<slug:rest>/domicilio/direccion', api.ReverseView.as_view()),
+    path('api/v1/<slug:rest>/domicilio/sugerencias', api.SuggestView.as_view()),
     path('api/v1/sesiones/<uuid:session_id>/domicilio', api.SessionView.as_view()),
     path('api/v1/<slug:rest>/domicilio/direcciones', api.AddressesView.as_view(http_method_names=['get', 'options'])),
     path('api/v1/<slug:rest>/domicilio/direcciones/<int:address_id>', api.AddressesView.as_view(http_method_names=['delete', 'options'])),

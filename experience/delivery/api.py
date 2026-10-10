@@ -77,6 +77,24 @@ class SearchView(DinerView):
         return Response({'resultados': results})
 
 
+class SuggestView(DinerView):
+    """Sugerencias mientras el cliente escribe la dirección: calle y número arriba, barrio y ciudad abajo."""
+    def post(self, request, rest):
+        org = organization(rest)
+        diner = self.diner(request, org)
+        require(geocoding.provider(), 'Las sugerencias no están disponibles. Puede usar su ubicación o el mapa.', 'maps_not_configured', 503)
+        data = payload(request.data, ('texto',), ('texto',))
+        query = text(data['texto'], 120, True)
+        require(len(query) >= 3, 'Escriba al menos tres letras.', 'invalid_data', 400)
+        count_search(org, diner, 'suggests', 300)
+        first = coverage.candidates(org).first()
+        try:
+            found = geocoding.suggest(query, (first.restaurant.latitude, first.restaurant.longitude) if first else None)
+        except geocoding.Unavailable:
+            found = []
+        return Response({'sugerencias': found})
+
+
 class ReverseView(DinerView):
     """Punto del mapa → dirección aproximada, para que el cliente confirme que el pin quedó bien puesto."""
     def post(self, request, rest):
