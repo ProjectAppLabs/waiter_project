@@ -61,14 +61,39 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
     setPoint(p); setQuote(null); setAddressId(undefined)
   }
   const goTo = (p: Point) => { flying.current = p; setPoint(p); setQuote(null); setAddressId(undefined) }
-  function locate() {
-    if (!navigator.geolocation) { setError('Tu navegador no comparte la ubicación. Ubícala en el mapa.'); return }
+  // Si la ubicación la atiende otra sede: sin platos se pasa de una; con platos se le ofrece ir (el pedido viaja con él).
+  async function routeIfOther(p: Point, direccion: string) {
+    if (!keys) return false
+    const coverage = await quoteDelivery(keys.rest, p.lat, p.lng)
+    if (!coverage.cobertura || coverage.sede.slug === venues.venue) return false
+    setQuote(null)
+    if (!venues.hasItems) venues.go(coverage.sede.slug, coverage.sede.nombre, { lat: p.lat, lng: p.lng, direccion })
+    else setOther(coverage.sede)
+    return true
+  }
+  function locate(quiet = false) {
+    if (!navigator.geolocation) { if (!quiet) setError('Tu navegador no comparte la ubicación. Ubícala en el mapa.'); return }
     setLocating(true); setError('')
     navigator.geolocation.getCurrentPosition(
-      (p) => { setLocating(false); typed.current = false; goTo({ lat: p.coords.latitude, lng: p.coords.longitude }) },
-      () => { setLocating(false); setError('No pudimos obtener tu ubicación. Revisa el permiso o ubícala en el mapa.') },
+      (p) => {
+        setLocating(false); typed.current = false
+        const here = { lat: p.coords.latitude, lng: p.coords.longitude }
+        goTo(here)
+        void routeIfOther(here, '').catch(() => undefined)
+      },
+      () => { setLocating(false); if (!quiet) setError('No pudimos obtener tu ubicación. Revisa el permiso o ubícala en el mapa.') },
       { enableHighAccuracy: true, timeout: 10_000 })
   }
+  // Escogió «A domicilio»: es el momento de pedir la ubicación (si no la negó antes ni la traía del chat u otra sede).
+  useEffect(() => {
+    if (deliveryDraft || preview || typeof navigator === 'undefined' || !navigator.geolocation) return
+    const ask = () => locate(true)
+    const permissions = (navigator as Navigator & { permissions?: Permissions }).permissions
+    if (!permissions?.query) { ask(); return }
+    permissions.query({ name: 'geolocation' as PermissionName }).then((status) => { if (status.state !== 'denied') ask() }).catch(ask)
+    // Solo al abrir la hoja.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   // Escoger una sugerencia lleva el mapa hasta allá; el cliente ajusta moviendo el mapa.
   // La dirección encontrada lleva el mapa hasta allá; el cliente termina de ubicar la puerta moviendo el mapa.
   function pickFound(found: FoundAddress) {
@@ -82,20 +107,14 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
     if (!session || !point || !ready || !keys) return
     setBusy(true); setError(''); setOther(null)
     try {
-      // Si la dirección la atiende otra sede, el pedido se arma allá: sin platos se va de una; con platos, decide él.
+      // Si la dirección la atiende otra sede, el pedido sigue allá (sin platos se va de una; con platos, decide él).
       const coverage = await quoteDelivery(keys.rest, point.lat, point.lng)
       if (!coverage.cobertura) {
         setQuote(null)
         setError(`Esa dirección queda fuera de nuestra zona de domicilios.${coverage.recoger.length ? ` Puedes recogerlo en ${coverage.recoger.map((r) => r.nombre).join(' o ')}.` : ''}`)
         return
       }
-      if (coverage.sede.slug !== venues.venue) {
-        setQuote(null)
-        const location = { lat: point.lat, lng: point.lng, direccion: address.trim() }
-        if (!venues.hasItems) { venues.go(coverage.sede.slug, coverage.sede.nombre, location); return }
-        setOther(coverage.sede)
-        return
-      }
+      if (await routeIfOther(point, address.trim())) return
       const r = await setDelivery(session.id, { lat: point.lat, lng: point.lng, direccion: address.trim(), indicaciones: details.trim(), telefono: phone.trim(), nombre: name.trim(),
         etiqueta: save ? label.trim() || 'Casa' : undefined, direccion_id: addressId, guardar: save, acepta_datos: consent })
       useDinerStore.setState({ cart: r.carrito })
@@ -109,7 +128,7 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
     <section className="sm-delivery" aria-label="Datos del domicilio">
       <h3>¿A dónde te lo llevamos?</h3>
       <div className="sm-delivery-actions">
-        <button type="button" className="sm-secondary" disabled={off || locating} onClick={locate}><Icon name="pin" />{locating ? 'Buscando tu ubicación…' : 'Usar mi ubicación actual'}</button>
+        <button type="button" className="sm-secondary" disabled={off || locating} onClick={() => locate()}><Icon name="pin" />{locating ? 'Buscando tu ubicación…' : 'Usar mi ubicación actual'}</button>
       </div>
       {saved.length > 0 && <div className="sm-chat-choices" aria-label="Tus direcciones">{saved.map((a) => (
         <button type="button" key={a.id} aria-pressed={addressId === a.id} disabled={off} onClick={() => pickSaved(a)}>{a.etiqueta || 'Dirección'} · {a.direccion}</button>))}</div>}
@@ -131,8 +150,8 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
       <button type="button" className="sm-primary" disabled={off || !ready} onClick={() => void calculate()}>{busy ? 'Calculando…' : quote ? 'Recalcular envío' : 'Calcular envío'}</button>
       {error && <p className="sm-error" role="alert">{error}</p>}
       {other && keys && point && <div className="sm-delivery-quote" role="status">
-        <p>Esa dirección la atiende la sede <strong>{other.nombre}</strong>. Tu pedido de esta sede no pasa allá: lo armas de nuevo en su menú.</p>
-        <button type="button" className="sm-primary" onClick={() => venues.go(other.slug, other.nombre, { lat: point.lat, lng: point.lng, direccion: address.trim() })}>Ir a la sede {other.nombre}</button>
+        <p>Esa dirección la atiende la sede <strong>{other.nombre}</strong>. Te llevamos allá con tu pedido; revisamos que todo esté disponible en esa sede.</p>
+        <button type="button" className="sm-primary" onClick={() => venues.go(other.slug, other.nombre, { lat: point.lat, lng: point.lng, direccion: address.trim() })}>Ir a la sede {other.nombre} con mi pedido</button>
       </div>}
       {quote && <div className="sm-delivery-quote" role="status">
         <p>✓ Te lo llevamos a <strong>{quote.direccion}</strong>{quote.indicaciones ? ` (${quote.indicaciones})` : ''}</p>

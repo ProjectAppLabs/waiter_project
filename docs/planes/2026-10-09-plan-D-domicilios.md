@@ -317,3 +317,13 @@ es único por organización. El inventario transversal incorpora GET/PUT de ajus
     dirección existe en dos ciudades con sede, salen ambas para escoger.
   - Producción: servir `colombia.pmtiles` desde un CDN con soporte de rangos y caché; con la zona limitada, cada ciudad
     pide solo sus mosaicos.
+- **Ajustes de la revisión (2026-10-10):**
+  1. **La ubicación se pide en contexto, no al cargar:** en la portada con varias sedes, botón «📍 Ver la sede más
+     cercana»; en la sede, al escoger «A domicilio» (si el navegador no la tiene negada) o con los botones del chat.
+     Así se aceptan más permisos y un rechazo temprano no bloquea «Usar mi ubicación» después.
+  2. **El pedido viaja con el cliente:** al pasar a la sede que atiende su dirección se llevan sus platos (cantidad y
+     nota); la sede nueva los agrega uno a uno con su precio y disponibilidad, y avisa «Trajimos tu pedido» y lo que no
+     está disponible allá.
+  3. **OpenStreetMap propio para producción:** `NOMINATIM_URL` y `PHOTON_URL` (en `.env.example`) apuntan a servidores
+     propios con los datos de Colombia cuando el volumen supere el uso liviano que permiten los públicos. Queda para el
+     despliegue: un servidor pequeño, costo fijo y no por pedido.

@@ -16,7 +16,8 @@ from django.core.cache import cache
 
 from .coverage import coordinates
 
-NOMINATIM = 'https://nominatim.openstreetmap.org'
+# Con muchos clientes, la política del Nominatim público pide montar uno propio: NOMINATIM_URL y PHOTON_URL apuntan a él.
+NOMINATIM = getattr(settings, 'NOMINATIM_URL', '') or 'https://nominatim.openstreetmap.org'
 USER_AGENT = 'Waiter/1.0 (ProjectApp; https://projectapp.co)'
 DAY = 24 * 60 * 60
 
@@ -165,7 +166,7 @@ def reverse(lat, lng):
     return found
 
 
-PHOTON = 'https://photon.komoot.io/api/'
+PHOTON = getattr(settings, 'PHOTON_URL', '') or 'https://photon.komoot.io/api/'
 # Lugares que no deben aparecer como sugerencia en el menú de un restaurante.
 HIDDEN = {'erotic', 'brothel', 'stripclub', 'swingerclub', 'love_hotel', 'sex_shop', 'adult_gaming_centre'}
 

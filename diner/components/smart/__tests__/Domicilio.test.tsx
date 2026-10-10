@@ -171,6 +171,6 @@ it('manda a la sede que atiende la dirección', async () => {
   await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Calcular envío' })))
   expect(api.setDelivery).not.toHaveBeenCalled()
   expect(screen.getByText(/la atiende la sede/)).toBeInTheDocument()
-  fireEvent.click(screen.getByRole('button', { name: 'Ir a la sede Duitama' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Ir a la sede Duitama con mi pedido' }))
   expect(JSON.parse(sessionStorage.getItem('waiter:domicilio:demo')!)).toMatchObject({ venue: 'duitama', location: { lat: 6.2, lng: -75.57, direccion: 'Calle 15 # 16-55' } })
 })

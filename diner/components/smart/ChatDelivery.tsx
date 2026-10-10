@@ -96,8 +96,8 @@ export function ChatDelivery({ pedido, onLeave, onSend }: { pedido: string; onLe
         <button type="button" className="sm-primary" disabled={busy || !point} onClick={() => point && void check(point, address.trim())}>{busy ? 'Revisando…' : 'Usar esta ubicación'}</button>
       </div>}
       {mode === 'done' && coverage?.cobertura && coverage.sede.slug !== venues.venue && <div className="sm-delivery-quote" role="status">
-        <p>Esa dirección la atiende la sede <strong>{coverage.sede.nombre}</strong>. Tu pedido de esta sede no pasa allá: lo armas de nuevo en su menú.</p>
-        <button type="button" className="sm-chat-help" onClick={() => checked && venues.go(coverage.sede.slug, coverage.sede.nombre, { lat: checked.lat, lng: checked.lng, direccion: confirmed })}>Ir a la sede {coverage.sede.nombre} →</button>
+        <p>Esa dirección la atiende la sede <strong>{coverage.sede.nombre}</strong>. Te llevamos allá con tu pedido; revisamos que todo esté disponible en esa sede.</p>
+        <button type="button" className="sm-chat-help" onClick={() => checked && venues.go(coverage.sede.slug, coverage.sede.nombre, { lat: checked.lat, lng: checked.lng, direccion: confirmed })}>Ir a la sede {coverage.sede.nombre} con mi pedido →</button>
       </div>}
       {mode === 'done' && coverage && (coverage.cobertura ? coverage.sede.slug === venues.venue && <div className="sm-delivery-quote" role="status">
         <p>✓ Te lo llevamos a <strong>{confirmed || 'la ubicación que marcaste'}</strong></p>

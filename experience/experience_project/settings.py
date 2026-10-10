@@ -211,3 +211,6 @@ WA_AGENT_TEMPERATURE = os.getenv('WA_AGENT_TEMPERATURE', '')
 GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY', '')
 # Sin clave de Google, las direcciones salen de Nominatim (OpenStreetMap, gratis, una consulta por segundo).
 NOMINATIM_ENABLED = os.getenv('NOMINATIM_ENABLED', '1').lower() not in ('0', 'false', 'no')
+# Servidores propios de OpenStreetMap para producción (vacíos: los públicos, solo para uso liviano).
+NOMINATIM_URL = os.getenv('NOMINATIM_URL', '').rstrip('/')
+PHOTON_URL = os.getenv('PHOTON_URL', '')
