@@ -281,10 +281,13 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
                 notice = {'kind': 'quota', 'until': None}
             business_data = business.data_for(restaurant)
             asked_name = state.last_question == 'name'
-            given = service.name_from(raw, products) if asked_name else ''
+            given, rest = service.split_name(raw, products, asked_name)
             if given:
                 profile = remember_name(restaurant.organization, key, profile, given)
                 profile_info = profile_data(profile, account)
+                if rest:
+                    # «Mi nombre es Gustavo y quiero un domicilio»: se saluda por el nombre y se atiende lo demás.
+                    raw, normalized, met = rest, normalize(rest), given
             fixed = business.answer(raw, business_data, restaurant, participant, tone)
             named = named_products(raw, products)
             from experience_app.services.agent_chat import explicit_add
@@ -301,7 +304,7 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
             safe_named = [p for p in named if p.get('agotado') is False]
             if fixed:
                 template, route = 'business', 'estado' if 'mi pedido' in normalized else 'negocio'
-            elif given or (asked_name and service.declines_name(raw)):
+            elif (given and not met) or (asked_name and service.declines_name(raw)):
                 # Respondió al «¿con quién tengo el gusto?»: se le da la bienvenida con lo fuerte de la casa.
                 template, chosen, welcome_options = welcome(products, profile_info)
                 # Sin repetir el «bienvenido»: con el nombre, «¡Mucho gusto, Ana!»; si no lo quiso dar, directo a lo bueno.
@@ -311,7 +314,8 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
                 chosen, template = safe_named[:3], 'menu' if safe_named else 'empty'
             elif GREETING.fullmatch(normalized.strip(' !.?')) and not known_name(account, profile_info) and not asked_name:
                 # Como un mesero de verdad: antes de recomendar, pregunta con quién tiene el gusto.
-                template, welcome_options = 'ask_name', service.category_options(products)
+                # Solo la pregunta: los botones de categorías en el saludo distraen (pedido del dueño).
+                template = 'ask_name'
             elif GREETING.fullmatch(normalized.strip(' !.?')):
                 # Bienvenida del guion de servicio: lo más pedido de la casa y las categorías para explorar.
                 template, chosen, welcome_options = welcome(products, profile_info)
@@ -352,7 +356,7 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
                 elif selected_route == 'reclamo' or (answers or {}).get('frustracion', {}).get('score', 0) >= 2:
                     template, route = 'human', 'reclamo'
                 elif choice(answers, 'ruta') == 'saludo' and not known_name(account, profile_info) and not asked_name:
-                    template, welcome_options = 'ask_name', service.category_options(products)
+                    template = 'ask_name'
                 elif choice(answers, 'ruta') == 'saludo':
                     template, chosen, welcome_options = welcome(products, profile_info)
                     can_voice = source != 'cache'
@@ -417,6 +421,8 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
     options = option_cards(cards) or [{'label': 'Ver menú', 'value': 'menu'}]
     if welcome_options:
         options = welcome_options
+    if template == 'ask_name':
+        options = []
     if upsell:
         # Las sugerencias entran a las tarjetas del estado para que tocarlas funcione como cualquier opción.
         state.cards = cards + [card(p) for p in upsell]
@@ -435,6 +441,8 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
     voice = OpenAIVoice(catalog=[p['nombre'] for p in products], tone=tone) if can_voice else TemplateVoice(tone)
     voice_key = 'confirmed_menu' if template == 'confirmed' and channel == 'menu' else template
     result_text = voice.phrase(voice_key, data) + extra
+    if met.strip() and not template.startswith('welcome'):
+        result_text = phrases(tone, 'nice_to_meet')[0].format(name=met) + ' ' + result_text
     if can_voice:
         measure(voice.usage, Decimal('.10'), Decimal('.50'))
         model_version = settings.WA_AGENT_MODEL if settings.OPENAI_API_KEY else ''

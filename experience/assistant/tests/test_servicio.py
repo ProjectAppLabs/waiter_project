@@ -33,7 +33,7 @@ def carta(entorno, settings):
     return org, local, platos
 
 
-# Falla si el saludo no pregunta el nombre antes de recomendar, si tras darlo la bienvenida no lo usa ni ofrece lo fuerte
+# Falla si el saludo no pregunta el nombre antes de recomendar (sin botones que distraigan), si tras darlo la bienvenida no lo usa ni ofrece lo fuerte
 # de la casa (sin adiciones ni bebidas, una por categoría), si no deja explorar por categorías o si consulta un modelo.
 def test_bienvenida_pregunta_el_nombre(carta, monkeypatch, reloj):
     org, local, platos = carta
@@ -43,8 +43,7 @@ def test_bienvenida_pregunta_el_nombre(carta, monkeypatch, reloj):
         cliente = f'cliente-{nombre}'
         reloj()
         pregunta = handle('menu', local, cliente, saludo)
-        assert '¿Con quién tengo el gusto?' in pregunta['text'] and not pregunta['cards']
-        assert [o['label'] for o in pregunta['options']] == ['Hamburguesas', 'Pizzas', 'Postres']
+        assert '¿Con quién tengo el gusto?' in pregunta['text'] and not pregunta['cards'] and pregunta['options'] == []
         reloj()
         bienvenida = handle('menu', local, cliente, respuesta_nombre)
         assert bienvenida['text'].startswith(f'¡Mucho gusto, {nombre}!') and bienvenida['text'].count('ienvenid') == 0
@@ -207,3 +206,19 @@ def test_palabras_comunes_no_nombran_platos(carta):
     assert named_products('hola de nuevo', productos) == []
     assert named_products('quiero algo bueno', productos) == []
     assert [p['nombre'] for p in named_products('una arepa con huevo', productos)] == ['Arepa con huevo']
+
+
+# Falla si el nombre dicho dentro de una frase se pierde, si se toma de más («Gustavo y quiero…») o si el resto del
+# mensaje (el domicilio, un plato) se deja sin atender por dar la bienvenida.
+def test_nombre_dentro_de_una_frase(carta, reloj):
+    org, local, platos = carta
+    productos = catalog_for(local)
+    assert service.split_name('mi nombre es Gustavo y me gustaría pedir un domicilio', productos) == ('Gustavo', 'me gustaría pedir un domicilio')
+    assert service.split_name('Hola, soy Ana María, ¿tienen pizza margarita?', productos) == ('Ana María', '¿tienen pizza margarita?')
+    assert service.split_name('me llamo Juan', productos) == ('Juan', '')
+    assert service.split_name('soy vegetariano', productos) == ('', 'soy vegetariano')
+    assert service.split_name('Pedro', productos) == ('', 'Pedro')
+    assert service.split_name('Pedro', productos, asked=True) == ('Pedro', '')
+    respuesta = handle('menu', local, 'gustavo', 'mi nombre es Gustavo y quiero una pizza margarita')
+    assert respuesta['text'].startswith('¡Mucho gusto, Gustavo!')
+    assert [c['name'] for c in respuesta['cards']] == ['Pizza margarita']

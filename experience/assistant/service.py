@@ -150,5 +150,40 @@ def name_from(text, products):
     return ' '.join(w[:1].upper() + w[1:].lower() for w in words)
 
 
+CONNECTORS = {'y', 'e', 'pero', 'para', 'quiero', 'quisiera', 'me', 'necesito', 'que', 'con', 'busco', 'tengo', 'deseo', 'vengo', 'porfa', 'por'}
+INTRO = re.compile(r'(?i)\b(?:me llamo|mi nombre es|yo soy|soy)\s+')
+
+
+def split_name(text, products, asked=False):
+    """Separa el nombre del resto del mensaje: «mi nombre es Gustavo y quiero un domicilio» → («Gustavo», «quiero un domicilio»).
+
+    Sin presentación explícita, solo se toma como nombre el mensaje entero y únicamente si el mesero lo acababa de preguntar.
+    """
+    match = INTRO.search(text)
+    if match:
+        words = re.split(r'(\s+|[,.;!?¡¿])', text[match.end():])
+        name, used = [], 0
+        for i, piece in enumerate(words):
+            if not piece.strip() or re.fullmatch(r'[,.;!?¡¿]', piece):
+                if re.fullmatch(r'[,.;!?¡¿]', piece or ''):
+                    used = i + 1
+                    break
+                continue
+            if normalize(piece) in CONNECTORS or len(name) == 3:
+                break
+            name.append(piece)
+            used = i + 1
+        given = name_from(' '.join(name), products)
+        if given:
+            rest = ' '.join((text[:match.start()] + ' ' + ''.join(words[used:])).split())
+            rest = re.sub(r'(?i)^(?:(?:hola|buenas)\b)?[\s,.]*(?:(?:y|e|pero)\s+)?', '', rest).strip(' ,.;')
+            return given, rest
+    if asked:
+        given = name_from(text, products)
+        if given:
+            return given, ''
+    return '', text
+
+
 def declines_name(text):
     return bool(DECLINE.fullmatch(normalize(text).strip(' !.')))
