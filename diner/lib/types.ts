@@ -82,7 +82,11 @@ export interface Menu { restaurante: string; categorias: Category[]; imagenesDeR
 export interface MenuBanner {layout:'product'|'promotion'|'category'|'image'|'notice';title:string;subtitle:string;button:string;target:'product'|'category'|'none';targetId:number|null;image:string;theme:'violet'|'amber'|'dark';active:boolean}
 // Plan D: si la sede está abierta ahora según el horario del dueño (sin horario, siempre abierta) y cuándo abre.
 export interface OpeningStatus { configurado: boolean; abierto: boolean; cierra?: string; abre?: { cuando: string; hora: string; fecha: string } | null }
-export interface Entry { horario?: OpeningStatus; domicilio?: { enabled: boolean; buscador: boolean; centro?: { lat: number; lng: number }; radio_km?: number }; banners?: MenuBanner[] | null; contexto: Context; carta: Menu
+// Plan D: `cobro` (distancia, fija o gratis), `recargo` (% en los platos a domicilio) y `gratis_desde` (envío gratis desde
+// ese valor en platos). `base`: la carta sin recargo cuando se muestran los precios para domicilio.
+export type FeeMode = 'distance' | 'flat' | 'free'
+export interface Entry { horario?: OpeningStatus; domicilio?: { enabled: boolean; buscador: boolean; centro?: { lat: number; lng: number }; radio_km?: number
+  cobro?: FeeMode; recargo?: number; gratis_desde?: number | null }; preciosDomicilio?: number; base?: Entry; banners?: MenuBanner[] | null; contexto: Context; carta: Menu
   // Plan W: módulos activos que afectan al comensal (menu_comensal, pagos_en_linea, fidelizacion, asistente_menu).
   modulos?: string[] }
 export interface Session { id: string; estado: string; mesa: number | null }
@@ -100,6 +104,7 @@ export interface DeliveryQuote {
   lat: number; lng: number; direccion: string; indicaciones: string; telefono: string; nombre: string
   envio: number; distancia_km: number; sede: { slug: string; nombre: string }; metodos: DeliveryMethod[]; minimo?: number; nota?: string
   sugerida?: { slug: string; nombre: string } | null
+  envio_base?: number; recargo?: number; gratis_desde?: number | null
 }
 export interface SavedAddress { id: number; etiqueta: string; direccion: string; indicaciones: string; lat: number; lng: number }
 export type OrderState = 'pendiente_pago' | 'enviado' | 'en_cocina' | 'listo' | 'servido' | 'pagado' | 'fallido'

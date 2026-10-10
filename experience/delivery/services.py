@@ -14,12 +14,18 @@ from .models import DeliverySettings, SessionDelivery
 
 
 def settings_dict(row):
-    return {**model_dict(row, ('enabled', 'radius_km', 'min_order', 'methods', 'notes')),
+    return {**model_dict(row, ('enabled', 'radius_km', 'min_order', 'methods', 'notes', 'fee_mode', 'flat_fee', 'free_from', 'markup_percent')),
             'tiers': [{'up_to_km': float(Decimal(str(t['up_to_km']))), 'fee': float(Decimal(str(t['fee'])))} for t in row.tiers]}
 
 
 def save_settings(restaurant, raw):
-    data = payload(raw, ('enabled', 'radius_km', 'tiers', 'min_order', 'methods', 'notes'), ('enabled', 'radius_km', 'tiers', 'min_order', 'methods'))
+    data = payload(raw, ('enabled', 'radius_km', 'tiers', 'min_order', 'methods', 'notes', 'fee_mode', 'flat_fee', 'free_from', 'markup_percent'),
+                   ('enabled', 'radius_km', 'tiers', 'min_order', 'methods'))
+    mode = data.get('fee_mode', 'distance')
+    require(mode in ('distance', 'flat', 'free'), 'Escoja cómo se cobra el envío.', 'invalid_data', 400)
+    flat_fee, free_from = decimal(data.get('flat_fee', 0), places=2), decimal(data.get('free_from', 0), places=2)
+    markup = decimal(data.get('markup_percent', 0), 0, 50, 2)
+    require(mode != 'flat' or flat_fee > 0, 'Indique el valor de la tarifa fija (o escoja envío gratis).', 'invalid_data', 400)
     require(type(data['enabled']) is bool, 'Indique si el domicilio está activo.', 'invalid_data', 400)
     require(not data['enabled'] or restaurant.latitude is not None and restaurant.longitude is not None,
             'Ubique primero la sede en el mapa para activar domicilios.', 'location_required', 400)
@@ -35,13 +41,14 @@ def save_settings(restaurant, raw):
         require(limit > previous, 'Ordene los tramos de menor a mayor distancia.', 'invalid_data', 400)
         clean.append({'up_to_km': str(limit), 'fee': str(fee)})
         previous = limit
-    require(previous >= radius, 'El último tramo debe cubrir todo el radio.', 'invalid_data', 400)
+    require(mode != 'distance' or previous >= radius, 'El último tramo debe cubrir todo el radio.', 'invalid_data', 400)
     methods = data['methods']
     require(isinstance(methods, list) and methods and all(m in METHODS for m in methods) and len(set(methods)) == len(methods),
             'Elija al menos un método de pago válido.', 'invalid_data', 400)
     row, _ = DeliverySettings.objects.update_or_create(restaurant=restaurant, defaults={
         'enabled': data['enabled'], 'radius_km': radius, 'tiers': clean, 'min_order': decimal(data['min_order'], places=2),
-        'methods': methods, 'notes': text(data.get('notes', ''), 200)})
+        'methods': methods, 'notes': text(data.get('notes', ''), 200), 'fee_mode': mode, 'flat_fee': flat_fee,
+        'free_from': free_from, 'markup_percent': markup})
     return row
 
 
@@ -118,7 +125,31 @@ def prepare(session, payment):
 def apply_order(order, row, minimum):
     from sales.services import editable
     editable(order)
-    food = sum((l.total for l in order.lines.exclude(product__kind='service').filter(cancelled=False)), Decimal(0))
+    from sales.services import rounded
+    from .pricing import fee_for, marked
+    config = DeliverySettings.objects.filter(restaurant=order.restaurant).first()
+    percent = config.markup_percent if config else Decimal(0)
+    food_lines = list(order.lines.exclude(product__kind='service').filter(cancelled=False))
+    if percent:
+        # Plan D: el recargo de domicilio sube cada plato igual que en el carrito del comensal (al peso); los impuestos
+        # incluidos se recalculan sobre el nuevo valor.
+        done = set(row.marked_lines)
+        for line in food_lines:
+            if str(line.uuid) in done:
+                continue
+            done.add(str(line.uuid))
+            excluded = 1 + sum((Decimal(str(t['amount'])) / 100 for t in line.taxes if not t['included']), Decimal(0))
+            included = 1 + sum((Decimal(str(t['amount'])) / 100 for t in line.taxes if t['included']), Decimal(0))
+            line.unit_price = marked(line.unit_price, percent)
+            line.total = marked(line.total, percent)
+            line.subtotal = rounded(line.total / excluded / included)
+            line.save(update_fields=['unit_price', 'total', 'subtotal'])
+        row.marked_lines = sorted(done)
+        row.save(update_fields=['marked_lines'])
+    food = sum((l.total for l in food_lines), Decimal(0))
+    if config and config.free_from and food >= config.free_from and row.fee:
+        row.fee = fee_for({'envio': row.fee, 'gratis_desde': config.free_from}, food)
+        row.save(update_fields=['fee'])
     require(food >= minimum, f'El pedido mínimo para domicilio es de $ {minimum:,.0f}, sin incluir el envío.', 'minimum_order', 400)
     # El bloqueo de organización del adaptador serializa la creación del producto de sistema.
     product, _ = Product.objects.get_or_create(organization=order.organization, kind='service', name='Domicilio',

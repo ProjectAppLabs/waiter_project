@@ -239,3 +239,89 @@ it('sede abierta o sin horario: sin aviso', async () => {
     <ClosedBanner entry={{} as unknown as Entry} /></>)
   expect(container).toBeEmptyDOMElement()
 })
+
+// Falla si con platos y la ubicación puesta el chat no termina el domicilio paso a paso (nombre, teléfono, indicaciones),
+// si el resumen no muestra el envío gratis y el total del servidor, o si pagar contra entrega no confirma el pedido con
+// ese método y lleva a su estado.
+it('termina el domicilio en el chat del mesero', async () => {
+  const { ChatCheckout } = await import('../ChatCheckout')
+  const { setDelivery, confirmOrder, getOrder, getCart } = jest.requireMock('@/lib/services/api')
+  const carrito: Cart = { sesion: 'v', total: 9000, mio: 9000, por_comensal: [], lineas: [{ id: 1, producto_id: 7, nombre: 'Sopa', cantidad: 1, precio: 9000, subtotal: 9000, mio: true, comensal: 'a', nota: '' }] }
+  const domicilio = { lat: 6.2, lng: -75.5, direccion: 'Calle 9', indicaciones: 'Torre 2', telefono: '+573001234567', nombre: 'Ana', envio: 0, distancia_km: 1,
+    sede: { slug: 'salon', nombre: 'El Poblado' }, metodos: ['online', 'cash'], minimo: 0, recargo: 8, gratis_desde: 5000 }
+  jest.mocked(setDelivery).mockResolvedValue({ domicilio, carrito: { ...carrito, lineas: [{ ...carrito.lineas[0], precio: 9720, subtotal: 9720 }], total: 9720, envio: 0, domicilio } })
+  jest.mocked(confirmOrder).mockResolvedValue({ pedido: 'p1', estado: 'enviado', total: 9720, cuenta: {} })
+  jest.mocked(getOrder).mockResolvedValue({ id: 'p1' })
+  jest.mocked(getCart).mockResolvedValue(carrito)
+  useDinerStore.setState({ session: { id: 's1', estado: 'abierta', mesa: null }, cart: carrito, deliveryDraft: { lat: 6.2, lng: -75.5, direccion: 'Calle 9' },
+    entry: { domicilio: { enabled: true, buscador: false }, contexto: { mesa: null }, carta: { categorias: [] } } as unknown as Entry })
+  const cerrar = jest.fn()
+  render(<ChatCheckout onClose={cerrar} />)
+  fireEvent.click(screen.getByRole('button', { name: '🛵 Terminar mi domicilio aquí' }))
+  fireEvent.change(screen.getByLabelText('¿A nombre de quién va el pedido?'), { target: { value: 'Ana' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Seguir' }))
+  fireEvent.change(screen.getByLabelText(/A qué número te llamamos/), { target: { value: '12' } })
+  expect(screen.getByRole('button', { name: 'Seguir' })).toBeDisabled()
+  fireEvent.change(screen.getByLabelText(/A qué número te llamamos/), { target: { value: '300 123 4567' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Seguir' }))
+  fireEvent.change(screen.getByLabelText(/Alguna indicación/), { target: { value: 'Torre 2' } })
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Seguir' })))
+  expect(setDelivery).toHaveBeenCalledWith('s1', expect.objectContaining({ nombre: 'Ana', telefono: '300 123 4567', indicaciones: 'Torre 2', direccion: 'Calle 9', guardar: false }))
+  expect(screen.getByText('Envío:').textContent).toContain('gratis')
+  expect(screen.getByText(/Precios para domicilio \(\+8 %\)/)).toBeInTheDocument()
+  expect(screen.getByText(/Total:/).textContent).toContain('9.720')
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Efectivo al recibir' })))
+  expect(confirmOrder).toHaveBeenCalledWith('s1', false, { notas: '', alergenos: '', metodo_pago: 'cash' })
+  expect(cerrar).toHaveBeenCalled()
+  expect(mockPush).toHaveBeenCalledWith(expect.stringContaining('estado'))
+})
+
+// Falla si en modo domicilio la carta no muestra los precios con el recargo (al peso, como el servidor), si no se puede
+// volver a los precios de siempre o si el aviso no dice que el envío va incluido cuando el domicilio es gratis.
+it('precios para domicilio con recargo', async () => {
+  const { markedPrice, pricedEntry, deliveryPricesText, freeFromText } = await import('@/lib/domain/deliveryPricing')
+  expect(markedPrice(36900, 8)).toBe(39852)
+  expect(markedPrice(9950, 10)).toBe(10945)
+  const entry = { domicilio: { enabled: true, buscador: false, cobro: 'free', recargo: 10 }, contexto: { mesa: null },
+    carta: { categorias: [{ id: 1, nombre: 'Sopas', productos: [{ id: 7, nombre: 'Sopa', precio: 20000, agotado: false, categorias: [1], atributos: { tamanos: [{ nombre: 'Grande', precio: 25000 }] } }] }] } } as unknown as Entry
+  const priced = pricedEntry(entry, 10)
+  expect(priced.carta.categorias[0].productos[0].precio).toBe(22000)
+  expect(priced.carta.categorias[0].productos[0].atributos?.tamanos?.[0].precio).toBe(27500)
+  expect(deliveryPricesText(priced)).toBe('Domicilio gratis: el envío va incluido en estos precios (+10 %).')
+  expect(pricedEntry(priced, 0)).toBe(entry)
+  expect(freeFromText(60000, 48000, (n) => `$ ${n}`)).toBe('Envío gratis desde $ 60000 en platos · te faltan $ 12000')
+  expect(freeFromText(60000, 61000, (n) => `$ ${n}`)).toBeNull()
+})
+
+// Falla si al dar la ubicación la carta del store no pasa a precios para domicilio con su aviso, o si al quitarla (o en
+// una mesa) no vuelve a los precios de siempre.
+it('la carta cambia a precios para domicilio con la ubicación', async () => {
+  const { useDeliveryPricing, DeliveryPricesNote } = await import('../DeliveryPricing')
+  const entry = { domicilio: { enabled: true, buscador: false, cobro: 'distance', recargo: 5 }, contexto: { mesa: null },
+    carta: { categorias: [{ id: 1, nombre: 'Sopas', productos: [{ id: 7, nombre: 'Sopa', precio: 20000, agotado: false, categorias: [1] }] }] } } as unknown as Entry
+  useDinerStore.setState({ entry })
+  function Probe() { useDeliveryPricing(); return <DeliveryPricesNote /> }
+  render(<Probe />)
+  expect(screen.queryByRole('status')).toBeNull()
+  act(() => useDinerStore.setState({ deliveryDraft: { lat: 6.2, lng: -75.5, direccion: '' } }))
+  await waitFor(() => expect(useDinerStore.getState().entry?.carta.categorias[0].productos[0].precio).toBe(21000))
+  expect(screen.getByRole('status')).toHaveTextContent('Precios para domicilio (+5 %).')
+  act(() => useDinerStore.setState({ deliveryDraft: null }))
+  await waitFor(() => expect(useDinerStore.getState().entry).toBe(entry))
+})
+
+// Falla si el enlace de pago de WhatsApp no lleva al pago de la sede del pedido o si un enlace vencido no lo explica.
+it('el enlace de pago de WhatsApp abre el pago', async () => {
+  const { openPayLink } = jest.requireMock('@/lib/services/api')
+  const navigation = jest.requireMock('next/navigation')
+  navigation.useSearchParams = () => new URLSearchParams('token=abc')
+  const { default: PayDeliveryPage } = await import('@/app/[rest]/domicilio/pagar/page')
+  jest.mocked(openPayLink).mockResolvedValue({ restaurante: 'demo', sede: 'salon' })
+  const { unmount } = render(<PayDeliveryPage />)
+  await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/demo/salon/pago'))
+  expect(openPayLink).toHaveBeenCalledWith('abc')
+  unmount()
+  jest.mocked(openPayLink).mockRejectedValue(new Error('El enlace de pago venció.'))
+  render(<PayDeliveryPage />)
+  expect(await screen.findByRole('alert')).toHaveTextContent('El enlace de pago venció.')
+})

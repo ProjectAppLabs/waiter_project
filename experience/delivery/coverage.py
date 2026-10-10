@@ -71,11 +71,13 @@ def for_settings(row, lat, lng):
     km = distance(row.restaurant.latitude, row.restaurant.longitude, lat, lng)
     if km > row.radius_km:
         return None
-    fee = next((Decimal(str(t['fee'])) for t in row.tiers if km <= Decimal(str(t['up_to_km']))), None)
+    from .pricing import base_fee
+    fee = base_fee(row, km)
     if fee is None:
         return None
     return {'cobertura': True, 'sede': venue_data(row.restaurant), 'distancia_km': km.quantize(Decimal('.001')),
-            'envio': fee, 'minimo': row.min_order, 'metodos': row.methods, 'nota': row.notes}
+            'envio': fee, 'minimo': row.min_order, 'metodos': row.methods, 'nota': row.notes,
+            'gratis_desde': row.free_from or None, 'recargo': row.markup_percent}
 
 
 def quote(organization, lat, lng, subtotal=None):

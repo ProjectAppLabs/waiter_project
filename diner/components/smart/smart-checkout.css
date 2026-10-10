@@ -77,3 +77,5 @@
 /* Plan D: la sede está cerrada según su horario. Fijo arriba al bajar por la carta; los colores son los de .sm-note. */
 .sm-closed-banner { position:sticky; top:calc(var(--ds-espacio-8) + env(safe-area-inset-top)); z-index:20; box-shadow:0 6px 18px #19193218; display:flex; flex-direction:column; gap:var(--ds-espacio-4); margin:var(--ds-espacio-12) 0; padding:var(--ds-espacio-12) var(--ds-espacio-16); border-radius:calc(14px * var(--ds-forma-tarjeta)); font-size:calc(14px * var(--ds-texto)); line-height:1.45; }
 .sm-closed-banner strong { color:var(--sm-ink); font-size:calc(15px * var(--ds-texto)); }
+/* Plan D: aviso de precios para domicilio (recargo del dueño). Solo distribución: los colores son los de .sm-note. */
+.sm-delivery-prices { margin:var(--ds-espacio-12) 0; padding:var(--ds-espacio-10) var(--ds-espacio-16); border-radius:calc(14px * var(--ds-forma-tarjeta)); font-size:calc(14px * var(--ds-texto)); line-height:1.45; }

@@ -106,7 +106,7 @@ export function ChatDelivery({ pedido, onLeave, onSend }: { pedido: string; onLe
         <p>✓ Te lo llevamos a <strong>{confirmed || 'la ubicación que marcaste'}</strong></p>
         <p>Te lo lleva {coverage.sede.nombre} · {coverage.distancia_km.toLocaleString('es-CO', { maximumFractionDigits: 1 })} km · Envío <strong>{formatCop(coverage.envio)}</strong>{coverage.minimo ? ` · Pedido mínimo ${formatCop(coverage.minimo)}` : ''}</p>
         {items > 0 ? <>
-          <p>¡Listo! Ya tienes platos en tu pedido. ¿Quieres agregar algo más o lo confirmamos?</p>
+          <p>¡Listo! Ya tienes platos en tu pedido. ¿Quieres agregar algo más o terminamos tu domicilio aquí abajo?</p>
           <Link className="sm-chat-help" href={pedido} onClick={onLeave}>Ir a mi pedido →</Link>
         </> : <>
           <p><strong>¡Listo! Continuemos con tu pedido: ¿qué te gustaría ordenar?</strong></p>

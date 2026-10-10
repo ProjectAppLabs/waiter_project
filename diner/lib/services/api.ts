@@ -188,7 +188,7 @@ export async function forgetAssistantMemory(rest: string, venue: string): Promis
 
 // ---- Plan D: domicilios ---------------------------------------------------------------------------------------
 const org = (rest: string) => `/api/v1/${encodeURIComponent(rest)}`
-export type Coverage = { cobertura: true; sede: { slug: string; nombre: string }; distancia_km: number; envio: number; minimo: number; metodos: DeliveryMethod[]; nota?: string }
+export type Coverage = { cobertura: true; sede: { slug: string; nombre: string }; distancia_km: number; envio: number; minimo: number; metodos: DeliveryMethod[]; nota?: string; gratis_desde?: number | null; recargo?: number }
   | { cobertura: false; motivo: 'fuera_de_zona' | 'sin_domicilio'; recoger: { slug: string; nombre: string; direccion: string }[] }
   // La sede que llega a la dirección está cerrada ahora (y ninguna abierta llega): `mensaje` dice cuándo abre.
   | { cobertura: false; motivo: 'cerrado'; sede: { slug: string; nombre: string }; mensaje: string; recoger: { slug: string; nombre: string; direccion: string }[] }
@@ -211,6 +211,10 @@ export async function savedAddresses(rest: string): Promise<SavedAddress[]> {
 }
 export async function deleteAddress(rest: string, id: number): Promise<void> { await http.delete(`${org(rest)}/domicilio/direcciones/${id}`) }
 export async function revokeData(rest: string): Promise<void> { await http.delete(`${org(rest)}/datos`) }
+// Plan D: el enlace de pago de un pedido hecho por WhatsApp; abre esa visita en este navegador.
+export async function openPayLink(token: string): Promise<{ restaurante: string; sede: string }> {
+  return (await http.get(`/api/v1/domicilio/pagar/${encodeURIComponent(token)}`)).data
+}
 // El enlace «Ubica la entrega» que llega por WhatsApp.
 export async function getLocateLink(token: string): Promise<{ restaurante: string; sede?: { slug: string; nombre: string }; expires_at?: string; usado?: boolean }> {
   return (await http.get(`/api/v1/domicilio/ubicar/${encodeURIComponent(token)}`)).data

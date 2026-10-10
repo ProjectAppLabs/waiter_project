@@ -281,7 +281,7 @@ def test_public_entry_delivery_capabilities(env, settings):
     response = e['client'].get(f'/api/v1/{e["org"].slug}/{e["venue"].slug}/')
     assert response.status_code == 200, response.data
     assert response.data['horario'] == {'configurado': False, 'abierto': True}
-    assert response.data['domicilio'] == {'enabled': True, 'buscador': True, 'centro': {'lat': 4.65, 'lng': -74.05}, 'radio_km': 5.0}
+    assert response.data['domicilio'] == {'enabled': True, 'buscador': True, 'centro': {'lat': 4.65, 'lng': -74.05}, 'radio_km': 5.0, 'cobro': 'distance', 'recargo': 0.0, 'gratis_desde': None}
     settings.NOMINATIM_ENABLED = False
     assert e['client'].get(f'/api/v1/{e["org"].slug}/{e["venue"].slug}/').data['domicilio']['buscador'] is False
     settings.GOOGLE_MAPS_API_KEY = 'clave-simulada'
@@ -609,3 +609,48 @@ def test_sede_cerrada_no_recibe_domicilios(env):
     # Sin horario, la sede atiende siempre (como antes).
     OpeningHours.objects.filter(restaurant=e['venue']).delete()
     assert put_delivery(e).status_code == 200 and confirm(e).status_code == 201
+
+
+# Falla si el dueño no puede escoger tarifa fija, envío gratis, «gratis desde» o recargo, o si se aceptan valores sin
+# sentido (modo desconocido, tarifa fija en cero, recargo de más del 50 %).
+def test_owner_fee_modes(env):
+    e = env
+    client = pos_client(e['owner'])
+    base = f"/api/pos/v1/delivery/settings/{e['venue'].pk}"
+    body = {'enabled': True, 'radius_km': 5, 'tiers': [{'up_to_km': 5, 'fee': 2000}], 'min_order': 0, 'methods': ['cash']}
+    saved = client.put(base, {**body, 'fee_mode': 'flat', 'flat_fee': 5000, 'free_from': 60000, 'markup_percent': 8}, format='json')
+    assert saved.status_code == 200, saved.data
+    assert quote(e['org'], '4.66', '-74.05')['envio'] == 5000
+    for key, value in [('fee_mode', 'gratis'), ('flat_fee', 0), ('markup_percent', 51), ('free_from', -1)]:
+        assert client.put(base, {**body, 'fee_mode': 'flat', 'flat_fee': 5000, key: value}, format='json').status_code == 400
+    assert client.put(base, {**body, 'fee_mode': 'free'}, format='json').status_code == 200
+    assert quote(e['org'], '4.66', '-74.05')['envio'] == 0
+    # Sin los campos nuevos (un POS anterior) se conserva el cobro por distancia.
+    assert client.put(base, body, format='json').status_code == 200
+    assert quote(e['org'], '4.66', '-74.05')['envio'] == 2000
+
+
+# Falla si con recargo el carrito no muestra los precios que se cobrarán, si el pedido cobra distinto de lo que se vio,
+# si el envío no queda gratis al alcanzar el «gratis desde» o si al confirmar más platos se recargan dos veces.
+def test_markup_and_free_from(env):
+    e = env
+    e['config'].markup_percent, e['config'].free_from = Decimal('8'), Decimal('21000')
+    e['config'].save()
+    cart = put_delivery(e).data['carrito']
+    assert cart['lineas'][0]['precio'] == 21600 and cart['domicilio']['envio'] == 0 and cart['domicilio']['envio_base'] == 3000
+    assert cart['total'] == 21600
+    e['config'].free_from = Decimal('50000')
+    e['config'].save()
+    cart = e['client'].get(f"/api/v1/sesiones/{e['session'].pk}/carrito/").data
+    assert cart['envio'] == 3000 and cart['total'] == 24600
+    assert confirm(e).status_code == 201
+    order = Order.objects.get()
+    assert order.total == 24600
+    food = order.lines.get(name='Sopa')
+    assert food.total == 21600 and food.unit_price == 21600
+    from delivery.services import apply_order
+    from sales.services import writing
+    with writing(e['org'], e['venue']):
+        apply_order(order, SessionDelivery.objects.get(), Decimal(0))
+    food.refresh_from_db()
+    assert food.total == 21600

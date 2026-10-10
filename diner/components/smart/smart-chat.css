@@ -54,3 +54,7 @@
 .sm-chat-suggest{margin-top:var(--ds-espacio-10)}.sm-chat-suggest p{font-size:calc(14px * var(--ds-texto));line-height:1.5;margin:0 0 var(--ds-espacio-8)}
 /* Plan D: los dos caminos del domicilio dentro del chat, y su mapa. */
 .sm-chat-delivery{margin-top:var(--ds-espacio-10);display:flex;flex-direction:column;gap:var(--ds-espacio-8)}.sm-chat-delivery .sm-map{height:200px}
+/* Plan D: el domicilio se termina en el chat. Solo distribución: los colores son los de la burbuja y los campos. */
+.sm-chat-checkout{display:flex;flex-direction:column;gap:var(--ds-espacio-10)}.sm-chat-checkout .sm-field{margin:0}
+.sm-chat-checkout-lines{list-style:none;margin:var(--ds-espacio-8) 0;padding:0;display:flex;flex-direction:column;gap:var(--ds-espacio-4)}
+.sm-chat-checkout-lines li{display:flex;justify-content:space-between;gap:var(--ds-espacio-12)}

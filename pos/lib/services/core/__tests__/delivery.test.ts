@@ -19,7 +19,9 @@ it('lee el perfil del cliente dentro de customer', async () => {
 // Falla si los ajustes de domicilio llegan como texto decimal y la pantalla los compara como texto.
 it('convierte a números los ajustes de domicilio', async () => {
   jest.mocked(coreFetch).mockResolvedValueOnce({ restaurants: [{ restaurant_id: 25, name: 'Centro', has_location: true,
-    settings: { enabled: true, radius_km: '5.00', tiers: [{ up_to_km: '5.00', fee: '6000.00' }], min_order: '0.00', methods: ['cash'], notes: '' } }] })
+    settings: { enabled: true, radius_km: '5.00', tiers: [{ up_to_km: '5.00', fee: '6000.00' }], min_order: '0.00', methods: ['cash'], notes: '',
+      fee_mode: 'free', flat_fee: '0.00', free_from: '60000.00', markup_percent: '8.00' } }] })
   const [sede] = await deliverySettings()
-  expect(sede.settings).toEqual({ enabled: true, radius_km: 5, tiers: [{ up_to_km: 5, fee: 6000 }], min_order: 0, methods: ['cash'], notes: '' })
+  expect(sede.settings).toEqual({ enabled: true, radius_km: 5, tiers: [{ up_to_km: 5, fee: 6000 }], min_order: 0, methods: ['cash'], notes: '',
+    fee_mode: 'free', flat_fee: 0, free_from: 60000, markup_percent: 8 })
 })

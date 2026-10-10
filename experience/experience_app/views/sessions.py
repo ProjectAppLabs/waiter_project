@@ -38,13 +38,28 @@ def cart_of(session: TableSession, diner: Diner) -> dict:
     row = SessionDelivery.objects.filter(session=session).first()
     if row:
         result['domicilio'] = delivery_dict(row)
+        from delivery.pricing import fee_for, marked
+        # Plan D: con recargo de domicilio, los platos se muestran con el precio que se cobrará; el envío es gratis si los
+        # platos alcanzan el «gratis desde».
+        percent = result['domicilio'].get('recargo') or 0
+        if percent and not row.session.orders.exists():
+            per = {}
+            for line in result['lineas']:
+                line['precio'], line['subtotal'] = float(marked(line['precio'], percent)), float(marked(line['subtotal'], percent))
+                per[line['comensal']] = per.get(line['comensal'], Decimal(0)) + Decimal(str(line['subtotal']))
+            result['mio'] = float(per.get(str(diner.pk), Decimal(0)))
+            result['por_comensal'] = [{'comensal': k, 'total': float(v)} for k, v in per.items()]
+        food = sum((Decimal(str(line['subtotal'])) for line in result['lineas']), Decimal(0))
+        if not row.session.orders.exists():
+            result['domicilio']['envio_base'] = result['domicilio']['envio']
+            result['domicilio']['envio'] = float(fee_for(result['domicilio'], food))
         result['envio'] = result['domicilio']['envio']
         if row.diner_id == diner.pk:
             result['mio'] = float(Decimal(str(result['mio'])) + Decimal(str(result['envio'])))
         for item in result['por_comensal']:
             if item['comensal'] == str(row.diner_id):
                 item['total'] = float(Decimal(str(item['total'])) + Decimal(str(result['envio'])))
-        result['total'] = float(sum((line.subtotal for line in sessions.open_lines(session)), Decimal(0)) + Decimal(str(result['envio'])))
+        result['total'] = float(food + Decimal(str(result['envio'])))
     return result
 
 

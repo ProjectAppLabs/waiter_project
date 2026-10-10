@@ -45,6 +45,9 @@ def entry(request, restaurant, venue, token=None):
     from delivery import geocoding
     own = DeliverySettings.objects.filter(restaurant=local, enabled=True).first() if local else None
     delivery = {'enabled': bool(own), 'buscador': bool(geocoding.provider())}
+    if own:
+        # Plan D: cómo se cobra el envío y el recargo de los platos a domicilio (la carta los muestra en modo domicilio).
+        delivery.update(cobro=own.fee_mode, recargo=float(own.markup_percent), gratis_desde=float(own.free_from) or None)
     if own and local.latitude is not None and local.longitude is not None:
         # Plan D: el mapa del comensal solo se mueve dentro de la zona de entrega de esta sede.
         delivery.update(centro={'lat': float(local.latitude), 'lng': float(local.longitude)}, radio_km=float(own.radius_km))

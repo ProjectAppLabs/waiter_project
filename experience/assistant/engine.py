@@ -172,6 +172,18 @@ def remember_name(organization, key, profile, name):
     return profile
 
 
+NUMBERS = {'un': 1, 'una': 1, 'uno': 1, 'dos': 2, 'tres': 3, 'cuatro': 4, 'cinco': 5, 'seis': 6, 'siete': 7, 'ocho': 8, 'nueve': 9, 'diez': 10}
+
+
+def quantity(normalized):
+    """La cantidad pedida si hay exactamente una entre 1 y 50 («dos hamburguesas»); si no, None."""
+    found = re.findall(r'\b(?:[0-9]+|' + '|'.join(NUMBERS) + r')\b', normalized)
+    if len(found) != 1:
+        return None
+    qty = int(found[0]) if found[0].isdigit() else NUMBERS[found[0]]
+    return qty if 1 <= qty <= 50 else None
+
+
 def cart_ids(participant):
     """Lo que el comensal ya tiene en su carrito abierto, para no sugerirle otra bebida si ya pidió una."""
     from experience_app.models import CartLine, Diner
@@ -255,9 +267,18 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
             require(action.get('value') in [o['value'] for o in state.options], 'Esa opción ya no está disponible.', 'invalid_action', 400)
         delivery_result = deliveries.respond(channel, restaurant, participant, tone, action)
         template, route, extra = 'business', 'domicilio', delivery_result['text']
+    elif channel == 'whatsapp' and action is None and raw and deliveries.collecting(restaurant, participant):
+        # Plan D: la respuesta a un dato del domicilio (nombre, teléfono, indicaciones) no pasa por el clasificador.
+        delivery_result = deliveries.respond(channel, restaurant, participant, tone, {'type': 'text', 'value': raw[:300]})
+        template, route, extra = 'business', 'domicilio', delivery_result['text']
     elif action is not None:
         template, chosen = execute(action, state, products)
         route = 'pedido' if template in ('summary', 'confirmed') else 'menu'
+        if channel == 'whatsapp' and template == 'summary':
+            # Plan D: en WhatsApp el plato escogido entra al pedido de la conversación y se ofrece pedir a domicilio.
+            delivery_result = deliveries.add_to_cart(restaurant, participant, tone, chosen)
+            if delivery_result:
+                template, extra = 'business', delivery_result['text']
         if template == 'summary' and (account or channel == 'whatsapp'):
             remember(restaurant.organization, key, chosen)
     elif len(raw) > 1000:
@@ -405,6 +426,9 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
                     state.state, template = 'resumen', 'summary'
                 if channel == 'whatsapp':
                     remember(restaurant.organization, key, chosen)
+                    delivery_result = deliveries.add_to_cart(restaurant, participant, tone, chosen, quantity(normalized) or 1)
+                    if delivery_result:
+                        template, extra = 'business', extra + delivery_result['text']
             if account and account.allergens and chosen:
                 extra += phrases(tone, 'allergy')[0]
                 add = False
@@ -485,9 +509,8 @@ def handle(channel, restaurant, participant, text=None, action=None, *, products
     reply = Reply(text=result_text, cards=cards, options=options, state=state.state, notice=notice, route=route, source=source)
     reply.delivery = delivery_result
     reply.turn_id, reply.usage, reply.add = turn.pk, usage, add
-    numbers = {'un': 1, 'una': 1, 'uno': 1, 'dos': 2, 'tres': 3, 'cuatro': 4, 'cinco': 5, 'seis': 6, 'siete': 7, 'ocho': 8, 'nueve': 9, 'diez': 10}
-    quantities = re.findall(r'\b(?:[0-9]+|' + '|'.join(numbers) + r')\b', normalized)
-    qty = (int(quantities[0]) if quantities[0].isdigit() else numbers[quantities[0]]) if quantities else 1
+    quantities = re.findall(r'\b(?:[0-9]+|' + '|'.join(NUMBERS) + r')\b', normalized)
+    qty = (int(quantities[0]) if quantities[0].isdigit() else NUMBERS[quantities[0]]) if quantities else 1
     if len(quantities) > 1 or (len(cards) > 1 and quantities):
         reply.add = False
     if not 1 <= qty <= 50:

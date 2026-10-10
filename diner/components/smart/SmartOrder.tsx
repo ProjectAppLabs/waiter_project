@@ -12,6 +12,7 @@ import type { Cart, CartLine, DeliveryMethod, DeliveryQuote, Dish, OrderState, O
 import { Plantilla } from '@/components/plantillas/Renderizador'
 import { usePlantilla } from '@/components/plantillas/usePlantilla'
 import { closedText } from './ClosedBanner'
+import { deliveryPricesText, freeFromText } from '@/lib/domain/deliveryPricing'
 import type { TemplateData } from '@/lib/domain/plantillas'
 import {
   Empty,
@@ -95,6 +96,7 @@ export function SmartCart({ actionTarget }: { actionTarget?: HTMLElement | null 
         {noTable
           ? <div className="sm-home-options"><button aria-pressed={!delivery} disabled={sending} className="sm-fulfillment-option" onClick={()=>{setDeliveryMode(false);setTakeaway(true)}}><Icon name="bag"/><span>Recoger en el local</span></button>{entry?.domicilio?.enabled && <button aria-pressed={delivery} disabled={sending} className="sm-fulfillment-option" onClick={()=>{setDeliveryMode(true);setTakeaway(false)}}><Icon name="pin"/><span>A domicilio</span></button>}</div>
           : <div className="sm-home-options"><button aria-pressed={!takeaway} disabled={sending} className="sm-fulfillment-option" onClick={()=>setTakeaway(false)}><Icon name="cutlery"/><span>Comer aquí</span></button><button aria-pressed={takeaway} disabled={sending} className="sm-fulfillment-option" onClick={()=>setTakeaway(true)}><Icon name="bag"/><span>Para llevar</span></button></div>}
+        {noTable&&delivery&&!!entry?.domicilio?.recargo&&<p className="sm-note">{deliveryPricesText({...entry,preciosDomicilio:entry.domicilio.recargo})} Los verás en tu pedido antes de pagar.</p>}
         {delivery && <DeliverySheet onReady={onReady} disabled={sending} />}
 <div className="sm-order-details"><h3>¿Alguna nota o alergia?</h3><label className="sm-field"><span>Notas para tus platos (opcional)</span><textarea value={notes} onChange={e=>setNotes(e.target.value)} maxLength={500} rows={2} disabled={sending} placeholder="Por ejemplo: la salsa aparte"/></label><label className="sm-field"><span>Alergias y alérgenos (opcional)</span><textarea value={allergens} onChange={e=>setAllergens(e.target.value)} maxLength={500} rows={2} disabled={sending} placeholder="Indica lo que debe saber la cocina"/></label><p className="sm-note">Se enviarán con tus platos. Confirma con el personal que puedan atender tu alergia.</p></div>
         <button className="sm-primary" disabled={busy||sending||closed||(delivery&&(!ready.quote||!ready.method))} onClick={()=>void send()}>{sending?'Preparando…':delivery&&ready.method&&ready.method!=='online'?'Confirmar domicilio':'Continuar al pago'}<Icon name="arrow"/></button>
@@ -430,7 +432,8 @@ export function OrderSummary({ cart, lineas, confirmar, pago }: { cart: Cart; li
     {cart.domicilio ? <>
       {/* Plan D: en un domicilio el total ya incluye el envío; se muestra aparte para que se entienda. */}
       <div><span>Tus platos</span><strong>{money(cart.total - (cart.envio ?? 0))}</strong></div>
-      <div><span>Envío a domicilio</span><strong>{money(cart.envio ?? 0)}</strong></div>
+      <div><span>Envío a domicilio</span><strong>{cart.envio ? money(cart.envio) : 'Gratis'}</strong></div>
+      {freeFromText(cart.domicilio.gratis_desde, cart.total - (cart.envio ?? 0), money) && <p className="sm-note">{freeFromText(cart.domicilio.gratis_desde, cart.total - (cart.envio ?? 0), money)}</p>}
     </> : <>
       <div><span>Subtotal de la mesa</span><strong>{money(cart.total)}</strong></div>
       <div><span>Tu consumo</span><strong>{money(cart.mio)}</strong></div>

@@ -356,3 +356,31 @@ es único por organización. El inventario transversal incorpora GET/PUT de ajus
   Con la sede cerrada, el verificador de diseño anota que el diálogo del pedido no se abre y no lo marca como error.
   Probado en el navegador con Duitama cerrada (aviso, contraste y verificador sin problemas); después se le quitó el
   horario. Queda para después: horario de domicilios distinto del local y un botón «pausar domicilios».
+- **Cómo se cobra el domicilio (2026-10-10):** por sede, el dueño escoge en Domicilios cómo cobra el envío. Las
+  opciones se guardan en `DeliverySettings.fee_mode`, `flat_fee`, `free_from` y `markup_percent`; el cálculo vive en
+  `delivery/pricing.py`.
+  - **Modo del envío:** por distancia (los tramos de siempre), tarifa fija o gratis.
+  - **Gratis desde:** el envío es gratis desde un valor en platos; el carrito y el pedido lo aplican con los platos de
+    ese momento.
+  - **Recargo a domicilio:** un porcentaje de 0 a 50 % sobre los platos de los pedidos a domicilio, para ofrecer envío
+    gratis sin perder margen. Cómo se aplica:
+    - se redondea al peso, con el mismo cálculo en el carrito (`cart_of`) y en el pedido (`apply_order`, que recalcula
+      los impuestos incluidos y no recarga dos veces las líneas, según `SessionDelivery.marked_lines`);
+    - la carta muestra esos precios desde que el cliente da su ubicación (`useDeliveryPricing`, `lib/domain/deliveryPricing.ts`)
+      con el aviso «Precios para domicilio (+8 %)» o «Domicilio gratis: el envío va incluido en estos precios», y el
+      diálogo «A domicilio» lo anuncia antes de pagar. Así se informa el precio total antes de pagar (Ley 1480).
+- **El pedido completo en el chat (2026-10-10):**
+  - **Menú:** con platos y la ubicación puesta, el chat ofrece «🛵 Terminar mi domicilio aquí» (`ChatCheckout`). Pide
+    uno a uno el nombre, el teléfono y las indicaciones, y muestra el resumen con los platos (con recargo si hay), el
+    envío (gratis o cuánto falta para que lo sea) y el total. Luego lleva al pago en línea o confirma contra entrega.
+  - **WhatsApp:** el mismo flujo, determinista (`delivery/assistant.py`), sobre la misma visita, carrito y confirmación
+    del menú, guardando el avance en `ConversationDelivery`. Los pasos son platos («agrégame dos sopas» o tocar una
+    tarjeta), «Pedir a domicilio», ubicación, autorización de datos, nombre (botón con el nombre del perfil), teléfono
+    («Este mismo número» o uno escrito, validado), indicaciones («Sin indicaciones»), resumen y pago:
+    - contra entrega, el pedido va directo a la cocina;
+    - en línea queda esperando el pago y llega un enlace firmado de dos horas (`/[rest]/domicilio/pagar?token=…`) que
+      abre esa visita en el navegador y lleva a la pantalla de pago.
+
+  Si no hay movimiento en dos horas, el pedido de la conversación se reinicia. En cuentas de WhatsApp con varias sedes,
+  la conversación sigue con la sede que atiende la ubicación. Probado en el navegador: Poblado con +8 % (carta a
+  $ 39.852, resumen en el chat con envío y «te faltan» para el envío gratis).

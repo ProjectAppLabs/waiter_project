@@ -13,6 +13,7 @@ import type { Point } from './LocationPicker'
 import { usePinAddress } from './usePinAddress'
 import { insideZone, uncoveredText, zoneOf } from './zone'
 import { AddressSearch, type FoundAddress } from './AddressSearch'
+import { freeFromText } from '@/lib/domain/deliveryPricing'
 
 // El mapa usa `window`: se carga solo en el navegador.
 const LocationPicker = dynamic(() => import('./LocationPicker').then((m) => m.LocationPicker), { ssr: false, loading: () => <div className="sm-map" aria-busy="true" /> })
@@ -24,7 +25,7 @@ const phoneOk = (v: string) => /^(\+?57)?3\d{9}$/.test(v.replace(/[\s-]/g, ''))
 // Plan D: «¿A dónde te lo llevamos?». La ubicación sale del GPS, de una dirección guardada, de la búsqueda o del pin
 // en el mapa; el texto y las indicaciones son para el domiciliario. Sin autorización no se guarda nada en el perfil.
 export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: DeliveryQuote | null, method: DeliveryMethod | null) => void; disabled?: boolean }) {
-  const { keys, session, account, preview, entry, deliveryDraft } = useDinerStore()
+  const { keys, session, account, preview, entry, deliveryDraft, cart } = useDinerStore()
   const [center, setCenter] = useState<Point | null>(null)
   // Si ya compartió la ubicación en el chat, el pin y la dirección arrancan ahí.
   const [point, setPoint] = useState<Point | null>(deliveryDraft ? { lat: deliveryDraft.lat, lng: deliveryDraft.lng } : null)
@@ -165,7 +166,8 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
       {quote && <div className="sm-delivery-quote" role="status">
         <p>✓ Te lo llevamos a <strong>{quote.direccion}</strong>{quote.indicaciones ? ` (${quote.indicaciones})` : ''}</p>
         <p><strong>Te lo lleva {quote.sede.nombre}</strong> · {quote.distancia_km.toLocaleString('es-CO', { maximumFractionDigits: 1 })} km</p>
-        <p>Envío: <strong>{formatCop(quote.envio)}</strong>{quote.minimo ? ` · Pedido mínimo ${formatCop(quote.minimo)}` : ''}</p>
+        <p>Envío: <strong>{quote.envio ? formatCop(quote.envio) : 'gratis'}</strong>{quote.minimo ? ` · Pedido mínimo ${formatCop(quote.minimo)}` : ''}</p>
+        {freeFromText(quote.gratis_desde, (cart?.total ?? 0) - (cart?.envio ?? 0), formatCop) && <p className="sm-note">{freeFromText(quote.gratis_desde, (cart?.total ?? 0) - (cart?.envio ?? 0), formatCop)}</p>}
         {quote.nota && <p className="sm-note">{quote.nota}</p>}
         {quote.sugerida && <p className="sm-note">La sede {quote.sugerida.nombre} te queda más cerca. Puedes pedir desde su menú para un envío más rápido.</p>}
         <fieldset className="sm-delivery-methods"><legend>¿Cómo quieres pagar?</legend>

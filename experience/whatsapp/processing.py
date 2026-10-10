@@ -32,6 +32,10 @@ def on_incoming_message(message):
     account = conversation.account
     restaurant = account.restaurant
     if restaurant is None:
+        # Plan D: con un pedido a domicilio en curso, la conversación sigue con la sede que atiende su ubicación.
+        from delivery.assistant import venue_of
+        restaurant = venue_of(conversation)
+    if restaurant is None:
         # El domicilio cotiza entre todas las sedes; las demás conversaciones conservan su sede inequívoca.
         locations = list(account.organization.restaurants.filter(active=True).order_by('id')[:2])
         if len(locations) != 1:

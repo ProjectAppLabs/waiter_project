@@ -1,5 +1,6 @@
 """Ubicación y autorización de WhatsApp, sin llamadas reales a Meta ni a Google."""
 from datetime import timedelta
+from decimal import Decimal
 from unittest.mock import Mock
 
 import pytest
@@ -67,7 +68,7 @@ def test_location_webhook_and_consent(env, conversation):
     assert not CustomerAddress.objects.exists() and not Customer.objects.filter(normalized_phone='+573001234567').exists()
     assert calls[-1]['interactive']['type'] == 'button'
     assert calls[-1]['interactive']['action']['buttons'][0]['reply']['id'] == 'delivery_accept'
-    assert '3000' in calls[-1]['interactive']['body']['text'].replace(',', '')
+    assert '$ 3.000' in calls[-1]['interactive']['body']['text']
     message = WhatsAppMessage.objects.create(conversation=row, direction='in', type='interactive', status='received', raw={
         'interactive': {'button_reply': {'id': 'delivery_accept', 'title': 'Acepto'}}}, received_at=timezone.now())
     on_incoming_message(message)
@@ -155,3 +156,71 @@ def test_organization_whatsapp_selects_covered_venue(env, conversation):
     on_incoming_message(message)
     assert calls and 'Cerca' in calls[-1]['interactive']['body']['text']
     assert not CustomerAddress.objects.exists()
+
+
+def option(reply, value):
+    return {'type': 'option', 'value': next(o['value'] for o in reply['options'] if o['value'].startswith(value))}
+
+
+@pytest.mark.parametrize('method', ['cash', 'online'])
+# Falla si por WhatsApp no se puede hacer el pedido completo: platos, ubicación, nombre, teléfono, indicaciones, resumen
+# con envío y total, y pago (contra entrega a la cocina; en línea con un enlace que abre el pago en el menú). También si
+# un teléfono inválido se acepta o si el enlace de pago sirve alterado.
+def test_pedido_completo_por_whatsapp(env, conversation, method):
+    from catalog.models import Category
+    from sales.models import Order
+    row, calls = conversation
+    e = env
+    e['product'].categories.add(Category.objects.create(organization=e['org'], name='Sopas'))
+    venue, wa = e['venue'], row.wa_id
+    added = handle('whatsapp', venue, wa, 'agrégame dos sopas')
+    assert 'Sopa' in added['text'] and any(o['value'] == 'delivery_checkout' for o in added['options'])
+    asked = handle('whatsapp', venue, wa, action=option(added, 'delivery_checkout'))
+    assert asked.delivery['request_location']
+    located = handle('whatsapp', venue, wa, action={'type': 'location', 'lat': '4.651', 'lng': '-74.05', 'address': 'Calle 1 # 2-3'})
+    assert '3.000' in located['text'] and located['options'][0]['value'] == 'delivery_accept'
+    name = handle('whatsapp', venue, wa, action=option(located, 'delivery_decline'))
+    assert '¿A nombre de quién' in name['text'] and name['options'][0]['label'] == 'Ana'
+    phone = handle('whatsapp', venue, wa, action=option(name, 'delivery_name'))
+    assert 'número' in phone['text']
+    assert 'celular' in handle('whatsapp', venue, wa, '12345')['text']
+    details = handle('whatsapp', venue, wa, '300 765 4321')
+    assert 'indicación' in details['text']
+    summary = handle('whatsapp', venue, wa, 'Torre 2, apto 301')
+    assert '2 × Sopa: $ 40.000' in summary['text'] and 'Envío: $ 3.000' in summary['text'] and 'Total: $ 43.000' in summary['text']
+    assert [o['value'] for o in summary['options']] == ['delivery_pay:online', 'delivery_pay:cash', 'delivery_pay:card_on_delivery']
+    done = handle('whatsapp', venue, wa, action=option(summary, f'delivery_pay:{method}'))
+    order = Order.objects.get()
+    assert order.total == 43000 and order.service == 'delivery' and order.delivery_phone == '+573007654321'
+    assert order.customer_name == 'Ana' and 'Torre 2, apto 301' in order.delivery_address
+    assert not CustomerAddress.objects.exists()
+    if method == 'cash':
+        assert 'cocina' in done['text'] and order.courses.count() == 1
+        return
+    assert order.courses.count() == 0
+    token = done['text'].split('token=')[1].split()[0]
+    paying = e['client'].__class__()
+    response = paying.get(f'/api/v1/domicilio/pagar/{token}')
+    assert response.status_code == 200 and response.data == {'restaurante': e['org'].slug, 'sede': venue.slug}
+    assert response.cookies['waiter_diner'].value
+    assert paying.get(f'/api/v1/domicilio/pagar/{token}x').status_code == 404
+
+
+# Falla si con recargo y «gratis desde» el resumen de WhatsApp no muestra los precios para domicilio y el envío gratis.
+def test_whatsapp_precios_para_domicilio(env, conversation):
+    from catalog.models import Category
+    row, calls = conversation
+    e = env
+    e['config'].markup_percent, e['config'].free_from = Decimal('10'), Decimal('40000')
+    e['config'].save()
+    e['product'].categories.add(Category.objects.create(organization=e['org'], name='Sopas'))
+    venue, wa = e['venue'], row.wa_id
+    from loyalty.delivery import authorize
+    authorize(e['org'], wa, 'Ana', 'whatsapp')
+    handle('whatsapp', venue, wa, 'agrégame dos sopas')
+    located = handle('whatsapp', venue, wa, action={'type': 'location', 'lat': '4.651', 'lng': '-74.05', 'address': 'Calle 1'})
+    assert 'Envío gratis desde $ 40.000' in located['text'] and '¿A nombre de quién' in located['text']
+    handle('whatsapp', venue, wa, action=option(located, 'delivery_name'))
+    handle('whatsapp', venue, wa, '3007654321')
+    summary = handle('whatsapp', venue, wa, action={'type': 'option', 'value': 'delivery_no_details'})
+    assert '$ 44.000' in summary['text'] and 'Envío: gratis' in summary['text'] and '(Precios para domicilio)' in summary['text']

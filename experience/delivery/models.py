@@ -19,6 +19,13 @@ class DeliverySettings(models.Model):
     min_order = models.DecimalField(max_digits=16, decimal_places=2, default=0)
     methods = models.JSONField(default=methods_default)
     notes = models.CharField(max_length=200, blank=True, default='')
+    # Cómo se cobra el envío: por distancia (tramos), tarifa fija o gratis. `free_from`: gratis desde ese valor de platos
+    # (0 = no aplica). `markup_percent`: recargo en los platos de los pedidos a domicilio (para ofrecer envío gratis); el
+    # comensal ve esos precios desde que escoge «A domicilio».
+    fee_mode = models.CharField(max_length=10, default='distance', choices=[(m, m) for m in ('distance', 'flat', 'free')])
+    flat_fee = models.DecimalField(max_digits=16, decimal_places=2, default=0)
+    free_from = models.DecimalField(max_digits=16, decimal_places=2, default=0)
+    markup_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
 
 
 class SessionDelivery(models.Model):
@@ -34,6 +41,8 @@ class SessionDelivery(models.Model):
     fee = models.DecimalField(max_digits=16, decimal_places=2)
     distance_km = models.DecimalField(max_digits=8, decimal_places=3)
     payment = models.CharField(max_length=20, blank=True, default='')
+    # Líneas del pedido que ya llevan el recargo de domicilio: si el pedido recibe más platos, no se recargan dos veces.
+    marked_lines = models.JSONField(default=list)
 
 
 class SearchUsage(models.Model):
@@ -63,6 +72,15 @@ class ConversationDelivery(models.Model):
     # Dato operativo temporal; el perfil y las direcciones se crean solo tras «Acepto».
     location = models.JSONField(default=dict)
     updated_at = models.DateTimeField(auto_now=True)
+    # Plan D: el pedido completo por WhatsApp. La sede que atiende la ubicación, los platos escogidos en la conversación,
+    # el paso en que va (nombre, teléfono, indicaciones, pago) y los datos de entrega; la visita se crea al resumir.
+    restaurant = models.ForeignKey('tenancy.Restaurant', on_delete=models.SET_NULL, null=True)
+    cart = models.JSONField(default=list)
+    step = models.CharField(max_length=20, blank=True, default='')
+    name = models.CharField(max_length=120, blank=True, default='')
+    phone = models.CharField(max_length=13, blank=True, default='')
+    details = models.CharField(max_length=200, blank=True, default='')
+    session = models.ForeignKey('experience_app.TableSession', on_delete=models.SET_NULL, null=True)
 
 
 class MapsUsage(models.Model):

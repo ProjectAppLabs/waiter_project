@@ -85,3 +85,20 @@ class LocateView(DinerView):
             row.result = reply.delivery.get('quote', {})
             row.save(update_fields=['used_at', 'result'])
         return Response({'ok': True, 'cotizacion': row.result})
+
+
+class PayView(DinerView):
+    """Plan D · El enlace de pago de un pedido hecho por WhatsApp: abre la visita en este navegador para pagarla."""
+    def get(self, request, token):
+        from experience_app.models import Diner
+        from experience_app.views.sessions import COOKIE, COOKIE_MAX_AGE
+        from .assistant import PAY_SALT
+        try:
+            data = signing.loads(token, salt=PAY_SALT, max_age=7200)
+        except signing.BadSignature:
+            require(False, 'El enlace de pago venció. Escríbanos por WhatsApp para enviarle uno nuevo.', 'invalid_pay_link', 404)
+        diner = Diner.objects.select_related('session').filter(pk=data.get('diner'), session_id=data.get('session')).first()
+        require(diner, 'El enlace de pago venció. Escríbanos por WhatsApp para enviarle uno nuevo.', 'invalid_pay_link', 404)
+        response = Response({'restaurante': diner.session.restaurant_slug, 'sede': diner.session.venue_slug})
+        response.set_cookie(COOKIE, diner.key, max_age=COOKIE_MAX_AGE, httponly=True, secure=settings.IS_PRODUCTION, samesite='Lax', path='/api/v1/')
+        return response

@@ -10,6 +10,7 @@ import { addChatSelection, getChat, newChat, sendChat, type ChatNotice, type Cha
 import { useDinerStore } from '@/lib/stores/dinerStore'
 import type { Entry } from '@/lib/types'
 import { ChatReply, ChatCarousel } from './ChatReply'
+import { ChatCheckout } from './ChatCheckout'
 import { ChatDelivery } from './ChatDelivery'
 import './smart-tokens.css'
 import './smart-chat.css'
@@ -209,6 +210,8 @@ export function SmartChat({ entry, rest, venue, token }: { entry: Entry; rest: s
             </ChatReply>
           </div>
         </div>)}
+        {/* Plan D: con platos y la ubicación puesta, el domicilio se termina aquí mismo (datos, total y pago). */}
+        {!draft && !busy && <ChatCheckout onClose={close} />}
         {draft && <div className="sm-chat-turn" data-current="true"><p className="sm-chat-bubble sm-chat-user">{draft}</p></div>}
         {(loading || busy) && <p className="sm-chat-status" role="status">{busy ? 'Tu mesero está pensando…' : 'Abriendo conversación…'}</p>}
       </div>

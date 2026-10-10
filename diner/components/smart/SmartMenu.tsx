@@ -5,6 +5,7 @@
 import Link from 'next/link'
 import { CartToss } from './CartToss'
 import { ClosedBanner } from './ClosedBanner'
+import { DeliveryPricesNote, useDeliveryPricing } from './DeliveryPricing'
 import { VenueGuide } from './VenueGuide'
 import { myCount } from '@/lib/domain/cartEvents'
 import { useRouter } from 'next/navigation'
@@ -716,6 +717,7 @@ export function SmartExperience({
   const { cart, account, loadAccount, loadFavorites, session, error, preview } =
     useDinerStore()
   const { href, go } = useSmartRoute()
+  useDeliveryPricing()
   useEffect(() => {
     if (session && !preview) void loadAccount()
   }, [session, loadAccount, preview])
@@ -754,6 +756,7 @@ export function SmartExperience({
           </p>
         )}
         {['portada', 'carta', 'plato', 'pedido'].includes(screen) && <ClosedBanner entry={props.entry} />}
+        {['carta', 'plato', 'pedido'].includes(screen) && <DeliveryPricesNote />}
         {accountOff && <Empty icon="user" title="Esta función no está disponible en este restaurante" action="Ver el menú" onAction={() => go('carta')}>Puedes pedir y pagar con el mesero como siempre.</Empty>}
         {screen === 'portada' && <SmartHome entry={props.entry} />}
         {screen === 'carta' && (

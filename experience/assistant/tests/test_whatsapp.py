@@ -21,6 +21,8 @@ def test_gancho_ventana_y_restriccion(entorno, monkeypatch):
     mensaje = WhatsAppMessage.objects.create(conversation=conversacion, direction='in', wamid='wamid.primero', type='text', text='menu')
     enviar = Mock()
     monkeypatch.setattr('whatsapp.services.send_text', enviar)
+    # Plan D: tocar un plato lo anota en el pedido y responde con botones («Pedir a domicilio»).
+    monkeypatch.setattr('whatsapp.services.send_buttons', enviar)
     on_incoming_message(mensaje)
     assert enviar.call_count == 1 and 'Hamburguesa' in enviar.call_args.args[1]
     conversacion.last_inbound_at = timezone.now() - timedelta(hours=24)

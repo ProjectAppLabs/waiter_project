@@ -15,4 +15,5 @@ urlpatterns = [
     path('api/v1/<slug:rest>/datos', api.DataView.as_view()),
     path('api/v1/<slug:rest>/domicilio/enlace', links.LinkView.as_view()),
     path('api/v1/domicilio/ubicar/<str:token>', links.LocateView.as_view()),
+    path('api/v1/domicilio/pagar/<str:token>', links.PayView.as_view()),
 ]

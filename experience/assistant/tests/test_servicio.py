@@ -135,7 +135,9 @@ def test_acompanamiento_despues_de_escoger(carta):
 # Falla si las frases de cada tono piden campos desconocidos o mezclan los tratos.
 def test_tonos_completos_y_coherentes():
     campos = {'greeting', 'featured', 'favorite', 'name', 'remaining', 'hours', 'address', 'phone', 'state',
-              'sede', 'distancia', 'envio', 'metodos', 'policy', 'label', 'url'}
+              'sede', 'distancia', 'envio', 'metodos', 'policy', 'label', 'url',
+              # Plan D: el pedido completo por WhatsApp (platos, resumen, mínimo y pago).
+              'item', 'lines', 'fee', 'total', 'minimum', 'items', 'detail'}
     for clave, tono in tones.TONES.items():
         for frase_clave in tones.USTED:
             for frase in tones.phrases(clave, frase_clave):

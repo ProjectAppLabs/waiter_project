@@ -8,7 +8,7 @@ import { StatusPill } from '@/components/kit/StatusPill'
 import { Button } from '@/components/ui/Button'
 import { TextInput } from '@/components/ui/Field'
 import { CoreError } from '@/lib/services/core/http'
-import { deliverySettings, saveDeliverySettings, type DeliveryMethod, type DeliverySettings, type RestaurantDelivery } from '@/lib/services/core/delivery'
+import { deliverySettings, saveDeliverySettings, type DeliveryMethod, type DeliverySettings, type FeeMode, type RestaurantDelivery } from '@/lib/services/core/delivery'
 
 const METHODS: { key: DeliveryMethod; label: string; hint: string }[] = [
   { key: 'online', label: 'Pago en línea', hint: 'El pedido va a cocina solo cuando está pagado.' },
@@ -16,7 +16,14 @@ const METHODS: { key: DeliveryMethod; label: string; hint: string }[] = [
   { key: 'card_on_delivery', label: 'Datáfono contra entrega', hint: 'El domiciliario lleva el datáfono.' },
 ]
 const message = (e: unknown, fallback: string) => (e instanceof CoreError || e instanceof Error ? e.message || fallback : fallback)
-const DEFAULT: DeliverySettings = { enabled: false, radius_km: 5, tiers: [{ up_to_km: 2, fee: 4000 }, { up_to_km: 5, fee: 6000 }], min_order: 0, methods: ['online'], notes: '' }
+const DEFAULT: DeliverySettings = { enabled: false, radius_km: 5, tiers: [{ up_to_km: 2, fee: 4000 }, { up_to_km: 5, fee: 6000 }], min_order: 0, methods: ['online'], notes: '',
+  fee_mode: 'distance', flat_fee: 0, free_from: 0, markup_percent: 0 }
+const MODES: { key: FeeMode; label: string; hint: string }[] = [
+  { key: 'distance', label: 'Por distancia', hint: 'Cada tramo de kilómetros tiene su valor.' },
+  { key: 'flat', label: 'Tarifa fija', hint: 'El mismo valor a cualquier dirección del radio.' },
+  { key: 'free', label: 'Gratis', hint: 'No se cobra envío. Puedes cubrirlo con un recargo en los platos.' },
+]
+const money = (n: number) => `$ ${n.toLocaleString('es-CO')}`
 
 // Plan D: el dueño decide por sede hasta dónde llega, cuánto cobra por distancia y qué pagos acepta. El cliente comparte
 // su ubicación y Waiter escoge la sede más cercana que lo cubre.
@@ -45,8 +52,10 @@ function RestaurantForm({ row }: { row: RestaurantDelivery }) {
   const problem = !form.enabled ? '' : !row.has_location ? 'Ubica la sede en el mapa antes de activar los domicilios.'
     : form.methods.length === 0 ? 'Activa al menos un método de pago.'
       : !(form.radius_km > 0 && form.radius_km <= 50) ? 'El radio debe estar entre 0 y 50 km.'
-        : form.tiers.length === 0 || !last || last.up_to_km < form.radius_km ? 'El último tramo debe llegar hasta el radio.'
-          : form.tiers.some((t, i) => i > 0 && t.up_to_km <= form.tiers[i - 1].up_to_km) ? 'Los tramos van de menor a mayor distancia.' : ''
+        : form.fee_mode === 'distance' && (form.tiers.length === 0 || !last || last.up_to_km < form.radius_km) ? 'El último tramo debe llegar hasta el radio.'
+          : form.fee_mode === 'distance' && form.tiers.some((t, i) => i > 0 && t.up_to_km <= form.tiers[i - 1].up_to_km) ? 'Los tramos van de menor a mayor distancia.'
+            : form.fee_mode === 'flat' && !(form.flat_fee > 0) ? 'Escribe el valor de la tarifa fija (o escoge envío gratis).'
+              : !(form.markup_percent >= 0 && form.markup_percent <= 50) ? 'El recargo va de 0 % a 50 %.' : ''
   async function save() {
     setBusy(true); setError(''); setNotice('')
     try { setForm(await saveDeliverySettings(row.restaurant_id, form)); setNotice('Guardado.') }
@@ -66,7 +75,16 @@ function RestaurantForm({ row }: { row: RestaurantDelivery }) {
           <TextInput label="Radio máximo (km)" type="number" min={0.5} max={50} step={0.5} value={form.radius_km} onChange={(e) => set({ radius_km: Number(e.target.value) })} />
           <TextInput label="Pedido mínimo ($)" type="number" min={0} step={1000} value={form.min_order} onChange={(e) => set({ min_order: Number(e.target.value) })} />
         </div>
-        <fieldset className="flex flex-col gap-2"><legend className="text-[15px] font-semibold mb-1">Costo del envío por distancia</legend>
+        <fieldset className="flex flex-col gap-2"><legend className="text-[15px] font-semibold mb-1">Cómo cobras el envío</legend>
+          <div role="radiogroup" aria-label="Cómo cobras el envío" className="grid gap-2 sm:grid-cols-3">
+            {MODES.map((m) => (
+              <label key={m.key} className={`flex items-start gap-2 rounded-md border p-3 text-[15px] ${form.fee_mode === m.key ? 'border-primary bg-canvas' : 'border-border'}`}>
+                <input type="radio" name={`cobro-${row.restaurant_id}`} className="mt-1" checked={form.fee_mode === m.key} onChange={() => set({ fee_mode: m.key })} />
+                <span><strong>{m.label}</strong><span className="block text-[13px] text-soft">{m.hint}</span></span></label>))}
+          </div>
+        </fieldset>
+        {form.fee_mode === 'flat' && <div className="sm:w-64"><TextInput label="Tarifa fija del envío ($)" type="number" min={0} step={500} value={form.flat_fee} onChange={(e) => set({ flat_fee: Number(e.target.value) })} /></div>}
+        {form.fee_mode === 'distance' && <fieldset className="flex flex-col gap-2"><legend className="text-[15px] font-semibold mb-1">Costo del envío por distancia</legend>
           {form.tiers.map((t, i) => (
             <div key={i} className="flex flex-wrap items-end gap-3">
               <div className="w-40"><TextInput label={`Hasta (km) · tramo ${i + 1}`} type="number" min={0.5} step={0.5} value={t.up_to_km} onChange={(e) => setTier(i, { up_to_km: Number(e.target.value) })} /></div>
@@ -74,7 +92,14 @@ function RestaurantForm({ row }: { row: RestaurantDelivery }) {
               <Button type="button" disabled={form.tiers.length === 1} onClick={() => set({ tiers: form.tiers.filter((_, j) => j !== i) })}>Quitar tramo {i + 1}</Button>
             </div>))}
           <div><Button type="button" disabled={form.tiers.length >= 8} onClick={() => set({ tiers: [...form.tiers, { up_to_km: (last?.up_to_km ?? 0) + 2, fee: (last?.fee ?? 0) + 2000 }] })}><Icon name="plus" size={16} />Agregar tramo</Button></div>
-        </fieldset>
+        </fieldset>}
+        {form.fee_mode !== 'free' && <div className="sm:w-64"><TextInput label="Envío gratis desde ($ en platos, 0 = no)" type="number" min={0} step={5000} value={form.free_from} onChange={(e) => set({ free_from: Number(e.target.value) })} /></div>}
+        <div className="flex flex-col gap-1">
+          <div className="sm:w-64"><TextInput label="Recargo en los platos a domicilio (%)" type="number" min={0} max={50} step={1} value={form.markup_percent} onChange={(e) => set({ markup_percent: Number(e.target.value) })} /></div>
+          <p className="text-[13px] text-soft max-w-[70ch]">Sube el precio de los platos solo en los pedidos a domicilio, por ejemplo para ofrecer envío gratis sin perder margen.
+            El cliente ve los precios con el recargo desde que escoge «A domicilio» y el menú le avisa que el envío va incluido: la ley pide informar el precio total antes de pagar.
+            {form.markup_percent > 0 && ` Una hamburguesa de ${money(30000)} se verá a ${money(Math.round(30000 * (1 + form.markup_percent / 100)))}.`}</p>
+        </div>
         <fieldset className="flex flex-col gap-2"><legend className="text-[15px] font-semibold mb-1">Cómo pueden pagar</legend>
           {METHODS.map((m) => (
             <label key={m.key} className="flex items-start gap-2 text-[15px]"><input type="checkbox" className="mt-1" checked={form.methods.includes(m.key)} onChange={() => toggleMethod(m.key)} />

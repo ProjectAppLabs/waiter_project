@@ -164,7 +164,9 @@ class SessionView(DinerView):
         session = get_object_or_404(TableSession, pk=session_id)
         diner = diner_for(request, session)
         row, quote = services.set_delivery(session, diner, request.data)
-        return Response({'domicilio': services.delivery_dict(row, quote), 'carrito': cart_of(session, diner)})
+        cart = cart_of(session, diner)
+        # El envío del carrito ya considera «gratis desde» con los platos de ahora.
+        return Response({'domicilio': cart.get('domicilio') or services.delivery_dict(row, quote), 'carrito': cart})
 
 
 class AddressesView(DinerView):
