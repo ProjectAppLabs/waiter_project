@@ -1,7 +1,6 @@
 """Contrato público de domicilios y ajustes del dueño."""
 from zoneinfo import ZoneInfo
 
-import requests
 from django.conf import settings
 from django.db import transaction
 from django.shortcuts import get_object_or_404
@@ -16,7 +15,7 @@ from experience_app.adapters.core.pos import organization
 from loyalty import delivery as crm
 from sales.services import text
 from tenancy.http import ContractView, require, payload
-from . import coverage, services
+from . import coverage, geocoding, services
 from .models import DeliverySettings, SearchUsage
 
 
@@ -61,32 +60,46 @@ class QuoteView(DinerView):
 
 
 class SearchView(DinerView):
+    """Dirección escrita → lugares en el mapa (Google con clave; si no, Nominatim de OpenStreetMap)."""
     def post(self, request, rest):
         org = organization(rest)
         diner = self.diner(request, org)
-        require(settings.GOOGLE_MAPS_API_KEY, 'El buscador no está disponible. Puede usar su ubicación o el mapa.', 'maps_not_configured', 503)
+        require(geocoding.provider(), 'El buscador no está disponible. Puede usar su ubicación o el mapa.', 'maps_not_configured', 503)
         data = payload(request.data, ('texto',), ('texto',))
         query = text(data['texto'], 250, True)
-        with transaction.atomic():
-            TableSession.objects.select_for_update().get(pk=diner.session_id)
-            day = timezone.now().astimezone(ZoneInfo(org.timezone)).date()
-            usage, _ = SearchUsage.objects.get_or_create(session=diner.session, day=day)
-            require(usage.searches < 20, 'Llegó al límite de búsquedas de hoy. Puede seguir usando el mapa.', 'search_limit', 429)
-            usage.searches += 1
-            usage.save(update_fields=['searches'])
+        count_search(org, diner, 'searches', 20)
         try:
-            response = requests.get('https://maps.googleapis.com/maps/api/geocode/json', params={
-                'address': query, 'components': 'country:CO', 'region': 'co', 'language': 'es', 'key': settings.GOOGLE_MAPS_API_KEY}, timeout=(3, 5), allow_redirects=False)
-            data = response.json()
-            require(response.status_code == 200 and isinstance(data, dict) and data.get('status') in ('OK', 'ZERO_RESULTS'),
-                    'No pudimos consultar el buscador. Intente de nuevo o use el mapa.', 'maps_unavailable', 502)
-            results = []
-            for row in data.get('results', [])[:5]:
-                lat, lng = coverage.coordinates(row['geometry']['location']['lat'], row['geometry']['location']['lng'])
-                results.append({'texto': row['formatted_address'], 'lat': float(lat), 'lng': float(lng)})
-        except (requests.RequestException, ValueError, TypeError, KeyError, AttributeError):
+            # Cerca de la primera sede con domicilio y ubicación: «Parque Lleras» es el de Medellín, no otro.
+            first = coverage.candidates(org).first()
+            results = geocoding.search(query, (first.restaurant.latitude, first.restaurant.longitude) if first else None)
+        except geocoding.Unavailable:
             require(False, 'No pudimos consultar el buscador. Intente de nuevo o use el mapa.', 'maps_unavailable', 502)
         return Response({'resultados': results})
+
+
+class ReverseView(DinerView):
+    """Punto del mapa → dirección aproximada, para que el cliente confirme que el pin quedó bien puesto."""
+    def post(self, request, rest):
+        org = organization(rest)
+        diner = self.diner(request, org)
+        require(geocoding.provider(), 'El mapa no puede leer direcciones por ahora.', 'maps_not_configured', 503)
+        data = payload(request.data, ('lat', 'lng'), ('lat', 'lng'))
+        count_search(org, diner, 'reverses', 150)
+        try:
+            found = geocoding.reverse(data['lat'], data['lng'])
+        except geocoding.Unavailable:
+            found = ''
+        return Response({'texto': found})
+
+
+def count_search(org, diner, field, limit):
+    with transaction.atomic():
+        TableSession.objects.select_for_update().get(pk=diner.session_id)
+        day = timezone.now().astimezone(ZoneInfo(org.timezone)).date()
+        usage, _ = SearchUsage.objects.get_or_create(session=diner.session, day=day)
+        require(getattr(usage, field) < limit, 'Llegó al límite de búsquedas de hoy. Puede seguir usando el mapa.', 'search_limit', 429)
+        setattr(usage, field, getattr(usage, field) + 1)
+        usage.save(update_fields=[field])
 
 
 class SessionView(DinerView):

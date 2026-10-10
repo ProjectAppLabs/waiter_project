@@ -42,6 +42,7 @@ def entry(request, restaurant, venue, token=None):
     from experience_app.services.banners import for_menu
     from django.conf import settings
     from delivery.models import DeliverySettings
+    from delivery import geocoding
     delivery = {'enabled': bool(local and DeliverySettings.objects.filter(restaurant=local, enabled=True).exists()),
-                'buscador': bool(settings.GOOGLE_MAPS_API_KEY)}
+                'buscador': bool(geocoding.provider())}
     return Response({'domicilio': delivery, 'modulos': modulos, 'contexto': _context(tenant), 'carta': menu, 'banners': for_menu(tenant, menu)})

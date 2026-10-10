@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { Icon } from './SmartMenu'
 import { formatCop } from '@/lib/domain/cart'
@@ -9,6 +9,7 @@ import { ApiError, getVenueLocation, savedAddresses, searchAddress, setDelivery 
 import { useDinerStore } from '@/lib/stores/dinerStore'
 import type { DeliveryMethod, DeliveryQuote, SavedAddress } from '@/lib/types'
 import type { Point } from './LocationPicker'
+import { usePinAddress } from './usePinAddress'
 
 // El mapa usa `window`: se carga solo en el navegador.
 const LocationPicker = dynamic(() => import('./LocationPicker').then((m) => m.LocationPicker), { ssr: false, loading: () => <div className="sm-map" aria-busy="true" /> })
@@ -28,8 +29,12 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
   const [name, setName] = useState(account?.nombre ?? ''), [phone, setPhone] = useState(account?.celular ?? '')
   const [save, setSave] = useState(false), [consent, setConsent] = useState(false), [label, setLabel] = useState('Casa')
   const [saved, setSaved] = useState<SavedAddress[]>([]), [addressId, setAddressId] = useState<number | undefined>()
-  const [query, setQuery] = useState(''), [results, setResults] = useState<{ texto: string; lat: number; lng: number }[]>([])
   const [searchable, setSearchable] = useState(entry?.domicilio?.buscador ?? false)
+  // La dirección va en las dos direcciones: el pin llena el texto, y lo escrito mueve el mapa. Mientras el cliente
+  // tenga su propio texto, el pin no se lo cambia; si vuelve a mover el mapa a mano, manda el pin.
+  const typed = useRef(!!deliveryDraft?.direccion), flying = useRef<Point | null>(null), lastSearch = useRef('')
+  const pin = usePinAddress(keys?.rest, point)
+  useEffect(() => { if (pin.address && !typed.current) setAddress(pin.address) }, [pin.address])
   const [quote, setQuote] = useState<DeliveryQuote | null>(null), [method, setMethod] = useState<DeliveryMethod | null>(null)
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [locating, setLocating] = useState(false)
 
@@ -42,23 +47,36 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
   }, [keys, account])
   useEffect(() => { onReady(quote, method) }, [quote, method, onReady])
 
-  const moved = (p: Point) => { setPoint(p); setQuote(null); setAddressId(undefined) }
+  const moved = (p: Point) => {
+    // El mapa repite el punto al terminar de moverse: si no cambió, no se pierde la cotización.
+    if (point && Math.abs(point.lat - p.lat) < 1e-7 && Math.abs(point.lng - p.lng) < 1e-7) return
+    const target = flying.current
+    if (target && Math.abs(target.lat - p.lat) < 1e-4 && Math.abs(target.lng - p.lng) < 1e-4) flying.current = null
+    else if (!target) typed.current = false
+    setPoint(p); setQuote(null); setAddressId(undefined)
+  }
+  const goTo = (p: Point) => { flying.current = p; setPoint(p); setQuote(null); setAddressId(undefined) }
   function locate() {
     if (!navigator.geolocation) { setError('Tu navegador no comparte la ubicación. Ubícala en el mapa.'); return }
     setLocating(true); setError('')
     navigator.geolocation.getCurrentPosition(
-      (p) => { setLocating(false); moved({ lat: p.coords.latitude, lng: p.coords.longitude }) },
+      (p) => { setLocating(false); typed.current = false; goTo({ lat: p.coords.latitude, lng: p.coords.longitude }) },
       () => { setLocating(false); setError('No pudimos obtener tu ubicación. Revisa el permiso o ubícala en el mapa.') },
       { enableHighAccuracy: true, timeout: 10_000 })
   }
+  // Lo escrito lleva el mapa hasta allá (Enter o al salir del campo); el cliente ajusta moviendo el mapa.
   async function search() {
-    if (!keys || query.trim().length < 4) return
-    setBusy(true); setError('')
-    try { const found = await searchAddress(keys.rest, query.trim()); setResults(found); if (!found.length) setError('No encontramos esa dirección. Prueba con el barrio o ubícala en el mapa.') }
-    catch (e) { if (e instanceof ApiError && e.status === 503) setSearchable(false); else setError(e instanceof Error ? e.message : 'No pudimos buscar la dirección.') }
-    finally { setBusy(false) }
+    const text = address.trim()
+    if (!keys || !searchable || !typed.current || text.length < 6 || text === lastSearch.current) return
+    lastSearch.current = text
+    setError('')
+    try {
+      const [first] = await searchAddress(keys.rest, text)
+      if (first) goTo({ lat: first.lat, lng: first.lng })
+      else setError('No encontramos esa dirección en el mapa. Mueve el mapa hasta la puerta de la entrega.')
+    } catch (e) { if (e instanceof ApiError && e.status === 503) setSearchable(false); else setError(e instanceof Error ? e.message : 'No pudimos buscar la dirección.') }
   }
-  function useSaved(a: SavedAddress) { setPoint({ lat: a.lat, lng: a.lng }); setAddress(a.direccion); setDetails(a.indicaciones); setAddressId(a.id); setQuote(null) }
+  function useSaved(a: SavedAddress) { typed.current = true; goTo({ lat: a.lat, lng: a.lng }); setAddress(a.direccion); setDetails(a.indicaciones); setAddressId(a.id) }
   const ready = !!point && address.trim().length >= 3 && name.trim().length >= 2 && phoneOk(phone) && (!save || consent)
   async function calculate() {
     if (!session || !point || !ready) return
@@ -81,15 +99,11 @@ export function DeliverySheet({ onReady, disabled = false }: { onReady: (quote: 
       </div>
       {saved.length > 0 && <div className="sm-chat-choices" aria-label="Tus direcciones">{saved.map((a) => (
         <button type="button" key={a.id} aria-pressed={addressId === a.id} disabled={off} onClick={() => useSaved(a)}>{a.etiqueta || 'Dirección'} · {a.direccion}</button>))}</div>}
-      {searchable && <form className="sm-delivery-search" onSubmit={(e) => { e.preventDefault(); void search() }}>
-        <label className="sm-field"><span>O busca la dirección</span><input value={query} disabled={off} onChange={(e) => setQuery(e.target.value)} placeholder="Ej.: Calle 10 # 43-12, El Poblado" maxLength={160} /></label>
-        <button type="submit" className="sm-secondary" disabled={off || query.trim().length < 4}>Buscar</button>
-      </form>}
-      {results.length > 0 && <ul className="sm-delivery-results" aria-label="Direcciones encontradas">{results.map((r, i) => (
-        <li key={i}><button type="button" disabled={off} onClick={() => { moved({ lat: r.lat, lng: r.lng }); setAddress(r.texto); setResults([]) }}>{r.texto}</button></li>))}</ul>}
+      <label className="sm-field"><span>Dirección</span><input value={address} disabled={off} maxLength={200} placeholder={searchable ? 'Escribe la dirección o mueve el mapa' : 'Calle, número y barrio'}
+        onChange={(e) => { typed.current = true; setAddress(e.target.value); setQuote(null) }} onBlur={() => void search()}
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void search() } }} /></label>
       {center && <LocationPicker center={center} value={point} onChange={moved} />}
-      <p className="sm-note">{point ? 'Mueve el pin si hace falta: es el punto exacto de la entrega.' : 'Toca el mapa para marcar el punto de entrega.'}</p>
-      <label className="sm-field"><span>Dirección</span><input value={address} disabled={off} onChange={(e) => { setAddress(e.target.value); setQuote(null) }} maxLength={200} placeholder="Calle, número y barrio" /></label>
+      <p className="sm-map-address" role="status"><Icon name="pin" /><span>{pin.loading ? 'Buscando la dirección…' : pin.address || 'Mueve el mapa hasta la puerta de la entrega.'}</span></p>
       <label className="sm-field"><span>Indicaciones (opcional)</span><input value={details} disabled={off} onChange={(e) => { setDetails(e.target.value); setQuote(null) }} maxLength={200} placeholder="Torre, apartamento, portería…" /></label>
       <div className="sm-delivery-pair">
         <label className="sm-field"><span>¿A nombre de quién?</span><input value={name} disabled={off} onChange={(e) => setName(e.target.value)} maxLength={60} autoComplete="name" /></label>

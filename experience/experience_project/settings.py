@@ -207,5 +207,7 @@ ASSISTANT_DAILY_PER_PARTICIPANT = int(os.getenv('ASSISTANT_DAILY_PER_PARTICIPANT
 WA_AGENT_REASONING_EFFORT = os.getenv('WA_AGENT_REASONING_EFFORT', '')
 WA_AGENT_TEMPERATURE = os.getenv('WA_AGENT_TEMPERATURE', '')
 
-# Opcional: sin clave, el buscador de direcciones responde maps_not_configured.
+# Opcional: con clave, las direcciones escritas se buscan en Google (entiende mejor la nomenclatura colombiana).
 GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY', '')
+# Sin clave de Google, las direcciones salen de Nominatim (OpenStreetMap, gratis, una consulta por segundo).
+NOMINATIM_ENABLED = os.getenv('NOMINATIM_ENABLED', '1').lower() not in ('0', 'false', 'no')

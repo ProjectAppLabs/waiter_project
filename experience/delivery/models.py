@@ -40,6 +40,8 @@ class SearchUsage(models.Model):
     session = models.ForeignKey('experience_app.TableSession', on_delete=models.CASCADE)
     day = models.DateField()
     searches = models.PositiveSmallIntegerField(default=0)
+    # Lecturas de la dirección aproximada al soltar el pin del mapa.
+    reverses = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['session', 'day'], name='delivery_search_session_day')]

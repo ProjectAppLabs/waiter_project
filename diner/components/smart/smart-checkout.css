@@ -48,4 +48,13 @@
 .sm-check { display:flex; align-items:flex-start; gap:var(--ds-espacio-8); font-size:calc(14px * var(--ds-texto)); line-height:1.45; }
 .sm-check input { margin-top:var(--ds-espacio-2); flex-shrink:0; }
 .sm-map { width:100%; height:240px; border-radius:calc(14px * var(--ds-forma-tarjeta)); overflow:hidden; border:1px solid var(--sm-border); background:var(--sm-surface); z-index:0; }
-.sm-map-pin span { display:block; width:32px; height:32px; border-radius:50% 50% 50% 0; background:var(--sm-accent); border:3px solid #fff; transform:rotate(-45deg); box-shadow:0 3px 10px #19193250; }
+/* El pin fijo en el centro (como en las apps de transporte): se levanta al mover el mapa y cae con un rebote al soltar. */
+.sm-map-wrap { position:relative; }
+.sm-map-pin { position:absolute; left:50%; top:50%; z-index:500; width:32px; height:40px; translate:-50% -100%; pointer-events:none; animation:sm-pin-drop .45s cubic-bezier(.3,1.6,.5,1); }
+.sm-map-pin > span { display:block; width:32px; height:32px; border-radius:50% 50% 50% 0; background:var(--sm-accent); border:3px solid #fff; transform:rotate(-45deg); box-shadow:0 3px 10px #19193250; }
+.sm-map-pin.is-lifting { animation:none; transform:translateY(-14px); transition:transform .15s ease-out; }
+.sm-map-pin-shadow { position:absolute; left:50%; top:50%; z-index:499; width:14px; height:5px; translate:-50% -50%; border-radius:50%; background:#19193255; pointer-events:none; transition:transform .15s ease-out, opacity .15s; }
+.sm-map-pin-shadow.is-lifting { transform:scale(1.6); opacity:.5; }
+@keyframes sm-pin-drop { 0% { transform:translateY(-14px); } 60% { transform:translateY(2px); } 80% { transform:translateY(-3px); } 100% { transform:translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .sm-map-pin, .sm-map-pin.is-lifting { animation:none; transform:none; transition:none; } }
+.sm-map-address { display:flex; gap:var(--ds-espacio-6); align-items:flex-start; font-size:calc(14px * var(--ds-texto)); line-height:1.4; margin:0; }

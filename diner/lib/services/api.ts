@@ -215,3 +215,7 @@ export async function sendLocateLink(token: string, body: { lat: number; lng: nu
   const r = (await http.post<{ ok: boolean; cotizacion?: { cobertura?: boolean } }>(`/api/v1/domicilio/ubicar/${encodeURIComponent(token)}`, body)).data
   return { ok: r.ok, cobertura: r.cotizacion?.cobertura ?? null }
 }
+// La dirección aproximada del punto donde quedó el pin (vacía si el proveedor no responde).
+export async function reverseAddress(rest: string, lat: number, lng: number): Promise<string> {
+  return (await http.post<{ texto: string }>(`${org(rest)}/domicilio/direccion`, { lat, lng })).data.texto ?? ''
+}

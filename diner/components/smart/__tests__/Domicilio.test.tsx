@@ -10,8 +10,8 @@ import type { Cart, Entry } from '@/lib/types'
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }), useSearchParams: () => null }))
 jest.mock('@/lib/services/api')
 // El mapa real necesita un navegador; aquí basta un pin que se mueve con un botón.
-jest.mock('next/dynamic', () => () => function Mapa({ onChange }: { onChange: (p: { lat: number; lng: number }) => void }) {
-  return <button type="button" onClick={() => onChange({ lat: 6.2, lng: -75.57 })}>Marcar en el mapa</button>
+jest.mock('next/dynamic', () => () => function Mapa({ onChange, value }: { onChange: (p: { lat: number; lng: number }) => void; value: { lat: number; lng: number } | null }) {
+  return <><button type="button" onClick={() => onChange({ lat: 6.2, lng: -75.57 })}>Marcar en el mapa</button><output aria-label="Centro del mapa">{value ? `${value.lat},${value.lng}` : 'sin punto'}</output></>
 })
 const inicial = useDinerStore.getInitialState()
 beforeEach(() => { jest.resetAllMocks(); useDinerStore.setState({ ...inicial, keys: { rest: 'demo', venue: 'salon', token: null } }, true) })
@@ -97,4 +97,26 @@ it('en una mesa no ofrece domicilio', async () => {
   render(<ChatDelivery pedido="/demo/salon/pedido" onLeave={jest.fn()} />)
   expect(screen.queryByRole('button', { name: '📍 Compartir mi ubicación' })).toBeNull()
   expect(screen.getByText(/pidiendo desde una mesa/)).toBeInTheDocument()
+})
+
+
+// Falla si al asentar el pin no aparece su dirección aproximada (y no llena el campo), si escribir una dirección no
+// lleva el mapa hasta allá, o si la dirección que el cliente escribió la pisa el pin.
+it('dirección y mapa en las dos direcciones', async () => {
+  const { DeliverySheet } = await import('../DeliverySheet')
+  const api = jest.requireMock('@/lib/services/api')
+  api.getVenueLocation.mockResolvedValue({ direccion: '', latitud: 6.2, longitud: -75.5 })
+  api.reverseAddress.mockResolvedValue('Calle 9A 37-16, El Poblado, Medellín')
+  api.searchAddress.mockResolvedValue([{ texto: 'Calle 10, El Poblado', lat: 6.2098, lng: -75.5684 }])
+  useDinerStore.setState({ session: { id: 'visita', estado: 'abierta', mesa: null }, entry: { domicilio: { enabled: true, buscador: true }, contexto: { mesa: null }, carta: { categorias: [] } } as unknown as Entry })
+  render(<DeliverySheet onReady={jest.fn()} />)
+  fireEvent.click(await screen.findByRole('button', { name: 'Marcar en el mapa' }))
+  expect(await screen.findByText('Calle 9A 37-16, El Poblado, Medellín', {}, { timeout: 2000 })).toBeInTheDocument()
+  await waitFor(() => expect(screen.getByLabelText('Dirección')).toHaveValue('Calle 9A 37-16, El Poblado, Medellín'))
+  fireEvent.change(screen.getByLabelText('Dirección'), { target: { value: 'Calle 10 # 43-12' } })
+  await act(async () => fireEvent.keyDown(screen.getByLabelText('Dirección'), { key: 'Enter' }))
+  expect(api.searchAddress).toHaveBeenCalledWith('demo', 'Calle 10 # 43-12')
+  expect(screen.getByLabelText('Centro del mapa')).toHaveTextContent('6.2098,-75.5684')
+  await waitFor(() => expect(api.reverseAddress).toHaveBeenLastCalledWith('demo', 6.2098, -75.5684), { timeout: 2000 })
+  expect(screen.getByLabelText('Dirección')).toHaveValue('Calle 10 # 43-12')
 })

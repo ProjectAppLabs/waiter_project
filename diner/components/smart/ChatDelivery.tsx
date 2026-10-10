@@ -2,13 +2,15 @@
 
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { formatCop } from '@/lib/domain/cart'
 import { myCount } from '@/lib/domain/cartEvents'
-import { getVenueLocation, quoteDelivery, type Coverage } from '@/lib/services/api'
+import { getVenueLocation, quoteDelivery, searchAddress, type Coverage } from '@/lib/services/api'
 import { useDinerStore } from '@/lib/stores/dinerStore'
 import type { Point } from './LocationPicker'
+import { Icon } from './SmartMenu'
+import { usePinAddress } from './usePinAddress'
 
 const LocationPicker = dynamic(() => import('./LocationPicker').then((m) => m.LocationPicker), { ssr: false, loading: () => <div className="sm-map" aria-busy="true" /> })
 const MEDELLIN: Point = { lat: 6.2442, lng: -75.5812 }
@@ -23,6 +25,10 @@ export function ChatDelivery({ pedido, onLeave }: { pedido: string; onLeave: () 
   const [address, setAddress] = useState('')
   const [coverage, setCoverage] = useState<Coverage | null>(null)
   const [busy, setBusy] = useState(false), [error, setError] = useState('')
+  // Como en la hoja del pedido: el pin llena la dirección y lo escrito lleva el mapa hasta allá.
+  const typed = useRef(false), flying = useRef<Point | null>(null)
+  const pin = usePinAddress(mode === 'map' ? keys?.rest : null, point)
+  useEffect(() => { if (pin.address && !typed.current) setAddress(pin.address) }, [pin.address])
   useEffect(() => {
     if (mode !== 'map' || !keys) return
     getVenueLocation(keys.rest, keys.venue).then((v) => { if (v.latitud !== null && v.longitud !== null) setCenter({ lat: v.latitud, lng: v.longitud }) }).catch(() => undefined)
@@ -49,6 +55,18 @@ export function ChatDelivery({ pedido, onLeave }: { pedido: string; onLeave: () 
       { enableHighAccuracy: true, timeout: 10_000 })
   }
   const items = myCount(cart)
+  const moved = (p: Point) => {
+    // El mapa repite el punto al terminar de moverse: si no cambió, no se pierde la cotización.
+    if (point && Math.abs(point.lat - p.lat) < 1e-7 && Math.abs(point.lng - p.lng) < 1e-7) return
+    const target = flying.current
+    if (target && Math.abs(target.lat - p.lat) < 1e-4 && Math.abs(target.lng - p.lng) < 1e-4) flying.current = null
+    else if (!target) typed.current = false
+    setPoint(p)
+  }
+  async function search() {
+    if (!keys || !entry?.domicilio?.buscador || !typed.current || address.trim().length < 6) return
+    try { const [first] = await searchAddress(keys.rest, address.trim()); if (first) { flying.current = { lat: first.lat, lng: first.lng }; setPoint(flying.current) } } catch { /* sigue con el mapa */ }
+  }
   return (
     <div className="sm-chat-delivery">
       {mode === 'choose' && <div className="sm-chat-choices" aria-label="¿A dónde lo llevamos?">
@@ -56,9 +74,10 @@ export function ChatDelivery({ pedido, onLeave }: { pedido: string; onLeave: () 
         <button type="button" disabled={busy} onClick={() => setMode('map')}>Es para otra persona</button>
       </div>}
       {mode === 'map' && <div className="sm-delivery">
-        <LocationPicker center={center} value={point} onChange={setPoint} label="Mapa para marcar la entrega" />
-        <p className="sm-note">Toca el mapa o arrastra el pin hasta la puerta de la entrega.</p>
-        <label className="sm-field"><span>Dirección</span><input value={address} onChange={(e) => setAddress(e.target.value)} maxLength={200} placeholder="Calle, número y barrio" /></label>
+        <label className="sm-field"><span>Dirección</span><input value={address} maxLength={200} placeholder="Escribe la dirección o mueve el mapa"
+          onChange={(e) => { typed.current = true; setAddress(e.target.value) }} onBlur={() => void search()} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void search() } }} /></label>
+        <LocationPicker center={center} value={point} onChange={moved} label="Mapa para marcar la entrega" />
+        <p className="sm-map-address" role="status"><Icon name="pin" /><span>{pin.loading ? 'Buscando la dirección…' : pin.address || 'Mueve el mapa hasta la puerta de la entrega.'}</span></p>
         <button type="button" className="sm-primary" disabled={busy || !point} onClick={() => point && void check(point, address.trim())}>{busy ? 'Revisando…' : 'Usar esta ubicación'}</button>
       </div>}
       {mode === 'done' && coverage && (coverage.cobertura ? <div className="sm-delivery-quote" role="status">

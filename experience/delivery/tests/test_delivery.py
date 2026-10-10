@@ -207,15 +207,19 @@ def test_customer_consent_addresses_and_revoke(env):
 def test_geocoding_and_limits(env, settings, monkeypatch):
     e = env
     url = f'/api/v1/{e["org"].slug}/domicilio/buscar'
+    from django.core.cache import cache
+    cache.clear()
+    settings.NOMINATIM_ENABLED = False
     assert e['client'].post(url, {'texto': 'Calle 1'}, format='json').status_code == 503
     settings.GOOGLE_MAPS_API_KEY = 'clave-simulada'
     remote = Mock(return_value=Mock(status_code=200, json=lambda: {'status': 'OK', 'results': [
         {'formatted_address': 'Calle 1, Bogotá', 'geometry': {'location': {'lat': 4.65, 'lng': -74.05}}}] * 8}))
     monkeypatch.setattr('requests.get', remote)
-    for _ in range(20):
-        response = e['client'].post(url, {'texto': 'Calle 1'}, format='json')
+    # Textos distintos: la misma búsqueda repetida sale de la caché sin consultar al proveedor.
+    for i in range(20):
+        response = e['client'].post(url, {'texto': f'Calle {i}'}, format='json')
         assert response.status_code == 200 and len(response.data['resultados']) == 5
-    assert e['client'].post(url, {'texto': 'Calle 1'}, format='json').status_code == 429
+    assert e['client'].post(url, {'texto': 'Calle 99'}, format='json').status_code == 429
     assert remote.call_count == 20 and remote.call_args.kwargs['params']['components'] == 'country:CO'
 
 
@@ -276,7 +280,9 @@ def test_public_entry_delivery_capabilities(env, settings):
     e = env
     response = e['client'].get(f'/api/v1/{e["org"].slug}/{e["venue"].slug}/')
     assert response.status_code == 200, response.data
-    assert response.data['domicilio'] == {'enabled': True, 'buscador': False}
+    assert response.data['domicilio'] == {'enabled': True, 'buscador': True}
+    settings.NOMINATIM_ENABLED = False
+    assert e['client'].get(f'/api/v1/{e["org"].slug}/{e["venue"].slug}/').data['domicilio']['buscador'] is False
     settings.GOOGLE_MAPS_API_KEY = 'clave-simulada'
     assert e['client'].get(f'/api/v1/{e["org"].slug}/{e["venue"].slug}/').data['domicilio']['buscador']
 
@@ -439,3 +445,28 @@ def test_menu_chat_delivery_action(env):
     assert response.status_code == 200, response.data
     assert response.data['accion'] == 'domicilio' and response.data['lineas'] == []
     assert CartLine.objects.count() == 1
+
+
+# Falla si sin clave de Google no se usa Nominatim como su política exige (identificación, Colombia, caché), si la
+# dirección aproximada del pin no se resume para el cliente, o si una caída del proveedor rompe el mapa.
+def test_nominatim_busca_y_lee_direcciones(env, settings, monkeypatch):
+    from django.core.cache import cache
+    e = env
+    cache.clear()
+    settings.GOOGLE_MAPS_API_KEY = ''
+    lugar = {'lat': '6.2087', 'lon': '-75.5671', 'display_name': 'largo', 'address': {
+        'road': 'Calle 10', 'house_number': '43-12', 'suburb': 'El Poblado', 'city': 'Medellín', 'country': 'Colombia', 'postcode': '050021'}}
+    remote = Mock(side_effect=lambda url, **kw: Mock(status_code=200, json=lambda: [lugar] if url.endswith('/search') else lugar))
+    monkeypatch.setattr('requests.get', remote)
+    buscar = e['client'].post(f'/api/v1/{e["org"].slug}/domicilio/buscar', {'texto': 'calle 10 43-12'}, format='json')
+    assert buscar.status_code == 200 and buscar.data['resultados'] == [{'texto': 'Calle 10 43-12, El Poblado, Medellín', 'lat': 6.2087, 'lng': -75.5671}]
+    params, headers = remote.call_args.kwargs['params'], remote.call_args.kwargs['headers']
+    assert params['countrycodes'] == 'co' and 'Waiter' in headers['User-Agent'] and params['bounded'] == 1 and 'viewbox' in params
+    url = f'/api/v1/{e["org"].slug}/domicilio/direccion'
+    for _ in range(3):
+        assert e['client'].post(url, {'lat': 6.20871, 'lng': -75.56712}, format='json').data == {'texto': 'Calle 10 43-12, El Poblado, Medellín'}
+    assert remote.call_count == 2
+    cache.clear()
+    monkeypatch.setattr('requests.get', Mock(side_effect=__import__('requests').Timeout('caído')))
+    assert e['client'].post(url, {'lat': 6.3, 'lng': -75.5}, format='json').data == {'texto': ''}
+    assert e['client'].post(url, {'lat': 99, 'lng': -75.5}, format='json').status_code == 400

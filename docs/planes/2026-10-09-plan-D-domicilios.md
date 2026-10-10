@@ -241,3 +241,12 @@ es único por organización. El inventario transversal incorpora GET/PUT de ajus
   tres métodos). La cotización escoge la sede más cercana y responde «fuera_de_zona» lejos. Pedido desde el menú sin
   mesa con efectivo: `DE-001`, total $40.900 con la línea «Domicilio» de $4.000, enviado a cocina, cliente 56 con su
   dirección autorizada. El flujo por WhatsApp quedó probado con Meta simulado (no se envió a un teléfono real).
+- **Mapa como las apps de transporte (2026-10-09):** el pin queda fijo en el centro y se mueve el mapa; se levanta
+  al arrastrar y cae con un rebote al soltar (respeta «reducir movimiento»). Dirección en las dos direcciones: al
+  asentarse el pin, `POST /api/v1/<rest>/domicilio/direccion {lat, lng}` → `{texto}` muestra la dirección aproximada y
+  llena el campo (salvo que el cliente haya escrito la suya); escribir la dirección y dar Enter (o salir del campo)
+  lleva el mapa hasta allá. `delivery/geocoding.py`: Google con `GOOGLE_MAPS_API_KEY`; si no, Nominatim de
+  OpenStreetMap (gratis) con su política: una consulta por segundo para todo el servidor, User-Agent de Waiter, caché
+  de 24 h y búsqueda limitada a ~25 km de la sede. Límites por visita y día: 20 búsquedas y 150 lecturas del pin
+  (`SearchUsage.reverses`). `entrada.domicilio.buscador` es verdadero con cualquiera de los dos proveedores.
+  Nota: la caché y el turno de Nominatim usan la caché de Django; con varios procesos en producción conviene Redis.
