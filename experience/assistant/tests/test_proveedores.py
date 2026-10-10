@@ -47,6 +47,7 @@ CARTA = ['Limonada de Coco', 'Sushi', 'Hamburguesa Angus']
 @pytest.mark.parametrize('texto', ['Pide un sushi delicioso.', 'La Limonada de Coco vale $999.', 'Visita https://ejemplo.co',
                                   'Te garantizo entrega en cinco minutos.', 'Ya está pagado tu pedido.', 'Hoy es gratis.',
                                   'Te recomiendo la Hamburguesa Angus.', 'x' * 281])
+# Falla si una afirmación ajena a los datos supera la revisión de la voz.
 def test_voz_rechaza_afirmaciones(settings, monkeypatch, texto):
     settings.OPENAI_API_KEY = 'secreto'
     monkeypatch.setattr('requests.post', Mock(return_value=respuesta_voz(texto)))
@@ -58,6 +59,7 @@ def test_voz_rechaza_afirmaciones(settings, monkeypatch, texto):
 # omite ajustes vacíos, pierde store=false o manda los datos del turno antes que las instrucciones fijas.
 @pytest.mark.parametrize('frase', ['Para algo frío, te va la Limonada de Coco por $9.900. ¿Te la pido?',
                                    'La Limonada de Coco cuesta 9900 pesos, ¿cuál se te antoja ahora?'])
+# Falla si una redacción fiel se descarta o la llamada pierde su configuración.
 def test_voz_configuracion_y_version(settings, monkeypatch, frase):
     settings.OPENAI_API_KEY = 'secreto'
     post = Mock(return_value=respuesta_voz(frase))
