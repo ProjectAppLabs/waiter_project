@@ -87,7 +87,7 @@ def test_activacion_sin_credenciales_completas_es_atomica(api_client, campo):
 def test_credenciales_inaccesibles_no_crean_cobros(api_client, escenario, settings, caso):
     pasarela = escenario[4]
     if caso == 'sin_clave_cifrado':
-        settings.PAYMENTS_FERNET_KEY = ''
+        settings.PAYMENTS_FERNET_KEY = settings.PAYMENTS_MASTER_KEYS = ''
     else:
         pasarela.secrets_cipher = 'cifrado-invalido-sensible'
         pasarela.save()

@@ -16,7 +16,7 @@ from django.db import DatabaseError
 from experience_app.adapters.core.pos import resolve
 from experience_app.models import CartLine, Order, PaymentAttempt, PaymentGateway, TableSession
 from experience_app.payments import PROVIDERS
-from experience_app.payments.crypto import PaymentUnavailable, decrypt, encrypt
+from experience_app.payments.crypto import PaymentUnavailable, decrypt, encrypt, gateway_context
 from experience_app.services.sessions import PAID_STATES, close_paid
 
 ACTIVE = ['CREATING', 'UNKNOWN', 'PENDING', 'APPROVED']
@@ -97,7 +97,7 @@ def create(session, diner, data):
     config = gateway(session)
     if not config:
         raise PaymentConflict('Los pagos en línea todavía no están habilitados para este restaurante.')
-    credentials = decrypt(config.secrets_cipher)
+    credentials = decrypt(config.secrets_cipher, gateway_context(config))
     if data['method'] == 'CARD' and not data['token'].startswith(f'tok_{config.environment}_'):
         raise ValidationError({'detail': 'La tarjeta no corresponde al ambiente de pago.'})
     provider = PROVIDERS[config.provider]
@@ -249,6 +249,11 @@ def webhook(event, restaurant, venue, environment):
         reference = remote['reference']
         if not isinstance(reference, str) or not reference.startswith('waiter-'):
             return Response(status=200)
+        if reference.startswith('waiter-verificacion-'):
+            # El pago de verificación de la conexión: su firma confirma el secreto de eventos guardado.
+            from experience_app.services.payment_settings import event_verified
+            ok = event_verified(reference, restaurant, venue, environment, event)
+            return Response(status=200 if ok is not False else 403)
         attempt_id = uuid.UUID(hex=reference[7:])
     except (KeyError, TypeError, ValueError):
         return Response(status=400)

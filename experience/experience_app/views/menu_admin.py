@@ -25,7 +25,7 @@ class MenuAdminView(ContractView):
             'menu_settings': ('plantilla', 'paleta', 'tipografia', 'tema', 'borrador'),
             'menu_decorations': ('nombre', 'imagen', 'decoracion_id'),
             'mcp_keys': ('nombre', 'key_id'),
-            'payment_gateways': ('configuration', 'environment'),
+            'payment_gateways': ('environment', 'access', 'code', 'keys', 'enable', 'enabled'),
         }
         data = payload(request.data, ('action', 'restaurant_id', 'config_id', *fields[self.section]))
         rid = data.get('restaurant_id', data.get('config_id', session.restaurant_id))
@@ -86,16 +86,37 @@ class MenuAdminView(ContractView):
                     require(keys.revoke(org, venue, data['key_id']), 'La clave no existe o ya estaba revocada.', 'not_found', 404)
                     result = {'revocada': data['key_id']}
             else:
-                valid(action in ('get', 'set', 'test'), 'Acción de pasarela inválida.')
-                if action != 'get':
-                    require(account.role == 'owner')
+                # Pagos en línea: solo el dueño, con un código de su correo. Ver el estado y comprobar no gasta el acceso;
+                # conectar, activar o desconectar sí (un cambio por código). Las llaves se pegan y nunca se devuelven.
+                from experience_app.services import payment_access
+                valid(action in ('access_request', 'access_verify', 'get', 'test', 'connect', 'enable', 'disconnect'), 'Acción de pasarela inválida.')
+                require(account.role == 'owner', 'Solo el dueño puede entrar a las credenciales de pago.', 'forbidden', 403)
+                # Una sesión de soporte de ProjectApp actúa como el dueño, pero nunca entra a las credenciales de pago.
+                require(not session.support_grant_id, 'Soporte no puede entrar a las credenciales de pago.', 'forbidden', 403)
+                if action == 'access_request':
+                    return Response(payment_access.request_code(account), headers={'Cache-Control': 'no-store'})
+                if action == 'access_verify':
+                    result = payment_access.verify_code(account, data.get('code'))
+                    if not result['ok']:
+                        return Response({'error': 'invalid_code', 'message': result['detail']}, status=400)
+                    return Response(result, headers={'Cache-Control': 'no-store'})
+                payment_access.check(account, data.get('access'))
+                environment = data.get('environment', 'test')
+                valid(environment in ('test', 'prod'), 'Ambiente inválido.')
                 if action == 'get':
                     result = payment_settings.view(org, venue)
-                elif action == 'set':
-                    result = payment_settings.save(org, venue, data.get('configuration'))
+                elif action == 'connect':
+                    result = payment_settings.connect(org, venue, environment, data.get('keys'), data.get('enable') is True)
+                    if result['ok']:
+                        payment_access.check(account, data.get('access'), consume=True)
+                elif action == 'enable':
+                    valid(type(data.get('enabled')) is bool, 'Indica si se activa.')
+                    result = payment_settings.save(org, venue, {'environment': environment, 'enabled': data['enabled']})
+                    payment_access.check(account, data.get('access'), consume=True)
+                elif action == 'disconnect':
+                    result = payment_settings.disconnect(org, venue, environment)
+                    payment_access.check(account, data.get('access'), consume=True)
                 else:
-                    environment = data.get('environment', 'test')
-                    valid(environment in ('test', 'prod'), 'Ambiente inválido.')
                     config = PaymentGateway.objects.filter(restaurant_slug=org, venue_slug=venue, provider='wompi', environment=environment).first()
                     require(config, 'No encontramos la pasarela.', 'not_found', 404)
                     merchant = PROVIDERS[config.provider].merchant(environment, config.public_key)

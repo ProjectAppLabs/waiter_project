@@ -289,28 +289,33 @@ def test_codigo_totp_crea_sesion_y_desactivar_exige_otro_codigo(cifrado):
 
 
 def test_soporte_no_ve_secretos_y_cambios_pasarela_quedan_registrados(soporte, cifrado):
-    # Falla si soporte obtiene secretos de pasarela o el historial conserva credenciales en claro o cifradas.
+    # Falla si soporte entra a Pagos en línea (solo el dueño, con el código de su correo), o si el historial conserva
+    # credenciales en claro o cifradas.
     import json
+    from unittest.mock import patch
 
     from experience_app.models import PaymentGateway
+    from experience_app.payments import wompi
+    from experience_app.services import payment_access
 
     _, local, _, cliente, _, _, _ = soporte
     ruta = S + "admin/payment_gateways"
     configuracion = {
-        "environment": "test",
         "public_key": "pub_test_12345678",
         "private_key": "prv_test_12345678",
         "events": "test_events_12345678",
         "integrity": "test_integrity_12345678",
     }
-    respuesta = cliente.post(
-        ruta, {"action": "set", "restaurant_id": local.pk, "configuration": configuracion}, format="json"
-    )
-    assert respuesta.status_code == 200, respuesta.data
+    with patch.object(payment_access, "check"), patch.object(wompi, "merchant", return_value={"name": "Casa"}), \
+            patch.object(wompi, "probe", return_value=(201, {})):
+        respuesta = cliente.post(ruta, {"action": "connect", "environment": "test", "restaurant_id": local.pk,
+                                        "keys": "\n".join(configuracion.values())}, format="json")
+    assert respuesta.status_code == 200 and respuesta.data["ok"], respuesta.data
     _, token, sesion = conceder(soporte)
     assert sesion.post(S + "auth/support", {"token": token}, format="json").status_code == 200
     respuesta = sesion.post(ruta, {"action": "get", "restaurant_id": local.pk}, format="json")
-    assert respuesta.status_code == 200
+    assert respuesta.status_code == 403
+    assert sesion.post(ruta, {"action": "access_request", "restaurant_id": local.pk}, format="json").status_code == 403
     historial = list(OrganizationAudit.objects.filter(entity="experience_app.paymentgateway").values("before", "after"))
     assert historial
     contenido = json.dumps(historial) + respuesta.content.decode()

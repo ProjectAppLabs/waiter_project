@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 from cryptography.fernet import Fernet
 from experience_app.models import PaymentGateway, PaymentAttempt, Order
-from experience_app.payments.crypto import encrypt, decrypt, PaymentUnavailable
+from experience_app.payments.crypto import encrypt, decrypt, gateway_context, PaymentUnavailable
 from experience_app.payments import wompi
 from experience_app.services import online_payments as service
 from experience_app.tests.conftest import TABLE
@@ -27,7 +27,8 @@ def setup(api_client,two_diners):
     session,ana,beto=two_diners
     api_client.cookies['waiter_diner']=ana.key
     order=Order.objects.create(session=session,state=Order.SENT,odoo_order_id=77,total=Decimal('51051'))
-    gateway=PaymentGateway.objects.create(restaurant_slug=session.restaurant_slug,venue_slug=session.venue_slug,public_key='pub_test_12345678',environment='test',enabled=True,secrets_cipher=encrypt(SECRETS))
+    gateway=PaymentGateway.objects.create(restaurant_slug=session.restaurant_slug,venue_slug=session.venue_slug,public_key='pub_test_12345678',environment='test',enabled=True)
+    gateway.secrets_cipher=encrypt(SECRETS,gateway_context(gateway)); gateway.save(update_fields=['secrets_cipher'])
     with patch('experience_app.services.online_payments.resolve',return_value=TABLE),patch.object(wompi,'merchant',return_value=MERCHANT),patch.object(service.pos,'read_order',return_value=PlacedOrder(77,'Order','draft',51051,0,0)):
         yield session,ana,beto,order,gateway
 
@@ -58,7 +59,7 @@ def test_configuration_is_internal_encrypted_and_does_not_echo_secrets(api_clien
     assert response.status_code==200
     saved=PaymentGateway.objects.get()
     assert SECRETS['private_key'] not in saved.secrets_cipher
-    assert decrypt(saved.secrets_cipher)==SECRETS
+    assert decrypt(saved.secrets_cipher,gateway_context(saved))==SECRETS
     assert all(v not in response.content.decode() for v in SECRETS.values())
     assert response['Cache-Control']=='no-store'
     response=api_client.get(url,HTTP_X_INTERNAL_KEY='internal-test')
@@ -78,7 +79,7 @@ def test_blank_preserves_secret_and_live_activation_is_blocked(api_client,setup)
     with patch('experience_app.views.payment_gateways.resolve',return_value=TABLE):
         r=api_client.put(url,{'environment':'test','private_key':'','enabled':False},format='json',HTTP_X_INTERNAL_KEY='internal-test')
         assert r.status_code==200
-        assert decrypt(PaymentGateway.objects.get(environment='test').secrets_cipher)==SECRETS
+        assert decrypt(PaymentGateway.objects.get(environment='test').secrets_cipher,gateway_context(PaymentGateway.objects.get(environment='test')))==SECRETS
         r=api_client.put(url,{'environment':'prod','enabled':True,'public_key':'pub_prod_12345678',**{k:v.replace('test','prod') for k,v in SECRETS.items()}},format='json',HTTP_X_INTERNAL_KEY='internal-test')
         assert r.status_code==400
     assert not PaymentGateway.objects.filter(environment='prod').exists()

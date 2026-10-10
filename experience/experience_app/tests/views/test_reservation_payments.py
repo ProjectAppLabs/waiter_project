@@ -7,7 +7,7 @@ from cryptography.fernet import Fernet
 
 from experience_app.models import PaymentAttempt, PaymentGateway
 from experience_app.payments import wompi
-from experience_app.payments.crypto import PaymentUnavailable, encrypt
+from experience_app.payments.crypto import PaymentUnavailable, encrypt, gateway_context
 from experience_app.services import online_payments, reservation_payments
 from experience_app.tests.conftest import TABLE
 
@@ -42,7 +42,10 @@ def core_client():
 
 @pytest.fixture
 def gateway():
-    return PaymentGateway.objects.create(restaurant_slug='burger-house', venue_slug='poblado', public_key='pub_test_12345678', environment='test', enabled=True, secrets_cipher=encrypt(SECRETS))
+    gateway = PaymentGateway.objects.create(restaurant_slug='burger-house', venue_slug='poblado', public_key='pub_test_12345678', environment='test', enabled=True)
+    gateway.secrets_cipher = encrypt(SECRETS, gateway_context(gateway))
+    gateway.save(update_fields=['secrets_cipher'])
+    return gateway
 
 
 def body(**patch_):

@@ -160,6 +160,11 @@ AGENT_DAILY_LIMIT = int(os.getenv('AGENT_DAILY_LIMIT', '200'))
 
 # Gateway secrets use a separate, backed-up Fernet key; never derive it from DEBUG/SECRET_KEY.
 PAYMENTS_FERNET_KEY = os.getenv('PAYMENTS_FERNET_KEY', '')
+# Llaves maestras del cifrado de sobre (v2): «id:llave_base64_de_32_bytes», separadas por coma; la primera es la vigente.
+# Rotar: anteponer la nueva, correr `manage.py rotar_cifrado_pagos` y luego quitar la vieja.
+PAYMENTS_MASTER_KEYS = os.getenv('PAYMENTS_MASTER_KEYS', '')
+if IS_PRODUCTION and not PAYMENTS_MASTER_KEYS:
+    raise RuntimeError('PAYMENTS_MASTER_KEYS es obligatorio en producción (cifrado de las credenciales de pago).')
 PAYMENTS_LIVE_ENABLED = os.getenv('PAYMENTS_LIVE_ENABLED', 'false').lower() == 'true'
 PAYMENTS_PUBLIC_URL = os.getenv('PAYMENTS_PUBLIC_URL', '').rstrip('/')
 
