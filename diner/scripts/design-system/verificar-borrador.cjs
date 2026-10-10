@@ -22,13 +22,16 @@ const PAGES = [
   { name: 'carta', path: 'carta', widths: [320, 375, 1024], wait: 'article.sm-food-card', shot: '.sm-menu-sections section, .sm-food-list, .sm-food-grid' },
   // El contraste depende de los colores del tema en todas las pantallas, no solo donde hay plantillas propias: sin sesión
   // se ven los estados vacíos, formularios y títulos que más sufren con un fondo oscuro.
-  { name: 'plato', path: 'plato/41', widths: [375, 1024], wait: '.sm-dish-hero', shot: '.smart-menu' },
+  // El plato se toma de la carta real de la sede al empezar (ver `firstDish`).
+  { name: 'plato', path: 'plato/{plato}', widths: [375, 1024], wait: '.sm-dish-hero', shot: '.smart-menu' },
   ...['favoritos', 'pedido', 'pago', 'la-cuenta', 'historial', 'recompensas', 'ubicacion', 'cuenta', 'cuenta/entrar', 'cuenta/registro']
     .map((screen) => ({ name: screen, path: screen, widths: [375], wait: '.smart-menu .sm-page', shot: '.smart-menu' })),
   // El pedido con platos y su diálogo de modalidad: sin sesión el pedido sale vacío, así que el carrito se simula en el
   // navegador (nada se escribe). El MCP cambia colores y estilos de estas pantallas, no su estructura; se comprueban ambos.
   { name: 'pedido con platos', path: 'pedido', widths: [375, 1024], wait: '.sm-cart-line', shot: '.smart-menu', mocks: 'carrito' },
   { name: 'modalidad', path: 'pedido', widths: [375], wait: '.sm-cart-line', shot: 'dialog.sm-fulfillment-dialog', mocks: 'carrito', open: 'modalidad' },
+  // Plan D: el domicilio con su mapa (colores de la marca o de la variante «mapa»), en teléfono y en computador.
+  { name: 'domicilio', path: 'pedido', widths: [375, 1024], wait: '.sm-cart-line', shot: 'dialog.sm-fulfillment-dialog', mocks: 'carrito', open: 'domicilio' },
   // Plan N: «Mis recompensas» de una cuenta verificada con un premio de cada tipo ganado y acciones pendientes (simulado).
   { name: 'recompensas con beneficios', path: 'recompensas', widths: [375, 1024], wait: '.sm-reward-list', shot: '.smart-menu', mocks: 'recompensas' },
 ]
@@ -60,7 +63,8 @@ const SAMPLE_CART = { sesion: 'verificador', total: 133800, mio: 100900, por_com
   ] }
 
 // Orígenes a los que la carta puede pedir recursos: el propio (incluidos los proxys /api y /experience) y Google Fonts.
-const ALLOWED_ORIGINS = new Set([new URL(base).origin, 'https://fonts.googleapis.com', 'https://fonts.gstatic.com'])
+// Plan D: las letras y los íconos del mapa de domicilio salen de los recursos públicos de Protomaps.
+const ALLOWED_ORIGINS = new Set([new URL(base).origin, 'https://fonts.googleapis.com', 'https://fonts.gstatic.com', 'https://protomaps.github.io'])
 
 // Se ejecuta dentro de la página: contenido activo que una plantilla nunca debe traer (Plan L). El validador del servidor ya
 // lo impide al preparar; esto lo comprueba en lo que de verdad dibujó el navegador.
@@ -181,7 +185,8 @@ function fulfillmentCheck() {
   const visible = (el) => { const r = el.getBoundingClientRect(), cs = getComputedStyle(el); return r.width > 2 && r.height > 2 && cs.visibility !== 'hidden' && cs.display !== 'none' && Number(cs.opacity) > 0.05 }
   const options = [...dialog.querySelectorAll('.sm-fulfillment-option')].filter(visible)
   const names = options.map((o) => o.textContent.trim())
-  if (names.join('|') !== 'Comer aquí|Para llevar') problems.push(`modalidad: se esperaban «Comer aquí» y «Para llevar»; se ven ${names.length ? names.map((n) => `«${n}»`).join(', ') : 'ninguna'}`)
+  // En una mesa: comer aquí o para llevar. Sin mesa (Plan D): recoger en el local y, si la sede lo tiene, a domicilio.
+  if (!['Comer aquí|Para llevar', 'Recoger en el local|A domicilio', 'Recoger en el local'].includes(names.join('|'))) problems.push(`modalidad: se esperaban «Comer aquí» y «Para llevar» (mesa) o «Recoger en el local» y «A domicilio»; se ven ${names.length ? names.map((n) => `«${n}»`).join(', ') : 'ninguna'}`)
   for (const o of options) {
     const icon = o.querySelector('svg')
     if (!icon || !visible(icon)) problems.push(`modalidad: «${o.textContent.trim()}» no muestra su icono`)
@@ -195,7 +200,7 @@ function fulfillmentCheck() {
   if (fields.length !== 2) problems.push(`modalidad: se esperaban los campos de notas y de alergias; se ven ${fields.length}`)
   if (![...dialog.querySelectorAll('button.sm-icon')].some(visible)) problems.push('modalidad: falta el botón de cerrar')
   const go = [...dialog.querySelectorAll('.sm-primary')].filter(visible)
-  if (go.length !== 1 || !/Continuar al pago/.test(go[0].textContent)) problems.push('modalidad: falta «Continuar al pago»')
+  if (!go.length || !/Continuar al pago|Confirmar domicilio/.test(go[go.length - 1].textContent)) problems.push('modalidad: falta «Continuar al pago»')
   const box = dialog.getBoundingClientRect()
   if (box.left < -1 || box.right > innerWidth + 1) problems.push('modalidad: el diálogo se sale de la pantalla a lo ancho')
   if (box.height > innerHeight + 1 && dialog.scrollHeight <= dialog.clientHeight + 1) problems.push('modalidad: el diálogo es más alto que la pantalla y no se desplaza')
@@ -204,6 +209,45 @@ function fulfillmentCheck() {
 
 // Se ejecuta dentro de la página (Plan N): en «Mis recompensas», cada premio ganado y cada acción pendiente es una fila
 // legible con su premio y su origen, y la acción de usar un cupón es un control de 44 px que no se sale de su fila.
+// Plan D: el mapa es un lienzo WebGL y el contraste no se mide en el DOM; el mapa publica su paleta en atributos
+// (data-mapa-*) y aquí se exige 4.5:1 a las etiquetas y 3:1 al pin contra todo lo que puede quedar detrás. Además: que
+// dibuje, que el pin quede en el centro y que la dirección aproximada se vea debajo.
+function mapCheck() {
+  const problems = []
+  const lum = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4).reduce((s, v, i) => s + v * [.2126, .7152, .0722][i], 0)
+  const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05) }
+  for (const wrap of document.querySelectorAll('.sm-map-wrap')) {
+    const name = `mapa (${wrap.dataset.mapaEstilo || 'sin estilo'})`
+    const r = wrap.getBoundingClientRect()
+    if (r.width < 2 || r.height < 2) continue
+    if (wrap.querySelector('.sm-map-fallback')) { problems.push(`${name}: no se pudo dibujar el mapa`); continue }
+    if (!wrap.dataset.mapaTerreno) { problems.push(`${name}: el mapa no terminó de cargar sus colores`); continue }
+    const fondos = (wrap.dataset.mapaFondos || '').split(' ').filter(Boolean)
+    for (const f of fondos) {
+      const label = ratio(wrap.dataset.mapaEtiqueta, f), pin = ratio(wrap.dataset.mapaPin, f)
+      if (label < 4.5) problems.push(`${name}: las etiquetas ${wrap.dataset.mapaEtiqueta} sobre ${f} tienen ${label.toFixed(2)}:1 (mínimo 4.5)`)
+      if (pin < 3) problems.push(`${name}: el pin ${wrap.dataset.mapaPin} sobre ${f} tiene ${pin.toFixed(2)}:1 (mínimo 3)`)
+    }
+    const canvas = wrap.querySelector('canvas')
+    if (!canvas || canvas.width < 2) problems.push(`${name}: el mapa no dibujó su lienzo`)
+    else if (!(Number(wrap.dataset.mapaDibujado) > 0)) problems.push(`${name}: el mapa está vacío (no dibujó calles ni lugares)`)
+    if (r.height < 180) problems.push(`${name}: mide ${Math.round(r.height)} px de alto (mínimo 180 para ubicar una puerta)`)
+    const pin = wrap.querySelector('.sm-map-pin')
+    if (pin) { const p = pin.getBoundingClientRect(); if (Math.abs((p.left + p.width / 2) - (r.left + r.width / 2)) > 2) problems.push(`${name}: el pin no queda centrado`) }
+    const address = wrap.parentElement?.querySelector('.sm-map-address')
+    if (address && !address.textContent.trim()) problems.push(`${name}: no se ve la dirección aproximada bajo el mapa`)
+  }
+  return problems
+}
+
+async function firstDish() {
+  try {
+    const entry = await (await fetch(`${base}/api/v1/${encodeURIComponent(rest)}/${encodeURIComponent(venue)}/`)).json()
+    const dishes = entry.carta.categorias.flatMap((c) => c.productos)
+    return (dishes.find((d) => d.foto && !d.agotado) ?? dishes[0])?.id ?? 41
+  } catch { return 41 }
+}
+
 function rewardsCheck() {
   const problems = []
   const visible = (el) => { const r = el.getBoundingClientRect(), cs = getComputedStyle(el); return r.width > 2 && r.height > 2 && cs.visibility !== 'hidden' && cs.display !== 'none' && Number(cs.opacity) > 0.05 }
@@ -394,6 +438,8 @@ async function main() {
   const browser = process.env.CDP_URL ? await chromium.connectOverCDP(process.env.CDP_URL) : await chromium.launch({ headless: true })
   const seen = new Set()
   try {
+    // Un plato real de la carta (con foto si hay): los ids cambian entre sedes y migraciones.
+    const dish = await firstDish()
     for (const spec of PAGES) for (const width of spec.widths) {
       // VERIFIER_VISIBLE=1: usa la ventana ya abierta de un navegador con ventana (para ver la medición en vivo); un Edge con
       // ventana no admite bien contextos aislados por CDP, así que solo se cambia el tamaño de la pestaña.
@@ -413,16 +459,25 @@ async function main() {
       // Respuestas simuladas solo para lecturas de la API; las páginas de verificación no escriben nada.
       for (const [pattern, body] of MOCKS[spec.mocks] || []) await page.route((url) => url.pathname.startsWith('/api/') && pattern.test(url.pathname + url.search),
         (route) => route.request().method() === 'GET' ? route.fulfill({ contentType: 'application/json', body: JSON.stringify(body()) }) : route.continue())
-      await page.goto(`${base}/${encodeURIComponent(rest)}/${encodeURIComponent(venue)}/${spec.path}/${token ? `?borrador=${encodeURIComponent(token)}` : ''}`, { waitUntil: 'networkidle', timeout: 120000 })
+      await page.goto(`${base}/${encodeURIComponent(rest)}/${encodeURIComponent(venue)}/${spec.path.replace('{plato}', String(dish))}/${token ? `?borrador=${encodeURIComponent(token)}` : ''}`, { waitUntil: 'networkidle', timeout: 120000 })
       await page.locator(spec.wait).first().waitFor({ timeout: 60000 })
       // Un teléfono no reserva sitio para la barra de desplazamiento; el Edge de Windows sí (15 px). Se oculta para medir el ancho real.
       await page.addStyleTag({ content: 'html { scrollbar-width: none } ::-webkit-scrollbar { display: none }' })
       await page.evaluate(() => document.fonts.ready)
       await page.waitForTimeout(600)
-      if (spec.open === 'modalidad') {
+      if (spec.open === 'modalidad' || spec.open === 'domicilio') {
         await page.locator('.sm-cart-submit .sm-primary').first().click()
         await page.locator('dialog.sm-fulfillment-dialog[open]').waitFor({ timeout: 15000 })
         await page.waitForTimeout(400)
+      }
+      if (spec.open === 'domicilio') {
+        const option = page.locator('dialog.sm-fulfillment-dialog .sm-fulfillment-option', { hasText: 'A domicilio' })
+        if (await option.count()) {
+          await option.first().click()
+          // El mapa publica su paleta al crearse; después se le da tiempo de dibujar las calles.
+          await page.locator('.sm-map-wrap[data-mapa-dibujado], .sm-map-fallback').first().waitFor({ timeout: 30000 }).catch(() => undefined)
+          await page.waitForTimeout(1500)
+        } else result.medidas[`${spec.name}-${width}`] = { nota: 'la sede no tiene domicilios activos' }
       }
       const measured = await page.evaluate(measureRoots)
       if (errors.length) measured.problemas.push(...errors.map((e) => `error de JavaScript: ${e}`))
@@ -433,6 +488,7 @@ async function main() {
       measured.problemas.push(...await page.evaluate(imageCheck))
       if (spec.name !== 'sistema') measured.problemas.push(...await page.evaluate(layoutCheck))
       if (spec.open === 'modalidad') measured.problemas.push(...await page.evaluate(fulfillmentCheck))
+      measured.problemas.push(...await page.evaluate(mapCheck))
       if (spec.mocks === 'recompensas') measured.problemas.push(...await page.evaluate(rewardsCheck))
       // Plan M: toda foto de plato llega optimizada (WebP) y ligera (menos de 400 KB), la principal y las de galería.
       const photos = await page.evaluate(() => [...new Set([...document.querySelectorAll('.smart-menu img')].map((i) => i.currentSrc || i.src).filter((u) => /\/fotos\/\d+/.test(u)))].slice(0, 12))

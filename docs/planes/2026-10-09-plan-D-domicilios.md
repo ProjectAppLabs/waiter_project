@@ -267,3 +267,18 @@ es único por organización. El inventario transversal incorpora GET/PUT de ajus
   `CustomerAddress.place_id`); el punto guardado es el del pin que deja el cliente. La dirección aproximada del pin va
   siempre por OpenStreetMap, aunque haya clave. Direcciones guardadas, WhatsApp y GPS no gastan Google: solo cuesta la
   primera vez que un cliente escribe una dirección nueva (~$20 pesos).
+- **Mapa propio y Google activo (2026-10-10):** el mapa pasa de Leaflet con mosaicos de imagen de tile.openstreetmap.org
+  (no personalizables y no aptos para producción) a **MapLibre + Protomaps** (vectorial, datos de OpenStreetMap):
+  `diner/public/mapas/medellin.pmtiles` (recorte del Valle de Aburrá, 12 MB, zoom 15; no va a git) y el trabajador de
+  MapLibre copiado al instalar (`scripts/mapas/copiar-trabajador.cjs`). Para regenerar o ampliar la región:
+  `pmtiles extract https://build.protomaps.com/<AAAAMMDD>.pmtiles colombia.pmtiles --bbox=-79.1,-4.3,-66.8,13.4` y
+  `NEXT_PUBLIC_MAP_TILES` con su ruta. Letras e íconos desde protomaps.github.io (se pueden servir propios después).
+  Estilo en `diner/lib/domain/mapTheme.ts`: variante `mapa` del sistema de diseño (marca, claro, oscuro, gris; esquema,
+  inventario, catálogo del comensal y página viva), etiquetas a 4.5:1 y pin a 3:1 en todos los casos (las de Protomaps
+  por defecto no cumplían), sin restaurantes, cafés ni bares. El MCP lo lista y valida (`test_mapa.py`); el verificador
+  del navegador agrega la pantalla «domicilio» (375 y 1024 px) y `mapCheck` (paleta publicada en `data-mapa-*`, mapa no
+  vacío, pin centrado, dirección visible); además toma un plato real de la carta en vez del id fijo 41. Verificación
+  completa sobre Burger House: sin problemas.
+- Google Places quedó activo (`GOOGLE_MAPS_API_KEY`): «Calle 10 # 43-12» cae en la puerta, encuentra lugares por nombre
+  (Parque Lleras, Unicentro). Las sugerencias se **restringen** a ~25 km de la sede (antes salían Duitama o Bogotá) y la
+  dirección del lugar se limpia de partes repetidas. Si Google falla, las sugerencias siguen con Photon.

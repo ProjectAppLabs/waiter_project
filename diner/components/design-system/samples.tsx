@@ -13,6 +13,10 @@ import { HistoryCard, PaperReceipt, ProfileSection } from '@/components/smart/Sm
 import { CouponField, PointsBalanceView } from '@/components/smart/SmartBenefits'
 import { RewardBanner } from '@/components/smart/SmartEntry'
 import { Recorrido } from '@/components/smart/Recorrido'
+import dynamic from 'next/dynamic'
+
+// El mapa usa WebGL: solo en el navegador.
+const MapSample = dynamic(() => import('@/components/smart/LocationPicker').then((m) => function Muestra() { return <m.LocationPicker center={{ lat: 6.2087, lng: -75.5671 }} value={null} onChange={() => undefined} label="Mapa de muestra" /> }), { ssr: false, loading: () => <div className="sm-map-wrap"><div className="sm-map" aria-busy="true" /><span aria-hidden="true" className="sm-map-pin"><span /></span></div> })
 import type { AccountOrder, Cart, CartLine, OrderStatus } from '@/lib/types'
 
 // Copia del inventario de experience (id, nombre y variantes que consume) para dibujar la página aunque el contrato
@@ -44,6 +48,7 @@ export const COMPONENTS = [
   { id: 'perfil', nombre: 'Perfil de la cuenta', variantes: [] },
   { id: 'saldo-puntos', nombre: 'Saldo de puntos', variantes: [] },
   { id: 'banner-recompensa', nombre: 'Banner de recompensa', variantes: [] },
+  { id: 'mapa', nombre: 'Mapa de domicilio', variantes: ['mapa'] },
 ] as const
 export type ComponentId = (typeof COMPONENTS)[number]['id']
 export type VariantField = keyof typeof COMPONENT_VARIANTS | keyof typeof SCREEN_LAYOUTS
@@ -52,12 +57,13 @@ export type VariantField = keyof typeof COMPONENT_VARIANTS | keyof typeof SCREEN
 export const DEMONSTRATED_BY: Record<VariantField, ComponentId> = {
   boton: 'boton', formaBoton: 'boton', tarjeta: 'plato', categorias: 'categorias', precio: 'precio', imagen: 'imagen',
   formaImagen: 'imagen', cabecera: 'cabecera', saludo: 'cabecera', insignia: 'insignia', carta: 'carta', ficha: 'ficha', carrito: 'carrito',
-  banners: 'banners', marcoImagen: 'imagen',
+  banners: 'banners', marcoImagen: 'imagen', mapa: 'mapa',
 }
 export const FIELD_LABELS: Record<VariantField, string> = {
   boton: 'Estilo del botón', formaBoton: 'Forma del botón', tarjeta: 'Tarjeta', categorias: 'Categorías', precio: 'Precio',
   imagen: 'Recorte de la foto', formaImagen: 'Forma de la foto', cabecera: 'Cabecera', saludo: 'Saludo', insignia: 'Insignias',
   carta: 'Carta', ficha: 'Ficha del plato', carrito: 'Carrito', banners: 'Colores de los banners', marcoImagen: 'Marco de las fotos',
+  mapa: 'Estilo del mapa',
 }
 export const FIELDS: Record<VariantField, { attribute: string; default: string; values: readonly string[] }> = { ...COMPONENT_VARIANTS, ...SCREEN_LAYOUTS }
 
@@ -116,6 +122,8 @@ const noop = () => undefined
 
 export const SAMPLES: Record<ComponentId, (context: SampleContext) => ReactNode> = {
   cabecera: ({ entry }) => <><SmartHeader entry={entry} current="carta" /><div className="sm-greeting"><h1>Elige el mejor plato para ti</h1></div></>,
+  // Plan D: el mapa de domicilio con el pin centrado y la dirección aproximada debajo.
+  mapa: () => <div className="sm-delivery"><MapSample /><p className="sm-map-address"><span>Calle 10 # 43-12, El Poblado, Medellín</span></p></div>,
   banners: ({ entry, dishes }) => <MenuBanners banners={sampleBanners(entry, dishes[0])} dishes={dishes} onCategory={noop} />,
   categorias: ({ entry }) => <CategoryNav categories={(entry.carta.categorias.length ? entry.carta.categorias : ['Entradas', 'Fuertes', 'Bebidas'].map((nombre, id) => ({ id, nombre }))).slice(0, 4)} selected={null} onSelect={noop} />,
   plato: ({ dishes }) => <div className="sm-food-rail">{dishes.slice(0, 2).map((dish) => <FoodCard key={dish.id} dish={showcase(dish)} />)}</div>,

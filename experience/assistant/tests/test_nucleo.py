@@ -208,6 +208,9 @@ def test_restriccion_conserva_duracion_entre_dias(entorno, monkeypatch):
     from zoneinfo import ZoneInfo
     local = entorno[1]
     now = datetime(2026, 10, 9, 23, 59, tzinfo=ZoneInfo(local.organization.timezone))
+    # El módulo se activa en la prueba con la hora real; se lleva atrás para que la hora simulada no quede antes.
+    from tenancy.models import OrganizationModule
+    OrganizationModule.objects.filter(organization=local.organization).update(starts=now - timedelta(days=1))
     clave, _ = identity('whatsapp', '573001234567', local.organization)
     AssistantStanding.objects.create(organization=local.organization, participant=clave, channel='whatsapp',
         day=now.date(), level='restricted', until=now+timedelta(minutes=30))

@@ -387,3 +387,23 @@ y recortes en `DESIGN_EVIDENCE` (`test-reports/j5`). Admite `DINER_URL`, `CDP_UR
 `contener`); `variantes.marcoImagen` añade `borde` o `sombra`. `forma.imagen` pasa a ser de solo lectura (`radio / 16`); un
 tema guardado con fotos en punta se lee con el radio del sistema. El verificador del comensal exige estas reglas a cada
 foto en el navegador. El MCP no acepta plantillas de componente con los fundamentos de fábrica: primero el sistema de diseño.
+
+## Mapa de domicilio (Plan D)
+
+El componente `mapa` (`.sm-map-wrap`) es el mapa donde el cliente ubica la entrega: MapLibre con datos de OpenStreetMap
+en formato Protomaps (`diner/public/mapas/*.pmtiles`, recorte por región), pin fijo en el centro y la dirección
+aproximada debajo. `variantes.mapa` (atributo `data-ds-mapa`) escoge el estilo:
+
+| Valor | Qué hace |
+|---|---|
+| `marca` (predeterminado) | Toma la plantilla: terreno de la superficie con un toque del fondo, calles y parques con un toque del acento, pin del acento. |
+| `claro` | Mapa claro y neutro; solo el pin lleva el acento. |
+| `oscuro` | Mapa oscuro con etiquetas claras. |
+| `gris` | Escala de grises; solo el pin lleva color. |
+
+Reglas, iguales en todos los estilos (`diner/lib/domain/mapTheme.ts`): las etiquetas de calles y barrios se leen con
+4.5:1 sobre terreno, halo, calles, parques y edificios; el pin se distingue con 3:1 de todo lo que puede quedar detrás;
+el mapa nunca muestra restaurantes, cafés ni bares (la competencia). Como el mapa es un lienzo WebGL, publica su paleta en
+`data-mapa-*` y el verificador del navegador (`mapCheck`) mide esos contrastes, exige que dibuje calles
+(`data-mapa-dibujado`), que el pin quede centrado y que se vea la dirección; la pantalla «domicilio» lo abre en teléfono y
+computador.

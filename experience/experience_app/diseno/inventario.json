@@ -548,6 +548,24 @@
         "fundamentos.colores.acento"
       ],
       "variantes": []
+    },
+    {
+      "id": "mapa",
+      "nombre": "Mapa de domicilio",
+      "selectores": [
+        ".sm-map-wrap",
+        ".sm-map-pin",
+        ".sm-map-address"
+      ],
+      "fundamentos": [
+        "fundamentos.colores.fondo",
+        "fundamentos.colores.superficie",
+        "fundamentos.colores.tinta",
+        "fundamentos.colores.acento"
+      ],
+      "variantes": [
+        "mapa"
+      ]
     }
   ],
   "pantallas": {
@@ -1011,6 +1029,33 @@
           "valor": "sombra",
           "descripcion": "Sombra suave bajo cada foto.",
           "selector": "[data-ds-marco-imagen=\"sombra\"]"
+        }
+      ]
+    },
+    "mapa": {
+      "ruta": "variantes.mapa",
+      "atributo": "data-ds-mapa",
+      "predeterminada": "marca",
+      "opciones": [
+        {
+          "valor": "marca",
+          "descripcion": "Toma los colores de la plantilla: fondo y superficie para el terreno, tinta para las calles y el acento para el pin y los parques.",
+          "selector": ".sm-map-wrap"
+        },
+        {
+          "valor": "claro",
+          "descripcion": "Mapa claro y neutro, con el pin del acento.",
+          "selector": "[data-ds-mapa=\"claro\"]"
+        },
+        {
+          "valor": "oscuro",
+          "descripcion": "Mapa oscuro para marcas de fondo oscuro, con etiquetas claras.",
+          "selector": "[data-ds-mapa=\"oscuro\"]"
+        },
+        {
+          "valor": "gris",
+          "descripcion": "Mapa en escala de grises; solo el pin lleva color.",
+          "selector": "[data-ds-mapa=\"gris\"]"
         }
       ]
     }

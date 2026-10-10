@@ -183,7 +183,10 @@ def google_suggest(query, near, session):
     if session:
         body['sessionToken'] = session
     if near:
-        body['locationBias'] = {'circle': {'center': {'latitude': float(near[0]), 'longitude': float(near[1])}, 'radius': 25000.0}}
+        # Restricción, no preferencia: un domicilio nunca sale de la zona de la sede (~25 km), y así no aparecen
+        # direcciones iguales de otras ciudades («Calle 10 # 43-12» de Duitama).
+        lat, lng = float(near[0]), float(near[1])
+        body['locationRestriction'] = {'rectangle': {'low': {'latitude': lat - .25, 'longitude': lng - .25}, 'high': {'latitude': lat + .25, 'longitude': lng + .25}}}
     results = []
     for row in _places('POST', 'places:autocomplete', body).get('suggestions', [])[:6]:
         prediction = row.get('placePrediction') or {}
@@ -200,7 +203,9 @@ def place(place_id, session=''):
     data = _places('GET', f'places/{place_id}', field_mask='location,formattedAddress', session=session)
     location = data.get('location') or {}
     lat, lng = coordinates(location.get('latitude'), location.get('longitude'))
-    return {'lat': float(lat), 'lng': float(lng), 'texto': (data.get('formattedAddress') or '').replace(', Colombia', ''), 'place_id': place_id}
+    # Google a veces repite barrio y ciudad («El Poblado, Medellín, El Poblado, Medellín»): cada parte una sola vez.
+    parts = [x.strip() for x in (data.get('formattedAddress') or '').split(',') if x.strip() and x.strip() != 'Colombia']
+    return {'lat': float(lat), 'lng': float(lng), 'texto': ', '.join(dict.fromkeys(parts)), 'place_id': place_id}
 
 
 def suggest(query, near=None, session=''):
@@ -209,8 +214,12 @@ def suggest(query, near=None, session=''):
     if not kind:
         raise Unavailable('Sin proveedor de mapas')
     if kind == 'google':
-        # Sin caché: los términos de Google no permiten guardar sus resultados.
-        return google_suggest(query, near, session)
+        # Sin caché: los términos de Google no permiten guardar sus resultados. Si Google falla (cuota, facturación,
+        # caída), el cliente no se queda sin sugerencias: siguen las de OpenStreetMap.
+        try:
+            return google_suggest(query, near, session)
+        except Unavailable:
+            kind = 'photon'
     around = f'{float(near[0]):.2f},{float(near[1]):.2f}' if near else ''
     key = f'geocoding:sugerir:{kind}:' + hashlib.sha256(f'{around}|{query.strip().lower()}'.encode()).hexdigest()
     cached = cache.get(key)
