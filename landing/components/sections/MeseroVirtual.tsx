@@ -4,7 +4,7 @@
 import type { LandingVals } from '../vals'
 
 // 07 Mesero virtual
-export function MeseroVirtual({ v }: { v: LandingVals }) {
+export function MeseroVirtual({ v }: { v: Pick<LandingVals, 'toneName' | 'tones'> }) {
   return (
     <section id="mesero" data-waiter="" data-screen-label="07 Mesero virtual" style={{ padding: 'clamp(80px,10vw,128px) 0', borderTop: '1px solid #E2E8F0', overflow: 'hidden', backgroundColor: '#FFFBEB', backgroundImage: 'url(/img/grano.png)', backgroundSize: '256px 256px' }}>
       {' '}

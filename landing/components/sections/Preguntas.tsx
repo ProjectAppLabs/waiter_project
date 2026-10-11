@@ -4,7 +4,7 @@
 import type { LandingVals } from '../vals'
 
 // 12 Preguntas
-export function Preguntas({ v }: { v: LandingVals }) {
+export function Preguntas({ v }: { v: Pick<LandingVals, 'faqs'> }) {
   return (
     <section id="preguntas" data-screen-label="12 Preguntas" style={{ padding: 'clamp(80px,10vw,128px) 0', background: '#FFFFFF', borderTop: '1px solid #E2E8F0' }}>
       {' '}

@@ -13,7 +13,8 @@
     "start": "NODE_OPTIONS=--no-deprecation next start --port 3002",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "generar": "python3 scripts/dc2jsx.py \"design/Landing Waiter.dc.html\" components/sections app/hover.css"
+    "generar": "python3 scripts/dc2jsx.py \"design/Landing Waiter.dc.html\" components/sections app/hover.css",
+    "generar:legal": "python3 scripts/legal2jsx.py design/legal components/legal"
   },
   "dependencies": {
     "gsap": "3.13.0",

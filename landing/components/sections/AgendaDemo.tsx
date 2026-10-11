@@ -4,7 +4,7 @@
 import type { LandingVals } from '../vals'
 
 // 11 Agenda tu demo
-export function AgendaDemo({ v }: { v: LandingVals }) {
+export function AgendaDemo({ v }: { v: Pick<LandingVals, 'arrowDisplay' | 'formDone' | 'formError' | 'formName' | 'formOpen' | 'hasError' | 'onSubmit' | 'sedes' | 'submitLabel' | 'submitOpacity' | 'waHref'> }) {
   return (
     <section id="demo" data-screen-label="11 Agenda tu demo" style={{ padding: 'clamp(80px,10vw,128px) 0', borderTop: '1px solid #E2E8F0', backgroundColor: '#FFFBEB', backgroundImage: 'url(/img/grano.png)', backgroundSize: '256px 256px' }}>
       {' '}
@@ -124,7 +124,7 @@ export function AgendaDemo({ v }: { v: LandingVals }) {
                   {' '}
                   <span>
                     Acepto el tratamiento de mis datos según la{' '}
-                    <a href="#">política de privacidad</a>
+                    <a target="_blank" rel="noopener noreferrer" href="/privacy">política de privacidad</a>
                     {' '}de Waiter.
                   </span>
                   {' '}

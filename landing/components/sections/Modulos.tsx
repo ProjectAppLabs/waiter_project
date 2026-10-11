@@ -3,7 +3,7 @@
 import type { LandingVals } from '../vals'
 
 // 05 Módulos
-export function Modulos({ v }: { v: LandingVals }) {
+export function Modulos({ v }: { v: Pick<LandingVals, 'mods' | 'tabs'> }) {
   return (
     <section id="modulos" data-screen-label="05 Módulos" style={{ padding: 'clamp(80px,10vw,128px) 0', borderTop: '1px solid #E2E8F0', backgroundImage: 'url(/img/grano.png)', backgroundSize: '256px 256px' }}>
       {' '}

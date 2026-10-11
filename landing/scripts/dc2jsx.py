@@ -101,6 +101,21 @@ BOOL = {'noValidate'}
 DROP = {'hint-placeholder-count', 'hint-placeholder-val'}
 
 
+# Enlaces que el diseño dejó en «#» y ya tienen página en la landing: texto del enlace → (ruta, abrir aparte).
+ENLACES = {
+    'política de privacidad': ('/privacy', True),
+    'Política de privacidad': ('/privacy', False),
+    'Condiciones del servicio': ('/terms', False),
+    'Eliminación de datos': ('/data-deletion', False),
+}
+# Bloques que ya no salen del diseño: la navegación es propia (components/Nav.tsx, en pill como la de ProjectApp).
+PROPIOS = {'Nav'}
+
+
+def node_text(node):
+    return ''.join(c['text'] if 'text' in c else node_text(c) for c in node.get('children', [])).strip()
+
+
 def hover_class(pseudo, css):
     key = (pseudo, css)
     if key not in HOVER:
@@ -131,6 +146,11 @@ def attrs_jsx(node):
             continue
         if name in ('src', 'href') and value.startswith('img/'):
             value = '/' + value
+        if name == 'href' and value == '#' and node_text(node) in ENLACES:
+            value, nueva = ENLACES[node_text(node)]
+            if nueva:  # el del formulario abre aparte para no perder lo escrito
+                out.append('target="_blank"')
+                out.append('rel="noopener noreferrer"')
         if '{{' in value:
             out.append(f'{key}={{{interp_string(value)}}}')
         else:
@@ -212,8 +232,11 @@ for node in sections:
                 '12 Preguntas': 'Preguntas', '13 CTA final': 'CtaFinal', '14 Pie': 'Pie'}[label]
     NAMES.append(name)
     jsx = render(node, 2)
-    uses_v = re.search(r'(?<![\w.])v\.[A-Za-z]', jsx) is not None
-    sig = '{ v }: { v: LandingVals }' if uses_v else ''
+    claves = sorted(set(re.findall(r'(?<![\w.])v\.([A-Za-z0-9]+)', jsx)))
+    uses_v = bool(claves)
+    sig = '{ v }: { v: Pick<LandingVals, ' + ' | '.join(f"'{k}'" for k in claves) + '> }' if uses_v else ''
+    if name in PROPIOS:  # se convierte igual (mantiene la numeración de las clases de hover), pero no se escribe
+        continue
     comment = f'// {label}' if label else ('// 00 Navegación' if name == 'Nav' else '// Botón flotante de WhatsApp')
     src = (("/* eslint-disable @next/next/no-img-element */\n" if '<img' in jsx else '')
            + "// Generado desde «Landing Waiter.dc.html» (Claude Design) con scripts/dc2jsx.py: no editar a mano los estilos,\n"

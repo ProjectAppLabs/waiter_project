@@ -1,13 +1,15 @@
 'use client'
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Lógica de «Landing Waiter.dc.html» (Claude Design) portada tal cual: misma clase, mismos tiempos y mismas animaciones.
-// Lo único distinto: GSAP llega por npm y no por window, las rutas de imagen empiezan en /img/ y, como el servidor
-// pinta con el ancho de escritorio, al montar se ajusta al ancho real antes de animar (el diseño lo mide al crearse).
+// Lo único distinto: GSAP llega por npm y no por window, las rutas de imagen empiezan en /img/, como el servidor
+// pinta con el ancho de escritorio, al montar se ajusta al ancho real antes de animar (el diseño lo mide al crearse), y
+// la navegación es la propia en pill (components/Nav.tsx), que no cambia al bajar como la del diseño.
 import { Component, createRef, type FormEvent } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import type { LandingVals } from './vals'
-import { Nav } from './sections/Nav'
+import { enlaceWhatsApp } from '@/lib/whatsapp'
+import { Nav } from './Nav'
 import { Hero } from './sections/Hero'
 import { FuncionaEn } from './sections/FuncionaEn'
 import { Dolores } from './sections/Dolores'
@@ -37,7 +39,6 @@ export interface WaiterLandingProps {
 interface State {
   vw: 'xl' | 'md' | 'sm'
   narrow: boolean
-  navNarrow: boolean
   tab: number
   tone: string
   step: number
@@ -52,7 +53,7 @@ interface State {
 export default class WaiterLanding extends Component<WaiterLandingProps, State> {
   rootRef = createRef<HTMLDivElement>()
   timers: ReturnType<typeof setTimeout>[] = []
-  state: State = { vw: 'xl', narrow: false, navNarrow: false, tab: 0, tone: 'neutro', step: 0, sedes: '1', form: 'idle', formError: '', formName: '', brand: 0, ready: false }
+  state: State = { vw: 'xl', narrow: false, tab: 0, tone: 'neutro', step: 0, sedes: '1', form: 'idle', formError: '', formName: '', brand: 0, ready: false }
 
   started = false
   ctx: gsap.Context | null = null
@@ -67,7 +68,6 @@ export default class WaiterLanding extends Component<WaiterLandingProps, State> 
   setupHidden = false
   _prev: any
   onResize: any
-  onNav: any
   onVis: any
   onMapResize: any
 
@@ -128,22 +128,14 @@ export default class WaiterLanding extends Component<WaiterLandingProps, State> 
   componentDidMount() {
     // El diseño calcula estos tres valores al crearse; aquí el servidor ya pintó con escritorio, así que se ajustan antes
     // de arrancar las animaciones (la raíz sigue oculta hasta entonces, como en el diseño, que no pinta antes del JS).
-    const w = window.innerWidth, narrow = w < 900, navNarrow = w < 1080, vw = w >= 1100 ? 'xl' : w >= 640 ? 'md' : 'sm'
-    if (narrow !== this.state.narrow || navNarrow !== this.state.navNarrow || vw !== this.state.vw) this.setState({ narrow, navNarrow, vw }, () => this.start())
+    const w = window.innerWidth, narrow = w < 900, vw = w >= 1100 ? 'xl' : w >= 640 ? 'md' : 'sm'
+    if (narrow !== this.state.narrow || vw !== this.state.vw) this.setState({ narrow, vw }, () => this.start())
     else this.start()
   }
 
   start() {
     this.started = true
-    this.onResize = () => { const w = window.innerWidth, n = w < 900, nn = w < 1080, vw = w >= 1100 ? 'xl' : w >= 640 ? 'md' : 'sm'; if (n !== this.state.narrow || nn !== this.state.navNarrow || vw !== this.state.vw) this.setState({ narrow: n, navNarrow: nn, vw }); }
-    this.onNav = () => {
-      const nav = this.rootRef.current && this.rootRef.current.querySelector('[data-nav]') as HTMLElement | null
-      if (!nav) return
-      const c = window.scrollY > 24
-      nav.style.height = c ? '64px' : '92px'
-      nav.style.backgroundColor = c ? 'rgba(255,255,255,.88)' : 'transparent'
-      nav.style.borderBottomColor = c ? '#E2E8F0' : 'transparent'
-    }
+    this.onResize = () => { const w = window.innerWidth, n = w < 900, vw = w >= 1100 ? 'xl' : w >= 640 ? 'md' : 'sm'; if (n !== this.state.narrow || vw !== this.state.vw) this.setState({ narrow: n, vw }); }
     this.snapPrev()
     this.onVis = () => {
       if (document.hidden) return
@@ -152,8 +144,6 @@ export default class WaiterLanding extends Component<WaiterLandingProps, State> 
     }
     document.addEventListener('visibilitychange', this.onVis)
     window.addEventListener('resize', this.onResize)
-    window.addEventListener('scroll', this.onNav, { passive: true })
-    this.onNav()
     if (!document.hidden) this.setup()
     this.setState({ ready: true })
   }
@@ -171,7 +161,6 @@ export default class WaiterLanding extends Component<WaiterLandingProps, State> 
 
   componentWillUnmount() {
     window.removeEventListener('resize', this.onResize)
-    window.removeEventListener('scroll', this.onNav)
     document.removeEventListener('visibilitychange', this.onVis)
     if (this.onMapResize) window.removeEventListener('resize', this.onMapResize)
     this.teardown()
@@ -498,8 +487,7 @@ export default class WaiterLanding extends Component<WaiterLandingProps, State> 
 
   renderVals(): LandingVals {
     const s = this.state, narrow = s.narrow
-    const digits = String(this.props.whatsapp || '573238122373').replace(/\D/g, '')
-    const waHref = digits ? 'https://wa.me/' + (digits.length === 10 ? '57' + digits : digits) + '?text=' + encodeURIComponent('Hola, quiero agendar una demo de Waiter.') : '#demo'
+    const waHref = enlaceWhatsApp(this.props.whatsapp)
     const showSoon = this.props.mostrarProximamente ?? true
     const groups = this.MODS.map(g => ({ ...g, items: g.items.filter(i => showSoon || !i.soon) })).filter(g => g.items.length)
     const tab = Math.min(s.tab, groups.length - 1)
@@ -516,7 +504,6 @@ export default class WaiterLanding extends Component<WaiterLandingProps, State> 
       painCols: vw === 'xl' ? 'repeat(4,minmax(0,1fr))' : vw === 'md' ? 'repeat(2,minmax(0,1fr))' : 'minmax(0,1fr)',
       arrowDisplay: narrow ? 'none' : 'block',
       waHref,
-      navLinksDisplay: s.navNarrow ? 'none' : 'flex',
       tabs: groups.map((g, i) => ({ label: g.tab, ...seg(i === tab), onClick: () => this.setState({ tab: i }) })),
       mods: groups[tab].items.map(m => ({ ...m, basis: modBasis, mask: 'url(' + m.icon + ')', soonDisplay: m.soon ? 'inline-flex' : 'none', onEnter: e => this.iconAnim(e.currentTarget, m.anim) })),
       steps: this.STEPS.map((st, i) => ({ ...st, n: '0' + (i + 1), opacity: i === s.step ? 1 : .62, display: (!narrow || i === s.step) ? 'grid' : 'none', bar: i === s.step ? '#2F66E6' : '#E2E8F0', textDisplay: i === s.step ? 'block' : 'none', onClick: () => this.scrollToStep(i) })),
@@ -542,7 +529,7 @@ export default class WaiterLanding extends Component<WaiterLandingProps, State> 
     const v = this.renderVals()
     return (
       <div ref={v.rootRef} style={{ position: 'relative', overflowX: 'clip', visibility: this.state.ready ? undefined : 'hidden' }}>
-        <Nav v={v} />{' '}
+        <Nav waHref={v.waHref} inicio />{' '}
         <Hero v={v} />{' '}
         <FuncionaEn />{' '}
         <Dolores v={v} />{' '}

@@ -4,7 +4,7 @@
 import type { LandingVals } from '../vals'
 
 // 06 Domicilios
-export function Domicilios({ v }: { v: LandingVals }) {
+export function Domicilios({ v }: { v: Pick<LandingVals, 'accent' | 'accentSoft' | 'boxTint' | 'brandName' | 'brands'> }) {
   return (
     <section id="domicilios" data-screen-label="06 Domicilios" style={{ padding: 'clamp(80px,10vw,128px) 0', background: '#FFFFFF', borderTop: '1px solid #E2E8F0' }}>
       {' '}

@@ -4,7 +4,7 @@
 import type { LandingVals } from '../vals'
 
 // 09 Precios
-export function Precios({ v }: { v: LandingVals }) {
+export function Precios({ v }: { v: Pick<LandingVals, 'waHref'> }) {
   return (
     <section id="precios" data-screen-label="09 Precios" style={{ padding: 'clamp(80px,10vw,128px) 0', backgroundImage: 'url(/img/grano.png)', backgroundSize: '256px 256px' }}>
       {' '}

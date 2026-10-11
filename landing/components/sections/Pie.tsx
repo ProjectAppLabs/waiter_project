@@ -4,7 +4,7 @@
 import type { LandingVals } from '../vals'
 
 // 14 Pie
-export function Pie({ v }: { v: LandingVals }) {
+export function Pie({ v }: { v: Pick<LandingVals, 'waHref'> }) {
   return (
     <footer data-screen-label="14 Pie" style={{ position: 'relative', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', backgroundImage: 'url(/img/grano.png)', backgroundSize: '256px 256px' }}>
       {' '}
@@ -64,9 +64,9 @@ export function Pie({ v }: { v: LandingVals }) {
           <span>© 2026 ProjectApp.</span>
           {' '}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 20px' }}>
-            <a href="#" style={{ color: '#475569' }}>Política de privacidad</a>
-            <a href="#" style={{ color: '#475569' }}>Condiciones del servicio</a>
-            <a href="#" style={{ color: '#475569' }}>Eliminación de datos</a>
+            <a href="/privacy" style={{ color: '#475569' }}>Política de privacidad</a>
+            <a href="/terms" style={{ color: '#475569' }}>Condiciones del servicio</a>
+            <a href="/data-deletion" style={{ color: '#475569' }}>Eliminación de datos</a>
           </div>
           {' '}
         </div>

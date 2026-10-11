@@ -4,7 +4,7 @@
 import type { LandingVals } from '../vals'
 
 // 01 Hero
-export function Hero({ v }: { v: LandingVals }) {
+export function Hero({ v }: { v: Pick<LandingVals, 'waHref'> }) {
   return (
     <section id="producto" data-screen-label="01 Hero" style={{ position: 'relative', padding: '148px 0 88px', overflow: 'hidden', backgroundColor: '#FFFBEB', backgroundImage: 'url(/img/grano.png)', backgroundSize: '256px 256px' }}>
       {' '}

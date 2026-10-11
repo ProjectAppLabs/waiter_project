@@ -4,7 +4,7 @@
 import type { LandingVals } from '../vals'
 
 // 03b Tu equipo
-export function TuEquipo({ v }: { v: LandingVals }) {
+export function TuEquipo({ v }: { v: Pick<LandingVals, 'teamCols' | 'teamEnter' | 'teamLeave'> }) {
   return (
     <section id="equipo" data-screen-label="03b Tu equipo" style={{ padding: 'clamp(80px,10vw,128px) 0', borderTop: '1px solid #E2E8F0', backgroundColor: '#F8FAFC', backgroundImage: 'url(/img/grano.png)', backgroundSize: '256px 256px' }}>
       {' '}

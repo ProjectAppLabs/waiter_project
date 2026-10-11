@@ -4,7 +4,7 @@
 import type { LandingVals } from '../vals'
 
 // 04 Así funciona
-export function AsiFunciona({ v }: { v: LandingVals }) {
+export function AsiFunciona({ v }: { v: Pick<LandingVals, 'howCols' | 'howGap' | 'howH2' | 'howPad' | 'howRows' | 'stageH' | 'steps'> }) {
   return (
     <section id="como-funciona" data-how="" data-screen-label="04 Así funciona" style={{ position: 'relative', height: '420vh', background: '#FFFFFF', borderTop: '1px solid #E2E8F0' }}>
       {' '}
