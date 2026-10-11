@@ -89,6 +89,15 @@ def isolated(context, settings):
         approved_by=s['person'], state='vigente', since=timezone.now(), until=timezone.now() + timedelta(hours=1))
     SupportToken.objects.create(grant=support, agent=support.requested_by, token_hash=digest('token-de-otra-organizacion'),
         expires=timezone.now() + timedelta(minutes=2))
+    from whatsapp.models import WhatsAppAccount, WhatsAppConversation, WhatsAppMessage
+    from tenancy.models import OrganizationModule
+    OrganizationModule.objects.create(organization=org_a, key='asistente_whatsapp', active=True, starts=timezone.now())
+    wa_account = WhatsAppAccount.objects.create(organization=org_b, phone_number_id='999', waba_id='888', name=SECRET)
+    wa_conversation = WhatsAppConversation.objects.create(account=wa_account, wa_id='573004771554', profile_name=SECRET)
+    WhatsAppMessage.objects.create(conversation=wa_conversation, direction='in', type='text', text=SECRET, status='received')
+    from assistant.models import AssistantStanding
+    s['assistant_participant'] = AssistantStanding.objects.create(organization=org_b, participant='huella-b', channel='menu', reason=SECRET)
+    s['whatsapp'] = wa_conversation
     s['support'] = support
     s.update(org_a=org_a, actor=actor, venue_a=venue_a, actor_client=client, course=course, photo=photo, banner=banner,
         purchase=purchase, resolution=resolution, document=document, subscription=charge, order_obj=order)
@@ -100,9 +109,9 @@ def scenario(s, method, route):
     rid, oid = s['r1'].pk, s['order']['id']
     body, query = {}, {}
     target = '<' in route
-    ids = {'restaurant_id': rid, 'image_id': 'imagen-b', 'code': s['card'].code, 'token': s['reservation'].pay_token, 'kind': 'ventas'}
+    ids = {'product_id': s['dish'].pk, 'participant_id': s['assistant_participant'].pk, 'restaurant_id': rid, 'image_id': 'imagen-b', 'code': s['card'].code, 'token': s['reservation'].pay_token, 'kind': 'ventas'}
     resources = {
-        'products': s['dish'].pk, 'categories': s['category'].pk, 'inventory': s['ingredient'].pk,
+        'whatsapp': s['whatsapp'].pk, 'products': s['dish'].pk, 'categories': s['category'].pk, 'inventory': s['ingredient'].pk,
         'photos': s['dish'].pk, 'floors': s['r1'].floors.get().pk, 'tables': s['table'].pk,
         'shifts': s['order_obj'].shift_id, 'orders': oid, 'payment-methods': cash_method(s).pk,
         'courses': s['course'].pk, 'customers': s['customer'].pk, 'reservations': s['reservation'].pk,
@@ -122,6 +131,10 @@ def scenario(s, method, route):
             ids['pk'] = s['dish'].pk
         else:
             ids['pk'] = resources[route.split('/')[0]]
+    if route == 'assistant/tags/propose':
+        target, body = True, {'product_ids': [s['dish'].pk]}
+    if route == 'assistant/tags/<int:product_id>':
+        body = {'tags': ['picante']}
     path = re.sub(r'<[^:>]+:([^>]+)>', lambda m: str(ids[m[1]]), route)
     scoped_get = {'catalog', 'inventory', 'inventory/requests', 'floors', 'tables/calls', 'shifts', 'shifts/open',
         'orders', 'payment-methods', 'settings', 'sales/summary', 'sales/orders', 'sales/insights', 'kitchen/tickets',
@@ -157,6 +170,7 @@ def scenario(s, method, route):
     if route == 'brand/logo':
         target = True
     specific = {
+        'whatsapp/conversations/<int:pk>/reply': {'text': 'Respuesta de prueba'},
         'inventory/requests/<int:pk>/mark': {'state': 'sent'},
         'orders/<int:pk>/lines': {'line_ids': [s['order']['lines'][0]['id']]},
         'orders/<int:pk>/tip': {'amount': 10},
@@ -180,7 +194,7 @@ def scenario(s, method, route):
     if method == 'post' and route == 'payment-methods':
         target, body = True, {'name': 'Banco A', 'type': 'bank', 'restaurant_ids': [rid]}
     # Rutas sin selección de un recurso: los datos y las escrituras pertenecen siempre a la sesión A.
-    implicit = {'audit/actions', 'support', 'recharges', 'consumption', 'subscription', 'org', 'restaurants', 'team', 'notifications', 'notifications/read_all',
+    implicit = {'delivery/settings', 'assistant', 'assistant/status', 'assistant/settings', 'assistant/tags', 'assistant/participants', 'whatsapp', 'whatsapp/connect', 'whatsapp/disconnect', 'whatsapp/test', 'audit/actions', 'support', 'recharges', 'consumption', 'subscription', 'org', 'restaurants', 'team', 'notifications', 'notifications/read_all',
         'products', 'categories', 'taxes', 'taxes/regime', 'units', 'suppliers', 'catalog/overview', 'catalog/restaurants',
         'payment-methods', 'settings/cash', 'settings/roles', 'customers', 'customers/id-types', 'loyalty/program',
         'benefits', 'banners', 'me/notify-prefs', 'reports/summary', 'company', 'brand', 'brand/logo',
@@ -189,7 +203,7 @@ def scenario(s, method, route):
         assert route in implicit or route.startswith('auth/'), f'Falta un escenario para {method} {route}'
         if method in ('post', 'put', 'patch'):
             bodies = {
-                'support': {'reason': 'Ayuda autorizada'},
+                'support': {'reason': 'Ayuda autorizada'}, 'assistant/settings': {'tone': 'paisa'},
                 'auth/support': {'token': 'token-de-otra-organizacion'},
                 'recharges': {'pack': 'pedidos_100'},
                 'products': {'name': 'Plato A', 'kind': 'dish', 'price': 10, 'category_ids': [], 'tax_ids': []},
@@ -214,11 +228,12 @@ def scenario(s, method, route):
 
 # Falla si una ruta registrada lee o modifica recursos de B con la sesión de A, o una ruta nueva queda sin escenario.
 @pytest.mark.parametrize('method,route', ROUTES, ids=[f'{m} {r}' for m, r in ROUTES])
+# Falla si una ruta del POS permite leer o escribir datos de otra organización.
 def test_all_registered_pos_routes(isolated, method, route):
     s = isolated
     path, query, body, target = scenario(s, method, route)
     tracked = [s[k] for k in ('org', 'r1', 'person', 'dish', 'ingredient', 'customer', 'card', 'reservation',
-                              'notification', 'document', 'resolution', 'subscription', 'order_obj', 'purchase', 'banner', 'support')]
+                              'notification', 'document', 'resolution', 'subscription', 'order_obj', 'purchase', 'banner', 'support', 'whatsapp', 'assistant_participant')]
     before = [model_to_dict(obj) for obj in tracked]
     from urllib.parse import urlencode
     url = BASE + path + ('?' + urlencode(query) if query else '')

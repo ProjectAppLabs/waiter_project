@@ -388,6 +388,17 @@
           ],
           "default": "ninguno",
           "description": "Tratamiento de las fotos: sin marco, con borde de 2 px color tinta o con sombra suave."
+        },
+        "mapa": {
+          "type": "string",
+          "enum": [
+            "marca",
+            "claro",
+            "oscuro",
+            "gris"
+          ],
+          "default": "marca",
+          "description": "marca: Toma los colores de la plantilla: fondo y superficie para el terreno, tinta para las calles y el acento para el pin y los parques. claro: Mapa claro y neutro, con el pin del acento. oscuro: Mapa oscuro para marcas de fondo oscuro, con etiquetas claras. gris: Mapa en escala de grises; solo el pin lleva color. Atributo data-ds-mapa. El mapa nunca muestra otros restaurantes y sus etiquetas cumplen 4.5:1."
         }
       }
     },

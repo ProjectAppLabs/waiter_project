@@ -8,6 +8,7 @@ import { OrderLocationRow } from '@/components/orders/OrderLocationRow'
 import type { OrderLocation } from '@/lib/domain/orderLocation'
 import { Modal } from '@/components/kit/Modal'
 import { CustomerRow, OrderHeadline, StatusBar } from '@/components/orders/OrderCard'
+import { DeliveryPanel } from '@/components/orders/DeliveryPanel'
 import { formatCop } from '@/lib/domain/money'
 import { canCharge, lineGroup, type KitLine, type KitOrder, type KitStatus, type LineGroup } from '@/lib/domain/orderState'
 import { fromOrder } from '@/lib/domain/comanda'
@@ -73,6 +74,7 @@ export function OrderDetailModal({ order, location, status, percent, onClose, im
             {order.phone && <span className="tabular">{order.phone}</span>}
           </div>
         )}
+        <DeliveryPanel order={order} />
         <StatusBar order={order} status={status} percent={percent} />
       </div>
       <div className="p-4 flex flex-col gap-3">

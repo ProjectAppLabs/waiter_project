@@ -29,6 +29,9 @@ def simulated(request, session_id):
         return Response({'detail': f"Método de pago inválido; usa {', '.join(METHODS)}"}, status=400)
     if settings.IS_PRODUCTION or not settings.DINER_DEMO_ENABLED:
         return Response({'detail': 'El pago demo no está disponible'}, status=503)
+    from delivery.models import SessionDelivery
+    if SessionDelivery.objects.filter(session=session, payment__in=('cash', 'card_on_delivery')).exists():
+        return Response({'error': 'payment_on_delivery', 'message': 'Este domicilio se paga contra entrega.'}, status=409)
     from experience_app.adapters.core import pos
     from experience_app.adapters.core.pos import Client
     from experience_app.adapters.core.pos import resolve

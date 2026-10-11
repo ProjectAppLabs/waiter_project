@@ -51,6 +51,8 @@ class CatalogData:
             return {}
         result = defaultdict(Decimal)
         product = self.products[pk]
+        if product.kind == 'service':
+            return {}
         if product.diner_attributes.get('combo'):
             for item in product.diner_attributes['combo']:
                 for ingredient, qty in self.requirements(item['producto'], path | {pk}).items():

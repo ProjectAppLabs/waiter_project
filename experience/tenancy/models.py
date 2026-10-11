@@ -68,6 +68,8 @@ class Organization(models.Model):
     greeting = models.CharField(max_length=60, blank=True, default='')
     waiter_name = models.CharField(max_length=40, blank=True, default='')
     welcome = models.CharField(max_length=140, blank=True, default='')
+    # Plan AS: cómo habla el mesero virtual (assistant/tones.py); el dueño lo escoge en la consola.
+    assistant_tone = models.CharField(max_length=20, default='neutro')
     suspension_by_billing = models.BooleanField(default=False)
     suspended_at = models.DateTimeField(null=True, blank=True)
     suspended_reason = models.TextField(blank=True, default='')
@@ -355,3 +357,15 @@ class SupportToken(models.Model):
     agent = models.ForeignKey(PlatformUser, on_delete=models.CASCADE)
     token_hash = ExactCharField(max_length=64, unique=True)
     expires = models.DateTimeField()
+
+
+class OpeningHours(models.Model):
+    """Horario de atención de una sede (semanal y fechas especiales), en la zona horaria de la organización.
+
+    Mismo formato que el horario de reservas: `weekly` {"0".."6": [[desde, hasta], …]} en horas con medias horas y
+    `overrides` [{date, ranges, note}]. Sin fila, la sede no tiene horario y se trata como siempre abierta.
+    """
+    restaurant = models.OneToOneField(Restaurant, on_delete=models.CASCADE, related_name='opening_hours')
+    weekly = models.JSONField(default=dict)
+    overrides = models.JSONField(default=list)
+    updated_at = models.DateTimeField(auto_now=True)

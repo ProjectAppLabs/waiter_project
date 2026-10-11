@@ -40,7 +40,18 @@ export const toKitOrder = (o: CoreOrder): KitOrder => ({
   channel: o.channel === 'whatsapp' ? 'whatsapp' : null, phone: o.delivery_phone, id: o.id, number: o.number, type: o.service, state: state(o),
   tableId: o.table_id, tableNumber: o.table_number, customer: o.customer_name, startedAt: o.created_at, total: o.total, tax: o.tax,
   lines: live(o).map(toKitLine), courses: o.courses.map(toKitCourse), waiter: o.waiter?.name ?? '', tracking: String(o.tracking), refunded: o.refunded ?? 0,
+  paid: o.paid, delivery: toDelivery(o),
 })
+// Plan D: los datos de entrega solo existen en los domicilios.
+// El servidor guarda la dirección con las indicaciones pegadas («Calle 9 · Apto 301»); aquí van separadas.
+const coord = (v: unknown) => (v === null || v === undefined || v === '' ? null : Number(v))
+export const toDelivery = (o: CoreOrder): KitOrder['delivery'] => {
+  if (o.service !== 'delivery') return null
+  const details = o.delivery_details ?? '', full = o.delivery_address ?? ''
+  const address = details && full.endsWith(` · ${details}`) ? full.slice(0, -` · ${details}`.length) : full
+  return { address, details, phone: o.delivery_phone ?? '', lat: coord(o.delivery_lat), lng: coord(o.delivery_lng), fee: Number(o.delivery_fee ?? 0),
+    payment: o.delivery_payment ?? '', distanceKm: coord(o.delivery_distance_km) }
+}
 export const toSavedOrder = (o: CoreOrder): SavedOrder => ({ id: o.id, reference: o.number, state: o.state === 'paid' ? 'paid' : 'draft', total: o.total, tax: o.tax, paid: o.paid })
 export const toCreatedOrder = (o: CoreOrder): CreatedOrder => ({ id: o.id, reference: o.number, trackingNumber: String(o.tracking), total: o.total, tax: o.tax })
 export const toCourseSummaries = (o: CoreOrder): CourseSummary[] => o.courses.map((c) => ({ orderId: o.id, firedAt: c.fired_at, readyAt: c.ready_at, servedAt: c.served_at }))

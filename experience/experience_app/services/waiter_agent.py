@@ -1,9 +1,10 @@
-"""Bounded, stateless planner. No POS writes or outbound customer messages."""
+"""Planificador acotado sin estado: no escribe al POS ni envía mensajes al cliente."""
 import json
 from copy import deepcopy
 from pathlib import Path
 
 import requests
+from assistant.voice import model_options
 from django.conf import settings
 
 PROMPT = (Path(__file__).resolve().parents[1] / 'prompts' / 'waiter_v1.txt').read_text()
@@ -32,7 +33,7 @@ SCHEMA = {
 
 
 class AgentUnavailable(Exception):
-    """Safe error: never include upstream bodies, headers or customer text."""
+    """Error seguro: no incluye cuerpos del proveedor, cabeceras ni texto del cliente."""
 
 
 def validate_plan(plan, products):
@@ -83,12 +84,12 @@ class ModelPlan(dict):
 
 
 def propose(message, products, *, history=None):
-    """Products must come from the server's tenant-scoped catalog, never the customer."""
+    """Los productos provienen del catálogo de la organización, nunca del cliente."""
     if not settings.OPENAI_API_KEY or not settings.WA_AGENT_MODEL:
         raise AgentUnavailable('Configura OPENAI_API_KEY y WA_AGENT_MODEL en el servidor.')
     if not isinstance(message, str) or not message.strip() or len(message) > 4000:
         raise ValueError('El mensaje debe tener entre 1 y 4000 caracteres.')
-    # Allowlist fields: do not forward tenant credentials, customer identity or arbitrary metadata.
+    # Solo campos permitidos: sin credenciales, identidad del cliente ni metadatos arbitrarios.
     catalog = [{k: p[k] for k in ('id', 'nombre', 'agotado', 'descripcion', 'ingredientes', 'precio', 'categorias') if k in p}
                for p in products]
     context = json.dumps({'mensaje': message, 'catalogo': catalog, 'historial': (history or [])[-12:]}, ensure_ascii=False)
@@ -96,7 +97,7 @@ def propose(message, products, *, history=None):
         raise ValueError('Catálogo demasiado grande: requiere selección previa.')
     schema = deepcopy(SCHEMA)
     if history and history[-1].get('opciones'):
-        # One filtering question, then concrete alternatives; avoid trapping the user in a questionnaire.
+        # Una pregunta de filtro, luego alternativas concretas para evitar bucles de preguntas.
         schema['properties']['accion']['enum'].remove('preguntar')
         schema['properties']['pregunta']['enum'] = ['ninguna']
         schema['properties']['opciones']['maxItems'] = 0
@@ -104,7 +105,7 @@ def propose(message, products, *, history=None):
         response = requests.post(
             'https://api.openai.com/v1/responses',
             headers={'Authorization': f'Bearer {settings.OPENAI_API_KEY}'},
-            json={'model': settings.WA_AGENT_MODEL, 'store': False, 'max_output_tokens': 1600, 'reasoning': {'effort': 'none'},
+            json={'model': settings.WA_AGENT_MODEL, 'store': False, 'max_output_tokens': 1600, **model_options(),
                   'input': [{'role': 'developer', 'content': PROMPT},
                             {'role': 'user', 'content': context}],
                   'text': {'format': {'type': 'json_schema', 'name': 'waiter_plan',
@@ -125,6 +126,7 @@ def propose(message, products, *, history=None):
             raise ValueError('Respuesta rechazada o inválida.')
         plan = ModelPlan(validate_plan(json.loads(content[0]['text']), catalog))
         plan.usage = payload.get('usage') or {}
+        plan.versions = {'model': settings.WA_AGENT_MODEL, 'prompt': 'waiter_v1'}
         return plan
     except (requests.RequestException, ValueError, TypeError, KeyError, AttributeError):
         raise AgentUnavailable('No se pudo obtener una propuesta válida. Requiere atención humana.') from None

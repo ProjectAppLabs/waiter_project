@@ -15,6 +15,13 @@ class PaymentGateway(models.Model):
     secrets_cipher = models.TextField(blank=True)
     payment_method_id = models.PositiveIntegerField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
+    # Conexión verificada: el comercio que Wompi dice que es la llave pública y el estado de cada comprobación
+    # (comercio, llave_privada, integridad, eventos: ok, fallo o pendiente). `verify_reference`: el pago de verificación
+    # cuyo aviso de Wompi confirma el secreto de eventos.
+    merchant_name = models.CharField(max_length=200, blank=True)
+    checks = models.JSONField(default=dict)
+    verify_reference = models.CharField(max_length=80, blank=True)
+    verified_at = models.DateTimeField(null=True, blank=True)
     # Una sola pasarela activa por sede (ver tenancy.fields.only_when).
     active_venue = only_when(models.Q(enabled=True), 'venue_slug', models.SlugField())
 
@@ -68,3 +75,18 @@ class PaymentAttempt(models.Model):
     @property
     def reference(self):
         return f'waiter-{self.id.hex}'
+
+
+class PaymentAccess(models.Model):
+    """Entrada a las credenciales de pago con un código de un solo uso enviado al correo del dueño.
+
+    El código (6 dígitos, 10 minutos, 5 intentos) abre un acceso de 15 minutos que sirve para un solo cambio. Solo se
+    guardan huellas (HMAC), nunca el código ni el acceso.
+    """
+    account = models.OneToOneField('accounts.Account', on_delete=models.CASCADE, related_name='payment_access')
+    code_hash = models.CharField(max_length=64, blank=True)
+    code_expires = models.DateTimeField(null=True, blank=True)
+    code_attempts = models.PositiveSmallIntegerField(default=0)
+    code_sent_at = models.DateTimeField(null=True, blank=True)
+    grant_hash = models.CharField(max_length=64, blank=True)
+    grant_expires = models.DateTimeField(null=True, blank=True)

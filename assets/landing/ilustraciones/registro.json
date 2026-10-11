@@ -1,0 +1,424 @@
+{
+ "modelo_y_costo": "OpenAI gpt-image-2.5 (sunburst para alto y medio, flare para bajo)",
+ "total_usd_incluidos_reintentos": 2.1726,
+ "piezas": {
+  "il01-mano-telefono": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "high",
+   "tamano": "2400x3200",
+   "referencias": [
+    "ref01-hoja-de-estilo.png"
+   ],
+   "usd": 0.14,
+   "prompt": "Hand-drawn editorial illustration in a contemporary engraving style. Confident fine ink linework in deep navy (#0F172A) with variable line weight and tapered ends. Shading made ONLY with fine cross-hatching and parallel hatching lines, like a banknote engraving, no gradients, no airbrush, no soft shadows. Flat, limited color fills, at most three colors besides the ink, taken from: cobalt blue #447DFC, pale blue #EEF4FF, amber #F59E0B, pale amber #FFFBEB, green #22C55E, red #EF4444, indigo #6172F3, teal #0D9488. Warm natural tones allowed only for skin, wood and food. Realistic human proportions, warm and slightly humorous mood, Colombian neighborhood restaurant. Precise, clean, crisp edges, generous negative space. Close-up of a young Colombian woman's right hand holding a modern smartphone upright, the phone seen perfectly front-on with no perspective, screen completely blank white. Light brown skin, short natural nails, a thin woven amber string bracelet. Four fingers wrap around the left edge of the phone from behind, the thumb raised above the screen about to tap. The cuff of a chunky white knit sweater covers the wrist. Relaxed, natural, everyday grip, phone aspect ratio 9 by 19.5. The hand enters from the bottom right; the phone occupies about 45% of the canvas height, centered, with empty space above and on the sides. Anatomically correct hand with exactly five fingers. Single isolated subject, transparent background, no text, no logos. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il02-mesa-nfc": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "3200x2000",
+   "referencias": [
+    "ref01-hoja-de-estilo.png"
+   ],
+   "usd": 0.0369,
+   "prompt": "Hand-drawn editorial illustration in a contemporary engraving style. Confident fine ink linework in deep navy (#0F172A) with variable line weight and tapered ends. Shading made ONLY with fine cross-hatching and parallel hatching lines, like a banknote engraving, no gradients, no airbrush, no soft shadows. Flat, limited color fills, at most three colors besides the ink, taken from: cobalt blue #447DFC, pale blue #EEF4FF, amber #F59E0B, pale amber #FFFBEB, green #22C55E, red #EF4444, indigo #6172F3, teal #0D9488. Warm natural tones allowed only for skin, wood and food. Realistic human proportions, warm and slightly humorous mood, Colombian neighborhood restaurant. Precise, clean, crisp edges, generous negative space. Three-quarter top-down view of the corner of a warm honey-colored wooden restaurant table. A small round flat white sticker on the wood, blank with a simple abstract wave icon, no text. Next to it a tall glass of lemonade with ice and a lime wedge, and a ceramic plate with a half-eaten arepa with melted cheese, and a crumpled napkin. Cozy, lived-in. Single isolated subject, transparent background, no text, no logos. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il04-arepa": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "1024x1024",
+   "referencias": [
+    "ref01-hoja-de-estilo.png"
+   ],
+   "usd": 0.0273,
+   "prompt": "Hand-drawn editorial illustration in a contemporary engraving style. Confident fine ink linework in deep navy (#0F172A) with variable line weight and tapered ends. Shading made ONLY with fine cross-hatching and parallel hatching lines, like a banknote engraving, no gradients, no airbrush, no soft shadows. Flat, limited color fills, at most three colors besides the ink, taken from: cobalt blue #447DFC, pale blue #EEF4FF, amber #F59E0B, pale amber #FFFBEB, green #22C55E, red #EF4444, indigo #6172F3, teal #0D9488. Warm natural tones allowed only for skin, wood and food. Realistic human proportions, warm and slightly humorous mood, Colombian neighborhood restaurant. Precise, clean, crisp edges, generous negative space. Single food item, three-quarter top-down view at about 35 degrees, centered, appetizing, flat colors with cross-hatched shading, no table, no background. A grilled Colombian arepa split open with melted white cheese and a pat of butter, on a small plate. Single isolated subject, transparent background, no text, no logos. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il04-bandeja": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "1024x1024",
+   "referencias": [
+    "ref01-hoja-de-estilo.png"
+   ],
+   "usd": 0.0273,
+   "prompt": "Hand-drawn editorial illustration in a contemporary engraving style. Confident fine ink linework in deep navy (#0F172A) with variable line weight and tapered ends. Shading made ONLY with fine cross-hatching and parallel hatching lines, like a banknote engraving, no gradients, no airbrush, no soft shadows. Flat, limited color fills, at most three colors besides the ink, taken from: cobalt blue #447DFC, pale blue #EEF4FF, amber #F59E0B, pale amber #FFFBEB, green #22C55E, red #EF4444, indigo #6172F3, teal #0D9488. Warm natural tones allowed only for skin, wood and food. Realistic human proportions, warm and slightly humorous mood, Colombian neighborhood restaurant. Precise, clean, crisp edges, generous negative space. Single food item, three-quarter top-down view at about 35 degrees, centered, appetizing, flat colors with cross-hatched shading, no table, no background. A bandeja paisa on an oval plate: beans, rice, ground beef, chicharrón, fried egg, sweet plantain, avocado slice and a small arepa. Single isolated subject, transparent background, no text, no logos. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il04-cerveza": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "1024x1024",
+   "referencias": [
+    "ref01-hoja-de-estilo.png"
+   ],
+   "usd": 0.0273,
+   "prompt": "Hand-drawn editorial illustration in a contemporary engraving style. Confident fine ink linework in deep navy (#0F172A) with variable line weight and tapered ends. Shading made ONLY with fine cross-hatching and parallel hatching lines, like a banknote engraving, no gradients, no airbrush, no soft shadows. Flat, limited color fills, at most three colors besides the ink, taken from: cobalt blue #447DFC, pale blue #EEF4FF, amber #F59E0B, pale amber #FFFBEB, green #22C55E, red #EF4444, indigo #6172F3, teal #0D9488. Warm natural tones allowed only for skin, wood and food. Realistic human proportions, warm and slightly humorous mood, Colombian neighborhood restaurant. Precise, clean, crisp edges, generous negative space. Single food item, three-quarter top-down view at about 35 degrees, centered, appetizing, flat colors with cross-hatched shading, no table, no background. A cold amber beer in a glass with foam and condensation drops, a blank unlabeled bottle next to it. Single isolated subject, transparent background, no text, no logos. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il04-empanadas": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "1024x1024",
+   "referencias": [
+    "ref01-hoja-de-estilo.png"
+   ],
+   "usd": 0.0272,
+   "prompt": "Hand-drawn editorial illustration in a contemporary engraving style. Confident fine ink linework in deep navy (#0F172A) with variable line weight and tapered ends. Shading made ONLY with fine cross-hatching and parallel hatching lines, like a banknote engraving, no gradients, no airbrush, no soft shadows. Flat, limited color fills, at most three colors besides the ink, taken from: cobalt blue #447DFC, pale blue #EEF4FF, amber #F59E0B, pale amber #FFFBEB, green #22C55E, red #EF4444, indigo #6172F3, teal #0D9488. Warm natural tones allowed only for skin, wood and food. Realistic human proportions, warm and slightly humorous mood, Colombian neighborhood restaurant. Precise, clean, crisp edges, generous negative space. Single food item, three-quarter top-down view at about 35 degrees, centered, appetizing, flat colors with cross-hatched shading, no table, no background. Three golden Colombian empanadas with a small bowl of green ají sauce. Single isolated subject, transparent background, no text, no logos. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il04-hamburguesa": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "1024x1024",
+   "referencias": [
+    "ref01-hoja-de-estilo.png"
+   ],
+   "usd": 0.0273,
+   "prompt": "Hand-drawn editorial illustration in a contemporary engraving style. Confident fine ink linework in deep navy (#0F172A) with variable line weight and tapered ends. Shading made ONLY with fine cross-hatching and parallel hatching lines, like a banknote engraving, no gradients, no airbrush, no soft shadows. Flat, limited color fills, at most three colors besides the ink, taken from: cobalt blue #447DFC, pale blue #EEF4FF, amber #F59E0B, pale amber #FFFBEB, green #22C55E, red #EF4444, indigo #6172F3, teal #0D9488. Warm natural tones allowed only for skin, wood and food. Realistic human proportions, warm and slightly humorous mood, Colombian neighborhood restaurant. Precise, clean, crisp edges, generous negative space. Single food item, three-quarter top-down view at about 35 degrees, centered, appetizing, flat colors with cross-hatched shading, no table, no background. A juicy double cheeseburger with lettuce, tomato and melted cheese on a small wooden board. Single isolated subject, transparent background, no text, no logos. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il04-limonada": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "1024x1024",
+   "referencias": [
+    "ref01-hoja-de-estilo.png"
+   ],
+   "usd": 0.0272,
+   "prompt": "Hand-drawn editorial illustration in a contemporary engraving style. Confident fine ink linework in deep navy (#0F172A) with variable line weight and tapered ends. Shading made ONLY with fine cross-hatching and parallel hatching lines, like a banknote engraving, no gradients, no airbrush, no soft shadows. Flat, limited color fills, at most three colors besides the ink, taken from: cobalt blue #447DFC, pale blue #EEF4FF, amber #F59E0B, pale amber #FFFBEB, green #22C55E, red #EF4444, indigo #6172F3, teal #0D9488. Warm natural tones allowed only for skin, wood and food. Realistic human proportions, warm and slightly humorous mood, Colombian neighborhood restaurant. Precise, clean, crisp edges, generous negative space. Single food item, three-quarter top-down view at about 35 degrees, centered, appetizing, flat colors with cross-hatched shading, no table, no background. A tall glass of creamy coconut lemonade with ice and a straw. Single isolated subject, transparent background, no text, no logos. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il04-perro": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "1024x1024",
+   "referencias": [
+    "ref01-hoja-de-estilo.png"
+   ],
+   "usd": 0.0272,
+   "prompt": "Hand-drawn editorial illustration in a contemporary engraving style. Confident fine ink linework in deep navy (#0F172A) with variable line weight and tapered ends. Shading made ONLY with fine cross-hatching and parallel hatching lines, like a banknote engraving, no gradients, no airbrush, no soft shadows. Flat, limited color fills, at most three colors besides the ink, taken from: cobalt blue #447DFC, pale blue #EEF4FF, amber #F59E0B, pale amber #FFFBEB, green #22C55E, red #EF4444, indigo #6172F3, teal #0D9488. Warm natural tones allowed only for skin, wood and food. Realistic human proportions, warm and slightly humorous mood, Colombian neighborhood restaurant. Precise, clean, crisp edges, generous negative space. Single food item, three-quarter top-down view at about 35 degrees, centered, appetizing, flat colors with cross-hatched shading, no table, no background. A loaded Colombian hot dog with crushed potato chips, pineapple sauce and cheese on top. Single isolated subject, transparent background, no text, no logos. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il04-tinto": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "1024x1024",
+   "referencias": [
+    "ref01-hoja-de-estilo.png"
+   ],
+   "usd": 0.0273,
+   "prompt": "Hand-drawn editorial illustration in a contemporary engraving style. Confident fine ink linework in deep navy (#0F172A) with variable line weight and tapered ends. Shading made ONLY with fine cross-hatching and parallel hatching lines, like a banknote engraving, no gradients, no airbrush, no soft shadows. Flat, limited color fills, at most three colors besides the ink, taken from: cobalt blue #447DFC, pale blue #EEF4FF, amber #F59E0B, pale amber #FFFBEB, green #22C55E, red #EF4444, indigo #6172F3, teal #0D9488. Warm natural tones allowed only for skin, wood and food. Realistic human proportions, warm and slightly humorous mood, Colombian neighborhood restaurant. Precise, clean, crisp edges, generous negative space. Single food item, three-quarter top-down view at about 35 degrees, centered, appetizing, flat colors with cross-hatched shading, no table, no background. A small cup of black Colombian coffee (tinto) on a saucer with a thin steam curl. Single isolated subject, transparent background, no text, no logos. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il05-mesero": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "high",
+   "tamano": "2400x2800",
+   "referencias": [
+    "ref01-hoja-de-estilo.png",
+    "ref02-mesero.png"
+   ],
+   "usd": 0.1549,
+   "prompt": "Hand-drawn editorial illustration in a contemporary engraving style. Confident fine ink linework in deep navy (#0F172A) with variable line weight and tapered ends. Shading made ONLY with fine cross-hatching and parallel hatching lines, like a banknote engraving, no gradients, no airbrush, no soft shadows. Flat, limited color fills, at most three colors besides the ink, taken from: cobalt blue #447DFC, pale blue #EEF4FF, amber #F59E0B, pale amber #FFFBEB, green #22C55E, red #EF4444, indigo #6172F3, teal #0D9488. Warm natural tones allowed only for skin, wood and food. Realistic human proportions, warm and slightly humorous mood, Colombian neighborhood restaurant. Precise, clean, crisp edges, generous negative space. Bust portrait from the waist up of a Colombian waiter in his late twenties, light brown skin, short wavy black hair, expressive thick eyebrows, warm crooked smile, slim build, white shirt with sleeves rolled up to the elbows, long cobalt blue (#447DFC) waist apron with a front pocket, a white kitchen towel over his left shoulder, three-quarter view facing the viewer, warm crooked smile, eyebrows slightly raised as if about to recommend something. His left hand holds a round metal tray at shoulder height with one glass of lemonade with ice. Right arm relaxed. Friendly, trustworthy, a bit cheeky. Head in the upper third with empty space above the head. Single isolated subject, transparent background, no text, no logos. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il05-mesero-boca-a": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "2400x2800",
+   "referencias": [
+    "il05-mesero.png"
+   ],
+   "usd": 0.046,
+   "prompt": "Edit this exact illustration: same character, same pose, same framing, same style and colors, transparent background. Only change: his mouth is open as if happily saying the vowel \"a\". Nothing else changes. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il05-mesero-boca-e": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "2400x2800",
+   "referencias": [
+    "il05-mesero.png"
+   ],
+   "usd": 0.046,
+   "prompt": "Edit this exact illustration: same character, same pose, same framing, same style and colors, transparent background. Only change: his mouth is slightly open as if saying the vowel \"e\". Nothing else changes. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il05-mesero-caleno": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "2400x2800",
+   "referencias": [
+    "il05-mesero.png"
+   ],
+   "usd": 0.046,
+   "prompt": "Edit this exact illustration: same character, same pose, same framing, same style and colors, transparent background. Only change: he now wears a short-brim salsa dancer fedora hat with a red band, and a small red flower in his shirt pocket. Nothing else changes. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il05-mesero-costeno": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "2400x2800",
+   "referencias": [
+    "il05-mesero.png"
+   ],
+   "usd": 0.046,
+   "prompt": "Edit this exact illustration: same character, same pose, same framing, same style and colors, transparent background. Only change: he now wears a traditional Colombian sombrero vueltiao with black and white stripes. Nothing else changes. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il05-mesero-ojos-cerrados": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "2400x2800",
+   "referencias": [
+    "il05-mesero.png"
+   ],
+   "usd": 0.046,
+   "prompt": "Edit this exact illustration: same character, same pose, same framing, same style and colors, transparent background. Only change: his eyes are gently closed, as in a natural blink. Nothing else changes. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il05-mesero-paisa": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "2400x2800",
+   "referencias": [
+    "il05-mesero.png"
+   ],
+   "usd": 0.0461,
+   "prompt": "Edit this exact illustration: same character, same pose, same framing, same style and colors, transparent background. Only change: he now wears a traditional white straw Antioquian aguadeño hat with a black band, and a leather carriel bag strapped across his chest. Nothing else changes. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il05-mesero-rolo": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "2400x2800",
+   "referencias": [
+    "il05-mesero.png"
+   ],
+   "usd": 0.046,
+   "prompt": "Edit this exact illustration: same character, same pose, same framing, same style and colors, transparent background. Only change: he now wears a heathered grey wool ruana over his shoulders and a scarf. Nothing else changes. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il05-mesero-santandereano": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "2400x2800",
+   "referencias": [
+    "il05-mesero.png"
+   ],
+   "usd": 0.046,
+   "prompt": "Edit this exact illustration: same character, same pose, same framing, same style and colors, transparent background. Only change: he now wears a wide-brim natural fique fiber hat and a red bandana tied around his neck. Nothing else changes. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il06-domiciliario-moto": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "high",
+   "tamano": "2000x1600",
+   "referencias": [
+    "ref01-hoja-de-estilo.png",
+    "ref02-domiciliario.png"
+   ],
+   "usd": 0.0973,
+   "prompt": "Hand-drawn editorial illustration in a contemporary engraving style. Confident fine ink linework in deep navy (#0F172A) with variable line weight and tapered ends. Shading made ONLY with fine cross-hatching and parallel hatching lines, like a banknote engraving, no gradients, no airbrush, no soft shadows. Flat, limited color fills, at most three colors besides the ink, taken from: cobalt blue #447DFC, pale blue #EEF4FF, amber #F59E0B, pale amber #FFFBEB, green #22C55E, red #EF4444, indigo #6172F3, teal #0D9488. Warm natural tones allowed only for skin, wood and food. Realistic human proportions, warm and slightly humorous mood, Colombian neighborhood restaurant. Precise, clean, crisp edges, generous negative space. Exact side view facing right of a young Colombian delivery rider in his mid twenties, tan skin, short black hair under an open-face white helmet with a clear visor pushed up, teal (#0D9488) rain jacket, dark jeans, black sneakers, friendly focused look riding a small urban 125cc motorcycle with no brand markings, in motion, relaxed confident posture. A plain white square thermal delivery box mounted on the rear rack, no logos. Both wheels fully visible and perfectly circular with visible spokes. Clean side profile like a technical drawing but hand-inked, pure side elevation with no perspective. Single isolated subject, transparent background, no text, no logos. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il07-casa": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "1200x1200",
+   "referencias": [
+    "ref01-hoja-de-estilo.png"
+   ],
+   "usd": 0.0289,
+   "prompt": "Hand-drawn editorial illustration in a contemporary engraving style. Confident fine ink linework in deep navy (#0F172A) with variable line weight and tapered ends. Shading made ONLY with fine cross-hatching and parallel hatching lines, like a banknote engraving, no gradients, no airbrush, no soft shadows. Flat, limited color fills, at most three colors besides the ink, taken from: cobalt blue #447DFC, pale blue #EEF4FF, amber #F59E0B, pale amber #FFFBEB, green #22C55E, red #EF4444, indigo #6172F3, teal #0D9488. Warm natural tones allowed only for skin, wood and food. Realistic human proportions, warm and slightly humorous mood, Colombian neighborhood restaurant. Precise, clean, crisp edges, generous negative space. Front elevation of a two-story Colombian neighborhood house with a wooden balcony full of hanging ferns and red geraniums, a metal grille door, one window on the ground floor with warm light. Front-on, no perspective. Single isolated subject, transparent background, no text, no logos. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il07-sede": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "1200x1200",
+   "referencias": [
+    "ref01-hoja-de-estilo.png"
+   ],
+   "usd": 0.029,
+   "prompt": "Hand-drawn editorial illustration in a contemporary engraving style. Confident fine ink linework in deep navy (#0F172A) with variable line weight and tapered ends. Shading made ONLY with fine cross-hatching and parallel hatching lines, like a banknote engraving, no gradients, no airbrush, no soft shadows. Flat, limited color fills, at most three colors besides the ink, taken from: cobalt blue #447DFC, pale blue #EEF4FF, amber #F59E0B, pale amber #FFFBEB, green #22C55E, red #EF4444, indigo #6172F3, teal #0D9488. Warm natural tones allowed only for skin, wood and food. Realistic human proportions, warm and slightly humorous mood, Colombian neighborhood restaurant. Precise, clean, crisp edges, generous negative space. Front elevation of a small one-story Colombian neighborhood corner restaurant, white and pale blue striped fabric awning, open door, one small table with two chairs outside, a blank sign board with no text, potted plant by the door. Front-on, no perspective. Single isolated subject, transparent background, no text, no logos. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il08-mano-que-espera": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "1600x1600",
+   "referencias": [
+    "ref01-hoja-de-estilo.png"
+   ],
+   "usd": 0.0339,
+   "prompt": "Hand-drawn editorial illustration in a contemporary engraving style. Confident fine ink linework in deep navy (#0F172A) with variable line weight and tapered ends. Shading made ONLY with fine cross-hatching and parallel hatching lines, like a banknote engraving, no gradients, no airbrush, no soft shadows. Flat, limited color fills, at most three colors besides the ink, taken from: cobalt blue #447DFC, pale blue #EEF4FF, amber #F59E0B, pale amber #FFFBEB, green #22C55E, red #EF4444, indigo #6172F3, teal #0D9488. Warm natural tones allowed only for skin, wood and food. Realistic human proportions, warm and slightly humorous mood, Colombian neighborhood restaurant. Precise, clean, crisp edges, generous negative space. A Colombian woman in her mid thirties with curly hair tied up and a cobalt blue denim jacket, sitting at a small café table, right arm raised high to call a waiter, chin resting on her left hand, bored and patient expression, rolling her eyes slightly. Behind her, a round pale blue wall clock with tick marks only, no numbers. Gentle humor. Single isolated subject, transparent background, no text, no logos. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il09-la-tajada": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "1600x1600",
+   "referencias": [
+    "ref01-hoja-de-estilo.png"
+   ],
+   "usd": 0.034,
+   "prompt": "Hand-drawn editorial illustration in a contemporary engraving style. Confident fine ink linework in deep navy (#0F172A) with variable line weight and tapered ends. Shading made ONLY with fine cross-hatching and parallel hatching lines, like a banknote engraving, no gradients, no airbrush, no soft shadows. Flat, limited color fills, at most three colors besides the ink, taken from: cobalt blue #447DFC, pale blue #EEF4FF, amber #F59E0B, pale amber #FFFBEB, green #22C55E, red #EF4444, indigo #6172F3, teal #0D9488. Warm natural tones allowed only for skin, wood and food. Realistic human proportions, warm and slightly humorous mood, Colombian neighborhood restaurant. Precise, clean, crisp edges, generous negative space. A big appetizing double cheeseburger in three-quarter view, with a clean wedge of almost one third being pulled out of it like a slice of cake, showing the layers of meat, cheese and lettuce in the cut, by a sneaky hand in a white glove and a plain grey sleeve coming in from outside the right edge of the frame. Playful heist mood. The burger is on a small wooden board. Single isolated subject, transparent background, no text, no logos. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il10-comanda-arrugada": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "1600x1600",
+   "referencias": [
+    "ref01-hoja-de-estilo.png"
+   ],
+   "usd": 0.0341,
+   "prompt": "Hand-drawn editorial illustration in a contemporary engraving style. Confident fine ink linework in deep navy (#0F172A) with variable line weight and tapered ends. Shading made ONLY with fine cross-hatching and parallel hatching lines, like a banknote engraving, no gradients, no airbrush, no soft shadows. Flat, limited color fills, at most three colors besides the ink, taken from: cobalt blue #447DFC, pale blue #EEF4FF, amber #F59E0B, pale amber #FFFBEB, green #22C55E, red #EF4444, indigo #6172F3, teal #0D9488. Warm natural tones allowed only for skin, wood and food. Realistic human proportions, warm and slightly humorous mood, Colombian neighborhood restaurant. Precise, clean, crisp edges, generous negative space. A Colombian cook in his fifties with a thick mustache, short chef hat, white chef jacket with a small red sauce stain, reading glasses on the tip of his nose, squinting at a crumpled paper order ticket held close to his face, completely confused, head tilted. Four crumpled paper tickets on the floor around his feet. The ticket shows only scribbled squiggles, no readable text. Absolutely no question marks, no symbols, no letters floating around him. Gentle humor. Single isolated subject, transparent background, no text, no logos. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il11-nevera-abierta": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "1600x1600",
+   "referencias": [
+    "ref01-hoja-de-estilo.png"
+   ],
+   "usd": 0.0338,
+   "prompt": "Hand-drawn editorial illustration in a contemporary engraving style. Confident fine ink linework in deep navy (#0F172A) with variable line weight and tapered ends. Shading made ONLY with fine cross-hatching and parallel hatching lines, like a banknote engraving, no gradients, no airbrush, no soft shadows. Flat, limited color fills, at most three colors besides the ink, taken from: cobalt blue #447DFC, pale blue #EEF4FF, amber #F59E0B, pale amber #FFFBEB, green #22C55E, red #EF4444, indigo #6172F3, teal #0D9488. Warm natural tones allowed only for skin, wood and food. Realistic human proportions, warm and slightly humorous mood, Colombian neighborhood restaurant. Precise, clean, crisp edges, generous negative space. A tall stainless steel restaurant refrigerator seen front-on with its single door swung open to the right, interior shelves partly stocked with vegetables, red sauce bottles and cheese, and one middle shelf completely empty with a small blank label, lit by a small warm interior light bulb. Slightly comic, a sad empty spot. Single isolated subject, transparent background, no text, no logos. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il11-nevera-cerrada": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "1600x1600",
+   "referencias": [
+    "il11-nevera-abierta.png"
+   ],
+   "usd": 0.0328,
+   "prompt": "Edit this exact illustration: same character, same pose, same framing, same style and colors, transparent background. Only change: the refrigerator door is fully closed, so the interior is not visible. Nothing else changes. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il12-cocinera": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "high",
+   "tamano": "2400x2400",
+   "referencias": [
+    "ref01-hoja-de-estilo.png",
+    "ref02-cocinera.png"
+   ],
+   "usd": 0.1603,
+   "prompt": "Hand-drawn editorial illustration in a contemporary engraving style. Confident fine ink linework in deep navy (#0F172A) with variable line weight and tapered ends. Shading made ONLY with fine cross-hatching and parallel hatching lines, like a banknote engraving, no gradients, no airbrush, no soft shadows. Flat, limited color fills, at most three colors besides the ink, taken from: cobalt blue #447DFC, pale blue #EEF4FF, amber #F59E0B, pale amber #FFFBEB, green #22C55E, red #EF4444, indigo #6172F3, teal #0D9488. Warm natural tones allowed only for skin, wood and food. Realistic human proportions, warm and slightly humorous mood, Colombian neighborhood restaurant. Precise, clean, crisp edges, generous negative space. Half-body view of an Afro-Colombian cook in her early forties, dark brown skin, strong arms, hair tied up in an amber (#F59E0B) headscarf, small gold hoop earrings, white double-breasted chef jacket with sleeves rolled up, cream apron, calm and confident expression, three-quarter profile, standing at an industrial stove. Her right index finger reaches toward a wall-mounted tablet on the left, the tablet seen front-on with a completely blank white screen, landscape, occupying about 35% of the width. Her left hand holds the handle of a frying pan on a low gas flame. Focused, calm, in control. Single isolated subject, transparent background, no text, no logos. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il12-cocinera-llama-alta": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "2400x2400",
+   "referencias": [
+    "il12-cocinera.png"
+   ],
+   "usd": 0.0466,
+   "prompt": "Edit this exact illustration: same character, same pose, same framing, same style and colors, transparent background. Only change: the gas flame under the pan is tall and leans to the right. Nothing else changes. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il12-cocinera-llama-media": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "2400x2400",
+   "referencias": [
+    "il12-cocinera.png"
+   ],
+   "usd": 0.0466,
+   "prompt": "Edit this exact illustration: same character, same pose, same framing, same style and colors, transparent background. Only change: the gas flame under the pan is medium height and leans to the left. Nothing else changes. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il13-monedas": {
+   "modelo": "gpt-image-2.5-flare",
+   "calidad": "medium",
+   "tamano": "1536x1024",
+   "referencias": [
+    "ref01-hoja-de-estilo.png"
+   ],
+   "usd": 0.0244,
+   "prompt": "Hand-drawn editorial illustration in a contemporary engraving style. Confident fine ink linework in deep navy (#0F172A) with variable line weight and tapered ends. Shading made ONLY with fine cross-hatching and parallel hatching lines, like a banknote engraving, no gradients, no airbrush, no soft shadows. Flat, limited color fills, at most three colors besides the ink, taken from: cobalt blue #447DFC, pale blue #EEF4FF, amber #F59E0B, pale amber #FFFBEB, green #22C55E, red #EF4444, indigo #6172F3, teal #0D9488. Warm natural tones allowed only for skin, wood and food. Realistic human proportions, warm and slightly humorous mood, Colombian neighborhood restaurant. Precise, clean, crisp edges, generous negative space. Three separate gold coins with an engraved star, spaced apart in a row: one seen front-on, one tilted at 45 degrees, one almost edge-on. Engraved banknote-style hatching on the metal, flat amber fills, no shine effects, no sparkles. Single isolated subject, transparent background, no text, no logos. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il13-trofeo": {
+   "modelo": "gpt-image-2.5-flare",
+   "calidad": "medium",
+   "tamano": "1200x1200",
+   "referencias": [
+    "ref01-hoja-de-estilo.png"
+   ],
+   "usd": 0.0289,
+   "prompt": "Hand-drawn editorial illustration in a contemporary engraving style. Confident fine ink linework in deep navy (#0F172A) with variable line weight and tapered ends. Shading made ONLY with fine cross-hatching and parallel hatching lines, like a banknote engraving, no gradients, no airbrush, no soft shadows. Flat, limited color fills, at most three colors besides the ink, taken from: cobalt blue #447DFC, pale blue #EEF4FF, amber #F59E0B, pale amber #FFFBEB, green #22C55E, red #EF4444, indigo #6172F3, teal #0D9488. Warm natural tones allowed only for skin, wood and food. Realistic human proportions, warm and slightly humorous mood, Colombian neighborhood restaurant. Precise, clean, crisp edges, generous negative space. A small classic two-handled trophy cup in amber gold with a cobalt blue base, engraved banknote-style hatching, flat fills, no shine effects, no sparkles. Single isolated subject, transparent background, no text, no logos. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il14-candado-abierto": {
+   "modelo": "gpt-image-2.5-flare",
+   "calidad": "medium",
+   "tamano": "1024x1280",
+   "referencias": [
+    "ref01-hoja-de-estilo.png"
+   ],
+   "usd": 0.0254,
+   "prompt": "Hand-drawn editorial illustration in a contemporary engraving style. Confident fine ink linework in deep navy (#0F172A) with variable line weight and tapered ends. Shading made ONLY with fine cross-hatching and parallel hatching lines, like a banknote engraving, no gradients, no airbrush, no soft shadows. Flat, limited color fills, at most three colors besides the ink, taken from: cobalt blue #447DFC, pale blue #EEF4FF, amber #F59E0B, pale amber #FFFBEB, green #22C55E, red #EF4444, indigo #6172F3, teal #0D9488. Warm natural tones allowed only for skin, wood and food. Realistic human proportions, warm and slightly humorous mood, Colombian neighborhood restaurant. Precise, clean, crisp edges, generous negative space. A sturdy classic padlock seen front-on, unlocked with the shackle raised and open, cobalt blue body with engraved hatching, pale steel shackle, a simple keyhole. Calm, solid, trustworthy. Single isolated subject, transparent background, no text, no logos. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il14-candado-cerrado": {
+   "modelo": "gpt-image-2.5-flare",
+   "calidad": "medium",
+   "tamano": "1024x1280",
+   "referencias": [
+    "il14-candado-abierto.png"
+   ],
+   "usd": 0.0225,
+   "prompt": "Edit this exact illustration: same character, same pose, same framing, same style and colors, transparent background. Only change: the padlock is now locked: the shackle is lowered and closed into the body. Nothing else changes. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il15-viernes-8pm": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "high",
+   "tamano": "3840x1872",
+   "referencias": [
+    "ref01-hoja-de-estilo.png",
+    "ref02-mesero.png",
+    "ref02-cocinera.png",
+    "ref02-domiciliario.png"
+   ],
+   "usd": 0.1263,
+   "prompt": "Hand-drawn editorial illustration in a contemporary engraving style. Confident fine ink linework in deep navy (#0F172A) with variable line weight and tapered ends. Shading made ONLY with fine cross-hatching and parallel hatching lines, like a banknote engraving, no gradients, no airbrush, no soft shadows. Flat, limited color fills, at most three colors besides the ink, taken from: cobalt blue #447DFC, pale blue #EEF4FF, amber #F59E0B, pale amber #FFFBEB, green #22C55E, red #EF4444, indigo #6172F3, teal #0D9488. Warm natural tones allowed only for skin, wood and food. Realistic human proportions, warm and slightly humorous mood, Colombian neighborhood restaurant. Precise, clean, crisp edges, generous negative space. Wide panoramic cutaway cross-section of a lively Colombian neighborhood restaurant at night, like a dollhouse with the front wall removed. Left: a busy dining room with diners at wooden tables ordering from their phones. Back: an open kitchen where an Afro-Colombian cook in her early forties, dark brown skin, strong arms, hair tied up in an amber (#F59E0B) headscarf, small gold hoop earrings, white double-breasted chef jacket with sleeves rolled up, cream apron, calm and confident expression works in front of a wall tablet with a blank screen. Center: a Colombian waiter in his late twenties, light brown skin, short wavy black hair, expressive thick eyebrows, warm crooked smile, slim build, white shirt with sleeves rolled up to the elbows, long cobalt blue (#447DFC) waist apron with a front pocket, a white kitchen towel over his left shoulder carrying a tray. Right: a young Colombian delivery rider in his mid twenties, tan skin, short black hair under an open-face white helmet with a clear visor pushed up, teal (#0D9488) rain jacket, dark jeans, black sneakers, friendly focused look riding out the front door on his small motorcycle. Above: indigo (#6172F3) night sky with warm city lights. Busy but orderly, warm, joyful. Leave the center-left slightly less busy for a headline. Blank screens, no text anywhere. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "il17-separador-1": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "1024x1024",
+   "referencias": [],
+   "usd": 0.0136,
+   "prompt": "A single hand-inked asterisk star mark made of 6 thick tapered brush-pen strokes radiating from the center, slightly irregular like drawn by hand, solid flat deep navy ink #0F172A only, no hatching, no other colors. Nothing else in the image: no people, no food, no objects. Centered, transparent background."
+  },
+  "il17-separador-2": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "1024x1024",
+   "referencias": [],
+   "usd": 0.0136,
+   "prompt": "A single hand-inked asterisk star mark made of 8 thick tapered brush-pen strokes radiating from the center, slightly irregular like drawn by hand, solid flat deep navy ink #0F172A only, no hatching, no other colors. Nothing else in the image: no people, no food, no objects. Centered, transparent background."
+  },
+  "il17-separador-3": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "medium",
+   "tamano": "1024x1024",
+   "referencias": [],
+   "usd": 0.0136,
+   "prompt": "A single hand-inked asterisk star mark made of 7 thick tapered brush-pen strokes radiating from the center, slightly irregular like drawn by hand, solid flat deep navy ink #0F172A only, no hatching, no other colors. Nothing else in the image: no people, no food, no objects. Centered, transparent background."
+  },
+  "ref01-hoja-de-estilo": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "high",
+   "tamano": "2048x2048",
+   "referencias": [],
+   "usd": 0.1091,
+   "prompt": "Hand-drawn editorial illustration in a contemporary engraving style. Confident fine ink linework in deep navy (#0F172A) with variable line weight and tapered ends. Shading made ONLY with fine cross-hatching and parallel hatching lines, like a banknote engraving, no gradients, no airbrush, no soft shadows. Flat, limited color fills, at most three colors besides the ink, taken from: cobalt blue #447DFC, pale blue #EEF4FF, amber #F59E0B, pale amber #FFFBEB, green #22C55E, red #EF4444, indigo #6172F3, teal #0D9488. Warm natural tones allowed only for skin, wood and food. Realistic human proportions, warm and slightly humorous mood, Colombian neighborhood restaurant. Precise, clean, crisp edges, generous negative space. Style reference sheet: a neat grid of six separate Colombian restaurant objects on plain white paper, evenly spaced: a small cup of black coffee (tinto) on a saucer, a grilled arepa with melted cheese, a glass salt shaker, a fork, a small fern in a clay pot, and a gold coin with a star engraved. Each object drawn with the same fine navy ink line, cross-hatching for shadows and flat color fills. Plain white background, no text. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "ref02-cocinera": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "high",
+   "tamano": "2048x1536",
+   "referencias": [
+    "ref01-hoja-de-estilo.png"
+   ],
+   "usd": 0.081,
+   "prompt": "Hand-drawn editorial illustration in a contemporary engraving style. Confident fine ink linework in deep navy (#0F172A) with variable line weight and tapered ends. Shading made ONLY with fine cross-hatching and parallel hatching lines, like a banknote engraving, no gradients, no airbrush, no soft shadows. Flat, limited color fills, at most three colors besides the ink, taken from: cobalt blue #447DFC, pale blue #EEF4FF, amber #F59E0B, pale amber #FFFBEB, green #22C55E, red #EF4444, indigo #6172F3, teal #0D9488. Warm natural tones allowed only for skin, wood and food. Realistic human proportions, warm and slightly humorous mood, Colombian neighborhood restaurant. Precise, clean, crisp edges, generous negative space. Character turnaround sheet of an Afro-Colombian cook in her early forties, dark brown skin, strong arms, hair tied up in an amber (#F59E0B) headscarf, small gold hoop earrings, white double-breasted chef jacket with sleeves rolled up, cream apron, calm and confident expression, full body, front view, three-quarter view and side view standing in a row, plus three small head studies with different expressions (smiling, focused, surprised). Same person in every view, consistent clothing and proportions, on plain white paper, no text, no labels. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "ref02-domiciliario": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "high",
+   "tamano": "2048x1536",
+   "referencias": [
+    "ref01-hoja-de-estilo.png"
+   ],
+   "usd": 0.081,
+   "prompt": "Hand-drawn editorial illustration in a contemporary engraving style. Confident fine ink linework in deep navy (#0F172A) with variable line weight and tapered ends. Shading made ONLY with fine cross-hatching and parallel hatching lines, like a banknote engraving, no gradients, no airbrush, no soft shadows. Flat, limited color fills, at most three colors besides the ink, taken from: cobalt blue #447DFC, pale blue #EEF4FF, amber #F59E0B, pale amber #FFFBEB, green #22C55E, red #EF4444, indigo #6172F3, teal #0D9488. Warm natural tones allowed only for skin, wood and food. Realistic human proportions, warm and slightly humorous mood, Colombian neighborhood restaurant. Precise, clean, crisp edges, generous negative space. Character turnaround sheet of a young Colombian delivery rider in his mid twenties, tan skin, short black hair under an open-face white helmet with a clear visor pushed up, teal (#0D9488) rain jacket, dark jeans, black sneakers, friendly focused look, full body, front view, three-quarter view and side view standing in a row, plus three small head studies with different expressions (smiling, focused, surprised). Same person in every view, consistent clothing and proportions, on plain white paper, no text, no labels. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  },
+  "ref02-mesero": {
+   "modelo": "gpt-image-2.5-sunburst",
+   "calidad": "high",
+   "tamano": "2048x1536",
+   "referencias": [
+    "ref01-hoja-de-estilo.png"
+   ],
+   "usd": 0.0811,
+   "prompt": "Hand-drawn editorial illustration in a contemporary engraving style. Confident fine ink linework in deep navy (#0F172A) with variable line weight and tapered ends. Shading made ONLY with fine cross-hatching and parallel hatching lines, like a banknote engraving, no gradients, no airbrush, no soft shadows. Flat, limited color fills, at most three colors besides the ink, taken from: cobalt blue #447DFC, pale blue #EEF4FF, amber #F59E0B, pale amber #FFFBEB, green #22C55E, red #EF4444, indigo #6172F3, teal #0D9488. Warm natural tones allowed only for skin, wood and food. Realistic human proportions, warm and slightly humorous mood, Colombian neighborhood restaurant. Precise, clean, crisp edges, generous negative space. Character turnaround sheet of a Colombian waiter in his late twenties, light brown skin, short wavy black hair, expressive thick eyebrows, warm crooked smile, slim build, white shirt with sleeves rolled up to the elbows, long cobalt blue (#447DFC) waist apron with a front pocket, a white kitchen towel over his left shoulder, full body, front view, three-quarter view and side view standing in a row, plus three small head studies with different expressions (smiling, focused, surprised). Same person in every view, consistent clothing and proportions, on plain white paper, no text, no labels. Avoid: gradient, color gradient, 3D render, CGI, glossy, plastic, glassmorphism, neon glow, sparkles, glitter, particles, bokeh, purple and blue blobs, corporate memphis, flat vector people with oversized limbs, tiny heads, purple skin, blue skin, faceless people, stock photo, photorealistic, anime, chibi, kawaii, text, letters, numbers, words, watermark, signature, logo, brand name, drop shadow, vignette, glow around the subject, background scenery, frame, border, blurry, low detail, messy sketch lines."
+  }
+ }
+}

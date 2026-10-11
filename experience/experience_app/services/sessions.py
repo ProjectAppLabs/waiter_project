@@ -153,6 +153,10 @@ def bill_summary(session: TableSession, diner: Diner, discount_percent: float = 
     if include_open and discount_view['aplicable']:
         projected = sum((line.subtotal for line in lines if line.diner_id == diner.id and line.status == CartLine.OPEN and not line.discount), Decimal(0)) * Decimal(str(discount_view['porcentaje'])) / 100
         per[str(diner.id)] = per.get(str(diner.id), Decimal(0)) - projected.quantize(Decimal('0.01'))
+    from delivery.models import SessionDelivery
+    delivery = SessionDelivery.objects.filter(session=session).first()
+    if delivery and (lines or session.orders.exists()):
+        per[str(delivery.diner_id)] = per.get(str(delivery.diner_id), Decimal(0)) + delivery.fee
     total = sum(per.values(), Decimal(0))
     diners = max(1, session.diners.count())
     return {'total': float(total), 'mio': float(per.get(str(diner.id), Decimal(0))),

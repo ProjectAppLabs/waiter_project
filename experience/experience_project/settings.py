@@ -42,6 +42,9 @@ INSTALLED_APPS = [
     'reports',
     'billing',
     'reservations',
+    'whatsapp',
+    'assistant',
+    'delivery',
 ]
 
 MIDDLEWARE = [
@@ -149,14 +152,19 @@ MAILERS = {'default': {
 }}
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'no-reply@example.invalid')
 
-# Agente: solo backend. Sin modelo implícito ni clave en el repositorio.
+# Agente: solo en el servidor, sin claves en el repositorio; el modelo de voz es configurable.
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
-WA_AGENT_MODEL = os.getenv('WA_AGENT_MODEL', '')
+WA_AGENT_MODEL = os.getenv('WA_AGENT_MODEL', 'gpt-6-luna')
 
 AGENT_DAILY_LIMIT = int(os.getenv('AGENT_DAILY_LIMIT', '200'))
 
 # Gateway secrets use a separate, backed-up Fernet key; never derive it from DEBUG/SECRET_KEY.
 PAYMENTS_FERNET_KEY = os.getenv('PAYMENTS_FERNET_KEY', '')
+# Llaves maestras del cifrado de sobre (v2): «id:llave_base64_de_32_bytes», separadas por coma; la primera es la vigente.
+# Rotar: anteponer la nueva, correr `manage.py rotar_cifrado_pagos` y luego quitar la vieja.
+PAYMENTS_MASTER_KEYS = os.getenv('PAYMENTS_MASTER_KEYS', '')
+if IS_PRODUCTION and not PAYMENTS_MASTER_KEYS:
+    raise RuntimeError('PAYMENTS_MASTER_KEYS es obligatorio en producción (cifrado de las credenciales de pago).')
 PAYMENTS_LIVE_ENABLED = os.getenv('PAYMENTS_LIVE_ENABLED', 'false').lower() == 'true'
 PAYMENTS_PUBLIC_URL = os.getenv('PAYMENTS_PUBLIC_URL', '').rstrip('/')
 
@@ -185,3 +193,29 @@ CORS_ALLOW_HEADERS = (*default_headers, 'x-waiter-org')
 
 # Fotos propias del catálogo T1.
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# WhatsApp: las credenciales son opcionales para arrancar.
+WA_ACCESS_TOKEN = os.getenv('WA_ACCESS_TOKEN', '')
+WA_PHONE_NUMBER_ID = os.getenv('WA_PHONE_NUMBER_ID', '')
+WA_WABA_ID = os.getenv('WA_WABA_ID', '')
+META_APP_SECRET = os.getenv('META_APP_SECRET', '')
+WA_VERIFY_TOKEN = os.getenv('WA_VERIFY_TOKEN', '')
+WA_GRAPH_VERSION = os.getenv('WA_GRAPH_VERSION', 'v25.0')
+META_APP_ID = os.getenv('META_APP_ID', '')
+WA_SIGNUP_CONFIG_ID = os.getenv('WA_SIGNUP_CONFIG_ID', '')
+WA_TEST_RECIPIENTS = [n.strip() for n in os.getenv('WA_TEST_RECIPIENTS', '').split(',') if n.strip()]
+
+# El asistente funciona con reglas y plantillas cuando las claves están vacías.
+TYPESAFE_API_KEY = os.getenv('TYPESAFE_API_KEY', '')
+ASSISTANT_JEV_MODEL = os.getenv('ASSISTANT_JEV_MODEL', 'jev-1.13.0')
+ASSISTANT_DAILY_PER_PARTICIPANT = int(os.getenv('ASSISTANT_DAILY_PER_PARTICIPANT', '30'))
+WA_AGENT_REASONING_EFFORT = os.getenv('WA_AGENT_REASONING_EFFORT', '')
+WA_AGENT_TEMPERATURE = os.getenv('WA_AGENT_TEMPERATURE', '')
+
+# Opcional: con clave, las direcciones escritas se buscan en Google (entiende mejor la nomenclatura colombiana).
+GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY', '')
+# Sin clave de Google, las direcciones salen de Nominatim (OpenStreetMap, gratis, una consulta por segundo).
+NOMINATIM_ENABLED = os.getenv('NOMINATIM_ENABLED', '1').lower() not in ('0', 'false', 'no')
+# Servidores propios de OpenStreetMap para producción (vacíos: los públicos, solo para uso liviano).
+NOMINATIM_URL = os.getenv('NOMINATIM_URL', '').rstrip('/')
+PHOTON_URL = os.getenv('PHOTON_URL', '')

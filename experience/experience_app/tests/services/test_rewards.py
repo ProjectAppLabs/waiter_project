@@ -279,6 +279,7 @@ def test_confirmation_syncs_new_reward_before_reserving(table, rpc, sending):
     assert DinerReward.objects.get().state == 'reservado'
 
 
+# Falla si otra mesa consume el premio reservado tras un resultado incierto.
 def test_uncertain_order_reuses_reservation_and_another_session_cannot_spend_it(table, rpc, sending):
     # Falla si un reintento gasta otro premio o una segunda visita consume el premio reservado.
     session, ana, _ = table
@@ -288,7 +289,7 @@ def test_uncertain_order_reuses_reservation_and_another_session_cannot_spend_it(
         orders.confirm(session, ana)
     reward.refresh_from_db()
     assert reward.state == 'reservado' and reward.used_at is None
-    other_session = TableSession.objects.create(restaurant_slug=TABLE.restaurant_slug, venue_slug=TABLE.venue_slug)
+    other_session = TableSession.objects.create(restaurant_slug=TABLE.restaurant_slug, venue_slug=TABLE.venue_slug, table_token='otra-mesa')
     clone = Diner.objects.create(session=other_session, account=ana.account)
     sessions.add_line(other_session, clone, ANGUS, 1)
     orders.confirm(other_session, clone)

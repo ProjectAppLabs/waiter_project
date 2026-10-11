@@ -80,7 +80,13 @@ export interface Category { id: number; nombre: string; productos: Dish[] }
 // imagenesDeReferencia: algún plato con foto la tiene generada con IA. Opcional: una experience/ anterior no lo manda y la carta sigue igual, sin la nota.
 export interface Menu { restaurante: string; categorias: Category[]; imagenesDeReferencia?: boolean }
 export interface MenuBanner {layout:'product'|'promotion'|'category'|'image'|'notice';title:string;subtitle:string;button:string;target:'product'|'category'|'none';targetId:number|null;image:string;theme:'violet'|'amber'|'dark';active:boolean}
-export interface Entry { banners?: MenuBanner[] | null; contexto: Context; carta: Menu
+// Plan D: si la sede está abierta ahora según el horario del dueño (sin horario, siempre abierta) y cuándo abre.
+export interface OpeningStatus { configurado: boolean; abierto: boolean; cierra?: string; abre?: { cuando: string; hora: string; fecha: string } | null }
+// Plan D: `cobro` (distancia, fija o gratis), `recargo` (% en los platos a domicilio) y `gratis_desde` (envío gratis desde
+// ese valor en platos). `base`: la carta sin recargo cuando se muestran los precios para domicilio.
+export type FeeMode = 'distance' | 'flat' | 'free'
+export interface Entry { horario?: OpeningStatus; pedidos?: boolean; domicilio?: { enabled: boolean; buscador: boolean; centro?: { lat: number; lng: number }; radio_km?: number
+  cobro?: FeeMode; recargo?: number; gratis_desde?: number | null }; preciosDomicilio?: number; base?: Entry; banners?: MenuBanner[] | null; contexto: Context; carta: Menu
   // Plan W: módulos activos que afectan al comensal (menu_comensal, pagos_en_linea, fidelizacion, asistente_menu).
   modulos?: string[] }
 export interface Session { id: string; estado: string; mesa: number | null }
@@ -89,7 +95,18 @@ export interface CartLine { id: number; comensal: string; mio: boolean; producto
 export interface Discount {
   codigo?: string; error?: string;
   registrado?: boolean; porcentaje: number; monto: number; aplicable: boolean; aplicado: boolean }
-export interface Cart { sesion: string; lineas: CartLine[]; total: number; mio: number; por_comensal: { comensal: string; total: number }[]; descuento?: Discount }
+export interface Cart { sesion: string; lineas: CartLine[]; total: number; mio: number; por_comensal: { comensal: string; total: number }[]; descuento?: Discount
+  // Plan D: el envío y los datos del domicilio cuando la visita es sin mesa y ya se cotizó.
+  envio?: number; domicilio?: DeliveryQuote | null }
+// Plan D: un domicilio cotizado (coordenadas, dirección, envío y cómo se puede pagar).
+export type DeliveryMethod = 'online' | 'cash' | 'card_on_delivery'
+export interface DeliveryQuote {
+  lat: number; lng: number; direccion: string; indicaciones: string; telefono: string; nombre: string
+  envio: number; distancia_km: number; sede: { slug: string; nombre: string }; metodos: DeliveryMethod[]; minimo?: number; nota?: string
+  sugerida?: { slug: string; nombre: string } | null
+  envio_base?: number; recargo?: number; gratis_desde?: number | null
+}
+export interface SavedAddress { id: number; etiqueta: string; direccion: string; indicaciones: string; lat: number; lng: number }
 export type OrderState = 'pendiente_pago' | 'enviado' | 'en_cocina' | 'listo' | 'servido' | 'pagado' | 'fallido'
 export interface OrderStatus { recompensas?: DinerRewards; lineas?: AccountOrderLine[];
   descuento?: Pick<Discount, 'porcentaje' | 'monto' | 'aplicado'>; id: string; sesion: string; estado: OrderState; total: number; impuestos: number; intentos: number; detalle?: string }

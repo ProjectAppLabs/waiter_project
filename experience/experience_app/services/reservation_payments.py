@@ -11,7 +11,7 @@ from rest_framework.exceptions import NotFound, ValidationError
 from experience_app.adapters.core.pos import resolve
 from experience_app.models import PaymentAttempt
 from experience_app.payments import PROVIDERS
-from experience_app.payments.crypto import decrypt, encrypt
+from experience_app.payments.crypto import decrypt, encrypt, gateway_context
 from experience_app.services.online_payments import (
     ACTIVE,
     PaymentConflict,
@@ -63,7 +63,7 @@ def create(restaurant, venue, token, data):
     config = gateway_for(restaurant, venue)
     if not config:
         raise PaymentConflict('Los pagos en línea todavía no están habilitados para este restaurante.')
-    credentials = decrypt(config.secrets_cipher)
+    credentials = decrypt(config.secrets_cipher, gateway_context(config))
     if data['method'] == 'CARD' and not data['token'].startswith(f'tok_{config.environment}_'):
         raise ValidationError({'detail': 'La tarjeta no corresponde al ambiente de pago.'})
     provider = PROVIDERS[config.provider]

@@ -40,3 +40,12 @@ export interface Recharge { id: number; pack: string; name: string; quantity: nu
 export const requestRecharge = (pack: string) => coreFetch<{ charge: { id: number; amount: number; state: string } }>('recharges', { method: 'POST', body: { pack } })
 export const listRecharges = () => coreFetch<{ recharges: Recharge[] }>('recharges').then((r) => r.recharges)
 export const consumption = (period?: string) => coreFetch<Consumption>(`consumption${period ? `?period=${period}` : ''}`)
+
+// Plan D · Horario de atención de cada sede. Sin horario (`hours: null`) la sede atiende siempre.
+export interface OpeningStatus { configurado: boolean; abierto: boolean; cierra?: string; abre?: { cuando: string; hora: string; fecha: string } | null }
+export interface OpeningHoursBody { weekly: Record<string, [number, number][]>; overrides: { date: string; ranges: [number, number][]; note: string }[] }
+export interface OpeningHoursReply { hours: OpeningHoursBody | null; status: OpeningStatus }
+export const openingHours = (restaurantId: number) => coreFetch<OpeningHoursReply>(`restaurants/${restaurantId}/hours`)
+export const saveOpeningHours = (restaurantId: number, body: OpeningHoursBody) =>
+  coreFetch<OpeningHoursReply>(`restaurants/${restaurantId}/hours`, { method: 'PUT', body })
+export const removeOpeningHours = (restaurantId: number) => coreFetch<OpeningHoursReply>(`restaurants/${restaurantId}/hours`, { method: 'DELETE' })

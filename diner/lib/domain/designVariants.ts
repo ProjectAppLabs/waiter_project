@@ -14,6 +14,8 @@ export const COMPONENT_VARIANTS = {
   banners: { attribute: 'data-ds-banners', default: 'actual', values: ['actual', 'tema'] },
   // Plan L: tratamiento de las fotos (regla del sistema de diseño, verificada en el navegador).
   marcoImagen: { attribute: 'data-ds-marco-imagen', default: 'ninguno', values: ['ninguno', 'borde', 'sombra'] },
+  // Plan D: el mapa de domicilio toma los colores de la plantilla («marca») o un estilo fijo; siempre legible.
+  mapa: { attribute: 'data-ds-mapa', default: 'marca', values: ['marca', 'claro', 'oscuro', 'gris'] },
 } as const
 
 export const SCREEN_LAYOUTS = {

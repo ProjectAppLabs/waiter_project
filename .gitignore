@@ -118,6 +118,11 @@ Thumbs.db
 /diner/test-results/
 /diner/playwright-report/
 
+# landing (paquete propio)
+/landing/node_modules/
+/landing/.next/
+/landing/next-env.d.ts
+
 # Worktrees de agentes de la sesión
 .claude/worktrees/
 
@@ -126,6 +131,7 @@ Thumbs.db
 /registry/venv
 /pos/node_modules
 /diner/node_modules
+/landing/node_modules
 
 # Figma binario del kit del POS (215 MB): no se versiona
 *.fig

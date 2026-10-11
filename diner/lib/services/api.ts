@@ -1,13 +1,14 @@
 import axios from 'axios'
 import { isPreviewReadOnly, PREVIEW_MESSAGE } from '@/lib/domain/preview'
 
-import type { Account, AccountSummary, Bill, Cart, DesignContract, Entry, OrderStatus, PayMethod, PayScope, PayResult, RegisterForm, Session, Template, TemplateCatalog } from '@/lib/types'
+import type { Account, AccountSummary, Bill, Cart, DeliveryMethod, DeliveryQuote, SavedAddress, DesignContract, Entry, OrderStatus, PayMethod, PayScope, PayResult, RegisterForm, Session, Template, TemplateCatalog } from '@/lib/types'
 
 // Único punto de I/O del comensal: la API pública del bloque 3, por el proxy same-origin (/api → experience).
 export const http = axios.create({ baseURL: '', withCredentials: true, timeout: 15_000 })
 
 export class ApiError extends Error {
-  constructor(message: string, readonly status: number) { super(message) }
+  // `code`: el código de dominio del servidor (por ejemplo, «session_paid» o «restaurant_closed»).
+  constructor(message: string, readonly status: number, readonly code?: string) { super(message) }
 }
 
 http.interceptors.request.use(config => {
@@ -23,7 +24,7 @@ http.interceptors.response.use((r) => r, (error) => {
   // Los errores de dominio del restaurante llegan como {error, message} (p. ej. la caja cerrada); los de DRF, como {detail}.
   const data = error?.response?.data
   const text = [data?.message, data?.detail].find((value) => typeof value === 'string')
-  return Promise.reject(new ApiError(text ?? (status ? `Error ${status}` : 'Sin conexión'), status))
+  return Promise.reject(new ApiError(text ?? (status ? `Error ${status}` : 'Sin conexión'), status, typeof data?.error === 'string' ? data.error : undefined))
 })
 
 const base = (rest: string, venue: string, token: string | null) => `/api/v1/${rest}/${venue}/${token ? `t/${token}/` : ''}`
@@ -57,7 +58,7 @@ export async function updateLine(sessionId: string, lineId: number, patch: { can
 export async function removeLine(sessionId: string, lineId: number): Promise<Cart> {
   return (await http.delete<Cart>(`/api/v1/sesiones/${sessionId}/lineas/${lineId}/`)).data
 }
-export async function confirmOrder(sessionId: string, takeaway?: boolean, details?: {notas: string; alergenos: string}): Promise<{ pedido: string; estado: string; total: number; cuenta: Bill }> {
+export async function confirmOrder(sessionId: string, takeaway?: boolean, details?: {notas: string; alergenos: string; metodo_pago?: DeliveryMethod}): Promise<{ pedido: string; estado: string; total: number; cuenta: Bill }> {
   return (await http.post(`/api/v1/sesiones/${sessionId}/confirmar/`, details ? {...details, ...(takeaway === undefined ? {} : {para_llevar:takeaway})} : takeaway === undefined ? undefined : {para_llevar: takeaway})).data
 }
 export async function getOrder(orderId: string): Promise<OrderStatus> {
@@ -126,13 +127,16 @@ export interface ChatTurn {
   id: string
   mensaje: string
   respuesta: string
-  accion: 'preguntar' | 'recomendar' | 'cotizar' | 'agregar' | 'humano'
+  accion: 'preguntar' | 'recomendar' | 'cotizar' | 'agregar' | 'humano' | 'domicilio'
   opciones?: string[]
   selecciones?: ChatSelection[]
   carrito?: Cart
   resultado_carrito?: string
   lineas: { producto: number; cantidad: number; nombre: string; nota?: string }[]
+  aviso?: ChatNotice | null
 }
+// Plan AS: la escalera de avisos del asistente (recordatorio, advertencia, restricción, pausa y cupo del día).
+export interface ChatNotice { tipo: 'recordatorio' | 'advertencia' | 'restringido' | 'pausado' | 'cupo'; hasta: string | null }
 export async function getChat(sessionId: string): Promise<{ disponible: boolean; mensajes: ChatTurn[]; selecciones?: ChatSelection[] }> {
   return (await http.get(`/api/v1/sesiones/${sessionId}/asistente/`)).data
 }
@@ -141,10 +145,86 @@ export async function sendChat(sessionId: string, id: string, mensaje: string): 
 }
 
 export interface ChatSelection { message_id: string; product_id: number; qty: number }
-export async function addChatSelection(sessionId: string, mensaje: string, producto: number, cantidad: number, nota: string): Promise<{carrito: Cart; selecciones: ChatSelection[]}> {
+// Plan AS: tras añadir un plato fuerte, el mesero sugiere con qué acompañarlo (una pregunta, nunca un agregado solo).
+export interface ChatSuggestion { texto: string; opciones: string[] }
+export async function addChatSelection(sessionId: string, mensaje: string, producto: number, cantidad: number, nota: string): Promise<{carrito: Cart; selecciones: ChatSelection[]; sugerencia?: ChatSuggestion}> {
   return (await http.post(`/api/v1/sesiones/${sessionId}/asistente/agregar/`, {mensaje, producto, cantidad, nota}, {timeout: 45_000})).data
 }
 
 export async function newChat(sessionId: string): Promise<{disponible: boolean; mensajes: ChatTurn[]}> {
   return (await http.delete(`/api/v1/sesiones/${sessionId}/asistente/`)).data
+}
+
+// Plan AS: lo que el asistente aprendió del comensal en este restaurante; el comensal lo ve y lo borra.
+export interface AssistantMemory {
+  nombre: string
+  preferencias: { clave: string; nombre: string; veces: number }[]
+  favoritos: { producto: number; nombre: string }[]
+  ultimos: { producto: number; nombre: string }[]
+  alergias: string[]
+}
+const memoryUrl = (rest: string, venue: string) => `/api/v1/${encodeURIComponent(rest)}/${encodeURIComponent(venue)}/assistant/profile`
+interface RawMemory {
+  profile: { preferences: Record<string, number>; favorites: Record<string, number>; last_orders: { product_id: number; name: string }[]; allergens: string; name?: string }
+  labels: { preferences: Record<string, string>; products: Record<string, string> }
+}
+// El servidor guarda contadores por clave; aquí se ordenan por frecuencia y se ponen los nombres que manda.
+export function toMemory({ profile, labels }: RawMemory): AssistantMemory {
+  const byCount = (counts: Record<string, number>) => Object.entries(counts).sort(([a, x], [b, y]) => y - x || a.localeCompare(b))
+  const seen = new Set<number>()
+  return {
+    nombre: profile.name ?? '',
+    preferencias: byCount(profile.preferences).map(([clave, veces]) => ({ clave, nombre: labels.preferences[clave] ?? clave, veces })),
+    favoritos: byCount(profile.favorites).filter(([id]) => labels.products[id]).map(([id]) => ({ producto: Number(id), nombre: labels.products[id] })),
+    ultimos: profile.last_orders.filter((o) => !seen.has(o.product_id) && seen.add(o.product_id)).slice(0, 5).map((o) => ({ producto: o.product_id, nombre: o.name })),
+    alergias: profile.allergens.split(',').map((a) => a.trim()).filter(Boolean),
+  }
+}
+export async function getAssistantMemory(rest: string, venue: string): Promise<AssistantMemory> {
+  return toMemory((await http.get<RawMemory>(memoryUrl(rest, venue))).data)
+}
+export async function forgetAssistantMemory(rest: string, venue: string): Promise<void> {
+  await http.delete(memoryUrl(rest, venue))
+}
+
+// ---- Plan D: domicilios ---------------------------------------------------------------------------------------
+const org = (rest: string) => `/api/v1/${encodeURIComponent(rest)}`
+export type Coverage = { cobertura: true; sede: { slug: string; nombre: string }; distancia_km: number; envio: number; minimo: number; metodos: DeliveryMethod[]; nota?: string; gratis_desde?: number | null; recargo?: number }
+  | { cobertura: false; motivo: 'fuera_de_zona' | 'sin_domicilio'; recoger: { slug: string; nombre: string; direccion: string }[] }
+  // La sede que llega a la dirección está cerrada ahora (y ninguna abierta llega): `mensaje` dice cuándo abre.
+  | { cobertura: false; motivo: 'cerrado'; sede: { slug: string; nombre: string }; mensaje: string; recoger: { slug: string; nombre: string; direccion: string }[] }
+export async function quoteDelivery(rest: string, lat: number, lng: number): Promise<Coverage> {
+  return (await http.post(`${org(rest)}/domicilio/cotizar`, { lat, lng })).data
+}
+// Buscar una dirección escrita. Sin la clave de mapas del servidor responde 503 y el buscador se oculta.
+// Una consulta por búsqueda. `fueraDeCobertura`: la dirección existe pero lejos de todas las sedes con domicilio.
+export async function searchAddress(rest: string, texto: string): Promise<{ resultados: { texto: string; lat: number; lng: number; exacta?: boolean }[]; fueraDeCobertura: boolean }> {
+  const data = (await http.post<{ resultados: { texto: string; lat: number; lng: number; exacta?: boolean }[]; fuera_de_cobertura?: boolean }>(`${org(rest)}/domicilio/buscar`, { texto })).data
+  return { resultados: data.resultados ?? [], fueraDeCobertura: !!data.fuera_de_cobertura }
+}
+export interface DeliveryForm { lat: number; lng: number; direccion: string; indicaciones: string; telefono: string; nombre: string; etiqueta?: string; direccion_id?: number; guardar: boolean; acepta_datos: boolean; place_id?: string }
+export async function setDelivery(sessionId: string, form: DeliveryForm): Promise<{ domicilio: DeliveryQuote; carrito: Cart }> {
+  return (await http.put(`/api/v1/sesiones/${sessionId}/domicilio`, form)).data
+}
+export async function savedAddresses(rest: string): Promise<SavedAddress[]> {
+  const raw = (await http.get<{ direcciones: { id: number; label: string; text: string; details: string; latitude: number; longitude: number }[] }>(`${org(rest)}/domicilio/direcciones`)).data
+  return (raw.direcciones ?? []).map((a) => ({ id: a.id, etiqueta: a.label, direccion: a.text, indicaciones: a.details, lat: Number(a.latitude), lng: Number(a.longitude) }))
+}
+export async function deleteAddress(rest: string, id: number): Promise<void> { await http.delete(`${org(rest)}/domicilio/direcciones/${id}`) }
+export async function revokeData(rest: string): Promise<void> { await http.delete(`${org(rest)}/datos`) }
+// Plan D: el enlace de pago de un pedido hecho por WhatsApp; abre esa visita en este navegador.
+export async function openPayLink(token: string): Promise<{ restaurante: string; sede: string }> {
+  return (await http.get(`/api/v1/domicilio/pagar/${encodeURIComponent(token)}`)).data
+}
+// El enlace «Ubica la entrega» que llega por WhatsApp.
+export async function getLocateLink(token: string): Promise<{ restaurante: string; sede?: { slug: string; nombre: string }; expires_at?: string; usado?: boolean }> {
+  return (await http.get(`/api/v1/domicilio/ubicar/${encodeURIComponent(token)}`)).data
+}
+export async function sendLocateLink(token: string, body: { lat: number; lng: number; direccion: string; indicaciones: string }): Promise<{ ok: boolean; cobertura: boolean | null }> {
+  const r = (await http.post<{ ok: boolean; cotizacion?: { cobertura?: boolean } }>(`/api/v1/domicilio/ubicar/${encodeURIComponent(token)}`, body)).data
+  return { ok: r.ok, cobertura: r.cotizacion?.cobertura ?? null }
+}
+// La dirección aproximada del punto donde quedó el pin (vacía si el proveedor no responde).
+export async function reverseAddress(rest: string, lat: number, lng: number): Promise<string> {
+  return (await http.post<{ texto: string }>(`${org(rest)}/domicilio/direccion`, { lat, lng })).data.texto ?? ''
 }

@@ -31,7 +31,8 @@ it('ofrece recuperar el carrito y empezar un pedido vacío', async () => {
   expect(mockPush).toHaveBeenCalledWith('/demo/salon/carta')
 })
 
-// Falla si el comensal no puede ajustar sus platos o si la cocina pierde las notas, alergias y modalidad al confirmar.
+// Falla si el comensal no puede ajustar sus platos, si las notas y alergias no están en Mi pedido o si la cocina las pierde
+// (o la modalidad) al confirmar.
 it('ajusta platos y confirma para llevar con las alergias revisadas', async () => {
   const cantidad = jest.fn().mockResolvedValue(undefined), quitar = jest.fn().mockResolvedValue(undefined)
   const confirmar = jest.fn().mockResolvedValue('pedido-1')
@@ -43,12 +44,14 @@ it('ajusta platos y confirma para llevar con las alergias revisadas', async () =
   pulsar('Ver opciones de pago')
   expect(mockPush).toHaveBeenCalledWith('/demo/salon/pago')
   mockPush.mockClear()
-  pulsar('Continuar al pago')
-  const dialogo = screen.getByRole('dialog')
-  expect(within(dialogo).getByLabelText(/Alergias/)).toHaveValue('Maní')
-  pulsar('Para llevar')
+  // Las notas y alergias se escriben en Mi pedido, junto a los platos (no en el diálogo de la entrega).
+  expect(screen.getByLabelText(/Alergias/)).toHaveValue('Maní')
   fireEvent.change(screen.getByLabelText(/Notas para/), { target: { value: ' Salsa aparte ' } })
   fireEvent.change(screen.getByLabelText(/Alergias/), { target: { value: ' Leche ' } })
+  pulsar('Continuar al pago')
+  const dialogo = screen.getByRole('dialog')
+  expect(within(dialogo).queryByLabelText(/Alergias/)).toBeNull()
+  pulsar('Para llevar')
   await act(async () => fireEvent.click(within(dialogo).getByRole('button', { name: 'Continuar al pago' })))
   expect(confirmar).toHaveBeenCalledWith(true, { notas: 'Salsa aparte', alergenos: 'Leche' })
   expect(dialogo).not.toHaveAttribute('open')
@@ -173,4 +176,85 @@ it('simula el consumo personal con el método elegido y ofrece pagar con el mese
   expect(mockPush).toHaveBeenLastCalledWith('/demo/salon/recompensas')
   vista.unmount()
   expect(reiniciar).toHaveBeenCalledTimes(1)
+})
+
+// Falla si una visita sin mesa no ofrece el domicilio, si deja confirmar sin cotizar ni escoger cómo pagar, si el
+// Falla si el domicilio no va en dos pasos (primero nombre, celular, dirección y la autorización del tratamiento de
+// datos; luego el detalle con la dirección para confirmarla, platos, envío y total, y el medio de pago), si «Cambiar»
+// no vuelve a los datos o si pagar contra entrega no confirma con ese método y lleva al estado del pedido.
+it('pide a domicilio en dos pasos y paga contra entrega', async () => {
+  const api = jest.requireMock('@/lib/services/api')
+  api.getVenueLocation.mockResolvedValue({ direccion: 'Calle 10', latitud: 6.2, longitud: -75.5 })
+  const cotizado = { lat: 6.21, lng: -75.57, direccion: 'Calle 9 # 40-10', indicaciones: 'Apto 301', telefono: '+573001234567', nombre: 'Ana',
+    envio: 5000, distancia_km: 2.4, sede: { slug: 'salon', nombre: 'El Poblado' }, metodos: ['online', 'cash'], minimo: 0 }
+  api.setDelivery.mockResolvedValue({ domicilio: cotizado, carrito: { ...carrito, total: 29000, envio: 5000, domicilio: cotizado } })
+  api.quoteDelivery.mockResolvedValue({ cobertura: true, sede: { slug: 'salon', nombre: 'El Poblado' }, distancia_km: 2.4, envio: 5000, minimo: 0, metodos: ['online', 'cash'] })
+  const confirmar = jest.fn().mockResolvedValue('pedido-9')
+  useDinerStore.setState({ cart: carrito, confirm: confirmar, session: { id: 'visita', estado: 'abierta', mesa: null }, entry: { domicilio: { enabled: true, buscador: false }, contexto: { mesa: null }, carta: { categorias: [] } } as unknown as Entry })
+  Object.defineProperty(navigator, 'geolocation', { configurable: true, value: { getCurrentPosition: (ok: (p: unknown) => void) => ok({ coords: { latitude: 6.21, longitude: -75.57 } }) } })
+  render(<SmartCart />)
+  pulsar('Continuar al pago')
+  expect(screen.queryByRole('button', { name: 'Comer aquí' })).toBeNull()
+  pulsar('A domicilio')
+  const dialogo = screen.getByRole('dialog')
+  expect(within(dialogo).queryByLabelText(/Notas para tus platos/)).toBeNull()
+  const campos = within(dialogo).getAllByRole('textbox').map((c) => c.closest('label')?.querySelector('span')?.textContent)
+  expect(campos.slice(0, 3)).toEqual(['Nombre', 'Celular', 'Dirección'])
+  const seguir = () => within(dialogo).getByRole('button', { name: 'Continuar al pago' })
+  expect(seguir()).toBeDisabled()
+  pulsar('Usar mi ubicación actual')
+  fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Ana' } })
+  fireEvent.change(screen.getByLabelText('Celular'), { target: { value: '300 123 4567' } })
+  fireEvent.change(screen.getByLabelText('Dirección'), { target: { value: 'Calle 9 # 40-10' } })
+  fireEvent.change(screen.getByLabelText(/Indicaciones/), { target: { value: 'Apto 301' } })
+  expect(seguir()).toBeDisabled()
+  expect(within(dialogo).getByRole('link', { name: 'tratamiento de datos' })).toHaveAttribute('href', '/demo/privacidad')
+  fireEvent.click(screen.getByLabelText(/Acepto el tratamiento de datos/))
+  expect(within(dialogo).queryByRole('button', { name: 'Calcular envío' })).toBeNull()
+  await act(async () => fireEvent.click(seguir()))
+  expect(api.setDelivery).toHaveBeenCalledWith('visita', expect.objectContaining({ lat: 6.21, lng: -75.57, direccion: 'Calle 9 # 40-10', telefono: '300 123 4567', guardar: false, acepta_datos: true }))
+  expect(await within(dialogo).findByText('¿Es correcta la dirección?')).toBeInTheDocument()
+  expect(within(dialogo).getByText('Calle 9 # 40-10')).toBeInTheDocument()
+  expect(within(dialogo).getByText('Ana · 3001234567')).toBeInTheDocument()
+  expect(within(dialogo).getByText('$ 5.000')).toBeInTheDocument()
+  expect(within(dialogo).getByText('$ 29.000')).toBeInTheDocument()
+  pulsar('Cambiar dirección o datos')
+  expect(within(dialogo).getByLabelText('Dirección')).toHaveValue('Calle 9 # 40-10')
+  await act(async () => fireEvent.click(seguir()))
+  expect(within(dialogo).getByRole('button', { name: 'Escoge cómo pagar' })).toBeDisabled()
+  fireEvent.click(screen.getByRole('radio', { name: 'Efectivo al recibir' }))
+  await act(async () => fireEvent.click(within(dialogo).getByRole('button', { name: 'Confirmar pedido' })))
+  expect(confirmar).toHaveBeenCalledWith(false, { notas: '', alergenos: '', metodo_pago: 'cash' })
+  expect(mockPush).toHaveBeenCalledWith('/demo/salon/estado/pedido-9')
+})
+
+// Falla si se puede seguir sin aceptar el tratamiento de datos (también al guardar la dirección).
+it('no sigue sin la autorización de datos', async () => {
+  const api = jest.requireMock('@/lib/services/api')
+  api.getVenueLocation.mockResolvedValue({ direccion: '', latitud: null, longitud: null })
+  useDinerStore.setState({ cart: carrito, session: { id: 'visita', estado: 'abierta', mesa: null }, entry: { domicilio: { enabled: true, buscador: false }, contexto: { mesa: null }, carta: { categorias: [] } } as unknown as Entry })
+  Object.defineProperty(navigator, 'geolocation', { configurable: true, value: { getCurrentPosition: (ok: (p: unknown) => void) => ok({ coords: { latitude: 6.21, longitude: -75.57 } }) } })
+  render(<SmartCart />)
+  pulsar('Continuar al pago'); pulsar('A domicilio'); pulsar('Usar mi ubicación actual')
+  const dialogo = screen.getByRole('dialog')
+  fireEvent.change(screen.getByLabelText('Dirección'), { target: { value: 'Calle 9' } })
+  fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Ana' } })
+  fireEvent.change(screen.getByLabelText('Celular'), { target: { value: '3001234567' } })
+  fireEvent.click(screen.getByLabelText('Guardar esta dirección para la próxima'))
+  expect(within(dialogo).getByRole('button', { name: 'Continuar al pago' })).toBeDisabled()
+  fireEvent.click(screen.getByLabelText(/Acepto el tratamiento de datos/))
+  expect(within(dialogo).getByRole('button', { name: 'Continuar al pago' })).toBeEnabled()
+})
+
+// Falla si al llegar de otra sede con su pedido no se reabre la confirmación en domicilio (el cliente venía pagando).
+it('reabre la confirmación en domicilio al llegar con el pedido', async () => {
+  const api = jest.requireMock('@/lib/services/api')
+  api.getVenueLocation.mockResolvedValue({ direccion: '', latitud: 5.8, longitud: -73 })
+  useDinerStore.setState({ cart: carrito, reopenDelivery: true, deliveryDraft: { lat: 5.83, lng: -73.03, direccion: 'Calle 15' },
+    entry: { domicilio: { enabled: true, buscador: false }, contexto: { mesa: null }, carta: { categorias: [] } } as unknown as Entry })
+  render(<SmartCart />)
+  await waitFor(() => expect(screen.getByRole('dialog')).toHaveAttribute('open'))
+  expect(screen.getByRole('button', { name: 'A domicilio' })).toHaveAttribute('aria-pressed', 'true')
+  expect(screen.getByLabelText('Dirección')).toHaveValue('Calle 15')
+  expect(useDinerStore.getState().reopenDelivery).toBe(false)
 })

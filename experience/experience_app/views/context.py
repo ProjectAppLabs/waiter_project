@@ -40,4 +40,21 @@ def entry(request, restaurant, venue, token=None):
             if product['id'] in scores:
                 product['valoracion'] = scores[product['id']]
     from experience_app.services.banners import for_menu
-    return Response({'modulos': modulos, 'contexto': _context(tenant), 'carta': menu, 'banners': for_menu(tenant, menu)})
+    from django.conf import settings
+    from delivery.models import DeliverySettings
+    from delivery import geocoding
+    own = DeliverySettings.objects.filter(restaurant=local, enabled=True).first() if local else None
+    delivery = {'enabled': bool(own), 'buscador': bool(geocoding.provider())}
+    if own:
+        # Plan D: cómo se cobra el envío y el recargo de los platos a domicilio (la carta los muestra en modo domicilio).
+        delivery.update(cobro=own.fee_mode, recargo=float(own.markup_percent), gratis_desde=float(own.free_from) or None)
+    if own and local.latitude is not None and local.longitude is not None:
+        # Plan D: el mapa del comensal solo se mueve dentro de la zona de entrega de esta sede.
+        delivery.update(centro={'lat': float(local.latitude), 'lng': float(local.longitude)}, radio_km=float(own.radius_km))
+    # Plan D: si la sede está abierta ahora y cuándo abre o cierra (horario de atención que define el dueño).
+    from tenancy.hours import status as opening
+    horario = opening(local) if local else {'configurado': False, 'abierto': True}
+    # Si la sede recibe pedidos ahora (caja abierta en el POS): sin caja, el menú lo dice antes de pedir los datos.
+    from tenancy.hours import receiving
+    pedidos = receiving(local) if local else False
+    return Response({'pedidos': pedidos, 'horario': horario, 'domicilio': delivery, 'modulos': modulos, 'contexto': _context(tenant), 'carta': menu, 'banners': for_menu(tenant, menu)})

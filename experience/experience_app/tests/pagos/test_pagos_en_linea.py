@@ -236,8 +236,12 @@ def test_identificador_existente_no_admite_cambiar_pagador_o_medio(escenario, ca
 def test_produccion_valida_contabilidad_antes_de_crear(escenario, settings):
     sesion, comensal, _, _, pasarela = escenario
     settings.PAYMENTS_LIVE_ENABLED = True
+    from experience_app.payments.crypto import decrypt, encrypt, gateway_context
+    secretos = decrypt(pasarela.secrets_cipher, gateway_context(pasarela))
     pasarela.environment = 'prod'
     pasarela.payment_method_id = 2
+    # Las credenciales van atadas a su ambiente: al pasar la pasarela a producción se vuelven a cifrar para él.
+    pasarela.secrets_cipher = encrypt(secretos, gateway_context(pasarela))
     pasarela.save()
     with patch.object(servicio, 'Client') as cliente, patch.object(wompi, 'create', return_value={}) as crear:
         def enviar(*argumentos):

@@ -31,3 +31,63 @@
 .sm-account-edit textarea { width:100%; resize:vertical; min-height:96px; }
 .smart-menu .sm-fulfillment-dialog { background:var(--sm-surface,#fff); }
 .smart-menu .sm-order-details textarea:focus,.smart-menu .sm-account-edit textarea:focus { outline:2px solid var(--sm-accent); outline-offset:1px; box-shadow:none; border-color:transparent; }
+/* Plan D: la hoja de domicilio y el mapa para ubicar la entrega. */
+.sm-delivery { display:flex; flex-direction:column; gap:var(--ds-espacio-10); margin:var(--ds-espacio-12) 0; }
+.sm-delivery h3 { margin:0; font-size:calc(17px * var(--ds-texto)); }
+.sm-delivery-actions { display:flex; flex-wrap:wrap; gap:var(--ds-espacio-8); }
+.sm-delivery-actions .sm-secondary { display:inline-flex; align-items:center; gap:var(--ds-espacio-6); }
+.sm-delivery-search { display:flex; align-items:flex-end; gap:var(--ds-espacio-8); }
+.sm-delivery-search .sm-field { flex:1; margin:0; }
+.sm-delivery-results { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:var(--ds-espacio-4); }
+.sm-delivery-results button { width:100%; text-align:left; padding:var(--ds-espacio-10); border:1px solid var(--sm-border); border-radius:calc(12px * var(--ds-forma-boton)); background:var(--sm-surface); color:var(--sm-ink); font-size:calc(14px * var(--ds-texto)); cursor:pointer; }
+.sm-delivery-pair { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:var(--ds-espacio-8); }
+.sm-delivery-quote { padding:var(--ds-espacio-12); border:1px solid var(--sm-border); border-radius:calc(14px * var(--ds-forma-tarjeta)); background:var(--sm-surface); font-size:calc(15px * var(--ds-texto)); }
+.sm-delivery-quote p { margin:0 0 var(--ds-espacio-6); }
+.sm-delivery-methods { border:0; margin:var(--ds-espacio-8) 0 0; padding:0; display:flex; flex-direction:column; gap:var(--ds-espacio-6); }
+.sm-delivery-methods legend { font-weight:600; margin-bottom:var(--ds-espacio-6); }
+.sm-check { display:flex; align-items:flex-start; gap:var(--ds-espacio-8); font-size:calc(14px * var(--ds-texto)); line-height:1.45; }
+.sm-check input { margin-top:var(--ds-espacio-2); flex-shrink:0; }
+.sm-map { width:100%; height:240px; border-radius:calc(14px * var(--ds-forma-tarjeta)); overflow:hidden; border:1px solid var(--sm-border); background:var(--sm-surface); z-index:0; }
+/* El pin fijo en el centro (como en las apps de transporte): se levanta al mover el mapa y cae con un rebote al soltar. */
+.sm-map-wrap { position:relative; }
+.sm-map-pin { position:absolute; left:50%; top:50%; z-index:3; width:32px; height:40px; translate:-50% -100%; pointer-events:none; animation:sm-pin-drop .45s cubic-bezier(.3,1.6,.5,1); }
+.sm-map-pin > span { display:block; width:32px; height:32px; border-radius:50% 50% 50% 0; background:var(--sm-map-pin, var(--sm-accent)); border:3px solid var(--sm-map-pin-ring, #fff); transform:rotate(-45deg); box-shadow:0 3px 10px #19193250; }
+.sm-map-pin.is-lifting { animation:none; transform:translateY(-14px); transition:transform .15s ease-out; }
+.sm-map-pin-shadow { position:absolute; left:50%; top:50%; z-index:2; width:14px; height:5px; translate:-50% -50%; border-radius:50%; background:#19193255; pointer-events:none; transition:transform .15s ease-out, opacity .15s; }
+.sm-map-pin-shadow.is-lifting { transform:scale(1.6); opacity:.5; }
+@keyframes sm-pin-drop { 0% { transform:translateY(-14px); } 60% { transform:translateY(2px); } 80% { transform:translateY(-3px); } 100% { transform:translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .sm-map-pin, .sm-map-pin.is-lifting { animation:none; transform:none; transition:none; } }
+.sm-map-address { display:flex; gap:var(--ds-espacio-6); align-items:flex-start; font-size:calc(14px * var(--ds-texto)); line-height:1.4; margin:0; }
+/* Plan D: la dirección se busca con un botón (una consulta por búsqueda) y, si hay varias, se escoge una. */
+.sm-address-row { display:flex; align-items:flex-end; gap:var(--ds-espacio-8); }
+.sm-address-row .sm-field { flex:1; margin:0; }
+.sm-address-results { display:flex; flex-direction:column; gap:var(--ds-espacio-6); margin-top:var(--ds-espacio-8); }
+.sm-address-results button { text-align:left; padding:var(--ds-espacio-10); border:1px solid var(--sm-border); border-radius:calc(12px * var(--ds-forma-boton)); background:var(--sm-surface); color:var(--sm-ink); font-size:calc(15px * var(--ds-texto)); cursor:pointer; min-height:44px; }
+/* Variantes del mapa (variantes.mapa del sistema de diseño): el color de espera mientras carga coincide con el estilo. */
+.sm-map-wrap { --sm-map-espera: var(--t-fondo, #F2EFE9); }
+.sm-map-wrap .sm-map { background:var(--sm-map-espera); }
+[data-ds-mapa="claro"] .sm-map-wrap { --sm-map-espera: #F2EFE9; }
+[data-ds-mapa="oscuro"] .sm-map-wrap { --sm-map-espera: #1F2023; }
+[data-ds-mapa="gris"] .sm-map-wrap { --sm-map-espera: #EDEDED; }
+.sm-map-fallback { position:absolute; inset:auto var(--ds-espacio-8) var(--ds-espacio-8); z-index:2; margin:0; padding:var(--ds-espacio-8); border-radius:calc(10px * var(--ds-forma-tarjeta)); background:var(--sm-surface); font-size:calc(14px * var(--ds-texto)); }
+/* Plan D: el aviso de cambio de sede (por qué se le llevó a esta sede o que otra le queda más cerca). */
+.sm-venue-notice { position:fixed; top:calc(var(--ds-espacio-12) + env(safe-area-inset-top)); left:var(--ds-espacio-16); right:var(--ds-espacio-16); z-index:60; max-width:480px; margin:0 auto; display:flex; align-items:flex-start; gap:var(--ds-espacio-8); animation:sm-chat-enter .24s ease-out; padding:var(--ds-espacio-12); border-radius:calc(14px * var(--ds-forma-tarjeta)); background:var(--sm-surface); border:1px solid var(--sm-border); box-shadow:0 8px 24px #19193220; font-size:calc(15px * var(--ds-texto)); line-height:1.45; }
+.sm-venue-notice span { flex:1; }
+.sm-venue-notice button { flex-shrink:0; width:44px; height:44px; border:0; border-radius:50%; background:transparent; color:var(--sm-ink); font-size:calc(22px * var(--ds-texto)); cursor:pointer; }
+/* Plan D: la sede está cerrada según su horario. Fijo arriba al bajar por la carta; los colores son los de .sm-note. */
+.sm-closed-banner { position:sticky; top:calc(var(--ds-espacio-8) + env(safe-area-inset-top)); z-index:20; box-shadow:0 6px 18px #19193218; display:flex; flex-direction:column; gap:var(--ds-espacio-4); margin:var(--ds-espacio-12) 0; padding:var(--ds-espacio-12) var(--ds-espacio-16); border-radius:calc(14px * var(--ds-forma-tarjeta)); font-size:calc(14px * var(--ds-texto)); line-height:1.45; }
+.sm-closed-banner strong { color:var(--sm-ink); font-size:calc(15px * var(--ds-texto)); }
+/* Plan D: aviso de precios para domicilio (recargo del dueño). Solo distribución: los colores son los de .sm-note. */
+.sm-delivery-prices { margin:var(--ds-espacio-12) 0; padding:var(--ds-espacio-10) var(--ds-espacio-16); border-radius:calc(14px * var(--ds-forma-tarjeta)); font-size:calc(14px * var(--ds-texto)); line-height:1.45; }
+/* Plan D: segundo paso del domicilio (revisa y paga). Solo distribución: los colores son los del diálogo y de .sm-delivery-quote. */
+.sm-delivery-review { display:flex; flex-direction:column; gap:var(--ds-espacio-12); text-align:left; }
+.sm-delivery-review h3 { font-size:calc(16px * var(--ds-texto)); font-weight:600; margin-top:var(--ds-espacio-8); }
+.sm-review-label { font-size:calc(14px * var(--ds-texto)); font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+.sm-review-lines { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:var(--ds-espacio-8); }
+.sm-review-lines li, .sm-review-totals > div { display:flex; justify-content:space-between; gap:var(--ds-espacio-12); font-size:calc(15px * var(--ds-texto)); }
+.sm-review-totals { display:flex; flex-direction:column; gap:var(--ds-espacio-6); margin:0; padding-top:var(--ds-espacio-12); border-top:1px solid var(--sm-border); }
+.sm-review-totals dd { margin:0; font-weight:600; }
+.sm-review-total { font-size:calc(18px * var(--ds-texto)); font-weight:700; }
+.sm-review-total dt, .sm-review-total dd { font-size:calc(18px * var(--ds-texto)); font-weight:700; }
+/* El enlace a la política dentro de una casilla se ve como enlace y no desalinea el texto. */
+.smart-menu .sm-check a { display:inline; min-height:0; padding:0; color:inherit; font-weight:600; text-decoration:underline; text-underline-offset:2px; }

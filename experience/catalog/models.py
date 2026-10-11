@@ -58,7 +58,7 @@ class Supplier(Owned):
 
 class Product(Owned):
     name = models.CharField(max_length=200)
-    kind = models.CharField(max_length=10, choices=choices('dish', 'ingredient'))
+    kind = models.CharField(max_length=10, choices=choices('dish', 'ingredient', 'service'))
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     legacy_odoo_template_id = models.PositiveIntegerField(null=True, blank=True)

@@ -10,7 +10,19 @@ from experience_app.views.sessions import diner_for
 
 @api_view(['POST'])
 def confirm(request, session_id):
+    from django.conf import settings
+    from tenancy.http import require
+    origin = request.headers.get('Origin')
+    require(not origin or origin.rstrip('/') == settings.DINER_PUBLIC_URL, 'El origen de la petición no está permitido.', 'invalid_origin', 403)
     session = get_object_or_404(TableSession, id=session_id, state__in=TableSession.OPEN_STATES)
+    # Plan D: fuera del horario de atención de la sede no se confirman pedidos desde el menú (el POS sigue atendiendo).
+    from tenancy.hours import closed_message, status
+    from tenancy.models import Restaurant
+    local = Restaurant.objects.select_related('organization').filter(organization__slug=session.restaurant_slug, slug=session.venue_slug).first()
+    if local:
+        info = status(local)
+        if not info['abierto']:
+            return Response({'error': 'restaurant_closed', 'detail': closed_message(local.name, info), 'horario': info}, status=409)
     # Quien confirma es quien puede llevar el descuento de primera compra (sobre SUS líneas).
     diner = diner_for(request, session)
     takeaway = request.data.get('para_llevar') if isinstance(request.data, dict) else None
@@ -21,7 +33,7 @@ def confirm(request, session_id):
         if key in data and (not isinstance(data[key], str) or len(data[key]) > 500):
             return Response({'detail': 'Las notas y alérgenos admiten hasta 500 caracteres cada uno'}, status=400)
     order, created = orders.confirm(session, diner, takeaway=takeaway, prepay=True,
-                                    checkout_note=data['notas'].strip() if 'notas' in data else None,
+                                    delivery_payment=data.get('metodo_pago'), checkout_note=data['notas'].strip() if 'notas' in data else None,
                                     allergens=data['alergenos'].strip() if 'alergenos' in data else None)
     return Response({'pedido': str(order.id), 'estado': 'pendiente_pago' if order.requires_payment else 'enviado', 'total': float(order.total or 0), 'cuenta': {'ok': False, **sessions.bill_summary(session, diner)}}, status=201 if created else 200)
 

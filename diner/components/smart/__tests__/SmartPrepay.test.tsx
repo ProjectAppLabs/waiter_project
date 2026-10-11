@@ -23,11 +23,13 @@ it('shows pending payment without a preparation timeline',()=>{
 it('prefills profile allergens and sends this order notes and edits',async()=>{
  const confirm=jest.fn().mockResolvedValue('order')
  useDinerStore.setState({confirm,account:{id:'ana',nombre:'Ana',correo:'ana@example.com',verificada:true,alergenos:'Maní'}})
- render(<SmartCart/>);fireEvent.click(screen.getByRole('button',{name:'Continuar al pago'}))
+ render(<SmartCart/>)
+ // Las notas y alergias están en Mi pedido, antes de abrir la confirmación.
+ expect(screen.getByLabelText('Alergias y alérgenos (opcional)')).toHaveValue('Maní')
+ fireEvent.change(screen.getByLabelText('Notas para tus platos (opcional)'),{target:{value:'Salsa aparte'}})
+ fireEvent.change(screen.getByLabelText('Alergias y alérgenos (opcional)'),{target:{value:'Maní y huevo'}})
+ fireEvent.click(screen.getByRole('button',{name:'Continuar al pago'}))
  const dialog=screen.getByRole('dialog')
- expect(within(dialog).getByLabelText('Alergias y alérgenos (opcional)')).toHaveValue('Maní')
- fireEvent.change(within(dialog).getByLabelText('Notas para tus platos (opcional)'),{target:{value:'Salsa aparte'}})
- fireEvent.change(within(dialog).getByLabelText('Alergias y alérgenos (opcional)'),{target:{value:'Maní y huevo'}})
  fireEvent.click(within(dialog).getByRole('button',{name:'Continuar al pago'}))
  await waitFor(()=>expect(confirm).toHaveBeenCalledWith(false,{notas:'Salsa aparte',alergenos:'Maní y huevo'}))
  expect(useDinerStore.getState().account?.alergenos).toBe('Maní')

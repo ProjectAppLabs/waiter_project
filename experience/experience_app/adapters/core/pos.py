@@ -72,7 +72,7 @@ def catalog_session(client, config_id):
 def ensure_open_session(client, config_id):
     catalog_session(client, config_id)
     shift = CashShift.objects.filter(restaurant=client.restaurant, state='open').first()
-    require(shift, 'El restaurante no está recibiendo pedidos en este momento', 'restaurant_closed', 409)
+    require(shift, 'Por ahora no tenemos abierto. Podrás pedir cuando abramos.', 'restaurant_closed', 409)
     return shift.pk
 
 
@@ -171,7 +171,7 @@ def status_for(order):
 
 
 @audited
-def create_order(client, *, pos_session_id, table_id, order_uuid, guests, lines, date_order, requires_payment=True):
+def create_order(client, *, pos_session_id, table_id, order_uuid, guests, lines, date_order, requires_payment=True, delivery=None, delivery_minimum=Decimal(0)):
     from loyalty.models import LoyaltyCard
     from loyalty.services import coupon_quote
     with sales.writing(client.organization, client.restaurant):
@@ -228,6 +228,9 @@ def create_order(client, *, pos_session_id, table_id, order_uuid, guests, lines,
                     order.customer = cards[line.loyalty_card_id].customer
             row.coupon_code = line.coupon_code
             row.save()
+        if delivery:
+            from delivery.services import apply_order
+            apply_order(order, delivery, delivery_minimum)
         sales.recalculate(order)
         return order_view(order)
 

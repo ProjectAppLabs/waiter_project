@@ -1,4 +1,4 @@
-import { hasModule, moduleForPath } from '@/lib/domain/modules'
+import { hasModule, moduleForPath, pathEnabled } from '@/lib/domain/modules'
 import { adminSubtabsFor, tabsFor } from '@/lib/domain/navigation'
 
 // Falla si un servidor que todavía no manda módulos apaga secciones (todo debe seguir como antes), o si el núcleo se
@@ -27,4 +27,13 @@ it('cada pantalla de módulo tiene su módulo', () => {
   expect(moduleForPath('/organizacion/pagos')).toBe('pagos_en_linea')
   expect(moduleForPath('/pedidos')).toBeNull()
   expect(moduleForPath('/organizacion/consumo')).toBeNull()
+})
+
+// Falla si la página del asistente se cierra a quien tiene solo uno de los dos módulos del asistente, o se abre sin ninguno.
+it('abre el asistente con el módulo del menú o con el de WhatsApp', () => {
+  expect(pathEnabled(['asistente_whatsapp'], '/organizacion/asistente')).toBe(true)
+  expect(pathEnabled(['asistente_menu'], '/organizacion/asistente')).toBe(true)
+  expect(pathEnabled(['salon'], '/organizacion/asistente')).toBe(false)
+  expect(pathEnabled(['salon'], '/organizacion/whatsapp')).toBe(false)
+  expect(pathEnabled(['salon'], '/organizacion/equipo')).toBe(true)
 })

@@ -7,11 +7,17 @@ import type { OrderLocation } from '@/lib/domain/orderLocation'
 import type { KitOrder, KitStatus } from '@/lib/domain/orderState'
 import { formatCop } from '@/lib/domain/money'
 import { Button } from '@/components/ui/Button'
+import { DeliveryBadge } from '@/components/orders/DeliveryPanel'
+import { cn } from '@/lib/utils'
 
 export function CashierOrderCard({ order, location, status, mayCharge }: { order: KitOrder; location?: OrderLocation; status: KitStatus; mayCharge: boolean }) {
   const t = useTranslations('orders')
-  return <article aria-label={`Cuenta ${order.number}`} className="rounded-lg border border-border bg-surface/80 p-4 flex flex-col gap-3">
-    <OrderHeadline order={order} /><CustomerRow order={order} />
+  // Plan D: el domicilio se reconoce de lejos en caja por su color, su insignia y la dirección.
+  const delivery = order.type === 'delivery'
+  return <article aria-label={`${delivery ? 'Domicilio' : 'Cuenta'} ${order.number}`} data-delivery={delivery || undefined}
+    className={cn('rounded-lg border p-4 flex flex-col gap-3', delivery ? 'border-delivery border-2 bg-delivery-soft' : 'border-border bg-surface/80')}>
+    <OrderHeadline order={order} /><CustomerRow order={order} /><DeliveryBadge order={order} />
+    {delivery && order.delivery?.address && <p className="text-sm text-ink line-clamp-2">{order.delivery.address}</p>}
     {location && <OrderLocationRow location={location} />}
     <span className="text-sm text-soft">{t(`status.${status}`)}</span>
     <details className="text-sm text-soft"><summary className="cursor-pointer min-h-11 flex items-center text-primary font-semibold">Ver consumo · {order.lines.reduce((sum, line) => sum + line.qty, 0)} ítems</summary>

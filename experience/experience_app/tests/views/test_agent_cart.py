@@ -72,3 +72,26 @@ def test_cannot_supply_prices_or_unrecommended_products(selection, api_client):
     for change in [{'precio': 0}, {'producto': 7}, {'cantidad': 0}, {'mensaje': str(uuid4())}]:
         assert api_client.post(url, {**body, **change}, format='json').status_code == 400
     assert not CartLine.objects.exists()
+
+
+# Falla si al añadir un plato fuerte desde la tarjeta no se sugiere con qué acompañarlo, si la
+# sugerencia aparece al añadir una bebida, o si una falla al calcularla impide que el plato quede en el pedido.
+def test_sugiere_acompanamiento_al_anadir(selection, api_client, monkeypatch):
+    url, body, _, _ = selection
+    fuerte = {'id': 3, 'nombre': 'Hamburguesa', 'agotado': False, 'categorias': ['Hamburguesas'], 'vendidos': '0'}
+    bebida = {'id': 7, 'nombre': 'Limonada de Coco', 'agotado': False, 'categorias': ['Bebidas'], 'vendidos': '0'}
+    monkeypatch.setattr('assistant.selection.catalog_for', lambda local: [fuerte, bebida])
+    data = api_client.post(url, body, format='json').data
+    assert data['sugerencia']['opciones'] == ['Limonada de Coco']
+    assert 'tomar' in data['sugerencia']['texto']
+    monkeypatch.setattr('assistant.selection.catalog_for', lambda local: [{**fuerte, 'categorias': ['Bebidas']}, bebida])
+    CartLine.objects.all().delete()
+    AgentCartSelection.objects.all().delete()
+    assert 'sugerencia' not in api_client.post(url, body, format='json').data
+    def rota(local):
+        raise RuntimeError('catálogo caído')
+    monkeypatch.setattr('assistant.selection.catalog_for', rota)
+    CartLine.objects.all().delete()
+    AgentCartSelection.objects.all().delete()
+    respuesta = api_client.post(url, body, format='json')
+    assert respuesta.status_code == 200 and 'sugerencia' not in respuesta.data and CartLine.objects.count() == 1

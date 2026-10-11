@@ -24,7 +24,7 @@ def person(obj):
 
 
 def orders():
-    return Order.objects.select_related("table", "created_by").prefetch_related(
+    return Order.objects.select_related("table", "created_by", "customer").prefetch_related(
         Prefetch("lines", queryset=OrderLine.objects.order_by("id")),
         Prefetch("courses", queryset=Course.objects.order_by("index")),
         Prefetch("payments", queryset=Payment.objects.select_related("method").order_by("id")),
@@ -48,6 +48,10 @@ def order_dict(order):
             order,
             "id uuid number tracking service state origin channel table_id guests baby_chair customer_id customer_name delivery_address delivery_phone note billing created_at paid_at subtotal tax tip total paid change refunded",
         ),
+        **model_dict(order, ('delivery_lat', 'delivery_lng', 'delivery_details', 'delivery_fee', 'delivery_payment', 'delivery_distance_km')),
+        'customer': ({'id': order.customer_id, 'name': order.customer_name, 'phone': order.delivery_phone}
+                     if order.service == 'delivery' and order.customer_name else
+                     model_dict(order.customer, ('id', 'name', 'phone')) if order.customer else None),
         "table_number": order.table.number if order.table else None,
         "waiter": person(order.created_by),
         "lines": [line_dict(line) for line in order.lines.all()],

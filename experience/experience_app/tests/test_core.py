@@ -171,7 +171,8 @@ def test_core_admin_permissions(core, section, action, role, expected):
     assert response.status_code == 200, response.data
     path = '/api/pos/v1/admin/' + section
     response = client.post(path, {'action': action}, format='json')
-    assert response.status_code == expected, response.data
+    # Pagos en línea: solo el dueño y con el código de su correo; sin él, nadie entra.
+    assert response.status_code == (403 if section == 'payment_gateways' else expected), response.data
     other = Organization.objects.create(slug='otra-casa', name='Otra', status='active')
     foreign = Restaurant.objects.create(organization=other, slug='centro', name='Centro')
     denied = client.post(path, {'action': action, 'restaurant_id': foreign.pk}, format='json')
@@ -438,18 +439,15 @@ def test_core_admin_writes(core):
     assert client.post(base+'mcp_keys', {'action':'list', 'restaurante':'ajeno'}, format='json').status_code == 400
 
 
-# Falla si el encargado escribe pasarelas o el dueño asocia un medio ajeno al pago del menú.
+# Falla si el encargado puede pedir el código de Pagos en línea o si el dueño conecta llaves sin el código de su correo.
 @pytest.mark.parametrize('role', ['owner', 'admin'])
 def test_core_gateway_writing_permissions(core, role, settings):
-    from cryptography.fernet import Fernet
-    settings.PAYMENTS_FERNET_KEY = Fernet.generate_key().decode()
     client = admin_client(core, role)
     path = '/api/pos/v1/admin/payment_gateways'
-    response = client.post(path, {'action':'set', 'configuration': {'environment':'test', 'enabled':False}}, format='json')
-    assert response.status_code == (200 if role == 'owner' else 403), response.data
-    if role == 'owner':
-        response = client.post(path, {'action':'set', 'configuration': {'environment':'test', 'payment_method_id':999999}}, format='json')
-        assert response.status_code == 400, response.data
+    if role == 'admin':
+        assert client.post(path, {'action': 'access_request'}, format='json').status_code == 403
+    response = client.post(path, {'action': 'connect', 'environment': 'test', 'keys': 'pub_test_12345678'}, format='json')
+    assert response.status_code == 403, response.data
 
 
 # Falla si ventas o inventario no pueden leer un pedido autónomo sin empleado.

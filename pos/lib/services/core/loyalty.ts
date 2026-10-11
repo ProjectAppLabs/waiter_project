@@ -21,3 +21,25 @@ export const saveBanners = <T>(list: T[]) => coreFetch<{ banners: T[] }>('banner
 export const notifyPrefs = <T>() => coreFetch<{ prefs: T }>('me/notify-prefs').then((r) => r.prefs)
 export const saveNotifyPrefs = <T>(prefs: Partial<T>) => coreFetch<{ prefs: T }>('me/notify-prefs', { method: 'PUT', body: { prefs } }).then((r) => r.prefs)
 export const requestIngredient = (notificationId: number) => coreFetch<{ request: { id: number; supplier_name: string; lines: { name: string; qty: number }[] } }>(`notifications/${notificationId}/request-ingredient`, { method: 'POST' }).then((r) => r.request)
+
+// Plan D: lo que el cliente autorizó guardar (direcciones) y lo que se sabe de sus pedidos pagados.
+export interface CoreAddress { id: number; label: string; text: string; details: string; latitude: number; longitude: number; last_used_at: string | null }
+export interface CoreConsent { granted_at: string | null; channel: string; version: string; revoked_at: string | null }
+export type Segment = 'nuevo' | 'fiel' | 'en_riesgo' | 'perdido' | 'ocasional'
+export interface CoreInsights {
+  orders: number; total_spent: number; avg_ticket: number; first_order_at: string | null; last_order_at: string | null; frequency_days: number | null
+  hours: Record<string, number>; weekdays: Record<string, number>; top_products: { product_id: number; name: string; qty: number }[]
+  channels: Record<'pos' | 'menu' | 'whatsapp', number>; rfm: { r: number; f: number; m: number; segment: Segment }
+}
+interface RawConsent { active: boolean; data_consent_at: string | null; data_consent_channel: string; data_consent_version: string; data_consent_revoked_at: string | null }
+export interface CoreCustomerProfile { addresses: CoreAddress[]; consent: CoreConsent | null; insights: CoreInsights | null }
+export const customerProfile = (id: number) => coreFetch<{ customer: Partial<CoreCustomerProfile> } & Partial<CoreCustomerProfile>>(`customers/${id}`)
+  .then((r): CoreCustomerProfile => {
+    const c = { ...r, ...(r.customer ?? {}) } as Partial<CoreCustomerProfile> & { consent?: RawConsent | null }
+    const k = c.consent
+    return {
+      addresses: (c.addresses ?? []).map((a) => ({ ...a, latitude: Number(a.latitude), longitude: Number(a.longitude) })),
+      consent: k ? { granted_at: k.data_consent_at, channel: k.data_consent_channel, version: k.data_consent_version, revoked_at: k.data_consent_revoked_at } : null,
+      insights: c.insights ?? null,
+    }
+  })

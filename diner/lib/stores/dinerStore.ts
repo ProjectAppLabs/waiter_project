@@ -1,6 +1,7 @@
 'use client'
 
 import { create } from 'zustand'
+import { announceAdd } from '@/lib/domain/cartEvents'
 
 import { DEFAULT_TEMPLATE, applyPreview, parsePreview, templateFromSpec } from '@/lib/domain/template'
 import { setPreviewReadOnly } from '@/lib/domain/preview'
@@ -18,6 +19,11 @@ interface DinerState {
   favoritesBusy: boolean
   loadFavorites: () => Promise<void>
   favorite: (productId: number) => Promise<boolean>
+  // Plan D: la ubicación compartida en el chat del mesero; el domicilio del pedido la toma al confirmar.
+  deliveryDraft: { lat: number; lng: number; direccion: string } | null
+  // El paso a otra sede en curso (se muestra antes de irse) y si al llegar se reabre la confirmación en domicilio.
+  venueMove: { nombre: string; direccion: string; colores?: Record<string, string> } | null
+  reopenDelivery: boolean
   keys: Keys | null
   entry: Entry | null
   session: Session | null
@@ -48,7 +54,7 @@ interface DinerState {
   setQty: (lineId: number, qty: number) => Promise<void>
   remove: (lineId: number) => Promise<void>
   addBundle: (lines: {producto_id:number;cantidad:number;nota:string}[]) => Promise<void>
-  confirm: (takeaway?: boolean, details?: {notas: string; alergenos: string}) => Promise<string | null>
+  confirm: (takeaway?: boolean, details?: {notas: string; alergenos: string; metodo_pago?: import('@/lib/types').DeliveryMethod}) => Promise<string | null>
   refreshOrder: (orderId: string) => Promise<void>
   call: () => Promise<boolean>
   askBill: () => Promise<Bill | null>
@@ -76,7 +82,7 @@ export const useDinerStore = create<DinerState>((set, get) => {
   }
   return {
     favorites: [], favoritesBusy: false,
-    keys: null, entry: null, session: null, cart: null, order: null, bill: null, error: null, busy: false,
+    deliveryDraft: null, venueMove: null, reopenDelivery: false, keys: null, entry: null, session: null, cart: null, order: null, bill: null, error: null, busy: false,
     template: DEFAULT_TEMPLATE, preview: null, draftToken: null, draftExpires: null,
     account: null, accountOrders: [], pendingAccount: null,
     payState: 'idle', payResult: null, demoSession: null,
@@ -147,13 +153,13 @@ export const useDinerStore = create<DinerState>((set, get) => {
       if (get().preview || get().draftToken !== null) { set({ error: 'Estás viendo una vista previa. Abre el menú para realizar esta acción.' }); return  }
       const session = await get().ensureSession()
       if (!session) return
-      await run(async () => set({ cart: await addLine(session.id, productId, qty, note) }))
+      await run(async () => { set({ cart: await addLine(session.id, productId, qty, note) }); announceAdd() })
     },
     addBundle: async (lines) => {
       if (get().preview || get().draftToken !== null) { set({error:'Estás viendo una vista previa. Abre el menú para realizar esta acción.'}); return }
       const session = await get().ensureSession()
       if (!session) return
-      await run(async () => set({cart: await addBundle(session.id,lines)}))
+      await run(async () => { set({cart: await addBundle(session.id,lines)}); announceAdd() })
     },
     setQty: async (lineId, qty) => {
       if (get().preview || get().draftToken !== null) { set({ error: 'Estás viendo una vista previa. Abre el menú para realizar esta acción.' }); return  }
@@ -180,8 +186,9 @@ export const useDinerStore = create<DinerState>((set, get) => {
           set({ order, bill: r.cuenta ?? null, cart: await getCart(session.id) })
           return r.pedido
         } catch (e) {
-          // 409: el salón ya cobró la cuenta de esta visita. La sesión terminó; se abre otra limpia y se avisa.
-          if (e instanceof ApiError && e.status === 409) {
+          // El salón ya cobró la cuenta de esta visita: la sesión terminó; se abre otra limpia y se avisa. Otros conflictos
+          // (la sede no está recibiendo pedidos, un pago en curso) conservan el pedido para reintentar.
+          if (e instanceof ApiError && e.status === 409 && e.code === 'session_paid') {
             const r = await openSession(keys.rest, keys.venue, keys.token)
             set({ session: r.sesion, cart: await getCart(r.sesion.id), order: null, bill: null })
           }

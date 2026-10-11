@@ -33,9 +33,9 @@ def program(s):
     return p
 
 
-def member(s, points=100):
+def member(s, points=100, phone="3001234567"):
     program(s)
-    customer = Customer.objects.create(organization=s["org"], name="Ana Pérez", phone="3001234567", vat="12345")
+    customer = Customer.objects.create(organization=s["org"], name="Ana Pérez", phone=phone, vat="12345")
     return LoyaltyCard.objects.create(organization=s["org"], customer=customer, points=points)
 
 
@@ -173,6 +173,7 @@ def test_earn_net_and_release_on_cancel(setup):
 
 
 @pytest.mark.parametrize("case", ["minimum", "expired", "inactive", "payments", "paid", "other_card", "small_total"])
+# Falla si se canjea sin cumplir condiciones o se sustituye una tarjeta por la de otro cliente.
 def test_redeem_rejects_invalid_conditions(setup, case):
     # Falla si se canjea sin mínimo, vigencia, programa, borrador sin pagos o con otra tarjeta.
     s = setup
@@ -192,7 +193,7 @@ def test_redeem_rejects_invalid_conditions(setup, case):
         status = 409
     elif case == "other_card":
         call(s["client"], "post", f"orders/{o['id']}/redeem", {"card_id": card.pk})
-        card = member(s)
+        card = member(s, phone="3007654321")
         status = 409
     elif case == "small_total":
         LoyaltyProgram.objects.filter(organization=s["org"]).update(value_per_point=10000)

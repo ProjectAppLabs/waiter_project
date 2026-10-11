@@ -4,6 +4,8 @@ import { useTranslations } from 'next-intl'
 import { useEffect } from 'react'
 
 import type { Comanda } from '@/lib/domain/comanda'
+import type { DeliveryReceipt } from '@/lib/domain/delivery'
+import { formatCop } from '@/lib/domain/money'
 import { readPrintSettings } from '@/lib/print/settings'
 import { usePrintStore } from '@/lib/stores/printStore'
 
@@ -34,9 +36,35 @@ export function ComandaSheet({ comanda }: { comanda: Comanda }) {
   )
 }
 
+// Plan D: el recibo que sale con el domicilio. Lo que el domiciliario necesita va arriba y grande: a quién, a dónde,
+// el teléfono y si debe cobrar.
+export function DeliveryReceiptSheet({ receipt }: { receipt: DeliveryReceipt }) {
+  return (
+    <section className="delivery-receipt" aria-label={`Recibo de domicilio ${receipt.number}`}>
+      <h2>DOMICILIO {receipt.number}</h2>
+      <p className="comanda-meta">{time(receipt.at)}</p>
+      <div className="dr-block">
+        <p className="dr-strong">{receipt.customer || 'Cliente'}</p>
+        <p>Tel. {receipt.phone || '—'}</p>
+        <p className="dr-strong">{receipt.address}</p>
+        {receipt.details && <p>{receipt.details}</p>}
+        {receipt.map && <p>{receipt.map}</p>}
+      </div>
+      <ul className="dr-block">{receipt.lines.map((l, i) => (
+        <li key={i}><p className="dr-row"><span>{l.qty}× {l.name}</span><span>$ {formatCop(l.total)}</span></p>{l.note && <p>{l.note}</p>}</li>))}</ul>
+      <div className="dr-block">
+        <p className="dr-row"><span>Domicilio</span><span>$ {formatCop(receipt.fee)}</span></p>
+        <p className="dr-row dr-total"><span>Total</span><span>$ {formatCop(receipt.total)}</span></p>
+        <p className="dr-strong">{receipt.paid ? 'PAGADO' : `COBRAR: ${receipt.payment}`}</p>
+      </div>
+    </section>
+  )
+}
+
 // Pinta las hojas pendientes fuera de la vista y abre la impresión. El ancho del papel es de este equipo.
 export function PrintHost() {
   const sheets = usePrintStore((s) => s.sheets)
+  const receipt = usePrintStore((s) => s.receipt)
   const done = usePrintStore((s) => s.done)
   useEffect(() => {
     const paper = readPrintSettings().paper
@@ -45,14 +73,14 @@ export function PrintHost() {
     let page = document.getElementById('paper-page') as HTMLStyleElement | null
     if (!page) { page = document.createElement('style'); page.id = 'paper-page'; document.head.appendChild(page) }
     page.textContent = `@page { size: ${paper}mm auto; margin: 0; }`
-    if (!sheets) return
+    if (!sheets && !receipt) return
     document.body.dataset.print = 'comanda'
     const finish = () => { delete document.body.dataset.print; done() }
     window.addEventListener('afterprint', finish, { once: true })
     // Un cuadro después de pintar las hojas, para que el diálogo las vea.
     const frame = requestAnimationFrame(() => { try { window.print() } catch { finish() } })
     return () => { cancelAnimationFrame(frame); window.removeEventListener('afterprint', finish) }
-  }, [sheets, done])
-  if (!sheets) return null
-  return <div className="comanda-print" aria-hidden>{sheets.map((c, i) => <ComandaSheet key={i} comanda={c} />)}</div>
+  }, [sheets, receipt, done])
+  if (!sheets && !receipt) return null
+  return <div className="comanda-print" aria-hidden>{sheets?.map((c, i) => <ComandaSheet key={i} comanda={c} />)}{receipt && <DeliveryReceiptSheet receipt={receipt} />}</div>
 }

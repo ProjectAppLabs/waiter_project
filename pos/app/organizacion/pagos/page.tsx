@@ -17,7 +17,7 @@ function Payments() {
   if (!configId) return null
   return <div className="px-5 flex max-w-4xl flex-col gap-8">
     <PaymentMethodsList methods={methods} />
-    <PaymentGatewayForm key={configId} methods={methods} />
+    <PaymentGatewayForm key={configId} />
     <KitchenPaymentPolicyForm configId={configId} />
   </div>
 }

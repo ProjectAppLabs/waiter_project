@@ -43,5 +43,6 @@ def handle(exc, context):
         return Response(exc.body, status=exc.status)
     for kind, status, message in MAPPING:
         if isinstance(exc, kind):
-            return Response({'detail': message}, status=status)
+            # El código deja al menú distinguir «la cuenta ya se pagó» (abrir otra visita) de otros conflictos.
+            return Response({'detail': message, **({'error': 'session_paid'} if kind is SessionAlreadyPaid else {})}, status=status)
     return exception_handler(exc, context)

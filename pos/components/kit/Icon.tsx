@@ -1,4 +1,4 @@
-import { IconCoins, IconDownload, IconScale, IconAddressBook, IconAdjustments, IconAlarm, IconAlertTriangle, IconArmchair, IconArrowBackUp, IconArrowDown, IconArrowForwardUp, IconArrowLeft,
+import { IconMessageCircle, IconSend, IconCoins, IconDownload, IconScale, IconAddressBook, IconAdjustments, IconAlarm, IconAlertTriangle, IconArmchair, IconArrowBackUp, IconArrowDown, IconArrowForwardUp, IconArrowLeft,
   IconArrowRight, IconArrowUp, IconArrowsExchange2, IconArrowsMaximize, IconArrowsMove, IconBabyCarriage, IconBackspace,
   IconBell, IconBox, IconBuildingStore, IconCalendarEvent, IconCash, IconCashBanknote, IconCashRegister, IconChartBar,
   IconChartLine, IconCheck, IconChecks, IconChefHat, IconChevronDown, IconChevronLeft, IconChevronRight, IconCircleCheck,
@@ -38,7 +38,7 @@ const ICONS = {
   pointer: IconPointer, hand: IconHandStop, wall: IconWall, zone: IconMarquee2, undo: IconArrowBackUp, redo: IconArrowForwardUp,
   copy: IconCopy, layers: IconStack2, keyboard: IconKeyboard,
   // Salón: pisos del local y pantalla partida.
-  floors: IconStairs, split: IconLayoutColumns,
+  floors: IconStairs, split: IconLayoutColumns, chat: IconMessageCircle, send: IconSend,
 } satisfies Record<string, ComponentType<IconProps>>
 
 export type KitIcon = keyof typeof ICONS

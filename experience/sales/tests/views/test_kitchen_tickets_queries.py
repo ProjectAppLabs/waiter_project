@@ -57,7 +57,7 @@ def test_cocina_entrega_terminados_sin_cargar_sus_lineas_ni_categorias(setup):
     cursos(s, 49, ready=LISTO, served=ENTREGADO)
     data, cincuenta = leer(s)
     assert len(uno) == len(cincuenta) <= MAX_KITCHEN_TICKETS_QUERIES
-    assert sum("FROM `sales_orderline`" in sql for sql in cincuenta) == 1
+    assert sum(f"FROM {connection.ops.quote_name('sales_orderline')}" in sql for sql in cincuenta) == 1
     assert sum("catalog_category" in sql for sql in cincuenta) == 1
     assert (len(data["tickets"]), len(data["tickets"][0]["lines"])) == (1, 2)
     assert data["completed"] == [{"fired_at": "2026-10-08T14:40:00Z", "ready_at": "2026-10-08T14:52:00Z"}] * 50

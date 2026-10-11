@@ -3,6 +3,11 @@
 /* eslint-disable @next/next/no-img-element -- Photos already come resized from the restaurant API; logos can be local upload previews. */
 
 import Link from 'next/link'
+import { CartToss } from './CartToss'
+import { ClosedBanner } from './ClosedBanner'
+import { DeliveryPricesNote, useDeliveryPricing } from './DeliveryPricing'
+import { VenueGuide } from './VenueGuide'
+import { myCount } from '@/lib/domain/cartEvents'
 import { useRouter } from 'next/navigation'
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { gsap } from 'gsap'
@@ -72,7 +77,9 @@ export type IconName =
   | 'cutlery'
   | 'gift'
   | 'ticket'
+  | 'pin'
 const paths: Record<IconName, ReactNode> = {
+  pin: (<><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11Z" /><circle cx="12" cy="10" r="2.5" /></>),
   star: <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9Z"/>,
   menu: (
     <>
@@ -710,6 +717,7 @@ export function SmartExperience({
   const { cart, account, loadAccount, loadFavorites, session, error, preview } =
     useDinerStore()
   const { href, go } = useSmartRoute()
+  useDeliveryPricing()
   useEffect(() => {
     if (session && !preview) void loadAccount()
   }, [session, loadAccount, preview])
@@ -721,9 +729,7 @@ export function SmartExperience({
   // Plan W: sin fidelización, las pantallas de cuenta muestran un aviso en lugar de su contenido.
   const accountOff = accountScreen(route.screen) && !dinerHas(props.entry, 'fidelizacion')
   const screen = accountOff ? 'no-disponible' : route.screen
-  const count = (cart?.lineas ?? [])
-    .filter((l) => l.mio)
-    .reduce((n, l) => n + l.cantidad, 0)
+  const count = myCount(cart)
   const showConfirm = screen === 'pedido' && !!cart?.lineas.length
   const showCart = count > 0 && ['portada', 'carta', 'favoritos', 'historial', 'cuenta'].includes(screen)
   // Solo en la ficha del plato: «Mi mesero» se queda con su icono (el comensal ya lo conoce de la carta) y deja sitio a la
@@ -749,6 +755,8 @@ export function SmartExperience({
             {error}
           </p>
         )}
+        {['portada', 'carta', 'plato', 'pedido'].includes(screen) && <ClosedBanner entry={props.entry} />}
+        {['carta', 'plato', 'pedido'].includes(screen) && <DeliveryPricesNote />}
         {accountOff && <Empty icon="user" title="Esta función no está disponible en este restaurante" action="Ver el menú" onAction={() => go('carta')}>Puedes pedir y pagar con el mesero como siempre.</Empty>}
         {screen === 'portada' && <SmartHome entry={props.entry} />}
         {screen === 'carta' && (
@@ -782,11 +790,13 @@ export function SmartExperience({
         {screen === 'cuenta/codigo' && <SmartCode />}
       </div>
       {/* En el pago no hay muelle: la persona ya está pagando y «Mi mesero» solo la distraería (tampoco en la reserva). */}
+      <CartToss />
+      <VenueGuide />
       {!['reserva', 'pago'].includes(screen) && <div ref={dockRef} className={`sm-action-dock${showCart || showConfirm || compactDock ? ' sm-action-dock-pair' : ''}${compactDock ? ' sm-action-dock-compacto' : ''}`}>
         {dinerHas(props.entry, 'asistente_menu') && <SmartChat key={`${props.rest}/${props.venue}/${props.token}`} entry={props.entry} rest={props.rest} venue={props.venue} token={props.token}/>}
         {showConfirm && <div className="sm-confirm-slot" ref={setCartActionTarget}/>}
         {screen === 'plato' && <div className="sm-confirm-slot" ref={setDishActionTarget}/>}
-        {showCart && <Link href={href('pedido')} className="sm-cart-float">
+        {showCart && <Link href={href('pedido')} className="sm-cart-float" data-cart-target>
           <span className="sm-count">{count}</span>
           <span>Mi pedido<small>{money(cart?.mio ?? 0)}</small></span>
         </Link>}
