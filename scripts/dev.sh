@@ -102,6 +102,7 @@ cmd_up() {
   up_django experience 8001 experience_up
   up_next pos 3000 npx next dev --hostname "$HOST" --port 3000
   up_next diner 3001 npm run dev
+  up_next landing 3002 npm run dev
   echo
   cmd_status
 }
@@ -115,12 +116,13 @@ cmd_status() {
   else fail "experiencia :8001 responde $e (¿base vacía? ver $LOGS/experience.log)"; fi
   port_open 3000 && ok "pos         http://$HOST:3000" || fail "pos         :3000"
   port_open 3001 && ok "comensal    http://$HOST:3001" || fail "comensal    :3001"
+  port_open 3002 && ok "landing     http://$HOST:3002" || fail "landing     :3002"
 }
 
 cmd_down() {
   echo "Deteniendo Waiter"
   local name pid
-  for name in diner pos experience; do
+  for name in landing diner pos experience; do
     if pid_alive "$name"; then
       pid=$(cat "$LOGS/$name.pid")
       kill -- "-$pid" 2>/dev/null || kill "$pid" 2>/dev/null  # el grupo entero: npx y next dev son procesos hijos

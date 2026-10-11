@@ -12,7 +12,7 @@ function hostIp() {
   try { return execSync('ip -4 route get 1.1.1.1', { encoding: 'utf8' }).match(/src (\S+)/)[1] } catch { return '127.0.0.1' }
 }
 const host = hostIp()
-const ports = (process.env.WAITER_PORTS || '3000,3001,8001').split(',').map(Number).filter(Boolean)
+const ports = (process.env.WAITER_PORTS || '3000,3001,3002,8001').split(',').map(Number).filter(Boolean)
 for (const port of ports) {
   net.createServer((client) => {
     const upstream = net.connect(port, host)
