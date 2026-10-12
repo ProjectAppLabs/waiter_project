@@ -12,6 +12,9 @@ El home público de Waiter. Reproduce tal cual el diseño «Landing Waiter» de 
 - La navegación no sale del diseño: es `components/Nav.tsx`, en pill como la de projectapp.co (flotante y translúcida,
   con un resaltado que sigue a la sección visible; en pantallas de menos de 1120 px, barra completa con menú a pantalla
   completa). El conversor la omite (`PROPIOS` en `dc2jsx.py`) y conecta los enlaces legales que el diseño dejó en «#».
+- Las secciones que en el diseño tienen fondo blanco llevan la Aurora ambiental del sistema de diseño
+  (`components/AuroraFondo.tsx` y `app/aurora.css`, copia de `pos/components/kit/Aurora.tsx` y de sus estilos en
+  `pos/app/globals.css`). La pone el conversor; en «Así funciona» va dentro del escenario fijo.
 - `/privacy`, `/terms` y `/data-deletion` son las páginas legales de projectapp.co/es-co/waiter con su mismo texto
   (copias en `design/legal/`). Se generan con `npm run generar:legal` (`scripts/legal2jsx.py`) y usan `app/legal.css`.
 - `public/img/` son las imágenes del proyecto de Claude Design. Ocho llegaron cortadas por el límite de 256 KiB de

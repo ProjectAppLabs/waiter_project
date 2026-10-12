@@ -4,6 +4,7 @@ import './globals.css'
 import './hover.css'
 import './nav.css'
 import './legal.css'
+import './aurora.css'
 
 export const metadata: Metadata = {
   title: 'Waiter · Tu restaurante atiende, cobra y lleva domicilios',

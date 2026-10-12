@@ -1,0 +1,32 @@
+/* Aurora ambiental del sistema de diseño de Waiter: copia de .pos-aurora-* y .login-blob-* en pos/app/globals.css
+   (y AURORA en pos/lib/design/tokens.ts), con los mismos colores, tamaños y movimientos. Aquí va sobre las secciones
+   que en el diseño tienen fondo blanco (scripts/dc2jsx.py les pone la clase wl-aurora y <AuroraFondo />). El difuminado
+   va una vez sobre el campo y cada mancha solo anima transform. */
+.wl-aurora{position:relative;isolation:isolate}
+.pos-aurora-backdrop{position:absolute;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.pos-aurora-field{position:absolute;inset:-10%;filter:blur(clamp(48px,6vw,96px));opacity:.24}
+
+.login-blob{position:absolute;border-radius:50%;mix-blend-mode:screen;will-change:transform}
+.login-blob-blue{width:78%;aspect-ratio:1;left:-16%;top:-14%;background:radial-gradient(circle,#447DFC 0%,#447DFC 22%,rgb(68 125 252 / 0) 70%);animation:login-drift-a 26s ease-in-out infinite alternate}
+.login-blob-indigo{width:70%;aspect-ratio:1;right:-18%;top:4%;background:radial-gradient(circle,#7C6CF6 0%,#6172F3 24%,rgb(97 114 243 / 0) 70%);animation:login-drift-b 32s ease-in-out infinite alternate}
+.login-blob-amber{width:58%;aspect-ratio:1;left:2%;bottom:-16%;background:radial-gradient(circle,#FBBF24 0%,#F59E0B 22%,rgb(245 158 11 / 0) 68%);animation:login-drift-c 22s ease-in-out infinite alternate}
+.login-blob-mint{width:56%;aspect-ratio:1;right:-8%;bottom:-6%;background:radial-gradient(circle,#34E0B4 0%,#2DD4A7 20%,rgb(45 212 167 / 0) 68%);animation:login-drift-d 36s ease-in-out infinite alternate}
+.login-blob-rose{width:50%;aspect-ratio:1;left:22%;top:26%;background:radial-gradient(circle,#FF7AA2 0%,#F4628C 20%,rgb(244 98 140 / 0) 66%);animation:login-drift-e 29s ease-in-out infinite alternate}
+@keyframes login-drift-a{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(22%,18%,0) scale(1.18)}}
+@keyframes login-drift-b{from{transform:translate3d(0,0,0) scale(1.1)}to{transform:translate3d(-26%,24%,0) scale(.9)}}
+@keyframes login-drift-c{from{transform:translate3d(0,0,0) scale(.95)}to{transform:translate3d(30%,-28%,0) scale(1.2)}}
+@keyframes login-drift-d{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(-32%,-22%,0) scale(1.25)}}
+@keyframes login-drift-e{from{transform:translate3d(0,0,0) scale(1.05)}to{transform:translate3d(-18%,26%,0) scale(.85)}}
+
+/* Variante ambiental: las mismas manchas, más abiertas y sin mezcla de pantalla */
+.pos-aurora-field .login-blob{mix-blend-mode:normal}
+.pos-aurora-field .login-blob-blue{width:62%;left:-16%;top:-38%}
+.pos-aurora-field .login-blob-indigo{width:54%;right:-20%;top:-12%}
+.pos-aurora-field .login-blob-mint{width:54%;right:-10%;bottom:-42%}
+.pos-aurora-field .login-blob-amber{width:48%;left:0;bottom:-46%}
+.pos-aurora-field .login-blob-rose{width:40%;left:32%;top:28%;opacity:.45}
+
+/* Fuera de la vista no se mueven (AuroraFondo lo marca), y nunca con «reducir movimiento» */
+.pos-aurora-backdrop[data-pausa] .login-blob{animation-play-state:paused}
+@media (prefers-reduced-motion:reduce){.login-blob{animation:none}}
+@media print{.pos-aurora-backdrop{display:none}}

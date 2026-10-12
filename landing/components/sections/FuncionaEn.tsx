@@ -1,10 +1,12 @@
 // Generado desde «Landing Waiter.dc.html» (Claude Design) con scripts/dc2jsx.py: no editar a mano los estilos,
 // regenerar. Las imágenes van con <img> porque el diseño depende de sus medidas exactas.
+import { AuroraFondo } from '../AuroraFondo'
 
 // 02 Funciona en lo que ya tienes
 export function FuncionaEn() {
   return (
-    <section data-screen-label="02 Funciona en lo que ya tienes" style={{ background: '#FFFFFF', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0' }}>
+    <section className="wl-aurora" data-screen-label="02 Funciona en lo que ya tienes" style={{ background: '#FFFFFF', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0' }}>
+      <AuroraFondo />
       {' '}
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '28px 24px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '14px 36px' }}>
         {' '}

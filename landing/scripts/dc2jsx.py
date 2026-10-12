@@ -112,6 +112,20 @@ ENLACES = {
 PROPIOS = {'Nav'}
 
 
+def marcar_aurora(section):
+    """Las secciones con fondo blanco llevan la Aurora ambiental del sistema de diseño. Si la sección tiene un escenario
+    fijo (sticky), la Aurora va en él para que no se desplace por detrás."""
+    estilo = dict(section['attrs']).get('style', '')
+    if not re.search(r'(^|;)\s*background:\s*#FFFFFF\s*(;|$)', estilo, re.I):
+        return
+    destino = section
+    for c in section['children']:
+        if 'tag' in c and re.search(r'position:\s*sticky', dict(c['attrs']).get('style', '')):
+            destino = c
+            break
+    destino['aurora'] = True
+
+
 def node_text(node):
     return ''.join(c['text'] if 'text' in c else node_text(c) for c in node.get('children', [])).strip()
 
@@ -155,6 +169,8 @@ def attrs_jsx(node):
             out.append(f'{key}={{{interp_string(value)}}}')
         else:
             out.append(f'{key}={json.dumps(value, ensure_ascii=False)}')
+    if node.get('aurora'):
+        classes.append('wl-aurora')
     if classes:
         out.insert(0, f'className="{" ".join(classes)}"')
     return out
@@ -206,6 +222,8 @@ def render(node, ind=0, key=None):
     if tag in VOID:
         return f'{pad}{open_tag} />'
     kids = [render(c, ind + 1) for c in node['children']]
+    if node.get('aurora'):
+        kids.insert(0, pad + '  <AuroraFondo />')
     # Espacios al inicio y al final del contenido se conservan solo si el runtime los conservaba.
     kids = [k for k in kids if k != '']
     if not kids:
@@ -231,6 +249,7 @@ for node in sections:
                 '08 Banda': 'Banda', '09 Precios': 'Precios', '10 Seguridad': 'Seguridad', '11 Agenda tu demo': 'AgendaDemo',
                 '12 Preguntas': 'Preguntas', '13 CTA final': 'CtaFinal', '14 Pie': 'Pie'}[label]
     NAMES.append(name)
+    marcar_aurora(node)
     jsx = render(node, 2)
     claves = sorted(set(re.findall(r'(?<![\w.])v\.([A-Za-z0-9]+)', jsx)))
     uses_v = bool(claves)
@@ -241,6 +260,7 @@ for node in sections:
     src = (("/* eslint-disable @next/next/no-img-element */\n" if '<img' in jsx else '')
            + "// Generado desde «Landing Waiter.dc.html» (Claude Design) con scripts/dc2jsx.py: no editar a mano los estilos,\n"
            "// regenerar. Las imágenes van con <img> porque el diseño depende de sus medidas exactas.\n"
+           + ("import { AuroraFondo } from '../AuroraFondo'\n" if '<AuroraFondo' in jsx else '')
            + ("import type { LandingVals } from '../vals'\n\n" if uses_v else '\n')
            + f"{comment}\nexport function {name}({sig}) {{\n  return (\n{jsx}\n  )\n}}\n")
     open(f'{OUT_DIR}/{name}.tsx', 'w', encoding='utf-8').write(src)
