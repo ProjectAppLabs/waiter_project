@@ -33,7 +33,7 @@ Los documentos de venta salen de un proveedor de factura electrónica **simulado
 
 ## 2. Direcciones y usuarios de prueba
 
-**Todos entran por el mismo inicio de sesión:** `http://localhost:3000/login` (en producción, `https://waiter.projectapp.co/login`). Allí el sistema reconoce de quién es la cuenta y la lleva, ya con la sesión abierta, a la dirección de su organización (`http://<org>.localhost:3000`; Burger House se queda en `localhost:3000`) o a la consola de ProjectApp. Si el mismo usuario o correo tiene cuenta en varias organizaciones, pregunta a cuál entrar. Abrir `/login` en el subdominio de una organización lleva a ese inicio común.
+**Todos entran por el mismo inicio de sesión:** `http://localhost:3000/login` (en producción, `https://waiter.projectapp.co/login`; la raíz `https://waiter.projectapp.co` es la landing, y su «Iniciar sesión» lleva ahí). Allí el sistema reconoce de quién es la cuenta y la lleva, ya con la sesión abierta, a la dirección de su organización (`http://<org>.localhost:3000`; Burger House se queda en `localhost:3000`) o a la consola de ProjectApp. Si el mismo usuario o correo tiene cuenta en varias organizaciones, pregunta a cuál entrar. Abrir `/login` en el subdominio de una organización lleva a ese inicio común.
 
 | Usuario | Contraseña | Rol | Dónde entra |
 |---|---|---|---|

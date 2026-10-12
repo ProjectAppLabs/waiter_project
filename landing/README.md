@@ -12,8 +12,12 @@ El home público de Waiter. Reproduce tal cual el diseño «Landing Waiter» de 
 - La navegación no sale del diseño: es `components/Nav.tsx`, en pill como la de projectapp.co (flotante y translúcida,
   con un resaltado que sigue a la sección visible; en pantallas de menos de 1120 px, barra completa con menú a pantalla
   completa). El conversor la omite (`PROPIOS` en `dc2jsx.py`) y conecta los enlaces legales que el diseño dejó en «#».
-  «Iniciar sesión» lleva al inicio de sesión universal (`https://waiter.projectapp.co/login`; en desarrollo
+  «Iniciar sesión» lleva al inicio de sesión universal (`/login` del mismo dominio; en desarrollo
   `http://localhost:3000/login`; se cambia con `NEXT_PUBLIC_LOGIN_URL`).
+- En producción la landing es la raíz de `waiter.projectapp.co` y comparte el dominio con el POS, que sirve `/login`.
+  Por eso sus archivos van bajo `/_landing/_next` (`assetPrefix` en `next.config.ts`) y Caddy le manda solo sus rutas
+  (`/`, `/privacy`, `/terms`, `/data-deletion`, `/icon.svg`, `/img/*`, `/_landing/*`): una página nueva se agrega
+  también al `@landing` de `deploy/Caddyfile`. Los enlaces hacia el POS van con `<a>`, no con `<Link>`.
 - Las secciones que en el diseño tienen fondo blanco llevan la Aurora ambiental del sistema de diseño
   (`components/AuroraFondo.tsx` y `app/aurora.css`, copia de `pos/components/kit/Aurora.tsx` y de sus estilos en
   `pos/app/globals.css`). La pone el conversor; en «Así funciona» va dentro del escenario fijo.

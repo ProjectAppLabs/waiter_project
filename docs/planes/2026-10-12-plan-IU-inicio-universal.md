@@ -9,6 +9,11 @@ ProjectApp), que redirija al subdominio del cliente ya con la sesión iniciada.
 - **Dónde vive:** en el dominio base, `https://waiter.projectapp.co/login` (en desarrollo `http://localhost:3000/login`).
   La consola de ProjectApp sigue en `plataforma.waiter.projectapp.co` y cada organización en `<org>.waiter.projectapp.co`.
   Caddy deja de redirigir el dominio base a la consola.
+- **La landing en la raíz del mismo dominio** (pedido del dueño): `waiter.projectapp.co` es la landing y
+  `waiter.projectapp.co/login` el inicio universal. Son dos aplicaciones de Next («zonas»): la landing lleva
+  `assetPrefix: '/_landing'` y Caddy le manda sus rutas (`/`, `/privacy`, `/terms`, `/data-deletion`, `/icon.svg`,
+  `/img/*`, `/_landing/*`); lo demás va al POS. El service worker del POS no se registra en el dominio base (con
+  alcance «/» tomaría las páginas de la landing) y quita el que hubiera.
 - **Las sesiones siguen siendo de cada dirección** (cookies sin dominio compartido): lo que viaja entre direcciones es
   un **pase de un solo uso** (`accounts.LoginPass`, 2 minutos, solo su huella en la base). Va en el fragmento de la URL
   (`/entrar#pase=…&destino=pos|plataforma`), que el navegador no manda al servidor, y la página lo quita de la barra.
@@ -61,3 +66,7 @@ ProjectApp), que redirija al subdominio del cliente ya con la sesión iniciada.
   - **Encontrado al probar:** en MySQL, Django borra en cascada poniendo antes la llave en NULL; la restricción del pase
     es «nunca las dos identidades» (no «exactamente una») para poder borrar personas con un pase pendiente.
   - Guías de QA 0, 1 (A-11 … A-13), 6 y 8 actualizadas.
+  - **Landing en la raíz:** probado con la landing compilada para producción detrás de un Caddy local con el mismo
+    bloque del `Caddyfile`: la raíz y las páginas legales salen de la landing con sus archivos en `/_landing`; `/login`,
+    `/entrar` y `/_next` salen del POS; en Edge, «Iniciar sesión» de la landing abre el inicio universal en el mismo
+    dominio.
