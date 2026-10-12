@@ -7,7 +7,7 @@ import { getOpenSession, logout } from '@/lib/services/session'
 import { activeEmployeeId, ShiftDeniedError, useAuthStore } from '@/lib/stores/authStore'
 import { useBusStore } from '@/lib/stores/busStore'
 
-jest.mock('@/lib/services/core/pos', () => ({ login: jest.fn(), me: jest.fn() }))
+jest.mock('@/lib/services/core/pos', () => ({ login: jest.fn(), me: jest.fn(), enterPass: jest.fn() }))
 jest.mock('@/lib/services/session', () => ({ getOpenSession: jest.fn(), logout: jest.fn().mockResolvedValue(undefined) }))
 jest.mock('@/lib/services/cashRegister', () => ({ openRegister: jest.fn() }))
 jest.mock('@/lib/services/core/support', () => ({ enterSupport: jest.fn() }))
@@ -215,4 +215,30 @@ it('cambiar de cuenta en la misma organización invalida las lecturas anteriores
  expect(recall('auth/me')).toBeNull()
  expect(recall('notifications')).toBeNull()
  expect(localStorage.getItem('waiter.outbox:burger-house')).toBe('{"entries":[{"id":"pedido-pendiente"}]}')
+})
+
+// Falla si el pase del inicio universal no deja a la persona dentro con su turno y su caja, o si después de una salida
+// anterior en este dispositivo la sesión nueva no se puede volver a hidratar.
+it('cambia el pase del inicio universal por la sesión de la persona', async () => {
+ await useAuthStore.getState().login('sofia', 'secreta-123')
+ await useAuthStore.getState().logout()
+ jest.mocked(core.enterPass).mockResolvedValue(nextResult)
+ await useAuthStore.getState().enterPass('pase-1')
+ expect(core.enterPass).toHaveBeenCalledWith('pase-1')
+ expect(activeEmployeeId()).toBe(3)
+ expect(getOpenSession).toHaveBeenLastCalledWith(1)
+ useAuthStore.setState({ hydrated: false })
+ jest.mocked(core.me).mockResolvedValue(nextResult)
+ await useAuthStore.getState().hydrate()
+ expect(core.me).toHaveBeenCalled()
+ expect(useAuthStore.getState().user?.name).toBe('Mateo')
+})
+
+// Falla si el pase de alguien que quedó fuera de su turno al cambiar de dirección no explica la ventana de su horario.
+it('el pase fuera de turno explica el horario y no deja a nadie dentro', async () => {
+ jest.mocked(core.enterPass).mockRejectedValue(new CoreError(403, 'outside_hours', 'Fuera de horario', { window: '14:00–22:00' }))
+ const failure = useAuthStore.getState().enterPass('pase-2')
+ await expect(failure).rejects.toThrow(ShiftDeniedError)
+ await expect(failure).rejects.toThrow('14:00–22:00')
+ expect(useAuthStore.getState().user).toBeNull()
 })

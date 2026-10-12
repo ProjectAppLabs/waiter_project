@@ -50,3 +50,20 @@ class Session(models.Model):
     restaurant = models.ForeignKey('tenancy.Restaurant', on_delete=models.SET_NULL, null=True, blank=True)
     expires = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class LoginPass(models.Model):
+    """Pase de un solo uso del inicio universal (2 minutos). Lleva a la persona, ya autenticada, del inicio común
+    (waiter.projectapp.co) al subdominio de su organización o a la consola de ProjectApp, donde se cambia por la sesión
+    de esa dirección. Solo se guarda su huella."""
+    account = models.ForeignKey(Account, null=True, blank=True, on_delete=models.CASCADE, related_name='login_passes')
+    platform_user = models.ForeignKey('tenancy.PlatformUser', null=True, blank=True, on_delete=models.CASCADE, related_name='login_passes')
+    token_hash = ExactCharField(max_length=64, unique=True)
+    expires = models.DateTimeField(db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        # Nunca las dos identidades. Puede quedar sin ninguna: en MySQL, Django borra en cascada poniendo antes la llave
+        # en NULL; un pase así no se puede canjear (el canje filtra por la organización o por la persona de ProjectApp).
+        constraints = [models.CheckConstraint(condition=models.Q(account__isnull=True) | models.Q(platform_user__isnull=True),
+                                              name='login_pass_never_both')]

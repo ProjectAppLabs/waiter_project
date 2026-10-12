@@ -4,7 +4,7 @@ from .api import AuthView, OrganizationsView, TeamView, MetricsView, ChargesView
 from .http import NotFoundView
 
 urlpatterns = [path(f'auth/{action}', AuthView.as_view(action=action, http_method_names=['get', 'head', 'options'] if action == 'me' else ['post', 'options']))
-               for action in ('login', 'logout', 'me', 'request_code', 'activate')]
+               for action in ('login', 'pass', 'logout', 'me', 'request_code', 'activate')]
 urlpatterns += [
     path('organizations', OrganizationsView.as_view(http_method_names=['get', 'head', 'post', 'options'])),
     path('organizations/<slug:slug>', OrganizationsView.as_view(http_method_names=['get', 'head', 'patch', 'options'])),

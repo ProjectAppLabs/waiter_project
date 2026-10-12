@@ -25,6 +25,8 @@ urlpatterns = [
     path('api/v1/<slug:rest>/<slug:sede>/assistant/profile', ProfileView.as_view()),
     path('webhooks/whatsapp', whatsapp_webhook),
     path('api/pos/v1/', include('whatsapp.urls')),
+    # El inicio universal: sin organización, para todas las personas (accounts/universal.py).
+    path('api/access/v1/', include('accounts.universal')),
     path('api/platform/v1/', include('tenancy.urls')),
     path('api/pos/v1/', include('tenancy.pos_urls')),
     path('api/pos/v1/', include('catalog.urls')),

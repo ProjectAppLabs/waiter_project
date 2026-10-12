@@ -31,6 +31,8 @@ const platform = <T>(path: string, options: Parameters<typeof coreFetch>[1] = {}
 export type PlatformLoginResult = { user: PlatformUser } | { two_factor: true; challenge: string }
 export const platformLogin = (login: string, password: string) => platform<PlatformLoginResult>('auth/login', { method: 'POST', body: { login, password } })
 export const platformVerify2fa = (challenge: string, code: string) => platform<{ user: PlatformUser }>('auth/2fa/verify', { method: 'POST', body: { challenge, code } })
+// El pase del inicio universal (ya trae el doble factor resuelto).
+export const platformEnterPass = (pass: string) => platform<{ user: PlatformUser }>('auth/pass', { method: 'POST', body: { pass } })
 export const setup2fa = () => platform<{ secret: string; otpauth_uri: string; qr: string }>('auth/2fa/setup', { method: 'POST' })
 export const enable2fa = (code: string) => platform<{ recovery_codes: string[] }>('auth/2fa/enable', { method: 'POST', body: { code } })
 export const disable2fa = (code: string) => platform<{ ok: true }>('auth/2fa/disable', { method: 'POST', body: { code } })

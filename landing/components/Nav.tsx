@@ -5,6 +5,8 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react'
 import { gsap } from 'gsap'
 
+import { INICIAR_SESION } from '@/lib/sesion'
+
 const SECCIONES = [
   { id: 'como-funciona', label: 'Producto' },
   { id: 'modulos', label: 'Módulos' },
@@ -13,8 +15,6 @@ const SECCIONES = [
   { id: 'preguntas', label: 'Preguntas' },
 ]
 
-// Mientras no haya una dirección pública del POS, «Iniciar sesión» sigue como en el diseño.
-const INICIAR_SESION = process.env.NEXT_PUBLIC_LOGIN_URL || '#'
 
 const reducido = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 // Con el menú abierto la página de atrás no se desplaza

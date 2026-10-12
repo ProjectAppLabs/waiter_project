@@ -12,6 +12,8 @@ El home público de Waiter. Reproduce tal cual el diseño «Landing Waiter» de 
 - La navegación no sale del diseño: es `components/Nav.tsx`, en pill como la de projectapp.co (flotante y translúcida,
   con un resaltado que sigue a la sección visible; en pantallas de menos de 1120 px, barra completa con menú a pantalla
   completa). El conversor la omite (`PROPIOS` en `dc2jsx.py`) y conecta los enlaces legales que el diseño dejó en «#».
+  «Iniciar sesión» lleva al inicio de sesión universal (`https://waiter.projectapp.co/login`; en desarrollo
+  `http://localhost:3000/login`; se cambia con `NEXT_PUBLIC_LOGIN_URL`).
 - Las secciones que en el diseño tienen fondo blanco llevan la Aurora ambiental del sistema de diseño
   (`components/AuroraFondo.tsx` y `app/aurora.css`, copia de `pos/components/kit/Aurora.tsx` y de sus estilos en
   `pos/app/globals.css`). La pone el conversor; en «Así funciona» va dentro del escenario fijo.

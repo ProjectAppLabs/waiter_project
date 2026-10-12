@@ -1,7 +1,7 @@
 # Guía QA Waiter — 6. Dueño (consola de la organización)
 
 **Aplica a:** rol Dueño. **Organizaciones:** Burger House y Frisby, con todos los casos.
-**Fecha de actualización:** 2 de octubre de 2026
+**Fecha de actualización:** 12 de octubre de 2026 (inicio de sesión universal)
 
 ## 1. Qué vamos a comprobar
 
@@ -10,8 +10,8 @@ Que el dueño gobierna su organización desde la consola: sus restaurantes, su e
 ## 2. Preparación
 
 - `admin` / `admin` en `http://localhost:3000/login` → `/organizacion` (Burger House, Odoo).
-- `maria.lopez` / `Frisby-2026!` en `http://frisby-74312.localhost:3000/login` → `/organizacion` (Frisby, sistema propio).
-- La consola es solo del dueño: cualquier otro rol que escriba `/organizacion` vuelve a `/login`.
+- `maria.lopez` / `Frisby-2026!` en el mismo `http://localhost:3000/login`: el sistema la lleva a `http://frisby-74312.localhost:3000/organizacion` (Frisby, sistema propio).
+- La consola es solo del dueño: cualquier otro rol que escriba `/organizacion` vuelve a su inicio; sin sesión, al inicio universal.
 
 ## 3. Recorrido de validación
 

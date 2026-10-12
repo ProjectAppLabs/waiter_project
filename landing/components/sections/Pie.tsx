@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 // Generado desde «Landing Waiter.dc.html» (Claude Design) con scripts/dc2jsx.py: no editar a mano los estilos,
 // regenerar. Las imágenes van con <img> porque el diseño depende de sus medidas exactas.
+import { INICIAR_SESION } from '@/lib/sesion'
 import type { LandingVals } from '../vals'
 
 // 14 Pie
@@ -53,7 +54,7 @@ export function Pie({ v }: { v: Pick<LandingVals, 'waHref'> }) {
             {' '}
             <a href="https://projectapp.co/es-co" style={{ color: '#0F172A' }}>ProjectApp.</a>
             <a href={v.waHref} target="_blank" rel="noopener noreferrer" style={{ color: '#0F172A' }}>Contacto</a>
-            <a href="#" style={{ color: '#0F172A' }}>Iniciar sesión</a>
+            <a href={INICIAR_SESION} style={{ color: '#0F172A' }}>Iniciar sesión</a>
             {' '}
           </div>
           {' '}

@@ -30,9 +30,8 @@ api.{$BASE_DOMAIN} {
 *.{$BASE_DOMAIN}, {$BASE_DOMAIN} {
 	import tls_wildcard
 	encode zstd gzip
-	# El POS decide la organización por el subdominio; `plataforma` abre la consola de ProjectApp.
-	@raiz host {$BASE_DOMAIN}
-	redir @raiz https://plataforma.{$BASE_DOMAIN}{uri} 302
+	# El POS decide la organización por el subdominio; `plataforma` abre la consola de ProjectApp. El dominio base, sin
+	# subdominio, es el inicio de sesión universal: todos entran por ahí y pasan, ya identificados, a su dirección.
 	reverse_proxy pos:3000 {
 		header_up X-Forwarded-Proto {scheme}
 	}

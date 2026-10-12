@@ -107,6 +107,8 @@ ENLACES = {
     'Política de privacidad': ('/privacy', False),
     'Condiciones del servicio': ('/terms', False),
     'Eliminación de datos': ('/data-deletion', False),
+    # Una expresión entre llaves se escribe tal cual: la dirección del inicio de sesión universal sale de lib/sesion.ts.
+    'Iniciar sesión': ('{INICIAR_SESION}', False),
 }
 # Bloques que ya no salen del diseño: la navegación es propia (components/Nav.tsx, en pill como la de ProjectApp).
 PROPIOS = {'Nav'}
@@ -167,6 +169,8 @@ def attrs_jsx(node):
                 out.append('rel="noopener noreferrer"')
         if '{{' in value:
             out.append(f'{key}={{{interp_string(value)}}}')
+        elif re.fullmatch(r'\{[A-Z_]+\}', value):
+            out.append(f'{key}={value}')
         else:
             out.append(f'{key}={json.dumps(value, ensure_ascii=False)}')
     if node.get('aurora'):
@@ -260,6 +264,7 @@ for node in sections:
     src = (("/* eslint-disable @next/next/no-img-element */\n" if '<img' in jsx else '')
            + "// Generado desde «Landing Waiter.dc.html» (Claude Design) con scripts/dc2jsx.py: no editar a mano los estilos,\n"
            "// regenerar. Las imágenes van con <img> porque el diseño depende de sus medidas exactas.\n"
+           + ("import { INICIAR_SESION } from '@/lib/sesion'\n" if '{INICIAR_SESION}' in jsx else '')
            + ("import { AuroraFondo } from '../AuroraFondo'\n" if '<AuroraFondo' in jsx else '')
            + ("import type { LandingVals } from '../vals'\n\n" if uses_v else '\n')
            + f"{comment}\nexport function {name}({sig}) {{\n  return (\n{jsx}\n  )\n}}\n")

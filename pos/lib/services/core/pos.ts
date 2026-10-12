@@ -20,6 +20,8 @@ export interface CoreNotification { id: string; kind: 'kitchen' | 'inventory' | 
 
 export const getOrg = () => coreFetch<{ organization: PublicOrganization }>('org').then((r) => r.organization)
 export const login = (login: string, password: string, restaurantId?: string) => coreFetch<LoginResult>('auth/login', { method: 'POST', body: { login, password, restaurant_id: restaurantId } })
+// El pase del inicio universal: la persona ya se identificó en el inicio común y aquí abre su sesión.
+export const enterPass = (pass: string) => coreFetch<LoginResult>('auth/pass', { method: 'POST', body: { pass } })
 export const logout = () => coreFetch<{ ok: true; worked_hours: number }>('auth/logout', { method: 'POST' })
 export const me = () => coreFetch<LoginResult>('auth/me')
 export const requestCode = (login: string) => coreFetch<{ ok: true }>('auth/request_code', { method: 'POST', body: { login } })

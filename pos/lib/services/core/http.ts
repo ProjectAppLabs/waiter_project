@@ -14,7 +14,8 @@ export class CoreError extends Error {
   }
 }
 
-export type CoreScope = 'pos' | 'platform'
+// `access` es el inicio de sesión universal: sin organización, para todas las personas.
+export type CoreScope = 'pos' | 'platform' | 'access'
 interface Options { method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; scope?: CoreScope; offlineFallback?: boolean }
 
 export async function coreFetch<T>(path: string, { method = 'GET', body, scope = 'pos', offlineFallback = true }: Options = {}): Promise<T> {
