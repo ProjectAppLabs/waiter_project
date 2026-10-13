@@ -4,7 +4,7 @@
 import type { LandingVals } from '../vals'
 
 // 13 CTA final
-export function CtaFinal({ v }: { v: LandingVals }) {
+export function CtaFinal({ v }: { v: Pick<LandingVals, 'waHref'> }) {
   return (
     <section data-screen-label="13 CTA final" style={{ position: 'relative', background: '#0B1430', color: '#FFFFFF', overflow: 'hidden', padding: 'clamp(88px,11vw,140px) 0 0' }}>
       {' '}

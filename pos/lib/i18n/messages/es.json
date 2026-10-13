@@ -85,6 +85,22 @@
         "invalid": "Código incorrecto. Revisa la hora del teléfono e inténtalo de nuevo.",
         "expired": "El tiempo para escribir el código se acabó. Vuelve a entrar con tu contraseña."
       },
+      "choose": {
+        "title": "¿A dónde quieres entrar?",
+        "intro": "Tu usuario está en varios lugares. Elige uno; para cambiar, cierra la sesión y vuelve a entrar.",
+        "platform": "Consola de ProjectApp",
+        "platformRoles": {
+          "admin": "Administrador",
+          "operator": "Operador"
+        }
+      },
+      "entering": {
+        "title": "Entrando a Waiter",
+        "opening": "Abriendo tu sesión…",
+        "failed": "No se pudo abrir la sesión.",
+        "hint": "Por seguridad, cada ingreso sirve una sola vez y vence en 2 minutos.",
+        "back": "Volver al inicio de sesión"
+      },
       "footer": "Waiter 1.1",
       "online": "Conectado al servidor",
       "offline": "Sin conexión con el servidor",

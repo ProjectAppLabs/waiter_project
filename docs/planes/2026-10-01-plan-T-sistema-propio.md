@@ -977,6 +977,10 @@ Rutas de la plataforma bajo `/api/platform/v1` con la cookie `waiter_platform_si
   el usuario no existe en la organización de la dirección, se prueba como persona de ProjectApp. En la dirección de
   ProjectApp (sin organización) solo se prueba ProjectApp. «¿Olvidaste tu contraseña?» y el código de invitación sirven
   para los dos. `/plataforma/login` redirige a `/login`, y las invitaciones de ProjectApp ya enlazan allí.
+- **Inicio de sesión universal** (2026-10-12), rama `feat/12102026-inicio-universal`: todos entran por
+  `waiter.projectapp.co/login`, que busca la credencial en todas las organizaciones y en ProjectApp y lleva a cada
+  persona, con un pase de un solo uso, al subdominio de su organización o a la consola. Detalle en
+  `docs/planes/2026-10-12-plan-IU-inicio-universal.md`.
 - **Revisado (T3):** el modal de pago carga en cinco entradas seguidas por la URL. La causa probable del «Cargando pedido…» visto en T2 es el límite de seis conexiones por dominio de HTTP/1.1 con varias conexiones de eventos en vivo abiertas en desarrollo; en producción el proxy sirve HTTP/2 y no aplica. Antes: al entrar por la URL
     (recargar lo resuelve; por investigar, posiblemente el doble montaje de React en modo estricto); «Forzar cierre» no
     existe en el sistema propio; las reservas que apartan mesas, los puntos del cobro y Resumen/Rentabilidad llegan con

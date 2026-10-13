@@ -53,6 +53,22 @@ def find_identity(queryset, login):
     return queryset.filter(Q(username__iexact=login) | Q(email__iexact=login), active=True).first()
 
 
+# Una misma persona puede tener cuenta en varias organizaciones (el usuario y el correo son únicos por organización):
+# el inicio universal revisa como mucho estas identidades por credencial.
+MAX_IDENTITIES = 10
+
+
+def find_identities(querysets, login):
+    """Las identidades activas que responden a este usuario o correo, en todas las organizaciones y en ProjectApp."""
+    if not isinstance(login, str) or not login.strip():
+        return []
+    login = login.strip().lower()
+    found = []
+    for queryset in querysets:
+        found += list(queryset.filter(Q(username__iexact=login) | Q(email__iexact=login), active=True).order_by('id')[:MAX_IDENTITIES])
+    return found[:MAX_IDENTITIES]
+
+
 def valid_password(password):
     return isinstance(password, str) and 8 <= len(password) <= 1024
 
@@ -71,9 +87,9 @@ def invitation(user, reset=False):
             user.invite_attempts = 0
             user.invite_sent_at = now
             user.save(update_fields=['invite_code_hash', 'invite_expires', 'invite_attempts', 'invite_sent_at'])
-            platform = isinstance(user, PlatformUser)
-            base = settings.PLATFORM_URL if platform else settings.POS_URL
-            link = base + '/login?' + urlencode({'codigo': user.username})
+            # Todos entran por el inicio universal (POS_URL); a la persona de un restaurante se le indica cuál.
+            hint = {} if isinstance(user, PlatformUser) else {'org': user.organization.slug}
+            link = settings.POS_URL + '/login?' + urlencode({'codigo': user.username, **hint})
             button = f'<p><a href="{escape(link)}">Poner mi contraseña</a></p>'
             hello = f'<p>Hola {escape(user.name)},</p>'
             identity = f'<p>Tu usuario es <strong>{escape(user.username)}</strong>; también puedes entrar con este correo.</p>'
@@ -103,22 +119,26 @@ def invitation(user, reset=False):
         return False
 
 
-def activate(queryset, data):
+def activate(querysets, data):
+    """Pone la contraseña con el código del correo. Con el inicio universal, el mismo usuario o correo puede estar en
+    varias organizaciones: vale la identidad cuyo código coincide (el código va atado a su usuario)."""
     data = payload(data, ('login', 'code', 'password'), ('login', 'code', 'password'))
-    accepted = False
+    accepted = None
     with transaction.atomic():
-        user = find_identity(queryset.select_for_update(), data['login'])
-        if user and user.invite_code_hash and user.invite_expires and user.invite_expires > timezone.now():
-            matches = secrets.compare_digest(user.invite_code_hash, code_hash(user, str(data['code'])))
-            if matches and valid_password(data['password']):
-                user.password = make_password(data['password'])
-                user.activated = True
-                user.invite_code_hash = ''
-                user.invite_expires = None
-                user.save()
-                revoke(user)
-                accepted = True
-            elif not matches:
+        now = timezone.now()
+        users = [user for user in find_identities([q.select_for_update() for q in querysets], data['login'])
+                 if user.invite_code_hash and user.invite_expires and user.invite_expires > now]
+        match = next((user for user in users if secrets.compare_digest(user.invite_code_hash, code_hash(user, str(data['code'])))), None)
+        if match and valid_password(data['password']):
+            match.password = make_password(data['password'])
+            match.activated = True
+            match.invite_code_hash = ''
+            match.invite_expires = None
+            match.save()
+            revoke(match)
+            accepted = match
+        elif not match:
+            for user in users:
                 user.invite_attempts += 1
                 if user.invite_attempts >= 5:
                     user.invite_code_hash = ''
@@ -126,11 +146,13 @@ def activate(queryset, data):
                 user.save()
     # El rechazo ocurre después del commit para conservar el contador de intentos.
     require(accepted, 'El código no es válido o venció. La contraseña necesita al menos 8 caracteres.', 'invalid_code', 400)
+    return accepted
 
 
 def revoke(user, now=None):
     now = now or timezone.now()
     user.sessions.all().delete()
+    user.login_passes.all().delete()
     if isinstance(user, PlatformUser):
         from tenancy.models import TwoFactorChallenge, SupportToken
         TwoFactorChallenge.objects.filter(user=user).delete()
@@ -176,18 +198,39 @@ def login_pos(organization, data):
     account = find_identity(Account.objects.filter(organization=organization), data['login'])
     require(account and account.activated and isinstance(data['password'], str) and
             check_password(data['password'], account.password), 'El usuario o la contraseña no son correctos.', 'invalid_credentials', 401)
+    return open_pos_session(organization, account, data.get('restaurant_id', NO_RESTAURANT),
+                            lambda locked: check_password(data['password'], locked.password))
+
+
+NO_RESTAURANT = object()
+
+
+def pos_entry(account):
+    """El restaurante con el que entra la persona (si solo tiene uno) y su ventana de acceso en este momento."""
+    restaurants = restaurants_for(account)
+    restaurant = restaurants.first() if restaurants.count() == 1 else None
+    return restaurant, access_window(account, restaurant)
+
+
+def outside_hours(window):
+    return Problem('outside_hours', f'Estás fuera de tu horario de acceso. Tu turno es {window["label"]}.', 403, window=window['label'])
+
+
+def open_pos_session(organization, account, restaurant_id=NO_RESTAURANT, still_valid=lambda locked: True):
+    """Abre la única sesión de la persona y su asistencia. La usan el inicio con contraseña y el canje del pase del
+    inicio universal; `still_valid` repite, con la cuenta bloqueada, la comprobación de la credencial."""
     with transaction.atomic():
         from tenancy.models import Organization
         Organization.objects.select_for_update().get(pk=organization.pk)
         account = Account.objects.select_for_update().select_related('organization').get(pk=account.pk)
-        require(account.active and account.activated and check_password(data['password'], account.password),
+        require(account.active and account.activated and account.organization_id == organization.pk and still_valid(account),
                 'La cuenta no está disponible.', 'invalid_credentials', 401)
         require(account.organization.status != 'suspended', 'La cuenta de tu organización está suspendida. Escribe a ProjectApp.', 'organization_suspended')
         restaurants = restaurants_for(account)
         restaurant = None
-        if 'restaurant_id' in data:
-            require(type(data['restaurant_id']) is int, 'Indica un restaurante válido.', 'invalid_data', 400)
-            restaurant = restaurants.filter(pk=data['restaurant_id']).first()
+        if restaurant_id is not NO_RESTAURANT:
+            require(type(restaurant_id) is int, 'Indica un restaurante válido.', 'invalid_data', 400)
+            restaurant = restaurants.filter(pk=restaurant_id).first()
             require(restaurant, 'El restaurante no está asignado a esta persona.')
         elif restaurants.count() == 1:
             restaurant = restaurants.first()
@@ -210,7 +253,7 @@ def login_pos(organization, data):
             from notifications.services import notify_outside_hours
             notify_outside_hours(account, restaurant, window)
     if not window['allowed']:
-        raise Problem('outside_hours', f'Estás fuera de tu horario de acceso. Tu turno es {window["label"]}.', 403, window=window['label'])
+        raise outside_hours(window)
     return account, session, token, attendance
 
 

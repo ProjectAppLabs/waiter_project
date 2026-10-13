@@ -122,26 +122,32 @@ class TwoFactorView(ContractView):
             return Response({"recovery_codes": codes} if enabling else {"ok": True})
 
     def verify(self, request):
-        data = payload(request.data, ("challenge", "code"), ("challenge", "code"))
-        require(isinstance(data["challenge"], str), "El desafío no es válido.", "invalid_challenge", 400)
-        # Los intentos fallidos deben persistir: el error se genera al salir de la transacción.
-        result = None
-        with transaction.atomic():
-            item = TwoFactorChallenge.objects.select_for_update().filter(token_hash=digest(data["challenge"])).first()
-            # Vencido, agotado o inexistente: el POS vuelve a pedir la contraseña en vez de seguir pidiendo códigos.
-            dead = not (item and item.expires > timezone.now() and item.attempts < 5)
-            if not dead:
-                user = PlatformUser.objects.select_for_update().get(pk=item.user_id)
-                if user.active and user.activated and user.two_factor and accept_code(user, data["code"]):
-                    user.save(update_fields=["totp_last_step", "recovery_hashes"])
-                    item.delete()
-                    result = create_session(user)
-                else:
-                    item.attempts += 1
-                    item.save(update_fields=["attempts"])
-        require(not dead, "El tiempo para escribir el código se acabó. Vuelve a entrar con tu contraseña.", "challenge_expired", 400)
-        require(result, "El código no es válido.", "invalid_code", 400)
-        return response_session(result)
+        return response_session(verify_challenge(request.data, create_session))
+
+
+def verify_challenge(data, then):
+    """Cambia el desafío y el código por lo que entregue `then(user)`: la sesión de la consola o, en el inicio
+    universal, el pase hacia ella."""
+    data = payload(data, ("challenge", "code"), ("challenge", "code"))
+    require(isinstance(data["challenge"], str), "El desafío no es válido.", "invalid_challenge", 400)
+    # Los intentos fallidos deben persistir: el error se genera al salir de la transacción.
+    result = None
+    with transaction.atomic():
+        item = TwoFactorChallenge.objects.select_for_update().filter(token_hash=digest(data["challenge"])).first()
+        # Vencido, agotado o inexistente: el POS vuelve a pedir la contraseña en vez de seguir pidiendo códigos.
+        dead = not (item and item.expires > timezone.now() and item.attempts < 5)
+        if not dead:
+            user = PlatformUser.objects.select_for_update().get(pk=item.user_id)
+            if user.active and user.activated and user.two_factor and accept_code(user, data["code"]):
+                user.save(update_fields=["totp_last_step", "recovery_hashes"])
+                item.delete()
+                result = then(user)
+            else:
+                item.attempts += 1
+                item.save(update_fields=["attempts"])
+    require(not dead, "El tiempo para escribir el código se acabó. Vuelve a entrar con tu contraseña.", "challenge_expired", 400)
+    require(result, "El código no es válido.", "invalid_code", 400)
+    return result
 
 
 class ResetTwoFactorView(ContractView):

@@ -1,7 +1,7 @@
 # Guía QA Waiter — 0. Índice, lineamientos y datos de prueba
 
 **Producto:** Waiter · ProjectApp
-**Fecha de actualización:** 3 de octubre de 2026 (MySQL, inicio único, devoluciones, impresión, sin internet, modo de emergencia, módulos, precios y recargas)
+**Fecha de actualización:** 12 de octubre de 2026 (inicio de sesión universal; antes: MySQL, devoluciones, impresión, sin internet, modo de emergencia, módulos, precios y recargas)
 **Estado de la entrega:** POS, consola del dueño, cocina, menú del comensal y consola de ProjectApp en desarrollo continuo. Esta guía es un documento vivo: cada plan que se termina añade o corrige casos.
 **Ambiente:** desarrollo compartido (ver «Direcciones»). Nada de lo que se haga aquí toca dinero real ni a clientes reales.
 
@@ -11,7 +11,7 @@ La guía se divide por **rol** y, dentro de cada rol, por **funcionalidad**. Cad
 
 | Guía | Rol o área | Casos |
 |---|---|---|
-| 1 | Acceso e identidad (todos los roles) | A-01 … A-10 |
+| 1 | Acceso e identidad (todos los roles) | A-01 … A-13 |
 | 2 | Mesero | M-01 … M-10 |
 | 3 | Cajero | C-01 … C-09 |
 | 4 | Cocina (vista KDS) | K-01 … K-07 |
@@ -33,6 +33,8 @@ Los documentos de venta salen de un proveedor de factura electrónica **simulado
 
 ## 2. Direcciones y usuarios de prueba
 
+**Todos entran por el mismo inicio de sesión:** `http://localhost:3000/login` (en producción, `https://waiter.projectapp.co/login`; la raíz `https://waiter.projectapp.co` es la landing, y su «Iniciar sesión» lleva ahí). Allí el sistema reconoce de quién es la cuenta y la lleva, ya con la sesión abierta, a la dirección de su organización (`http://<org>.localhost:3000`; Burger House se queda en `localhost:3000`) o a la consola de ProjectApp. Si el mismo usuario o correo tiene cuenta en varias organizaciones, pregunta a cuál entrar. Abrir `/login` en el subdominio de una organización lleva a ese inicio común.
+
 | Usuario | Contraseña | Rol | Dónde entra |
 |---|---|---|---|
 | `admin` | `admin` | Dueño de Burger House | `http://localhost:3000/login` → consola `/organizacion` |
@@ -40,7 +42,7 @@ Los documentos de venta salen de un proveedor de factura electrónica **simulado
 | `carlos.cajero` | `waiter-demo-2026` | Cajero de Poblado | `http://localhost:3000/login` |
 | `sofia.mesera` | `waiter-demo-2026` | Mesera de Poblado | `http://localhost:3000/login` |
 | `mateo.mesero` | `waiter-demo-2026` | Mesero de Laureles, con turno (sirve para «fuera de horario») | `http://localhost:3000/login` |
-| `maria.lopez` | `Frisby-2026!` | Dueña de Frisby (sistema propio) | `http://frisby-74312.localhost:3000/login` → `/organizacion` |
+| `maria.lopez` | `Frisby-2026!` | Dueña de Frisby (sistema propio) | `http://localhost:3000/login` → `http://frisby-74312.localhost:3000/organizacion` |
 | `ana.projectapp` | `Plataforma-2026` | Administradora de ProjectApp | `http://localhost:3000/login` → consola `/plataforma` |
 
 Otras direcciones:

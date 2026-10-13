@@ -101,6 +101,37 @@ BOOL = {'noValidate'}
 DROP = {'hint-placeholder-count', 'hint-placeholder-val'}
 
 
+# Enlaces que el diseño dejó en «#» y ya tienen página en la landing: texto del enlace → (ruta, abrir aparte).
+ENLACES = {
+    'política de privacidad': ('/privacy', True),
+    'Política de privacidad': ('/privacy', False),
+    'Condiciones del servicio': ('/terms', False),
+    'Eliminación de datos': ('/data-deletion', False),
+    # Una expresión entre llaves se escribe tal cual: la dirección del inicio de sesión universal sale de lib/sesion.ts.
+    'Iniciar sesión': ('{INICIAR_SESION}', False),
+}
+# Bloques que ya no salen del diseño: la navegación es propia (components/Nav.tsx, en pill como la de ProjectApp).
+PROPIOS = {'Nav'}
+
+
+def marcar_aurora(section):
+    """Las secciones con fondo blanco llevan la Aurora ambiental del sistema de diseño. Si la sección tiene un escenario
+    fijo (sticky), la Aurora va en él para que no se desplace por detrás."""
+    estilo = dict(section['attrs']).get('style', '')
+    if not re.search(r'(^|;)\s*background:\s*#FFFFFF\s*(;|$)', estilo, re.I):
+        return
+    destino = section
+    for c in section['children']:
+        if 'tag' in c and re.search(r'position:\s*sticky', dict(c['attrs']).get('style', '')):
+            destino = c
+            break
+    destino['aurora'] = True
+
+
+def node_text(node):
+    return ''.join(c['text'] if 'text' in c else node_text(c) for c in node.get('children', [])).strip()
+
+
 def hover_class(pseudo, css):
     key = (pseudo, css)
     if key not in HOVER:
@@ -131,10 +162,19 @@ def attrs_jsx(node):
             continue
         if name in ('src', 'href') and value.startswith('img/'):
             value = '/' + value
+        if name == 'href' and value == '#' and node_text(node) in ENLACES:
+            value, nueva = ENLACES[node_text(node)]
+            if nueva:  # el del formulario abre aparte para no perder lo escrito
+                out.append('target="_blank"')
+                out.append('rel="noopener noreferrer"')
         if '{{' in value:
             out.append(f'{key}={{{interp_string(value)}}}')
+        elif re.fullmatch(r'\{[A-Z_]+\}', value):
+            out.append(f'{key}={value}')
         else:
             out.append(f'{key}={json.dumps(value, ensure_ascii=False)}')
+    if node.get('aurora'):
+        classes.append('wl-aurora')
     if classes:
         out.insert(0, f'className="{" ".join(classes)}"')
     return out
@@ -186,6 +226,8 @@ def render(node, ind=0, key=None):
     if tag in VOID:
         return f'{pad}{open_tag} />'
     kids = [render(c, ind + 1) for c in node['children']]
+    if node.get('aurora'):
+        kids.insert(0, pad + '  <AuroraFondo />')
     # Espacios al inicio y al final del contenido se conservan solo si el runtime los conservaba.
     kids = [k for k in kids if k != '']
     if not kids:
@@ -211,13 +253,19 @@ for node in sections:
                 '08 Banda': 'Banda', '09 Precios': 'Precios', '10 Seguridad': 'Seguridad', '11 Agenda tu demo': 'AgendaDemo',
                 '12 Preguntas': 'Preguntas', '13 CTA final': 'CtaFinal', '14 Pie': 'Pie'}[label]
     NAMES.append(name)
+    marcar_aurora(node)
     jsx = render(node, 2)
-    uses_v = re.search(r'(?<![\w.])v\.[A-Za-z]', jsx) is not None
-    sig = '{ v }: { v: LandingVals }' if uses_v else ''
+    claves = sorted(set(re.findall(r'(?<![\w.])v\.([A-Za-z0-9]+)', jsx)))
+    uses_v = bool(claves)
+    sig = '{ v }: { v: Pick<LandingVals, ' + ' | '.join(f"'{k}'" for k in claves) + '> }' if uses_v else ''
+    if name in PROPIOS:  # se convierte igual (mantiene la numeración de las clases de hover), pero no se escribe
+        continue
     comment = f'// {label}' if label else ('// 00 Navegación' if name == 'Nav' else '// Botón flotante de WhatsApp')
     src = (("/* eslint-disable @next/next/no-img-element */\n" if '<img' in jsx else '')
            + "// Generado desde «Landing Waiter.dc.html» (Claude Design) con scripts/dc2jsx.py: no editar a mano los estilos,\n"
            "// regenerar. Las imágenes van con <img> porque el diseño depende de sus medidas exactas.\n"
+           + ("import { INICIAR_SESION } from '@/lib/sesion'\n" if '{INICIAR_SESION}' in jsx else '')
+           + ("import { AuroraFondo } from '../AuroraFondo'\n" if '<AuroraFondo' in jsx else '')
            + ("import type { LandingVals } from '../vals'\n\n" if uses_v else '\n')
            + f"{comment}\nexport function {name}({sig}) {{\n  return (\n{jsx}\n  )\n}}\n")
     open(f'{OUT_DIR}/{name}.tsx', 'w', encoding='utf-8').write(src)

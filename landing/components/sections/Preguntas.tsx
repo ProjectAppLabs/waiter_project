@@ -1,12 +1,14 @@
 /* eslint-disable @next/next/no-img-element */
 // Generado desde «Landing Waiter.dc.html» (Claude Design) con scripts/dc2jsx.py: no editar a mano los estilos,
 // regenerar. Las imágenes van con <img> porque el diseño depende de sus medidas exactas.
+import { AuroraFondo } from '../AuroraFondo'
 import type { LandingVals } from '../vals'
 
 // 12 Preguntas
-export function Preguntas({ v }: { v: LandingVals }) {
+export function Preguntas({ v }: { v: Pick<LandingVals, 'faqs'> }) {
   return (
-    <section id="preguntas" data-screen-label="12 Preguntas" style={{ padding: 'clamp(80px,10vw,128px) 0', background: '#FFFFFF', borderTop: '1px solid #E2E8F0' }}>
+    <section className="wl-aurora" id="preguntas" data-screen-label="12 Preguntas" style={{ padding: 'clamp(80px,10vw,128px) 0', background: '#FFFFFF', borderTop: '1px solid #E2E8F0' }}>
+      <AuroraFondo />
       {' '}
       <div style={{ maxWidth: '880px', margin: '0 auto', padding: '0 24px', display: 'flex', flexDirection: 'column', gap: '36px' }}>
         {' '}

@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 
 import { LOGIN_INPUT, LoginFrame } from '@/components/account/LoginFrame'
 import { RestaurantPicker } from '@/components/account/RestaurantPicker'
@@ -10,25 +10,21 @@ import { Icon } from '@/components/kit/Icon'
 import { Toggle } from '@/components/kit/Toggle'
 import { Button } from '@/components/ui/Button'
 import { homePath } from '@/lib/domain/navigation'
-import { currentOrg } from '@/lib/domain/tenant'
+import { centralHost, destinationOrigin, here, isCentralHost, leaveTo, orgFromHost } from '@/lib/domain/tenant'
 import { effectiveRole, isOwner } from '@/lib/domain/roles'
 import { readLogoutReason, rememberLogoutReason, type GuardReason } from '@/lib/domain/sessionGuard'
 import { useStored } from '@/lib/hooks/useStored'
-import { activate, requestCode } from '@/lib/services/activation'
+import { universalActivate, universalLogin, universalRequestCode, universalVerify2fa, type AccessDestination } from '@/lib/services/core/access'
 import { CoreError } from '@/lib/services/core/http'
-import { platformActivate, platformRequestCode } from '@/lib/services/core/platform'
 import { ShiftDeniedError, useAuthStore } from '@/lib/stores/authStore'
 import { usePlatformStore } from '@/lib/stores/platformStore'
 import { cn } from '@/lib/utils'
 
 const write = (key: string, value: string) => { try { if (value) localStorage.setItem(key, value); else localStorage.removeItem(key) } catch { /* sin almacenamiento */ } }
-type View = 'main' | 'forgot' | 'code' | 'twoFactor'
-// El enlace de la invitación abre el inicio en «escribe el código» con el usuario puesto: /login?codigo=<usuario>.
-const invitedLogin = (): string | null => { try { return new URLSearchParams(window.location.search).get('codigo') } catch { return null } }
-// Un solo inicio para todos: las cuentas de los restaurantes y las de ProjectApp siguen separadas en el servidor (cada
-// una con su sesión), pero se entra por aquí. Si el usuario no existe en la organización de esta dirección, se prueba
-// como persona de ProjectApp; donde no hay organización (plataforma.…) solo se prueba ProjectApp.
-const notInOrg = (e: unknown) => e instanceof CoreError && e.code === 'invalid_credentials'
+type View = 'main' | 'forgot' | 'code' | 'twoFactor' | 'choose'
+// La dirección de la pestaña no cambia sin recargar la página.
+const unchanging = () => () => undefined
+const param = (name: string): string | null => { try { return new URLSearchParams(window.location.search).get(name) } catch { return null } }
 const badCode = (e: unknown) => e instanceof CoreError && e.code === 'invalid_code'
 // Plan Y3: el desafío del doble factor ya no sirve (vencido o con cinco códigos malos): hay que volver a la contraseña.
 const deadChallenge = (e: unknown) => e instanceof CoreError && ['challenge_expired', 'invalid_challenge', 'too_many_attempts'].includes(e.code)
@@ -40,13 +36,25 @@ export function loginError(error: unknown, tl: (key: string) => string): string 
   return tl('unreachable')
 }
 
+// Inicio de sesión universal: todos (meseros, cajeros, encargados, dueños y la gente de ProjectApp) entran por la
+// dirección sin organización (waiter.projectapp.co/login). Allí el servidor busca la credencial en todas las
+// organizaciones y en ProjectApp y entrega un pase de un solo uso por cada cuenta; con él se va a `/entrar` en el
+// subdominio de la organización o en la consola, que lo cambia por la sesión de esa dirección.
+// En el subdominio de una organización o en la consola, `/login` solo lleva a quien ya tiene sesión a su pantalla; a
+// los demás los manda al inicio universal con el código de invitación y la organización de donde venían.
 export default function LoginPage() {
   const t = useTranslations('account')
   const tl = useTranslations('pos.login')
+  const roleLabel = useTranslations('pos.nav.roles')
   const router = useRouter()
-  const { user, employee, session, restaurant, restaurants, hydrated, hydrate, login, chooseRestaurant } = useAuthStore()
+  const { user, employee, session, restaurant, restaurants, hydrated, hydrate, chooseRestaurant } = useAuthStore()
   const platform = usePlatformStore()
-  const [invited] = useState<string | null>(() => (typeof window === 'undefined' ? null : invitedLogin()))
+  // null en el servidor, que no sabe en qué dirección se abrió la página.
+  const central = useSyncExternalStore(unchanging, () => isCentralHost(here().host), () => null)
+  const [invited] = useState<string | null>(() => (typeof window === 'undefined' ? null : param('codigo')))
+  // La organización de donde venía la persona (su subdominio o el enlace de la invitación): si su cuenta está en
+  // varias, entra directo a esa.
+  const [orgHint] = useState<string | null>(() => (typeof window === 'undefined' ? null : param('org')))
   const [view, setView] = useState<View>(invited ? 'code' : 'main')
   const storedEmail = useStored('waiter.email')
   const [emailEdit, setEmailEdit] = useState<string | null>(invited)
@@ -62,14 +70,22 @@ export default function LoginPage() {
   const [codeState, setCodeState] = useState<'idle' | 'sent' | 'resent' | 'invalid' | 'mismatch'>('idle')
   const [challenge, setChallenge] = useState<string | null>(null)
   const [otp, setOtp] = useState('')
+  const [destinations, setDestinations] = useState<AccessDestination[]>([])
+  // Ya se va a cambiar el pase: el botón sigue ocupado hasta que cargue la otra dirección.
+  const leaving = useRef(false)
 
   useEffect(() => { void hydrate() }, [hydrate])
   const platformHydrate = platform.hydrate
   useEffect(() => { void platformHydrate() }, [platformHydrate])
   // Una persona de ProjectApp con su sesión viva vuelve a su consola.
   useEffect(() => { if (hydrated && platform.hydrated && platform.user && !user) router.replace('/plataforma') }, [hydrated, platform.hydrated, platform.user, user, router])
-  // Si la sesión se cerró sola (inactividad o fin del turno) se explica. Solo se pinta ya hidratado, en el navegador.
-  const [closed, setClosed] = useState<GuardReason | null>(() => (typeof window === 'undefined' ? null : readLogoutReason()))
+  // Si la sesión se cerró sola (inactividad o fin del turno) se explica. El subdominio lo pasa en `motivo` al mandar
+  // al inicio universal, que está en otra dirección. Solo se pinta ya hidratado, en el navegador.
+  const [closed, setClosed] = useState<GuardReason | null>(() => {
+    if (typeof window === 'undefined') return null
+    const motivo = param('motivo')
+    return readLogoutReason() ?? (motivo === 'idle' || motivo === 'shift' ? motivo : null)
+  })
   const owner = !!user && isOwner(user.role, employee?.role)
   const mustPick = !!user && !!employee && !owner && !restaurant && (restaurants?.length ?? 0) > 1
   // Con la persona ya dentro (recién entró o volvió a /login con su sesión viva), se la lleva a su sitio.
@@ -77,28 +93,55 @@ export default function LoginPage() {
     if (!hydrated || !user || !employee || mustPick) return
     router.replace(owner ? '/organizacion' : homePath(effectiveRole(user.role, employee.role), session !== null))
   }, [hydrated, user, employee, mustPick, owner, session, router])
+  // Sin sesión fuera del inicio universal: se va allá con lo que traiga la dirección (el código de la invitación).
+  useEffect(() => {
+    if (central !== false || !hydrated || !platform.hydrated || user || platform.user) return
+    const { protocol, host } = here()
+    const query = new URLSearchParams(window.location.search)
+    const org = orgFromHost(host)
+    if (org && !query.has('org')) query.set('org', org)
+    const reason = readLogoutReason()
+    if (reason) query.set('motivo', reason)
+    const rest = query.toString()
+    leaveTo(`${protocol}//${centralHost(host)}/login${rest ? `?${rest}` : ''}`, { replace: true })
+  }, [central, hydrated, platform.hydrated, user, platform.user])
+
+  // Se va a cambiar el pase a la dirección de su destino. El pase viaja en el fragmento (#), que el navegador no manda
+  // al servidor: no queda en registros de acceso.
+  function go(destination: AccessDestination) {
+    if (destination.error) { setFailed(destination.error.message); setView('main'); return }
+    if (destination.two_factor && destination.challenge) { setChallenge(destination.challenge); setOtp(''); setFailed(null); setView('twoFactor'); return }
+    if (!destination.pass) return
+    enter(destination.kind, destination.organization?.slug ?? null, destination.pass)
+  }
+  function enter(kind: AccessDestination['kind'], slug: string | null, pass: string) {
+    leaving.current = true
+    setBusy(true); rememberLogoutReason(null); setClosed(null)
+    const origin = destinationOrigin(kind, slug, here(), process.env.NEXT_PUBLIC_DEFAULT_ORG || null)
+    leaveTo(`${origin}/entrar#${new URLSearchParams({ pase: pass, destino: kind === 'platform' ? 'plataforma' : 'pos' })}`)
+  }
+  // Un solo destino (o el de la organización de donde venía): directo. Varios: se elige.
+  function proceed(list: AccessDestination[]) {
+    const usable = list.filter((d) => !d.error)
+    const hinted = orgHint ? usable.find((d) => d.organization?.slug === orgHint) : undefined
+    if (list.length === 1 || hinted || usable.length === 1) { go(hinted ?? usable[0] ?? list[0]); return }
+    setDestinations(list); setFailed(null); setView('choose')
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     setFailed(null); setBusy(true)
     try {
-      let inOrg = false
-      if (currentOrg()) {
-        try { await login(email.trim(), password); inOrg = true } catch (e) { if (!notInOrg(e)) throw e }
-      }
-      if (!inOrg) {
-        const pending = await platform.login(email.trim(), password)
-        if (pending) { write('waiter.email', remember ? email.trim() : ''); setPassword(''); setChallenge(pending); setOtp(''); setView('twoFactor'); return }
-      }
-      write('waiter.email', remember ? email.trim() : ''); setPassword(''); rememberLogoutReason(null); setClosed(null)
-      if (!inOrg) router.replace('/plataforma')
+      const list = await universalLogin(email.trim(), password)
+      write('waiter.email', remember ? email.trim() : ''); setPassword('')
+      proceed(list)
     }
     catch (e) { setFailed(loginError(e, tl)) }
-    finally { setBusy(false) }
+    finally { if (!leaving.current) setBusy(false) }
   }
-  // El servidor responde igual exista o no la cuenta: no revela quién tiene usuario. Se pide a los dos lados: el código
-  // solo llega de donde la cuenta exista.
-  const sendCode = () => Promise.allSettled([currentOrg() ? requestCode(email) : Promise.resolve(), platformRequestCode(email.trim())])
+  // El servidor responde igual exista o no la cuenta: no revela quién tiene usuario. Si el usuario está en varias
+  // organizaciones, a cada una le llega su código.
+  const sendCode = () => universalRequestCode(email).catch(() => undefined)
   async function onRequest(e: React.FormEvent) {
     e.preventDefault()
     setBusy(true); try { await sendCode(); setCode(''); setView('code'); setCodeState('sent') } finally { setBusy(false) }
@@ -109,35 +152,29 @@ export default function LoginPage() {
     if (newPassword !== confirm) { setCodeState('mismatch'); return }
     setBusy(true)
     try {
-      let side: 'org' | 'platform' | null = null
-      if (currentOrg()) {
-        try { if (await activate(email, code, newPassword)) side = 'org' } catch (e) { if (!badCode(e)) throw e }
-      }
-      if (!side) {
-        try { await platformActivate(email.trim(), code, newPassword); side = 'platform' } catch (e) { if (!badCode(e)) throw e }
-      }
-      if (!side) { setCodeState('invalid'); return }
+      try { await universalActivate(email, code, newPassword) } catch (e) { if (badCode(e)) { setCodeState('invalid'); return } throw e }
       write('waiter.email', email.trim()); setView('main')
-      if (side === 'org') await login(email.trim(), newPassword)
-      else { await platform.login(email.trim(), newPassword); router.replace('/plataforma') }
+      proceed(await universalLogin(email.trim(), newPassword))
     } catch (e) {
-      // El código sirvió pero entrar no (p. ej. fuera de su turno): la contraseña ya quedó guardada, se explica en el inicio.
-      if (e instanceof ShiftDeniedError || (e instanceof CoreError && e.code !== 'invalid_code')) { setView('main'); setFailed(loginError(e, tl)) } else setCodeState('invalid')
-    } finally { setBusy(false) }
+      // El código sirvió pero entrar no: la contraseña ya quedó guardada, se explica en el inicio.
+      setView('main'); setFailed(loginError(e, tl))
+    } finally { if (!leaving.current) setBusy(false) }
   }
   async function onVerify(e: React.FormEvent) {
     e.preventDefault()
     if (!challenge) return
     setFailed(null); setBusy(true)
-    try { await platform.verify(challenge, otp.trim()); setChallenge(null); rememberLogoutReason(null); setClosed(null); router.replace('/plataforma') }
+    try { const pass = await universalVerify2fa(challenge, otp.trim()); setChallenge(null); enter('platform', null, pass); return }
     catch (e) {
       if (deadChallenge(e)) { setChallenge(null); setView('main'); setFailed(tl('twoFactor.expired')) }
       else setFailed(e instanceof CoreError && e.code === 'unreachable' ? tl('unreachable') : tl('twoFactor.invalid'))
-    } finally { setBusy(false) }
+    }
+    setBusy(false)
   }
   const openForgot = () => { setView('forgot'); setCodeState('idle'); setFailed(null) }
 
-  if (!hydrated) return <LoginFrame><p className="pt-20 text-dim">{t('employee.loading')}</p></LoginFrame>
+  // Mientras se sabe si hay sesión (o se va al inicio universal) no se pinta el formulario.
+  if (!hydrated || central === null || (!central && !user && !platform.user)) return <LoginFrame><p className="pt-20 text-dim">{t('employee.loading')}</p></LoginFrame>
 
   if (mustPick) {
     return (
@@ -149,7 +186,33 @@ export default function LoginPage() {
 
   return (
     <LoginFrame>
-      {view === 'twoFactor' ? (
+      {view === 'choose' ? (
+        <div className="w-[440px] pt-6 flex flex-col gap-4">
+          <div><h1 className="text-[24px] font-semibold text-ink">{tl('choose.title')}</h1><p className="mt-1 text-[15px] text-dim">{tl('choose.intro')}</p></div>
+          <ul className="flex flex-col gap-3">
+            {destinations.map((d, i) => {
+              const title = d.kind === 'platform' ? tl('choose.platform') : d.organization?.name ?? ''
+              const role = d.kind === 'platform'
+                ? (d.role === 'admin' || d.role === 'operator' ? tl(`choose.platformRoles.${d.role}`) : d.role)
+                : (['waiter', 'cashier', 'admin', 'owner'].includes(d.role) ? roleLabel(d.role as 'waiter') : d.role)
+              return (
+                <li key={`${d.kind}-${d.organization?.slug ?? i}`}>
+                  <button type="button" onClick={() => go(d)} disabled={busy || !!d.error}
+                    className="w-full flex items-center gap-4 rounded-md border border-border bg-surface px-4 py-3 text-left hover:border-primary disabled:opacity-60 disabled:hover:border-border">
+                    <span className="w-10 h-10 rounded-md border border-border grid place-items-center text-ink shrink-0"><Icon name={d.kind === 'platform' ? 'lock' : 'store'} size={20} /></span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-[16px] font-semibold text-ink truncate">{title}</span>
+                      <span className="block text-[14px] text-dim">{role}</span>
+                      {d.error && <span className="block text-[13px] text-danger-ink">{d.error.message}</span>}
+                    </span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+          <button type="button" onClick={() => { setDestinations([]); setView('main') }} className="self-center text-[16px] font-semibold text-ink">{t('terminal.back')}</button>
+        </div>
+      ) : view === 'twoFactor' ? (
         <form onSubmit={onVerify} className="w-[440px] pt-6 flex flex-col gap-4">
           <span className="w-10 h-10 rounded-md border border-border grid place-items-center text-ink shadow-sm"><Icon name="lock" size={22} /></span>
           <div><h1 className="mt-2 text-[24px] font-semibold text-ink">{tl('twoFactor.title')}</h1><p className="mt-1 text-[15px] text-dim">{tl('twoFactor.intro')}</p></div>

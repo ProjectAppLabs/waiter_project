@@ -3,7 +3,7 @@
 import type { LandingVals } from '../vals'
 
 // Botón flotante de WhatsApp
-export function WhatsAppFlotante({ v }: { v: LandingVals }) {
+export function WhatsAppFlotante({ v }: { v: Pick<LandingVals, 'waHref'> }) {
   return (
     <a className="wl-h9" href={v.waHref} target="_blank" rel="noopener noreferrer" aria-label="Escríbenos por WhatsApp" style={{ position: 'fixed', zIndex: '60', bottom: '16px', right: '16px', width: '48px', height: '48px', borderRadius: '50%', background: '#22C55E', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 15px 4px rgba(34,197,94,0.6)', cursor: 'pointer', transition: 'transform .18s ease' }}>
       <svg viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" style={{ width: '24px', height: '24px', color: '#FFFFFF' }}>

@@ -7,13 +7,25 @@ esto se ha aplicado todavía: requiere el acceso al DNS del dominio y al servido
 
 | Dirección | Servicio |
 |---|---|
+| `https://waiter.projectapp.co` | Landing de Waiter (también `/privacy`, `/terms` y `/data-deletion`) |
+| `https://waiter.projectapp.co/login` | Inicio de sesión universal: todos entran aquí (meseros, cajeros, encargados, dueños y ProjectApp) |
 | `https://<org>.waiter.projectapp.co` | POS y consola del dueño de cada organización |
-| `https://plataforma.waiter.projectapp.co` | Consola de ProjectApp (y `waiter.projectapp.co` redirige aquí) |
+| `https://plataforma.waiter.projectapp.co` | Consola de ProjectApp |
 | `https://menu.waiter.projectapp.co/<org>/<sede>/t/<token>` | Menú del comensal (QR de cada mesa) |
 | `https://api.waiter.projectapp.co/mcp/` | MCP del diseño del menú; también los webhooks de pagos |
 
+El inicio universal busca la credencial en todas las organizaciones y en ProjectApp y lleva a cada persona a su
+dirección con un pase de un solo uso (2 minutos) que esa dirección cambia por su sesión (`/entrar`). Las cookies de
+sesión siguen siendo de cada subdominio. `/login` en el subdominio de una organización o en la consola manda al inicio
+universal; las invitaciones y los códigos para cambiar la contraseña también llevan ahí (`POS_URL`).
+
+En el dominio base conviven dos aplicaciones de Next: la landing y el POS. Caddy manda a la landing sus páginas, `/img`
+y `/_landing` (sus archivos, por el `assetPrefix` de `landing/next.config.ts`); todo lo demás (`/login`, `/entrar`,
+`/_next`, `/experience`) va al POS. Una página nueva de la landing se agrega también al `@landing` del `Caddyfile`. El
+service worker del POS no se registra en el dominio base, para no tomar las páginas de la landing.
+
 Servicios del `docker-compose.prod.yml`: MySQL 8.4, Redis, experience (Gunicorn), las tareas programadas
-(`crontab`), el POS y el menú (Next.js) y Caddy con el certificado comodín.
+(`crontab`), el POS, el menú y la landing (Next.js) y Caddy con el certificado comodín.
 
 ## 1. DNS (una sola vez)
 
@@ -84,8 +96,9 @@ Las fotos van en el volumen `media` (copiar `experience/media/`).
 ## 5. Ensayo local
 
 Sin DNS ni certificado se puede probar todo con `*.localhost`: en un `Caddyfile.local` cambia `{$BASE_DOMAIN}` por
-`localhost` y la línea `tls { dns … }` por `tls internal`, y abre `https://frisby-74312.localhost`,
-`https://plataforma.localhost` y `https://menu.localhost/frisby-74312/<sede>`.
+`localhost` y la línea `tls { dns … }` por `tls internal`, pon `POS_URL=https://localhost`, abre la landing en
+`https://localhost`, entra por `https://localhost/login` (te lleva a `https://frisby-74312.localhost`) y abre
+`https://menu.localhost/frisby-74312/<sede>`.
 
 ## Tareas programadas
 

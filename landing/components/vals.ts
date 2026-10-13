@@ -15,7 +15,6 @@ export interface LandingVals {
   painCols: string
   arrowDisplay: string
   waHref: string
-  navLinksDisplay: string
   tabs: (Segmento & { label: string; onClick: () => void })[]
   mods: {
     icon: string

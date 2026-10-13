@@ -4,7 +4,7 @@
 import type { LandingVals } from '../vals'
 
 // 03 Dolores
-export function Dolores({ v }: { v: LandingVals }) {
+export function Dolores({ v }: { v: Pick<LandingVals, 'painCols'> }) {
   return (
     <section data-screen-label="03 Dolores" style={{ padding: 'clamp(80px,10vw,128px) 0', backgroundColor: '#FFFBEB', backgroundImage: 'url(/img/grano.png)', backgroundSize: '256px 256px' }}>
       {' '}

@@ -1,14 +1,16 @@
 /* eslint-disable @next/next/no-img-element */
 // Generado desde «Landing Waiter.dc.html» (Claude Design) con scripts/dc2jsx.py: no editar a mano los estilos,
 // regenerar. Las imágenes van con <img> porque el diseño depende de sus medidas exactas.
+import { AuroraFondo } from '../AuroraFondo'
 import type { LandingVals } from '../vals'
 
 // 04 Así funciona
-export function AsiFunciona({ v }: { v: LandingVals }) {
+export function AsiFunciona({ v }: { v: Pick<LandingVals, 'howCols' | 'howGap' | 'howH2' | 'howPad' | 'howRows' | 'stageH' | 'steps'> }) {
   return (
     <section id="como-funciona" data-how="" data-screen-label="04 Así funciona" style={{ position: 'relative', height: '420vh', background: '#FFFFFF', borderTop: '1px solid #E2E8F0' }}>
       {' '}
-      <div style={{ position: 'sticky', top: '0', height: '100vh', overflow: 'hidden' }}>
+      <div className="wl-aurora" style={{ position: 'sticky', top: '0', height: '100vh', overflow: 'hidden' }}>
+        <AuroraFondo />
         {' '}
         <div style={{ maxWidth: '1200px', height: '100%', margin: '0 auto', padding: v.howPad, display: 'grid', gridTemplateColumns: v.howCols, gridTemplateRows: v.howRows, gap: v.howGap, alignItems: 'center' }}>
           {' '}

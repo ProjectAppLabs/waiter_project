@@ -1,11 +1,11 @@
 # Guía QA Waiter — 1. Acceso e identidad
 
 **Aplica a:** todos los roles. **Organizaciones:** Burger House y Frisby.
-**Fecha de actualización:** 2 de octubre de 2026
+**Fecha de actualización:** 12 de octubre de 2026 (inicio de sesión universal)
 
 ## 1. Qué vamos a comprobar
 
-Que cada persona entra con su usuario o correo y su contraseña, llega a la pantalla que le corresponde, recupera la contraseña con un código de un solo uso, y que el sistema respeta el horario del turno, la sesión única y el cierre automático.
+Que todas las personas entran por el mismo inicio de sesión (`http://localhost:3000/login`; en producción `https://waiter.projectapp.co/login`) con su usuario o correo y su contraseña, el sistema las lleva a la dirección de su organización o a la consola de ProjectApp y llegan a la pantalla que les corresponde, recupera la contraseña con un código de un solo uso, y que el sistema respeta el horario del turno, la sesión única y el cierre automático.
 
 ## 2. Preparación
 
@@ -25,6 +25,9 @@ Tenga a mano los usuarios de la Guía 0. Para los casos de código por correo, p
 | A-08 | Acceso fuera del horario del turno | Mesero con turno; el dueño ve el aviso |
 | A-09 | Una sola sesión por persona y cambio de contraseña | Cualquier rol |
 | A-10 | Cierre por inactividad y por fin de turno | Mesero o cajero |
+| A-11 | El subdominio de la organización lleva al inicio universal | Dueña de Frisby |
+| A-12 | Una persona con cuenta en varias organizaciones elige a cuál entrar | Coordinar con ProjectApp |
+| A-13 | El ingreso sirve una sola vez y los intentos fallidos tienen límite | Cualquier rol |
 
 ## 4. Paso a paso
 
@@ -83,10 +86,10 @@ Tenga a mano los usuarios de la Guía 0. Para los casos de código por correo, p
 
 **Quién:** el dueño invita (D-02) y la persona nueva activa.
 
-1. Con la invitación hecha por el dueño, abra el enlace «Poner mi contraseña» del correo (lleva a `/login?codigo=<usuario>` directo a la vista del código).
+1. Con la invitación hecha por el dueño, abra el enlace «Poner mi contraseña» del correo (lleva al inicio universal, `/login?codigo=<usuario>&org=<organización>`, directo a la vista del código).
 2. Escriba el código de la invitación y una contraseña nueva.
 
-**Resultado esperado:** la cuenta queda activa y entra sola. Si la persona tiene turno y está fuera de su horario, la contraseña queda guardada y se muestra el motivo por el que no entra. El código de invitación vence a las 48 horas.
+**Resultado esperado:** la cuenta queda activa y entra sola a la dirección de su organización. Si la persona tiene turno y está fuera de su horario, la contraseña queda guardada y se muestra el motivo por el que no entra. El código de invitación vence a las 48 horas.
 
 ### A-07 — Encargada con varios restaurantes elige sede
 
@@ -123,6 +126,35 @@ Tenga a mano los usuarios de la Guía 0. Para los casos de código por correo, p
 
 **Resultado esperado:** a los 15 minutos de inactividad se cierra la sesión y el inicio explica el motivo. «Seguir aquí» aplaza el cierre. Cocina y Operación no se cierran por inactividad, pero sí al terminar el turno de quien entró; el fin de turno avisa 5 minutos antes y no se puede aplazar.
 
+### A-11 — El subdominio de la organización lleva al inicio universal
+
+**Objetivo:** hay un solo inicio de sesión; cada organización solo recibe a quien ya entró.
+**Quién:** `maria.lopez` (dueña de Frisby).
+
+1. Sin sesión, abra `http://frisby-74312.localhost:3000/login` (o cualquier pantalla de Frisby).
+2. Observe la dirección: debe cambiar a `http://localhost:3000/login?org=frisby-74312`. Entre con `maria.lopez`.
+3. Cierre sesión desde la consola de Frisby.
+
+**Resultado esperado:** el formulario es el mismo de todos y está en `localhost:3000`. Al entrar, la dirección pasa sola a `http://frisby-74312.localhost:3000/organizacion` con la sesión abierta, sin pedir nada más. Al cerrar sesión vuelve al inicio universal. Si la sesión se cerró por inactividad, el inicio universal lo explica igual que antes.
+
+### A-12 — Una persona con cuenta en varias organizaciones elige a cuál entrar
+
+**Quién:** pida a ProjectApp que cree a la misma persona (mismo correo y contraseña) como encargada en Burger House y en Frisby, o invítela desde los dos dueños.
+
+1. Entre con ese correo en `http://localhost:3000/login`.
+2. Revise la lista «¿A dónde quieres entrar?»: una fila por organización con el rol. Elija Frisby.
+3. Cierre sesión y repita entrando desde `http://burger-house.localhost:3000/login`.
+
+**Resultado esperado:** en el paso 2 se ve cada organización con su rol (y «Consola de ProjectApp» si la persona también es de ProjectApp); al elegir, entra a esa dirección. Una organización suspendida o un turno fuera de horario aparecen en la lista con el motivo y no se pueden elegir. En el paso 3 no pregunta: entra directo a Burger House, de donde venía.
+
+### A-13 — El ingreso sirve una sola vez y los intentos fallidos tienen límite
+
+1. Entre como `sofia.mesera` y observe la barra de direcciones al llegar a su pantalla: no debe quedar ningún `pase=` en la dirección ni en el historial.
+2. Sin sesión, abra `http://localhost:3000/entrar#pase=inventado&destino=pos` (lo mismo pasa con un ingreso ya usado o de más de 2 minutos).
+3. En el inicio universal, escriba 10 veces una contraseña equivocada para `carlos.cajero` y luego la correcta.
+
+**Resultado esperado:** el ingreso que lleva a la persona a su dirección desaparece de la barra al entrar. El del paso 2 no abre sesión: dice «El ingreso venció o ya se usó. Vuelve a iniciar sesión.» con un botón «Volver al inicio de sesión» (cada ingreso sirve una vez y vence a los 2 minutos). Tras 10 fallos, también la contraseña correcta se rechaza con «Demasiados intentos fallidos. Espera unos minutos y vuelve a intentar.» durante 15 minutos; otro usuario puede seguir entrando.
+
 ## 5. Registro de resultados
 
 | Caso | Resultado | Observaciones | Evidencia |
@@ -137,3 +169,6 @@ Tenga a mano los usuarios de la Guía 0. Para los casos de código por correo, p
 | A-08 | | | |
 | A-09 | | | |
 | A-10 | | | |
+| A-11 | | | |
+| A-12 | | | |
+| A-13 | | | |

@@ -1,12 +1,14 @@
 /* eslint-disable @next/next/no-img-element */
 // Generado desde «Landing Waiter.dc.html» (Claude Design) con scripts/dc2jsx.py: no editar a mano los estilos,
 // regenerar. Las imágenes van con <img> porque el diseño depende de sus medidas exactas.
+import { AuroraFondo } from '../AuroraFondo'
 import type { LandingVals } from '../vals'
 
 // 06 Domicilios
-export function Domicilios({ v }: { v: LandingVals }) {
+export function Domicilios({ v }: { v: Pick<LandingVals, 'accent' | 'accentSoft' | 'boxTint' | 'brandName' | 'brands'> }) {
   return (
-    <section id="domicilios" data-screen-label="06 Domicilios" style={{ padding: 'clamp(80px,10vw,128px) 0', background: '#FFFFFF', borderTop: '1px solid #E2E8F0' }}>
+    <section className="wl-aurora" id="domicilios" data-screen-label="06 Domicilios" style={{ padding: 'clamp(80px,10vw,128px) 0', background: '#FFFFFF', borderTop: '1px solid #E2E8F0' }}>
+      <AuroraFondo />
       {' '}
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,460px),1fr))', gap: '56px', alignItems: 'center' }}>
         {' '}

@@ -72,12 +72,17 @@ services:
     restart: unless-stopped
     depends_on: [experience]
 
+  # La landing de Waiter (raíz de waiter.projectapp.co). No habla con experience.
+  landing:
+    build: { context: ../landing, dockerfile: ../deploy/next.Dockerfile }
+    restart: unless-stopped
+
   caddy:
     build: { context: ., dockerfile: caddy.Dockerfile, args: { DNS_PROVIDER: "${DNS_PROVIDER:-cloudflare}" } }
     restart: unless-stopped
     ports: ["80:80", "443:443"]
     env_file: .env.prod
     volumes: [./Caddyfile:/etc/caddy/Caddyfile:ro, caddy_data:/data, caddy_config:/config]
-    depends_on: [pos, diner, experience]
+    depends_on: [pos, diner, landing, experience]
 
 volumes: { db: {}, media: {}, mail: {}, caddy_data: {}, caddy_config: {} }

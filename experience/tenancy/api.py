@@ -1,4 +1,5 @@
 """Consola de ProjectApp: autenticación, organizaciones y personal interno."""
+from django.db import transaction
 from rest_framework.response import Response
 
 from accounts.authentication import platform_session, set_cookie
@@ -21,12 +22,24 @@ class AuthView(ContractView):
 
     def post(self, request):
         if self.action == 'login':
-            user, session, token = login_platform(request.data)
+            from accounts.universal import throttled
+            user, session, token = throttled(request, request.data, lambda: login_platform(request.data))
             if session is None:
                 response = Response({'two_factor': True, 'challenge': token})
                 response.delete_cookie('waiter_platform_sid', samesite='Lax')
                 return response
             return set_cookie(Response({'user': user_dict(user)}), 'waiter_platform_sid', token, session.expires)
+        if self.action == 'pass':
+            # El pase del inicio universal (ya pasó el doble factor si la persona lo tiene).
+            from accounts.universal import redeem_pass
+            from .two_factor import create_session, response_session
+            data = payload(request.data, ('pass',), ('pass',))
+            item = redeem_pass(data['pass'], platform_user__isnull=False)
+            with transaction.atomic():
+                user = PlatformUser.objects.select_for_update().get(pk=item.platform_user_id)
+                require(user.active and user.activated, 'La cuenta no está disponible.', 'invalid_credentials', 401)
+                result = create_session(user)
+            return response_session(result)
         if self.action == 'logout':
             platform_session(request, allow_setup=True).delete()
             response = Response({'ok': True})
@@ -39,7 +52,7 @@ class AuthView(ContractView):
                 invitation(user, reset=True)
             return Response({'ok': True})
         if self.action == 'activate':
-            activate(PlatformUser.objects.all(), request.data)
+            activate([PlatformUser.objects.all()], request.data)
             return Response({'ok': True})
         raise Problem('not_found', 'La ruta no existe.', 404)
 

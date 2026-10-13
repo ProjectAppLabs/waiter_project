@@ -1,0 +1,43 @@
+/* Páginas legales (components/legal/). Misma estructura y medidas que las de projectapp.co/es-co/waiter;
+   tipografía y colores de Waiter. */
+.legal-main{padding:112px 16px 64px}
+@media (min-width:640px){.legal-main{padding-left:24px;padding-right:24px}}
+@media (min-width:1024px){.legal-main{padding:128px 128px 64px}}
+
+.legal-doc{max-width:896px;margin:0 auto;color:#0F172A}
+.legal-h1{margin:0 0 16px;font-size:36px;line-height:40px;font-weight:600;letter-spacing:-0.025em}
+.legal-fecha{margin:0 0 32px;font-size:14px;line-height:20px;color:#64748B}
+.legal-aviso{margin:0 0 40px;padding:16px 20px;border:1px solid #E2E8F0;border-radius:16px;background:#FFFFFF;font-size:14px;line-height:1.625}
+.legal-seccion{margin-bottom:40px;scroll-margin-top:112px}
+.legal-h2{margin:0 0 16px;font-size:24px;line-height:32px;font-weight:600;letter-spacing:-0.02em}
+.legal-h3{margin:24px 0 12px;font-size:20px;line-height:28px;font-weight:600}
+.legal-p,.legal-lista li{font-size:16px;line-height:1.625}
+.legal-p{margin:0 0 16px}
+.legal-lista{margin:0 0 16px;padding-left:24px;list-style:disc}
+.legal-lista>li+li{margin-top:8px}
+.legal-lista-numerada{list-style:decimal}
+.legal-lista-anidada{margin:8px 0 0;list-style:circle}
+.legal-lista-anidada>li+li{margin-top:4px}
+.legal-doc strong{font-weight:600}
+.legal-a{font-weight:600;color:#2F66E6;text-decoration:underline;text-underline-offset:2px}
+.legal-a:hover{color:#1F4FC2}
+.legal-tabla{margin-bottom:16px;overflow-x:auto;border:1px solid #E2E8F0;border-radius:16px;background:#FFFFFF}
+.legal-tabla table{width:100%;min-width:32rem;border-collapse:collapse;text-align:left;font-size:14px}
+.legal-tabla thead{border-bottom:1px solid #E2E8F0}
+.legal-tabla th{padding:12px 16px;font-weight:600}
+.legal-tabla td{padding:12px 16px;vertical-align:top;line-height:1.625}
+.legal-tabla tbody tr{border-bottom:1px solid #F1F5F9}
+.legal-tabla tbody tr:last-child{border-bottom:0}
+.legal-doc code{padding:2px 4px;border-radius:4px;background:#F1F5F9;font-family:'IBM Plex Mono',monospace;font-size:.9em}
+.legal-volver{margin-top:64px;padding-top:32px;border-top:1px solid #E2E8F0}
+.legal-volver-enlace{display:inline-flex;align-items:center;font-size:18px;font-weight:600;color:#0F172A;transition:opacity .15s}
+.legal-volver-enlace:hover{color:#0F172A;opacity:.8}
+.legal-flecha{margin-right:8px}
+
+@media (min-width:1024px){
+  .legal-h1{font-size:60px;line-height:60px}
+  .legal-h2{font-size:30px;line-height:36px}
+  .legal-h3{font-size:24px;line-height:32px}
+  .legal-p,.legal-lista li{font-size:18px;line-height:28px}
+  .legal-tabla table{font-size:16px}
+}

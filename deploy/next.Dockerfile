@@ -1,4 +1,4 @@
-# POS o menú del comensal (Next.js). Los reenvíos a experience se fijan al compilar: por eso van como argumentos.
+# POS, menú del comensal o landing (Next.js). Los reenvíos a experience se fijan al compilar: por eso van como argumentos.
 FROM node:24-slim AS build
 WORKDIR /app
 ARG EXPERIENCE_ORIGIN

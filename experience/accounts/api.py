@@ -10,8 +10,9 @@ from tenancy.services import RESTAURANT_FIELDS, assign_values, create_restaurant
 from .authentication import pos_session, resolve_organization, set_cookie
 from .models import Account
 from .serialization import account_dict, session_dict
-from .services import (activate, deactivate_person, find_identity, invitation, login_pos, people_authority,
-                       restaurants_for, revoke, save_person, valid_password)
+from .services import (activate, deactivate_person, find_identity, invitation, login_pos, open_pos_session,
+                       people_authority, restaurants_for, revoke, save_person, valid_password)
+from .universal import redeem_pass, throttled
 
 
 class OrganizationView(ContractView):
@@ -30,7 +31,14 @@ class AuthView(ContractView):
     def post(self, request):
         if self.action == 'login':
             org = resolve_organization(request)
-            _, session, token, attendance = login_pos(org, request.data)
+            _, session, token, attendance = throttled(request, request.data, lambda: login_pos(org, request.data))
+            return set_cookie(Response(session_dict(session, attendance)), 'waiter_sid', token, session.expires)
+        if self.action == 'pass':
+            # El pase del inicio universal: la persona ya se identificó en waiter.projectapp.co y llega a su subdominio.
+            org = resolve_organization(request)
+            data = payload(request.data, ('pass',), ('pass',))
+            item = redeem_pass(data['pass'], account__organization=org)
+            _, session, token, attendance = open_pos_session(org, item.account)
             return set_cookie(Response(session_dict(session, attendance)), 'waiter_sid', token, session.expires)
         if self.action in ('request_code', 'activate'):
             org = resolve_organization(request)
@@ -41,7 +49,7 @@ class AuthView(ContractView):
                 'Soporte no puede solicitar ni cambiar contraseñas del equipo.')
             queryset = Account.objects.filter(organization=org)
             if self.action == 'activate':
-                activate(queryset, request.data)
+                activate([queryset], request.data)
             else:
                 data = payload(request.data, ('login',), ('login',))
                 user = find_identity(queryset, data['login'])
@@ -75,6 +83,7 @@ class AuthView(ContractView):
                 account.password = make_password(data['next'])
                 account.save(update_fields=['password'])
                 account.sessions.exclude(pk=session.pk).delete()
+                account.login_passes.all().delete()
             return Response({'ok': True})
         raise Problem('not_found', 'La ruta no existe.', 404)
 

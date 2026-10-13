@@ -1,10 +1,11 @@
 /* eslint-disable @next/next/no-img-element */
 // Generado desde «Landing Waiter.dc.html» (Claude Design) con scripts/dc2jsx.py: no editar a mano los estilos,
 // regenerar. Las imágenes van con <img> porque el diseño depende de sus medidas exactas.
+import { INICIAR_SESION } from '@/lib/sesion'
 import type { LandingVals } from '../vals'
 
 // 14 Pie
-export function Pie({ v }: { v: LandingVals }) {
+export function Pie({ v }: { v: Pick<LandingVals, 'waHref'> }) {
   return (
     <footer data-screen-label="14 Pie" style={{ position: 'relative', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', backgroundImage: 'url(/img/grano.png)', backgroundSize: '256px 256px' }}>
       {' '}
@@ -53,7 +54,7 @@ export function Pie({ v }: { v: LandingVals }) {
             {' '}
             <a href="https://projectapp.co/es-co" style={{ color: '#0F172A' }}>ProjectApp.</a>
             <a href={v.waHref} target="_blank" rel="noopener noreferrer" style={{ color: '#0F172A' }}>Contacto</a>
-            <a href="#" style={{ color: '#0F172A' }}>Iniciar sesión</a>
+            <a href={INICIAR_SESION} style={{ color: '#0F172A' }}>Iniciar sesión</a>
             {' '}
           </div>
           {' '}
@@ -64,9 +65,9 @@ export function Pie({ v }: { v: LandingVals }) {
           <span>© 2026 ProjectApp.</span>
           {' '}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 20px' }}>
-            <a href="#" style={{ color: '#475569' }}>Política de privacidad</a>
-            <a href="#" style={{ color: '#475569' }}>Condiciones del servicio</a>
-            <a href="#" style={{ color: '#475569' }}>Eliminación de datos</a>
+            <a href="/privacy" style={{ color: '#475569' }}>Política de privacidad</a>
+            <a href="/terms" style={{ color: '#475569' }}>Condiciones del servicio</a>
+            <a href="/data-deletion" style={{ color: '#475569' }}>Eliminación de datos</a>
           </div>
           {' '}
         </div>

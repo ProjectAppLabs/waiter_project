@@ -27,12 +27,27 @@ api.{$BASE_DOMAIN} {
 	respond 404
 }
 
-*.{$BASE_DOMAIN}, {$BASE_DOMAIN} {
+# El dominio base: la landing en la raíz y el inicio de sesión universal en /login. Son dos aplicaciones de Next en el
+# mismo dominio; los archivos de la landing van bajo /_landing (assetPrefix en landing/next.config.ts). Todo lo que no
+# es de la landing va al POS: /login, /entrar, sus archivos en /_next y la API por /experience.
+{$BASE_DOMAIN} {
+	import tls_wildcard
+	encode zstd gzip
+	@landing path / /privacy /terms /data-deletion /icon.svg /img/* /_landing/*
+	handle @landing {
+		reverse_proxy landing:3000
+	}
+	handle {
+		reverse_proxy pos:3000 {
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+}
+
+*.{$BASE_DOMAIN} {
 	import tls_wildcard
 	encode zstd gzip
 	# El POS decide la organización por el subdominio; `plataforma` abre la consola de ProjectApp.
-	@raiz host {$BASE_DOMAIN}
-	redir @raiz https://plataforma.{$BASE_DOMAIN}{uri} 302
 	reverse_proxy pos:3000 {
 		header_up X-Forwarded-Proto {scheme}
 	}

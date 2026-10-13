@@ -1,7 +1,7 @@
 # Guía QA Waiter — 8. ProjectApp (consola de la plataforma)
 
-**Aplica a:** la gente de ProjectApp, roles **Administra** (`admin`) y **Opera** (`operator`). **Dirección:** `http://localhost:3000/login`, el mismo inicio de todos (la antigua `/plataforma/login` lleva allí).
-**Fecha de actualización:** 2 de octubre de 2026
+**Aplica a:** la gente de ProjectApp, roles **Administra** (`admin`) y **Opera** (`operator`). **Dirección:** `http://localhost:3000/login`, el inicio de sesión universal de todos (en producción `https://waiter.projectapp.co/login`, que lleva a `https://plataforma.waiter.projectapp.co`; la antigua `/plataforma/login` lleva allí).
+**Fecha de actualización:** 12 de octubre de 2026 (inicio de sesión universal)
 
 ## 1. Qué vamos a comprobar
 
@@ -56,11 +56,11 @@ Que ProjectApp da de alta a un cliente nuevo en tres pasos sin tocar scripts, in
 
 **Quién:** quien haga de dueño del cliente de P-02.
 
-1. Con el código del correo, abra `http://<slug>.localhost:3000/login?codigo=<usuario>` y ponga la contraseña.
+1. Abra el enlace del correo (`http://localhost:3000/login?codigo=<usuario>&org=<slug>`, el inicio universal), escriba el código y ponga la contraseña.
 2. Entre a su consola: debe ver Restaurantes, Equipo y Catálogo. Cree un restaurante.
 3. En la plataforma, la ficha del cliente debe mostrar el restaurante y el dueño «Activa».
 
-**Resultado esperado:** la cuenta se activa con el código (vence a las 48 h, 5 intentos); el dueño entra solo por su subdominio; la plataforma ve lo que crea.
+**Resultado esperado:** la cuenta se activa con el código (vence a las 48 h, 5 intentos) y el sistema lleva al dueño, ya dentro, a `http://<slug>.localhost:3000/organizacion`; la plataforma ve lo que crea.
 
 ### P-04 — Ficha: editar plan y datos, límite de restaurantes
 
@@ -86,7 +86,7 @@ Que ProjectApp da de alta a un cliente nuevo en tres pasos sin tocar scripts, in
 
 1. Entre en `frisby-74312.localhost:3000`. En el mismo navegador abra `localhost:3000/organizacion` (Burger House) y `<slug de P-02>.localhost:3000/organizacion`.
 
-**Resultado esperado:** la sesión de Frisby no sirve en otras organizaciones: cada subdominio exige su propio inicio de sesión y solo muestra sus datos.
+**Resultado esperado:** la sesión de Frisby no sirve en otras organizaciones: cada subdominio tiene su propia sesión, sin ella manda al inicio universal y solo muestra sus datos.
 
 ### P-07 — Equipo de ProjectApp
 

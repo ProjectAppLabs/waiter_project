@@ -47,6 +47,8 @@ interface AuthState {
   login: (login: string, password: string) => Promise<void>
   hydrate: () => Promise<void>
   enterSupport: (token: string) => Promise<void>
+  // Inicio universal: cambia el pase que trae la persona desde el inicio común por su sesión en esta dirección.
+  enterPass: (pass: string) => Promise<void>
   logout: () => Promise<void>
   refreshSession: () => Promise<void>
   chooseRestaurant: (restaurant: DeviceRestaurant | null) => Promise<void>
@@ -66,13 +68,14 @@ function fromCore(r: core.LoginResult): Pick<AuthState, 'user' | 'restaurants' |
 }
 // Plan T2: la caja abierta del restaurante elegido en el sistema propio (null si no hay restaurante o no hay turno).
 const openShiftOf = (restaurant: { id: number } | null) => (restaurant ? getOpenSession(restaurant.id).catch(() => null) : Promise.resolve(null))
-async function coreLogin(l: string, p: string): Promise<core.LoginResult> {
-  try { return await core.login(l, p) }
+async function shiftAware(request: Promise<core.LoginResult>): Promise<core.LoginResult> {
+  try { return await request }
   catch (e) {
     if (e instanceof CoreError && e.code === 'outside_hours') throw new ShiftDeniedError('outside_hours', typeof e.detail.window === 'string' ? e.detail.window : null)
     throw e
   }
 }
+const coreLogin = (l: string, p: string) => shiftAware(core.login(l, p))
 
 const anonymous = { user: null, session: null, employee: null, restaurants: null, restaurant: null, modules: null, restaurantModules: null, support: null, hydrated: true }
 
@@ -126,6 +129,13 @@ export const useAuthStore = create<AuthState>((set, get) => {
     enterSupport: async (token) => {
       const request = beginAccess()
       const result = await enterSupportRequest(token)
+      if (!current(request)) return
+      startCacheSession()
+      await restore(result, operation())
+    },
+    enterPass: async (pass) => {
+      const request = beginAccess()
+      const result = await shiftAware(core.enterPass(pass))
       if (!current(request)) return
       startCacheSession()
       await restore(result, operation())

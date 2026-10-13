@@ -1,0 +1,46 @@
+/* Navegación en pill (components/Nav.tsx). Medidas de la de projectapp.co; colores y tipografía de Waiter. */
+
+/* Pill de escritorio: fija, centrada, translúcida con desenfoque */
+.wn-pill{position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:50;display:none;align-items:center;gap:8px;padding:14px 12px 14px 28px;border-radius:9999px;background:rgba(255,255,255,.6);-webkit-backdrop-filter:blur(40px);backdrop-filter:blur(40px);border:1px solid rgba(255,255,255,.3);box-shadow:0 20px 25px -5px rgba(0,0,0,.1),0 8px 10px -6px rgba(0,0,0,.1);white-space:nowrap}
+.wn-logo{display:flex;flex-direction:column;flex-shrink:0;line-height:1;color:#0F172A;transition:opacity .15s}
+.wn-logo:hover{color:#0F172A;opacity:.8}
+.wn-logo-nombre{font-weight:600;font-size:24px;letter-spacing:-0.02em}
+.wn-logo-firma{font-size:11px;color:#94A3B8;margin-top:3px}
+.wn-pill .wn-logo{padding-right:16px;margin-right:8px;border-right:1px solid #E2E8F0}
+.wn-enlaces{position:relative;display:flex;align-items:center;gap:4px}
+.wn-resaltado{position:absolute;top:0;left:0;height:100%;width:0;opacity:0;border-radius:9999px;background:#EEF4FF;pointer-events:none;will-change:transform}
+.wn-enlace{position:relative;z-index:1;padding:12px 22px;border-radius:9999px;font-size:15px;font-weight:500;line-height:24px;color:#475569;transition:color .2s}
+.wn-enlace:hover,.wn-enlace.wn-activo{color:#0F172A}
+.wn-sesion{margin-left:8px;padding:10px 16px;border-radius:9999px;font-size:14px;font-weight:600;line-height:20px;color:#475569;transition:color .15s,background-color .15s}
+.wn-sesion:hover{color:#0F172A;background:rgba(255,255,255,.4)}
+.wn-cta{margin-left:4px;padding:10px 20px;border-radius:9999px;font-size:14px;font-weight:600;line-height:20px;color:#FFFFFF;background:#2F66E6;white-space:nowrap;transition:background-color .15s}
+.wn-cta:hover{color:#FFFFFF;background:#1F4FC2}
+
+/* Barra de pantallas angostas: de borde a borde, también translúcida */
+.wn-barra{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:rgba(255,255,255,.6);-webkit-backdrop-filter:blur(40px);backdrop-filter:blur(40px);border-bottom:1px solid rgba(255,255,255,.2)}
+.wn-barra-acciones{display:flex;align-items:center;gap:8px}
+.wn-cta-chica{margin-left:0;padding:6px 12px;font-size:12px;line-height:16px}
+.wn-boton-menu,.wn-boton-cerrar{width:40px;height:40px;border:0;border-radius:9999px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background-color .15s}
+.wn-boton-menu{background:#2F66E6;color:#FFFFFF}
+.wn-boton-menu:hover{background:#1F4FC2}
+.wn-boton-menu svg,.wn-boton-cerrar svg{width:24px;height:24px}
+
+@media (min-width:1120px){.wn-pill{display:flex}.wn-barra{display:none}}
+
+/* Menú de pantalla completa */
+.wn-menu{position:fixed;inset:0;z-index:100}
+.wn-menu-velo{position:absolute;inset:0;background:rgba(255,255,255,.4);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px)}
+.wn-menu-panel{position:absolute;inset:0;display:flex;flex-direction:column;background:rgba(238,244,255,.92);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.wn-menu-cabecera{display:flex;align-items:center;justify-content:space-between;padding:16px 20px}
+.wn-boton-cerrar{background:rgba(47,102,230,.1);color:#0F172A}
+.wn-boton-cerrar:hover{background:rgba(47,102,230,.2)}
+.wn-menu-enlaces{flex:1;display:flex;flex-direction:column;justify-content:center;gap:8px;padding:0 32px}
+.wn-menu-enlace{padding:12px 0;border-bottom:1px solid #E2E8F0;font-size:clamp(36px,11vw,48px);font-weight:300;line-height:1.1;letter-spacing:-0.01em;color:#0F172A;transition:color .15s}
+.wn-menu-enlace:hover{color:#2F66E6}
+.wn-menu-pie{display:flex;flex-direction:column;gap:16px;padding:0 32px 32px}
+.wn-menu-cta{display:flex;align-items:center;justify-content:center;gap:10px;height:56px;border-radius:16px;background:#2F66E6;color:#FFFFFF;font-size:16px;font-weight:600}
+.wn-menu-cta:hover{color:#FFFFFF;background:#1F4FC2}
+.wn-menu-cta svg{width:22px;height:22px}
+.wn-menu-secundarios{display:flex;justify-content:center;gap:24px;font-size:14px}
+.wn-menu-secundarios a{color:#64748B}
+.wn-menu-secundarios a:hover{color:#0F172A}
