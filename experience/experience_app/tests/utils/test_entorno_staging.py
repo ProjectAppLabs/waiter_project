@@ -47,12 +47,14 @@ def cargar(modulo='experience_project.settings', codigo=LEER, **entorno):
 
 
 def ajustes(modulo='experience_project.settings', **entorno):
+    """Devuelve los ajustes en mayúsculas del módulo, cargados con el entorno dado."""
     resultado = cargar(modulo, **entorno)
     assert resultado.returncode == 0, resultado.stderr
     return json.loads(resultado.stdout)
 
 
 def entorno_staging(**extra):
+    """Entorno mínimo de staging (con la clave de prueba) más los extra dados."""
     return {'DJANGO_ENV': 'staging', 'DJANGO_SECRET_KEY': CLAVE_DE_PRUEBA, **extra}
 
 
@@ -75,7 +77,7 @@ def test_staging_exige_un_secreto_real(entorno):
     assert 'DJANGO_SECRET_KEY real' in resultado.stderr
 
 
-@pytest.mark.parametrize('hosts, esperados', [
+@pytest.mark.parametrize(('hosts', 'esperados'), [
     ('waiter.projectapp.co,api.waiter.projectapp.co', ['waiter.projectapp.co', 'api.waiter.projectapp.co', '127.0.0.1']),
     ('', ['127.0.0.1']),
     ('127.0.0.1,menu.waiter.projectapp.co', ['127.0.0.1', 'menu.waiter.projectapp.co']),
@@ -134,7 +136,7 @@ def test_salud_responde_en_staging_por_127_0_0_1():
     assert salud['ajeno'] == 400
 
 
-@pytest.mark.parametrize('produccion, staging, segura', [(False, False, False), (False, True, True), (True, False, True)],
+@pytest.mark.parametrize(('produccion', 'staging', 'segura'), [(False, False, False), (False, True, True), (True, False, True)],
                          ids=['desarrollo', 'staging', 'produccion'])
 def test_cookie_del_pos_es_segura_fuera_de_desarrollo(settings, produccion, staging, segura):
     """La cookie de sesión del POS sólo viaja por HTTPS en staging y producción."""
@@ -145,7 +147,7 @@ def test_cookie_del_pos_es_segura_fuera_de_desarrollo(settings, produccion, stag
     assert bool(respuesta.cookies['waiter_session']['secure']) is segura
 
 
-@pytest.mark.parametrize('produccion, staging, segura', [(False, False, False), (False, True, True), (True, False, True)],
+@pytest.mark.parametrize(('produccion', 'staging', 'segura'), [(False, False, False), (False, True, True), (True, False, True)],
                          ids=['desarrollo', 'staging', 'produccion'])
 def test_cookie_del_enlace_de_pago_es_segura_fuera_de_desarrollo(api_client, table_tenant, settings, produccion, staging,
                                                                   segura):

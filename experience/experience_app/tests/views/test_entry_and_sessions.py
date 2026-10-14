@@ -40,7 +40,7 @@ def test_everyone_who_taps_the_table_shares_one_session_and_keeps_their_cookie(a
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('production, staging', [(False, False), (True, False), (False, True)],
+@pytest.mark.parametrize(('production', 'staging'), [(False, False), (True, False), (False, True)],
                          ids=['development', 'production', 'staging'])
 def test_diner_cookie_uses_secure_in_production_and_staging(api_client, table_tenant, monkeypatch, production, staging):
     """Usa HTTPS en producción y en staging y permite el HTTP del entorno de desarrollo."""
