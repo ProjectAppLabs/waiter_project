@@ -16,5 +16,9 @@ ruff==0.16.4
 # Conversión de fotos del catálogo.
 Pillow==12.3.0
 
-# PostgreSQL de desarrollo y producción del sistema propio (plan T2).
-psycopg[binary]==3.2.9
+# Cifrado de las credenciales de pago (experience_app/payments/crypto.py).
+cryptography==46.0.5
+
+# MySQL, el estándar de los servidores de ProjectApp. Compilarlo necesita build-essential, pkg-config y
+# default-libmysqlclient-dev (ver deploy/experience.Dockerfile y el README).
+mysqlclient==2.2.7
