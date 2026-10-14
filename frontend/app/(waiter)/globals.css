@@ -1,0 +1,210 @@
+@import 'tailwindcss';
+@import '@fontsource/open-sans/400.css';
+@import '@fontsource/open-sans/500.css';
+@import '@fontsource/open-sans/600.css';
+/* Una sola app con tres sitios: el CSS del POS no genera las utilidades del comensal ni de la landing. */
+@source not '../../diner';
+@source not '../../landing';
+@source not '../(diner)';
+@source not '../(landing)';
+
+@font-face { font-family: 'IBM Plex Mono'; font-weight: 400; font-display: swap;
+  src: url('/fonts/ibm-plex-mono-400-normal-latin.woff2') format('woff2'); }
+@font-face { font-family: 'IBM Plex Mono'; font-weight: 500; font-display: swap;
+  src: url('/fonts/ibm-plex-mono-500-normal-latin.woff2') format('woff2'); }
+
+/* Tema oscuro por atributo en <html>: lo fija useTheme según la preferencia del usuario. */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+/* Paleta del kit CloudPos. Mismos valores que lib/design/tokens.ts: si cambias uno, cambia el otro. */
+:root {
+  --kit-primary: #447DFC; --kit-primary-soft: #EEF4FF; --kit-primary-ink: #FFFFFF;
+  --kit-canvas: #F8FAFC; --kit-surface: #FFFFFF; --kit-muted: #F1F5F9; --kit-border: #E2E8F0;
+  --kit-ink: #0F172A; --kit-soft: #475569; --kit-dim: #94A3B8; --kit-overlay: #131316;
+  --kit-progress: #F59E0B; --kit-progress-soft: #FFFBEB; --kit-progress-ink: #B45309;
+  --kit-success: #22C55E; --kit-success-soft: #F0FDF4; --kit-success-ink: #15803D;
+  --kit-danger: #EF4444; --kit-danger-soft: #FEF3F2; --kit-danger-ink: #B91C1C;
+  --kit-info: #6172F3; --kit-info-soft: #EEF4FF; --kit-info-ink: #3538CD;
+  --kit-reserved: #0F172A; --kit-reserved-ink: #FFFFFF;
+  /* Plan D: los domicilios se distinguen en caja con su propio color (verde azulado). */
+  --kit-delivery: #0D9488; --kit-delivery-soft: #F0FDFA; --kit-delivery-ink: #0F766E;
+  color-scheme: light;
+}
+[data-theme=dark] {
+  --kit-primary-soft: #1E2A44;
+  --kit-canvas: #131316; --kit-surface: #1A1A1E; --kit-muted: #26272B; --kit-border: #51525C;
+  --kit-ink: #F7F7F7; --kit-soft: #A0A0AB; --kit-dim: #70707B; --kit-overlay: #000000;
+  --kit-progress-soft: #78350F; --kit-progress-ink: #FDE68A;
+  --kit-success-soft: #14532D; --kit-success-ink: #BBF7D0;
+  --kit-danger-soft: #7F1D1D; --kit-danger-ink: #FECACA;
+  --kit-info-soft: #1E2A44; --kit-info-ink: #C7D2FE;
+  --kit-reserved: #F7F7F7; --kit-reserved-ink: #131316;
+  --kit-delivery: #2DD4BF; --kit-delivery-soft: #134E4A; --kit-delivery-ink: #99F6E4;
+  color-scheme: dark;
+}
+
+@theme inline {
+  /* Nombres que ya usan las pantallas: cambian de valor, no de nombre. */
+  --color-brand-50: var(--kit-primary-soft); --color-brand-100: var(--kit-primary-soft); --color-brand-300: #93B4FD;
+  --color-brand-500: var(--kit-primary); --color-brand-600: #2F66E6; --color-brand-700: #1F4FC2;
+  --color-surface: var(--kit-surface); --color-canvas: var(--kit-canvas); --color-muted: var(--kit-muted);
+  --color-border: var(--kit-border); --color-ink: var(--kit-ink); --color-soft: var(--kit-soft); --color-ink-3: var(--kit-dim);
+  --color-free: var(--kit-success); --color-free-soft: var(--kit-success-soft); --color-free-ink: var(--kit-success-ink);
+  --color-busy: var(--kit-danger); --color-busy-soft: var(--kit-danger-soft); --color-busy-ink: var(--kit-danger-ink);
+  --color-kitchen: var(--kit-info); --color-kitchen-soft: var(--kit-info-soft); --color-kitchen-ink: var(--kit-info-ink);
+  --color-pending: var(--kit-progress); --color-pending-soft: var(--kit-progress-soft); --color-pending-ink: var(--kit-progress-ink);
+  --color-assist: var(--kit-soft); --color-assist-soft: var(--kit-muted);
+  --color-kds-bg: #131316; --color-kds-surface: #1A1A1E; --color-kds-raised: #26272B; --color-kds-ink: #F7F7F7;
+  --color-sidebar: #131316; --color-sidebar-raised: #1A1A1E; --color-sidebar-hover: #26272B;
+  --color-sidebar-ink: #F7F7F7; --color-sidebar-soft: #A0A0AB; --color-sidebar-dim: #70707B;
+  /* Nombres nuevos del kit. */
+  --color-primary: var(--kit-primary); --color-primary-soft: var(--kit-primary-soft); --color-primary-ink: var(--kit-primary-ink);
+  --color-dim: var(--kit-dim); --color-overlay: var(--kit-overlay);
+  --color-progress: var(--kit-progress); --color-progress-soft: var(--kit-progress-soft); --color-progress-ink: var(--kit-progress-ink);
+  --color-success: var(--kit-success); --color-success-soft: var(--kit-success-soft); --color-success-ink: var(--kit-success-ink);
+  --color-danger: var(--kit-danger); --color-danger-soft: var(--kit-danger-soft); --color-danger-ink: var(--kit-danger-ink);
+  --color-info: var(--kit-info); --color-info-soft: var(--kit-info-soft); --color-info-ink: var(--kit-info-ink);
+  --color-reserved: var(--kit-reserved); --color-reserved-ink: var(--kit-reserved-ink);
+  --color-delivery: var(--kit-delivery); --color-delivery-soft: var(--kit-delivery-soft); --color-delivery-ink: var(--kit-delivery-ink);
+  --font-ui: 'Open Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --tracking-wordmark: -0.035em; --tracking-monogram: -0.05em; --tracking-title: -0.02em;
+  --spacing-tap-min: 48px; --spacing-tap: 56px; --spacing-tap-money: 64px;
+  --spacing-topbar: 92px; --spacing-sidebar: 248px; --spacing-rail: 88px; --spacing-panel: 372px; --spacing-panel-lg: 400px;
+  --spacing-table-cell: 138px;
+  --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 24px;
+}
+
+body { background: var(--color-canvas); color: var(--color-ink); font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased; }
+.tabular { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; }
+
+/* Aurora ambiental del POS: el fondo es compartido y persiste al navegar. El recorte y
+   el blur viven en una capa decorativa; no cambian el scroll ni los popovers de la app. */
+:root { --aurora-ambient-opacity: 0.24; --aurora-panel-opacity: 88%; }
+[data-theme=dark] { --aurora-ambient-opacity: 0.18; --aurora-panel-opacity: 92%; }
+.pos-ambient { position: relative; isolation: isolate; background-color: var(--kit-canvas); }
+.pos-aurora-backdrop { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.pos-aurora-field { position: absolute; inset: -10%; filter: blur(clamp(48px, 6vw, 96px)); opacity: var(--aurora-ambient-opacity); }
+.pos-aurora-field .login-blob { mix-blend-mode: normal; }
+.pos-aurora-field .login-blob-blue { width: 62%; left: -16%; top: -38%; }
+.pos-aurora-field .login-blob-indigo { width: 54%; right: -20%; top: -12%; }
+.pos-aurora-field .login-blob-mint { width: 54%; right: -10%; bottom: -42%; }
+.pos-aurora-field .login-blob-amber { width: 48%; left: 0; bottom: -46%; }
+.pos-aurora-field .login-blob-rose { width: 40%; left: 32%; top: 28%; opacity: 0.45; }
+/* El campo ya está difuminado: no se necesita backdrop-filter en cada tarjeta. Así los
+   controles mantienen el foco, los diálogos su posición y el fondo cuesta una sola capa. */
+/* La navegación deja pasar el mismo campo completo, sin un velo que corte el color. */
+.kit-topbar { background-color: transparent; }
+.ambient-panel { background-color: color-mix(in srgb, var(--kit-surface) var(--aurora-panel-opacity), transparent); }
+@media print { .pos-aurora-backdrop { display: none; } }
+
+/* Acceso: panel azul noche con manchas de color a la deriva (components/account/LoginFrame.tsx). El difuminado va una
+   sola vez sobre el campo y cada mancha solo anima transform, para que una tablet modesta lo mueva sin tirones. */
+.login-aurora { background: linear-gradient(150deg, #152A78 0%, #0D1840 55%, #0B1430 100%); isolation: isolate; }
+.login-aurora-field { position: absolute; inset: -14%; filter: blur(44px) saturate(1.2); }
+.login-aurora::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, rgb(11 20 48 / 0) 45%, rgb(11 20 48 / 0.42) 100%); }
+.login-blob { position: absolute; border-radius: 50%; mix-blend-mode: screen; will-change: transform; }
+.login-blob-blue   { width: 78%; aspect-ratio: 1; left: -16%; top: -14%;   background: radial-gradient(circle, #447DFC 0%, #447DFC 22%, rgb(68 125 252 / 0) 70%);  animation: login-drift-a 26s ease-in-out infinite alternate; }
+.login-blob-indigo { width: 70%; aspect-ratio: 1; right: -18%; top: 4%;    background: radial-gradient(circle, #7C6CF6 0%, #6172F3 24%, rgb(97 114 243 / 0) 70%);  animation: login-drift-b 32s ease-in-out infinite alternate; }
+.login-blob-amber  { width: 58%; aspect-ratio: 1; left: 2%;   bottom: -16%; background: radial-gradient(circle, #FBBF24 0%, #F59E0B 22%, rgb(245 158 11 / 0) 68%);  animation: login-drift-c 22s ease-in-out infinite alternate; }
+.login-blob-mint   { width: 56%; aspect-ratio: 1; right: -8%; bottom: -6%; background: radial-gradient(circle, #34E0B4 0%, #2DD4A7 20%, rgb(45 212 167 / 0) 68%);  animation: login-drift-d 36s ease-in-out infinite alternate; }
+.login-blob-rose   { width: 50%; aspect-ratio: 1; left: 22%;  top: 26%;    background: radial-gradient(circle, #FF7AA2 0%, #F4628C 20%, rgb(244 98 140 / 0) 66%);  animation: login-drift-e 29s ease-in-out infinite alternate; }
+@keyframes login-drift-a { from { transform: translate3d(0, 0, 0) scale(1); }      to { transform: translate3d(22%, 18%, 0) scale(1.18); } }
+@keyframes login-drift-b { from { transform: translate3d(0, 0, 0) scale(1.1); }    to { transform: translate3d(-26%, 24%, 0) scale(0.9); } }
+@keyframes login-drift-c { from { transform: translate3d(0, 0, 0) scale(0.95); }   to { transform: translate3d(30%, -28%, 0) scale(1.2); } }
+@keyframes login-drift-d { from { transform: translate3d(0, 0, 0) scale(1); }      to { transform: translate3d(-32%, -22%, 0) scale(1.25); } }
+@keyframes login-drift-e { from { transform: translate3d(0, 0, 0) scale(1.05); }   to { transform: translate3d(-18%, 26%, 0) scale(0.85); } }
+@media (prefers-reduced-motion: reduce) { .login-blob { animation: none; } }
+
+/* Cuenta de cobro en rodillo térmico de 80 mm (components/pay/Receipt.tsx).
+   `size: 80mm auto` es lo que hace que el papel continuo corte al acabar el documento en vez de expulsar una
+   hoja entera. El rodillo imprime unos 72 mm útiles: de ahí los 4 mm de margen.
+   La térmica no tiene grises ni color: se fuerza todo a negro sobre blanco para que ningún tono suave del
+   tema (ni el modo oscuro) salga lavado o invisible. */
+/* Plan U3: el ancho del papel es de cada equipo (Configuración › Pantalla › Impresión): 80 mm por omisión o 58 mm.
+   Las comandas de cocina (components/print/PrintHost.tsx) usan el mismo rodillo; mientras se imprimen, el recibo no. */
+:root { --paper: 80mm; --paper-pad: 4mm; }
+:root[data-paper='58'] { --paper: 58mm; --paper-pad: 2mm; }
+/* @page no acepta variables: con 58 mm, PrintHost agrega su propia regla @page. */
+@page { size: 80mm auto; margin: 0; }
+.comanda-print { display: none; }
+@media print {
+  body * { visibility: hidden; }
+  .receipt, .receipt * { visibility: visible; }
+  body[data-print='comanda'] .receipt, body[data-print='comanda'] .receipt * { visibility: hidden; }
+  .receipt { position: fixed; inset: 0; width: var(--paper); padding: var(--paper-pad); background: #fff; overflow: visible;
+    font-size: 12px; line-height: 1.35; }
+  .receipt * { color: #000 !important; background: transparent !important; box-shadow: none !important; }
+  .receipt *, .receipt *::before, .receipt *::after { border-color: #000 !important; }
+  .comanda-print { display: block; position: absolute; inset: 0 auto auto 0; width: var(--paper); background: #fff; }
+  .comanda-print, .comanda-print * { visibility: visible; color: #000 !important; }
+  .comanda-sheet { padding: var(--paper-pad); font-size: 13px; line-height: 1.3; break-after: page; }
+  .comanda-sheet:last-child { break-after: auto; }
+  .comanda-station { font-size: 16px; font-weight: 800; text-transform: uppercase; border-bottom: 2px solid #000; }
+  .comanda-head { font-size: 18px; margin-top: 2mm; }
+  .comanda-meta { font-size: 12px; }
+  .comanda-flag { font-weight: 800; border: 2px solid #000; padding: 1mm; margin-top: 1mm; text-align: center; }
+  .comanda-sheet ul { margin-top: 2mm; border-top: 1px dashed #000; }
+  .comanda-sheet li { padding: 1.5mm 0; border-bottom: 1px dashed #000; }
+  .comanda-dish { font-size: 17px; }
+  .comanda-option { font-size: 14px; padding-left: 4mm; }
+  .comanda-note { font-size: 15px; font-weight: 800; }
+  .delivery-receipt { padding: var(--paper-pad); font-size: 13px; line-height: 1.35; }
+  .delivery-receipt h2 { font-size: 18px; font-weight: 800; text-align: center; border-bottom: 2px solid #000; }
+  .delivery-receipt .dr-block { margin-top: 2mm; padding-bottom: 2mm; border-bottom: 1px dashed #000; }
+  .delivery-receipt .dr-strong { font-size: 15px; font-weight: 800; }
+  .delivery-receipt .dr-row { display: flex; justify-content: space-between; gap: 2mm; }
+  .delivery-receipt .dr-total { font-size: 17px; font-weight: 800; }
+}
+
+/* Globitos de la línea de tiempo de reservas: la flecha se mece hacia el lado donde hay reservas fuera de la vista. */
+@keyframes offscreen-nudge-left { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-4px); } }
+@keyframes offscreen-nudge-right { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
+.offscreen-nudge-left { animation: offscreen-nudge-left 1.2s ease-in-out infinite; }
+.offscreen-nudge-right { animation: offscreen-nudge-right 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .offscreen-nudge-left, .offscreen-nudge-right { animation: none; } }
+
+/* Esqueletos de carga (components/kit/Skeleton.tsx): bloques con la forma de lo que va a llegar y un brillo que los
+   recorre. El brillo es blanco suave en claro y casi imperceptible en oscuro, para no competir con el contenido.
+   Con «reducir movimiento» quedan quietos. */
+/* La base en claro es el gris del borde: el de las superficies (muted) casi no se distingue del lienzo. En oscuro,
+   el borde sería demasiado claro y se usa muted. */
+:root { --skeleton-base: var(--kit-border); --skeleton-glow: rgb(255 255 255 / 0.7); }
+[data-theme=dark] { --skeleton-base: var(--kit-muted); --skeleton-glow: rgb(255 255 255 / 0.06); }
+/* En la capa de componentes: las utilidades de Tailwind (`absolute`, medidas) mandan sobre `position: relative`, que
+   solo está para contener el brillo. Sin capa, esta regla le ganaba a `absolute` y los bloques posicionados (las
+   tarjetas de la grilla de reservas, las mesas del plano) colapsaban a cero y no se veían. */
+@keyframes skeleton-shimmer { 100% { transform: translateX(100%); } }
+@layer components {
+.skeleton { position: relative; overflow: hidden; background: var(--skeleton-base); }
+.skeleton::after {
+  content: ''; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, var(--skeleton-glow), transparent);
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) { .skeleton::after { animation: none; display: none; } }
+}
+
+/* Tablas de datos (consola y vistas del negocio): cada celda en una línea, para que «$» y su valor no se separen ni se
+   corten. Si la tabla no cabe, el contenedor (overflow-x-auto) hace scroll horizontal y la primera columna se queda fija:
+   al desplazarse se sigue viendo a qué restaurante, plato o persona corresponde la fila. Necesita fondo opaco para que lo
+   que pasa por debajo no se lea a través. `.cell-wrap` deja partir los textos largos (notas, descripciones). */
+.data-table { width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; }
+.data-table :is(th, td) { white-space: nowrap; }
+.data-table :is(th, td).cell-wrap { white-space: normal; min-width: 14rem; max-width: 26rem; }
+.data-table :is(th, td):first-child { position: sticky; left: 0; z-index: 1; background-color: var(--kit-surface); box-shadow: inset -1px 0 0 var(--kit-border); }
+.data-table thead :is(th, td) { background-color: var(--kit-surface); }
+/* La esquina (cabecera de la primera columna) queda sobre todo: fija arriba y a la izquierda a la vez. */
+.data-table thead :is(th, td):first-child { z-index: 3; }
+/* Barra de desplazamiento de las tablas (ScrollTable): abajo, pegada al borde inferior de la pantalla mientras la tabla se
+   ve; con fondo para que las filas no se lean a través y siempre visible (en Windows y macOS las barras finas se ocultan).
+   La barra propia de la tabla se oculta (.no-x-scrollbar): queda una sola, y la tabla sigue moviéndose con el trackpad. */
+.no-x-scrollbar { scrollbar-width: none; }
+.no-x-scrollbar::-webkit-scrollbar { height: 0; }
+.scroll-rail { background-color: color-mix(in srgb, var(--kit-surface) 92%, transparent); scrollbar-width: auto; scrollbar-color: var(--kit-border) transparent; }
+.scroll-rail::-webkit-scrollbar { height: 12px; }
+.scroll-rail::-webkit-scrollbar-thumb { background-color: var(--kit-border); border-radius: 6px; }
+/* Fila de grupo de una tabla (p. ej. un restaurante en Equipo): banda gris a todo el ancho, sin quedarse fija ella misma. */
+.data-table :is(th, td).group-row { position: static; background-color: var(--kit-muted); box-shadow: none; }

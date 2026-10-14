@@ -1,4 +1,5 @@
 """El correo de producción falla cerrado y respeta el TLS implícito del puerto 465 (ronda r4)."""
+import base64
 import json
 import os
 import subprocess
@@ -20,8 +21,9 @@ LEER = (
 
 def cargar(**entorno):
     """Importa la configuración en un proceso aparte, con el entorno dado, sin contaminar la de las pruebas."""
+    # Producción también exige las llaves del cifrado de pagos; esta es de prueba (32 bytes en cero), no un secreto.
     base = {'PATH': os.environ['PATH'], 'HOME': os.environ.get('HOME', '/tmp'), 'DJANGO_SECRET_KEY': 'x' * 64,
-            'DJANGO_DEBUG': 'false'}
+            'DJANGO_DEBUG': 'false', 'PAYMENTS_MASTER_KEYS': 'pruebas:' + base64.b64encode(bytes(32)).decode()}
     return subprocess.run([sys.executable, '-c', LEER], cwd=EXPERIENCE, env={**base, **entorno},
                           capture_output=True, text=True, timeout=60)
 

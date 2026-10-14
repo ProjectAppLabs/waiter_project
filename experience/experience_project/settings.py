@@ -15,13 +15,22 @@ load_dotenv(BASE_DIR / '.env')
 
 DJANGO_ENV = os.getenv('DJANGO_ENV', 'development')
 IS_PRODUCTION = DJANGO_ENV == 'production'
+# Staging: el servidor de pruebas del fleet, sólo por HTTPS. Seguro por defecto (sin DEBUG, secreto real, cookies
+# Secure, correo a archivo) y sin exigir las llaves de pago ni el SMTP de producción.
+IS_STAGING = DJANGO_ENV == 'staging'
 DINER_DEMO_ENABLED = not IS_PRODUCTION and os.getenv('DINER_DEMO_ENABLED', 'true').lower() in {'1', 'true', 'yes', 'on'}
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'change-me')
-DEBUG = os.getenv('DJANGO_DEBUG', 'false' if IS_PRODUCTION else 'true').lower() in {'1', 'true', 'yes', 'on'}
+DEBUG = os.getenv('DJANGO_DEBUG', 'false' if IS_PRODUCTION or IS_STAGING else 'true').lower() in {'1', 'true', 'yes', 'on'}
 # Falla cerrado: en producción no arranca con el secreto de ejemplo ni con DEBUG.
 if IS_PRODUCTION and (SECRET_KEY == 'change-me' or len(SECRET_KEY) < 50 or DEBUG):
     raise RuntimeError('DJANGO_SECRET_KEY real (>=50 caracteres) y DJANGO_DEBUG=false son obligatorios en producción')
+# Falla cerrado: staging también firma con este secreto los enlaces de domicilio y los accesos de pago.
+if IS_STAGING and (SECRET_KEY == 'change-me' or len(SECRET_KEY) < 50):
+    raise RuntimeError('DJANGO_SECRET_KEY real (>=50 caracteres) es obligatorio en staging')
 ALLOWED_HOSTS = [h.strip() for h in os.getenv('DJANGO_ALLOWED_HOSTS', '').split(',') if h.strip()]
+# Staging: el build del POS (EXPERIENCE_ORIGIN) y las sondas locales llegan por 127.0.0.1, además de los hosts públicos.
+if IS_STAGING and '127.0.0.1' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('127.0.0.1')
 
 INSTALLED_APPS = [
     'django.contrib.contenttypes',
@@ -129,7 +138,9 @@ TEMPLATE_CACHE_SECONDS = int(os.getenv('TEMPLATE_CACHE_SECONDS', '60'))
 
 # Recuperación de cuenta: se habilita únicamente con un proveedor de correo configurado.
 DINER_EMAIL_ENABLED = os.getenv('DINER_EMAIL_ENABLED', 'false').lower() in {'1', 'true', 'yes', 'on'}
-DINER_PUBLIC_URL = os.getenv('DINER_PUBLIC_URL', 'http://192.168.56.10:3001').rstrip('/')
+# El comensal es el host menu. de la app única de frontend/ (el de desarrollo lo imprime scripts/dev.sh). Además de los
+# enlaces, es el único origen que aceptan las escrituras del comensal: en staging y producción va su dirección pública.
+DINER_PUBLIC_URL = os.getenv('DINER_PUBLIC_URL', 'http://menu.192.168.56.10.nip.io:3000').rstrip('/')
 # Plan K3: comando que abre un borrador en un navegador y mide desbordes, solapes y mínimos (recibe DRAFT_TOKEN, REST y
 # SEDE en el entorno y escribe JSON en stdout). Vacío = la verificación en navegador no está disponible en este servidor.
 DESIGN_VERIFIER_CMD = os.getenv('DESIGN_VERIFIER_CMD', '')
@@ -182,6 +193,10 @@ MAILERS['waiter'] = {
         else {}
     ),
 }
+# Staging: el remitente 'default' (lo usa la recuperación de contraseña del comensal) sigue al de waiter, que escribe en
+# experience/mail salvo que EMAIL_BACKEND pida otro. Así ningún correo de staging sale por el SMTP sin pedirlo.
+if IS_STAGING:
+    MAILERS['default'] = {'BACKEND': MAILERS['waiter']['BACKEND'], 'OPTIONS': dict(MAILERS['waiter']['OPTIONS'])}
 # Falla cerrado: en producción un correo que no sale del servidor (archivo, consola, memoria o nulo) se reportaría como
 # enviado y las invitaciones y los avisos de cobro no llegarían a nadie.
 if IS_PRODUCTION and WAITER_EMAIL_BACKEND in {f'django.core.mail.backends.{name}.EmailBackend'

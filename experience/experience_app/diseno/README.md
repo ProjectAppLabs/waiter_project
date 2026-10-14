@@ -139,7 +139,7 @@ El grupo **Marca** de `utilidades.json` contiene exactamente estas diez clases, 
 | `ds-fuente-1` / `ds-fuente-2` / `ds-fuente-3` | Posición de la lista global; sin esa posición usa `display` |
 
 El contrato del comensal incluye `--ds-fuente-1..3` y un `<link>` a Google Fonts. El verificador del Plan L, implementado
-en `diner/scripts/design-system/verificar-borrador.cjs`, además rechaza `iframe`, `object`, `embed` y `frame` en la página;
+en `frontend/diner/scripts/design-system/verificar-borrador.cjs`, además rechaza `iframe`, `object`, `embed` y `frame` en la página;
 `script`, atributos `on*`, estilos no emitidos por el código y enlaces `javascript:`/`data:` en raíces con plantilla propia;
 recursos de orígenes ajenos al propio, `fonts.googleapis.com` y `fonts.gstatic.com`; y familias globales que no carguen.
 El servidor conserva sus resultados y la puerta de confirmación existente; estas comprobaciones del navegador pertenecen al comensal.
@@ -169,16 +169,16 @@ venv/bin/python -m pytest -q experience_app/tests/diseno experience_app/tests/mc
 venv/bin/python -m pytest -q --ignore=experience_app/tests/contract --ignore=experience_app/tests/addon
 venv/bin/ruff check experience_app/diseno experience_app/mcp experience_app/tests/diseno
 venv/bin/python manage.py makemigrations --check --dry-run
-cd ../diner
+cd ../frontend
 npx tsc --noEmit
-npx jest --ci --runInBand
+npx jest --ci --runInBand diner
 ```
 
 Para la comparación visual, `scripts/exporty-audit/capture.cjs` acepta `AUDIT_TEMPLATE=/ruta/plantilla.json`, un JSON
 producido por `plantillas.services.build`. Sin esa variable mantiene el fixture anterior a J2. Ver el
-[README de capturas](../../../diner/scripts/exporty-audit/README.md).
+[README de capturas](../../../frontend/diner/scripts/exporty-audit/README.md).
 
-`diner/scripts/design-system/verificar-tema.cjs` lee `predeterminado.json`, `compacto.json` y `amplio.json` del directorio
+`frontend/diner/scripts/design-system/verificar-tema.cjs` lee `predeterminado.json`, `compacto.json` y `amplio.json` del directorio
 `THEME_EVIDENCE`. Son plantillas resueltas por `build`, no temas crudos. Intercepta la API y omite la introducción para
 comprobar la carta real y el botón de pedir. Mide densidad, tamaño base, fuente de cuerpo, radio y todos los botones/enlaces visibles de la carta;
 guarda capturas y `fundamentos-navegador.json`. Admite `DINER_URL` y `CDP_URL` igual que la auditoría visual.
@@ -191,9 +191,9 @@ Las capturas incluyen los cuatro medios de pago, reservas y chat, con API interc
 Para reproducir J3 desde la raíz, con el comensal y el navegador disponibles:
 
 ```bash
-experience/venv/bin/python diner/scripts/design-system/exportar-variantes.py
-EXPORTY_SOURCE=/ruta/exporty CDP_URL=http://127.0.0.1:9333 DINER_URL=http://localhost:3001 \
-  node diner/scripts/design-system/verificar-variantes.cjs
+experience/venv/bin/python frontend/diner/scripts/design-system/exportar-variantes.py
+EXPORTY_SOURCE=/ruta/exporty CDP_URL=http://127.0.0.1:9333 DINER_URL=http://menu.localhost:3001 \
+  node frontend/diner/scripts/design-system/verificar-variantes.cjs
 ```
 
 El exportador usa el resolvedor real sin escribir datos: genera 27 temas en `test-reports/j3/temas/`. El verificador
@@ -276,7 +276,7 @@ y el [plan K](../../../docs/planes/2026-09-25-plan-K-plantillas-por-componente.m
 - `componentes.json` es el contrato: por componente, `version`, `datos` (con tipo; `obligatorio` cuando la plantilla
   debe enlazarlo), `ranuras` (`obligatoria`; `envoltorio` si admite contenido), `requisitos` (alternativas, p. ej.
   el precio como dato o como ranura) y `plantilla_fabrica`, escrita en el mismo lenguaje. Hoy solo `plato` (tarjeta de plato).
-- `utilidades.json` es el catálogo de clases `ds-*` que admite una plantilla; `diner/components/smart/smart-utilities.css`
+- `utilidades.json` es el catálogo de clases `ds-*` que admite una plantilla; `frontend/diner/components/smart/smart-utilities.css`
   las implementa desde los tokens y una prueba de paridad las mantiene iguales.
 - `decoraciones.json` lista el paquete de fábrica (las ilustraciones de `/smart-menu/`), los movimientos y las posiciones.
 - `plantillas.py` parsea y valida: etiquetas `div span p h1 h2 h3 strong em small ul ol li figure figcaption`, solo el
@@ -292,7 +292,7 @@ y el [plan K](../../../docs/planes/2026-09-25-plan-K-plantillas-por-componente.m
 - `GET /api/v1/diseno/` y `leer_design_system` devuelven `plantillas`: componentes con su contrato y plantilla de fábrica
   (HTML y árbol), utilidades y decoraciones.
 
-**Dibujo en el comensal (K2).** `diner/components/plantillas/Renderizador.tsx` convierte el árbol en React con la
+**Dibujo en el comensal (K2).** `frontend/diner/components/plantillas/Renderizador.tsx` convierte el árbol en React con la
 lista cerrada de etiquetas; los datos y las ranuras los aporta el componente real, que sigue siendo dueño de las
 acciones (`FoodCard` conserva `add`, favorito y el enlace a la ficha; la plantilla solo los coloca). Sin `innerHTML`.
 `lib/domain/plantillas.ts` comprueba versión del contrato, forma del árbol, etiquetas y clases antes de dibujar; ante
@@ -306,7 +306,7 @@ Una prueba dibuja la plantilla de fábrica desde el árbol y exige el mismo HTML
 [README del MCP](../mcp/README.md)). `plantillas.to_html` regenera el HTML de un árbol para que la IA edite la plantilla
 actual; `plantillas.warnings` aplica criterios de medidas sin navegador (`limites.ancho_minimo` del contrato: títulos
 grandes, rejillas o varias decoraciones en un componente estrecho). La verificación dinámica la hace
-`diner/scripts/design-system/verificar-borrador.cjs`: abre la página viva a 375 y 1024 px y la carta a 320, 375 y 1024 px
+`frontend/diner/scripts/design-system/verificar-borrador.cjs`: abre la página viva a 375 y 1024 px y la carta a 320, 375 y 1024 px
 con el borrador y mide en cada raíz con plantilla propia (hasta 12 por componente) desbordes de página y raíz, elementos que sobresalen, palabras que no caben
 (medidas con la fuente real contra el ancho del bloque), textos < 14 px, controles < 44 px y solapes (las piezas que se
 colocan encima a propósito, como la valoración o el corazón, no cuentan); escribe `{ok, problemas, medidas, capturas}` en
@@ -376,7 +376,7 @@ sangra las muestras hasta el borde en teléfonos para que midan lo mismo que la 
 Los contratos viven en `componentes/<id>.json`; `componentes.json` guarda las reglas comunes y la capa `componentes` del
 esquema se completa al cargar.
 
-`diner/scripts/design-system/verificar-pagina.cjs` abre la página en Edge/Chromium a 375 y 1024 px, con el tema publicado y,
+`frontend/diner/scripts/design-system/verificar-pagina.cjs` abre la página en Edge/Chromium a 375 y 1024 px, con el tema publicado y,
 si se pasa `DRAFT_TOKEN`, con un borrador. Comprueba componentes y opciones, atributos e inercia de cada muestra, el estilo
 calculado que distingue cada opción, ausencia de elementos fijos, desbordamiento, errores JS y escrituras, y guarda capturas
 y recortes en `DESIGN_EVIDENCE` (`test-reports/j5`). Admite `DINER_URL`, `CDP_URL`, `REST` y `SEDE`. Solo lee.
@@ -391,7 +391,7 @@ foto en el navegador. El MCP no acepta plantillas de componente con los fundamen
 ## Mapa de domicilio (Plan D)
 
 El componente `mapa` (`.sm-map-wrap`) es el mapa donde el cliente ubica la entrega: MapLibre con datos de OpenStreetMap
-en formato Protomaps (`diner/public/mapas/*.pmtiles`, recorte por región), pin fijo en el centro y la dirección
+en formato Protomaps (`frontend/public/mapas/*.pmtiles`, recorte por región), pin fijo en el centro y la dirección
 aproximada debajo. `variantes.mapa` (atributo `data-ds-mapa`) escoge el estilo:
 
 | Valor | Qué hace |
@@ -401,7 +401,7 @@ aproximada debajo. `variantes.mapa` (atributo `data-ds-mapa`) escoge el estilo:
 | `oscuro` | Mapa oscuro con etiquetas claras. |
 | `gris` | Escala de grises; solo el pin lleva color. |
 
-Reglas, iguales en todos los estilos (`diner/lib/domain/mapTheme.ts`): las etiquetas de calles y barrios se leen con
+Reglas, iguales en todos los estilos (`frontend/diner/lib/domain/mapTheme.ts`): las etiquetas de calles y barrios se leen con
 4.5:1 sobre terreno, halo, calles, parques y edificios; el pin se distingue con 3:1 de todo lo que puede quedar detrás;
 el mapa nunca muestra restaurantes, cafés ni bares (la competencia). Como el mapa es un lienzo WebGL, publica su paleta en
 `data-mapa-*` y el verificador del navegador (`mapCheck`) mide esos contrastes, exige que dibuje calles

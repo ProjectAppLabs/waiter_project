@@ -50,6 +50,10 @@ def main():
     table, _ = Table.objects.update_or_create(
         floor=floor, number=931,
         defaults={'active': True, 'seats': 4, 'x': 40, 'y': 40})
+    # La mesa del comensal (e2e/hosts): abrir su QR deja una visita abierta, así que no comparte la 931 de los pedidos.
+    diner_table, _ = Table.objects.update_or_create(
+        floor=floor, number=932,
+        defaults={'active': True, 'seats': 2, 'x': 140, 'y': 40})
     person, _ = Account.objects.get_or_create(organization=org, username=USERNAME, defaults={
         'name': 'Operador QA', 'role': 'owner', 'email': 'operador.qa@example.test',
         'activated': True, 'password': make_password(PASSWORD)})
@@ -102,7 +106,8 @@ def main():
          'product_id': dish.pk, 'total': pending['total'],
          'taxed_product_id': taxed_dish.pk, 'taxed_total': 11900,
          'round_category_id': round_category.pk,
-         'round_table_id': table.pk, 'round_table_number': table.number}, ensure_ascii=False))
+         'round_table_id': table.pk, 'round_table_number': table.number,
+         'diner_table_number': diner_table.number}, ensure_ascii=False))
 
 
 if __name__ == '__main__':

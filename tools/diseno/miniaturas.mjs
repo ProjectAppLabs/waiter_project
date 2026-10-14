@@ -1,5 +1,5 @@
 // Miniaturas de los marcos del diseño (360 px a 2×) para la galería de plantillas del POS y para revisar fidelidad.
-// Uso: node tools/diseno/miniaturas.mjs [pantalla=menu] — requiere Playwright del paquete pos/ o diner/.
+// Uso: node tools/diseno/miniaturas.mjs [pantalla=menu] — requiere Playwright de frontend/.
 import { chromium } from '/home/cerrotico/work/waiter_project/diner/node_modules/@playwright/test/index.mjs'
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'

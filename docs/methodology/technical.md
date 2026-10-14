@@ -2,15 +2,18 @@
 
 Versiones fijadas: Django 6.1, DRF 3.18.0 y pytest 9.1.1
 (`experience/requirements.txt`); Next.js 16.3.3, React 19.2.8 y Playwright
-1.62.1 (`pos/package.json`). Los clientes exigen Node 24.20.x y npm 11.19.x.
+1.62.1 (`frontend/package.json`, la app única). Los clientes exigen Node 24.20.x y npm 11.19.x.
 Antes de usar APIs de Next se leen las guías incluidas en su paquete, como
-exigen los `AGENTS.md` de POS y comensal.
+exige `frontend/AGENTS.md`.
 
 La base de referencia es MySQL 8.4, utf8mb4, modo estricto y READ COMMITTED.
 `ExactCharField` conserva comparaciones binarias de claves; los índices
 condicionales se expresan mediante columnas calculadas nullable
 (`experience/tenancy/fields.py`, `experience/experience_project/settings.py`).
-`DJANGO_ENV` selecciona producción. `DJANGO_DB_ENGINE` y las variables de DB
+`DJANGO_ENV` vale `development` (por defecto), `staging` o `production`. Staging
+es seguro por defecto: sin DEBUG, secreto real obligatorio, 127.0.0.1 siempre
+admitido, correo a `experience/mail` y cookies Secure; `settings_dev` (el de
+`manage.py`) no lo pisa. `DJANGO_DB_ENGINE` y las variables de DB
 seleccionan el motor; el default SQLite no demuestra compatibilidad MySQL.
 
 El clon principal es el checkout de servicio. Se trabaja en una rama de sesión

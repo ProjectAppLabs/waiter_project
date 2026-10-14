@@ -13,8 +13,9 @@ __pycache__/
 /backend/venv/
 /backend/.venv-audit/
 
-# Node/Next
-/frontend/node_modules/
+# Node/Next: frontend/ es la única app de Next (POS, comensal y landing). node_modules sin barra final: los
+# worktrees de agentes lo enlazan como symlink.
+/frontend/node_modules
 /frontend/next-env.d.ts
 /frontend/.next/
 /frontend/out/
@@ -65,11 +66,8 @@ test-reports/
 /.pytest_cache/
 /coverage-report.md
 
-# Alias temporal que el core canónico de calidad usa para el POS del monorepo.
-/frontend
+# Alias temporal que scripts/calidad/gate_ronda.py crea para el core canónico de calidad (backend → experience).
 /backend
-# Next regenera este archivo en dev, build y typegen.
-/pos/next-env.d.ts
 # Coordinación temporal de QA; el engine la retira tras validar.
 /.qa-gate-pending
 
@@ -101,40 +99,20 @@ Thumbs.db
 # Configuración de Odoo con secretos (las plantillas .example sí se versionan)
 /odoo/compose/odoo.conf
 
-# POS app
-/pos/node_modules/
-/pos/.next/
-/pos/out/
-/pos/.env.local
-/pos/coverage/
-/diner/coverage/
-/pos/test-results/
-/pos/playwright-report/
-/pos/e2e-results/
-
-# diner (paquete propio)
-/diner/node_modules/
-/diner/.next/
-/diner/test-results/
-/diner/playwright-report/
-
-# landing (paquete propio)
-/landing/node_modules/
-/landing/.next/
-/landing/next-env.d.ts
+# Comensal: los mapas descargados y el trabajador de MapLibre que copia `npm run build`; los reportes de su e2e.
+/frontend/public/mapas/*.pmtiles
+/frontend/public/mapas/maplibre-gl-worker.mjs
+/frontend/diner/playwright-report/
 
 # Worktrees de agentes de la sesión
 .claude/worktrees/
 
-# Los venv y node_modules también como symlink (los worktrees de agentes los enlazan al repo principal)
+# Los venv también como symlink (los worktrees de agentes los enlazan al repo principal)
 /experience/venv
 /registry/venv
-/pos/node_modules
-/diner/node_modules
-/landing/node_modules
 
 # Figma binario del kit del POS (215 MB): no se versiona
 *.fig
 
-# Kits de diseño descargados (60–95 MB); las referencias útiles ya están en docs/diseno/exporty y diner/public/smart-menu
+# Kits de diseño descargados (60–95 MB); las referencias útiles ya están en docs/diseno/exporty y frontend/public/smart-menu
 /*.zip

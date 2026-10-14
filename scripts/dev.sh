@@ -5,9 +5,10 @@
 #   scripts/dev.sh status   dice qué está arriba y qué no, con un chequeo real de cada uno
 #   scripts/dev.sh down     detiene los servicios (los contenedores quedan detenidos, no borrados)
 #
-# Orden: MySQL de Waiter → experiencia (Django) → POS y comensal (Next). Cada paso es idempotente: si el
-# servicio ya responde, no se vuelve a lanzar. Registros en $LOGS; PID de cada proceso en $LOGS/<servicio>.pid, para
-# detenerlos sin buscar procesos por nombre (un `pkill -f` puede coincidir con la propia shell que lo lanza).
+# Orden: MySQL de Waiter → experiencia (Django) → la app de Next (POS, comensal y landing, repartidos por host). Cada
+# paso es idempotente: si el servicio ya responde, no se vuelve a lanzar. Registros en $LOGS; PID de cada proceso en
+# $LOGS/<servicio>.pid, para detenerlos sin buscar procesos por nombre (un `pkill -f` puede coincidir con la propia shell
+# que lo lanza).
 #
 # Variables: HOST (192.168.56.10 si la máquina tiene esa interfaz host-only; si no, su IP en la red local, p. ej. en WSL,
 # para que otro equipo de la red llegue a los servicios), REST y SEDE (burger-house / poblado: el restaurante demo del chequeo del comensal),
@@ -18,7 +19,7 @@ if [[ -z ${HOST:-} ]]; then
   if ip -4 addr show 2>/dev/null | grep -q ' 192.168.56.10/'; then HOST=192.168.56.10
   else HOST=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for (i = 1; i < NF; i++) if ($i == "src") print $(i + 1)}'); fi
 fi
-# docker-compose.yml y `npm run dev` del comensal leen la IP de aquí.
+# docker-compose.yml y los orígenes de desarrollo de frontend/next.config.ts leen la IP de aquí.
 export WAITER_HOST=$HOST
 REST=${REST:-burger-house}
 SEDE=${SEDE:-poblado}
@@ -100,9 +101,7 @@ cmd_up() {
   if ! redis-cli ping >/dev/null 2>&1; then warn "redis no responde: la caché de la carta del comensal no funcionará"; fi
   up_waiter_db
   up_django experience 8001 experience_up
-  up_next pos 3000 npx next dev --hostname "$HOST" --port 3000
-  up_next diner 3001 npm run dev
-  up_next landing 3002 npm run dev
+  up_next frontend 3000 npx next dev --hostname "$HOST" --port 3000
   echo
   cmd_status
 }
@@ -114,15 +113,20 @@ cmd_status() {
   if [[ $e == 200 ]]; then ok "experiencia http://$HOST:8001"
   elif [[ $e == 000 ]]; then fail "experiencia :8001 (no responde)"
   else fail "experiencia :8001 responde $e (¿base vacía? ver $LOGS/experience.log)"; fi
-  port_open 3000 && ok "pos         http://$HOST:3000" || fail "pos         :3000"
-  port_open 3001 && ok "comensal    http://$HOST:3001" || fail "comensal    :3001"
-  port_open 3002 && ok "landing     http://$HOST:3002" || fail "landing     :3002"
+  # Una sola app de Next: el sitio sale del host (frontend/proxy.ts). nip.io resuelve <nombre>.<IP>.nip.io a esa IP,
+  # así el menú (menu.) y la landing (www.) se abren desde esta máquina y desde otro equipo de la red.
+  if port_open 3000; then
+    ok "pos         http://$HOST:3000"
+    ok "comensal    http://menu.$HOST.nip.io:3000/$REST/$SEDE"
+    ok "landing     http://www.$HOST.nip.io:3000"
+  else fail "frontend    :3000 (POS, comensal y landing)"; fi
 }
 
 cmd_down() {
   echo "Deteniendo Waiter"
   local name pid
-  for name in landing diner pos experience; do
+  # landing, diner y pos: los procesos de antes de la app única, si quedó alguno arriba.
+  for name in frontend landing diner pos experience; do
     if pid_alive "$name"; then
       pid=$(cat "$LOGS/$name.pid")
       kill -- "-$pid" 2>/dev/null || kill "$pid" 2>/dev/null  # el grupo entero: npx y next dev son procesos hijos
