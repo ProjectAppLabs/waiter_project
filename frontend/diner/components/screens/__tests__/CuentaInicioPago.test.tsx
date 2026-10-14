@@ -5,14 +5,14 @@ import { Account } from '../Account'
 import { Signup } from '../Signup'
 import { Code } from '../Code'
 import { Pay } from '../Pay'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
-import messages from '@/lib/i18n/messages/es.json'
-import type { AccountOrder, Entry } from '@/lib/types'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
+import messages from '@diner/lib/i18n/messages/es.json'
+import type { AccountOrder, Entry } from '@diner/lib/types'
 
 const mockPush = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
-jest.mock('@/lib/services/api')
+jest.mock('@diner/lib/services/api')
 const inicial = useDinerStore.getInitialState()
 const cuenta = { id: 'ana', nombre: 'Ana Ruiz', correo: 'ana@example.invalid', verificada: true }
 const marca = { nombre: 'Casa', lema: '', logo: null, saludo: 'Bienvenida', mesero: 'Luis', bienvenida: 'Disfruta tu visita', color: '#112233', colorTexto: '#FFFFFF', colorSuave: '#EEEEEE', fuente: 'serif', radio: 14 }

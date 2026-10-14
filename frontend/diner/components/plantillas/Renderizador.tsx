@@ -2,9 +2,9 @@
 
 /* eslint-disable @next/next/no-img-element -- Las decoraciones son PNG del paquete de fábrica del propio comensal. */
 import { Component, createElement, Fragment, type ReactNode } from 'react'
-import { formatCop } from '@/lib/domain/cart'
-import { TEMPLATE_TAGS, decorationFile, resolveData, truthy, type TemplateData, type TemplateSlots } from '@/lib/domain/plantillas'
-import type { TemplateNode } from '@/lib/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import { TEMPLATE_TAGS, decorationFile, resolveData, truthy, type TemplateData, type TemplateSlots } from '@diner/lib/domain/plantillas'
+import type { TemplateNode } from '@diner/lib/types'
 
 // Plan K2: dibuja el árbol validado de una plantilla con React, nunca con HTML crudo. Los datos y las ranuras los aporta
 // el componente real; la plantilla solo decide la estructura y las utilidades ds-*.

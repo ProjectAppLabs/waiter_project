@@ -1,7 +1,7 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 
-import { A2Menu } from '@/components/templates/families/A/A2Menu'
-import { dimmedAncestors, entryOf, fuertes, menuProps, postres, wrap } from '@/components/templates/families/A/__tests__/fixtures'
+import { A2Menu } from '@diner/components/templates/families/A/A2Menu'
+import { dimmedAncestors, entryOf, fuertes, menuProps, postres, wrap } from '@diner/components/templates/families/A/__tests__/fixtures'
 
 // Falla si la categoría no se lee como el menú (antetítulo, nombre del primer producto en serif, precio «por persona» en mono), si los pasos
 // no van numerados 01, 02… con los demás productos, o si «Reservar el menú» no agrega el producto-menú.

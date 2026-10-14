@@ -1,13 +1,13 @@
-import { B1Menu } from '@/components/templates/families/B/B1Menu'
-import { B2Menu } from '@/components/templates/families/B/B2Menu'
-import { B3Menu } from '@/components/templates/families/B/B3Menu'
-import { B4Menu } from '@/components/templates/families/B/B4Menu'
-import { B5Menu } from '@/components/templates/families/B/B5Menu'
-import { FamilyBCart } from '@/components/templates/families/B/FamilyBCart'
-import { FamilyBPay } from '@/components/templates/families/B/FamilyBPay'
-import { CardsHistory } from '@/components/templates/patterns/CardsHistory'
-import { CART_LAYOUTS, HISTORY_PATTERNS, MENU_LAYOUTS, PAY_LAYOUTS, cartLayout, menuLayout, ownsChrome, payLayout } from '@/components/templates/registry'
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
+import { B1Menu } from '@diner/components/templates/families/B/B1Menu'
+import { B2Menu } from '@diner/components/templates/families/B/B2Menu'
+import { B3Menu } from '@diner/components/templates/families/B/B3Menu'
+import { B4Menu } from '@diner/components/templates/families/B/B4Menu'
+import { B5Menu } from '@diner/components/templates/families/B/B5Menu'
+import { FamilyBCart } from '@diner/components/templates/families/B/FamilyBCart'
+import { FamilyBPay } from '@diner/components/templates/families/B/FamilyBPay'
+import { CardsHistory } from '@diner/components/templates/patterns/CardsHistory'
+import { CART_LAYOUTS, HISTORY_PATTERNS, MENU_LAYOUTS, PAY_LAYOUTS, cartLayout, menuLayout, ownsChrome, payLayout } from '@diner/components/templates/registry'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
 
 // Falla si B1–B5, el carrito o el pago de la familia vuelven a caer al genérico o los sustituye otro layout, o si el patrón
 // «tarjetas» deja de ser el de la familia (el test general del registro solo comprueba que haya algo registrado).

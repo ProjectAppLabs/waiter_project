@@ -1,4 +1,4 @@
-import { parseRoute, pathFor } from '@/lib/domain/route'
+import { parseRoute, pathFor } from '@diner/lib/domain/route'
 
 // Falla si la URL del NFC (/rest/sede/t/TOKEN) o la de domicilio no abren la carta, o si /plato/3 pierde el id.
 it('parses table and delivery routes with their screen and id', () => {

@@ -3,11 +3,11 @@
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
-import { AddButton, DarkOrderBar, MenuEmpty, ReferenceNote, SearchField, SoldOutBadge, useDinerAccount, useDishIndex } from '@/components/templates/families/D/parts'
-import { CategoryTabs, tabId, unique, useMenuDishes } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { formatCop, recommended } from '@/lib/domain/cart'
-import type { AccountOrder, AccountOrderLine, Dish } from '@/lib/types'
+import { AddButton, DarkOrderBar, MenuEmpty, ReferenceNote, SearchField, SoldOutBadge, useDinerAccount, useDishIndex } from '@diner/components/templates/families/D/parts'
+import { CategoryTabs, tabId, unique, useMenuDishes } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { formatCop, recommended } from '@diner/lib/domain/cart'
+import type { AccountOrder, AccountOrderLine, Dish } from '@diner/lib/types'
 
 export interface UsualOrder { lineas: AccountOrderLine[]; veces: number; vecesEsteMes: number }
 

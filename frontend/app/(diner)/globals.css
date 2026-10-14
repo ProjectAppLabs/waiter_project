@@ -1,4 +1,7 @@
-@import 'tailwindcss';
+@import 'tailwindcss' source(none);
+/* Una sola app con tres sitios: el CSS del comensal sólo genera las utilidades de su código y de sus rutas. */
+@source '../../diner';
+@source '.';
 
 /* Base fija de Waiter (bloqueada) + tema del restaurante (--r-*, seis variables). Sistema de diseño §06. */
 @theme {

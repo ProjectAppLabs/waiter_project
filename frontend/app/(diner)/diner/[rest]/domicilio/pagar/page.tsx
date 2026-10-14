@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
 
-import { openPayLink } from '@/lib/services/api'
+import { openPayLink } from '@diner/lib/services/api'
 
 // Plan D: el enlace de pago que manda el mesero por WhatsApp. Abre la visita del pedido en este navegador y lleva al pago.
 function Page() {

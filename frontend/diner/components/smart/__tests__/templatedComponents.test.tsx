@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react'
-import { contracts, factoryTree, parseTemplate } from '@/components/plantillas/__tests__/helpers'
+import { contracts, factoryTree, parseTemplate } from '@diner/components/plantillas/__tests__/helpers'
 import { MenuBanners } from '../MenuBanners'
 import { SmartHeader } from '../SmartHome'
 import { CategoryNav, DishHero, SearchBox, SectionHeading } from '../SmartMenu'
@@ -8,9 +8,9 @@ import { HistoryCard, PaperReceipt, ProfileSection } from '../SmartAccount'
 import { CouponField, PointsBalanceView } from '../SmartBenefits'
 import { RewardBanner } from '../SmartEntry'
 import { Recorrido } from '../Recorrido'
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { Account, AccountOrder, Cart, CartLine, Dish, Entry, MenuBanner, MenuTheme, OrderStatus } from '@/lib/types'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { Account, AccountOrder, Cart, CartLine, Dish, Entry, MenuBanner, MenuTheme, OrderStatus } from '@diner/lib/types'
 
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
 const dish: Dish = { id: 7, nombre: 'Bandeja paisa', precio: 32000, agotado: false, categorias: [1], foto: '/b.png', descripcion: 'Con frijol.', valoracion: { promedio: 4.75, cantidad: 12 }, atributos: { tiempoPreparacion: 15, precioAntes: 40000, combo: [{ producto: 1, cantidad: 1, nombre: 'Jugo' }] } }

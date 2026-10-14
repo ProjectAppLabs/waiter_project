@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { DishGallery } from '../SmartMenu'
-import type { Dish } from '@/lib/types'
+import type { Dish } from '@diner/lib/types'
 
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
 const dish = (fotos?: string[]): Dish => ({ id: 41, nombre: 'Hamburguesa Clásica', precio: 32000, agotado: false, categorias: [3], foto: '/api/v1/r/s/fotos/41/?v=1', ...(fotos ? { fotos } : {}) })

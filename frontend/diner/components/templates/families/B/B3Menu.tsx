@@ -3,11 +3,11 @@
 import { useTranslations } from 'next-intl'
 import { useMemo, useState } from 'react'
 
-import { DishMeta, GOLD_BG, Photo, Pills } from '@/components/templates/families/B/parts'
-import { fold, tabId, useMenuDishes } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { formatCop, recommended } from '@/lib/domain/cart'
-import type { Category, Dish } from '@/lib/types'
+import { DishMeta, GOLD_BG, Photo, Pills } from '@diner/components/templates/families/B/parts'
+import { fold, tabId, useMenuDishes } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { formatCop, recommended } from '@diner/lib/domain/cart'
+import type { Category, Dish } from '@diner/lib/types'
 
 export const GROUPS = [2, 4, 6, 8] as const
 const SHARING = /compart|bandeja|picada|tabla|grupo|familiar/i

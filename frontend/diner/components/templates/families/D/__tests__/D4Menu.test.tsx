@@ -1,18 +1,18 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 
-import { D4Menu, usualOrder } from '@/components/templates/families/D/D4Menu'
-import { resetAccountProbe } from '@/components/templates/families/D/parts'
-import { cartOf, entryOf, line, menuProps, wrap } from '@/components/templates/families/D/__tests__/fixtures'
-import { getAccount } from '@/lib/services/api'
-import type { Account, AccountOrder, Entry } from '@/lib/types'
+import { D4Menu, usualOrder } from '@diner/components/templates/families/D/D4Menu'
+import { resetAccountProbe } from '@diner/components/templates/families/D/parts'
+import { cartOf, entryOf, line, menuProps, wrap } from '@diner/components/templates/families/D/__tests__/fixtures'
+import { getAccount } from '@diner/lib/services/api'
+import type { Account, AccountOrder, Entry } from '@diner/lib/types'
 
 const mockStore = { entry: null as Entry | null, account: null as Account | null, accountOrders: [] as AccountOrder[] }
-jest.mock('@/lib/stores/dinerStore', () => {
+jest.mock('@diner/lib/stores/dinerStore', () => {
   const hook = (sel?: (s: typeof mockStore) => unknown) => (sel ? sel(mockStore) : mockStore)
   hook.setState = (patch: Partial<typeof mockStore>) => Object.assign(mockStore, patch)
   return { useDinerStore: hook }
 })
-jest.mock('@/lib/services/api', () => ({ getAccount: jest.fn() }))
+jest.mock('@diner/lib/services/api', () => ({ getAccount: jest.fn() }))
 const mockGetAccount = getAccount as jest.MockedFunction<typeof getAccount>
 
 const order = (id: string, fecha: string, lineas: AccountOrder['lineas']): AccountOrder => ({ id, fecha, local: 'Centro', mesa: 14, items: 2, total: 20000, estado: 'pagado', descuento: 0, lineas })

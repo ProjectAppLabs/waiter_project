@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 // Generado desde «Landing Waiter.dc.html» (Claude Design) con scripts/dc2jsx.py: no editar a mano los estilos,
 // regenerar. Las imágenes van con <img> porque el diseño depende de sus medidas exactas.
-import { INICIAR_SESION } from '@/lib/sesion'
+import { INICIAR_SESION } from '@landing/lib/sesion'
 import type { LandingVals } from '../vals'
 
 // 14 Pie

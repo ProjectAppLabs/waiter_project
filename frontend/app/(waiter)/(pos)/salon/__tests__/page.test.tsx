@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 
-import SalonPage from '@/app/(pos)/salon/page'
+import SalonPage from '@/app/(waiter)/(pos)/salon/page'
 import { messages } from '@/lib/i18n/messages'
 import { useNetworkStore } from '@/lib/offline/network'
 import { deleteFloor, readPlan } from '@/lib/services/floorPlan'

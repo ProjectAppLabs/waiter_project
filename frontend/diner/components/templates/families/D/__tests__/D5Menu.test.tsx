@@ -1,11 +1,11 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-import { D5Menu } from '@/components/templates/families/D/D5Menu'
-import { cafe, cartOf, entryOf, horno, line, menuProps, vacia, wrap } from '@/components/templates/families/D/__tests__/fixtures'
+import { D5Menu } from '@diner/components/templates/families/D/D5Menu'
+import { cafe, cartOf, entryOf, horno, line, menuProps, vacia, wrap } from '@diner/components/templates/families/D/__tests__/fixtures'
 
 const mockStore = { entry: null, account: null, accountOrders: [], loadAccount: jest.fn() }
-jest.mock('@/lib/stores/dinerStore', () => ({ useDinerStore: (sel?: (s: typeof mockStore) => unknown) => (sel ? sel(mockStore) : mockStore) }))
+jest.mock('@diner/lib/stores/dinerStore', () => ({ useDinerStore: (sel?: (s: typeof mockStore) => unknown) => (sel ? sel(mockStore) : mockStore) }))
 
 // Falla si las franjas dejan de ser pestañas de ancho igual (rejilla de columnas iguales que salta de fila con 4+ categorías, nunca un
 // scroll que recorte la última) navegables con flechas, si la fila pierde miniatura (o placeholder), descripción o precio en mono, o

@@ -2,8 +2,8 @@
 /* eslint-disable @next/next/no-img-element -- Logo del restaurante servido por la API. */
 import Link from 'next/link'
 import {useEffect,useMemo,useState} from 'react'
-import type {Entry} from '@/lib/types'
-import {createReservationPayment,finishReservationPaymentTest,readReservationPayment,reservationPayContext,type PublicReservation} from '@/lib/services/payments'
+import type {Entry} from '@diner/lib/types'
+import {createReservationPayment,finishReservationPaymentTest,readReservationPayment,reservationPayContext,type PublicReservation} from '@diner/lib/services/payments'
 import {OnlinePayPanel,type PayAdapter,type PayTexts} from './OnlinePayPanel'
 import {Icon,useSmartRoute} from './SmartMenu'
 import './smart-tokens.css'

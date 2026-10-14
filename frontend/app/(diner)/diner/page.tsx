@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 
-import { Seal } from '@/components/ui/Seal'
+import { Seal } from '@diner/components/ui/Seal'
 
 // Raíz sin restaurante: quien llega aquí no tocó un NFC ni un enlace de la mesa. Sirve también de comprobación de vida.
 export default function RootPage() {

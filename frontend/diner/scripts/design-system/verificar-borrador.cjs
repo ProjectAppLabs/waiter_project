@@ -6,14 +6,14 @@
  * controles por debajo de 44 px y solapes entre piezas. Escribe JSON en stdout ({ok, problemas, medidas, capturas};
  * ok null = no se pudo medir); los mensajes van a stderr. Solo lee: no envía escrituras.
  *
- *   DRAFT_TOKEN=<token público> REST=burger-house SEDE=poblado DINER_URL=http://localhost:3001 \
- *     CDP_URL=http://127.0.0.1:9333 node diner/scripts/design-system/verificar-borrador.cjs
+ *   DRAFT_TOKEN=<token público> REST=burger-house SEDE=poblado DINER_URL=http://menu.localhost:3001 \
+ *     CDP_URL=http://127.0.0.1:9333 node frontend/diner/scripts/design-system/verificar-borrador.cjs
  * experience lo lanza desde verificar_borrador cuando DESIGN_VERIFIER_CMD apunta aquí; DESIGN_EVIDENCE guarda capturas. */
 const fs = require('node:fs/promises')
 const path = require('node:path')
 const { chromium } = require('playwright-core')
 
-const base = (process.env.DINER_URL || 'http://localhost:3001').replace(/\/$/, '')
+const base = (process.env.DINER_URL || 'http://menu.localhost:3001').replace(/\/$/, '')
 const token = process.env.DRAFT_TOKEN
 const rest = process.env.REST || 'burger-house', venue = process.env.SEDE || 'poblado'
 const evidence = process.env.DESIGN_EVIDENCE ? path.resolve(process.env.DESIGN_EVIDENCE) : null

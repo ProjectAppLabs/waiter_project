@@ -3,10 +3,10 @@
 import { useTranslations } from 'next-intl'
 import { useMemo } from 'react'
 
-import { formatCop } from '@/lib/domain/cart'
-import { initials } from '@/lib/domain/template'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { Account, Cart, CartLine, Dish, OrderState, PayResult, PayState } from '@/lib/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import { initials } from '@diner/lib/domain/template'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { Account, Cart, CartLine, Dish, OrderState, PayResult, PayState } from '@diner/lib/types'
 
 // Piezas compartidas por la familia E (Bar y cervecería): buscador y estado vacío de Waiter en piel oscura, ＋ de 44 px de toque,
 // línea de atributos opcionales (ABV/IBU, piezas, picante, tamaños, etiquetas: solo si existen), avatares de comensal con iniciales,

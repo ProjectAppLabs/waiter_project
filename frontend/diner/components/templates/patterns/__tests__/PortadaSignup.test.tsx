@@ -2,13 +2,13 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { NextIntlClientProvider } from 'next-intl'
 
-import { PortadaSignup } from '@/components/templates/patterns/PortadaSignup'
-import type { SignupProps } from '@/components/templates/types'
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
-import messages from '@/lib/i18n/messages/es.json'
+import { PortadaSignup } from '@diner/components/templates/patterns/PortadaSignup'
+import type { SignupProps } from '@diner/components/templates/types'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
+import messages from '@diner/lib/i18n/messages/es.json'
 
 const mockState = { brand: 'La Provincia' as string | null }
-jest.mock('@/lib/stores/dinerStore', () => ({ useDinerStore: (selector: (s: { entry: { contexto: { marca: { nombre: string } } } | null }) => unknown) => selector(mockState.brand ? { entry: { contexto: { marca: { nombre: mockState.brand } } } } : { entry: null }) }))
+jest.mock('@diner/lib/stores/dinerStore', () => ({ useDinerStore: (selector: (s: { entry: { contexto: { marca: { nombre: string } } } | null }) => unknown) => selector(mockState.brand ? { entry: { contexto: { marca: { nombre: mockState.brand } } } } : { entry: null }) }))
 
 const props = (over: Partial<SignupProps> = {}): SignupProps => ({ template: DEFAULT_TEMPLATE, onSubmit: jest.fn(), onSkip: jest.fn(), busy: false, error: null, discountPct: 5, ...over })
 const wrap = (p: SignupProps) => render(<NextIntlClientProvider locale="es" messages={messages}><PortadaSignup {...p} /></NextIntlClientProvider>)

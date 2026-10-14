@@ -1,6 +1,6 @@
 'use client'
 
-import type { Entry } from '@/lib/types'
+import type { Entry } from '@diner/lib/types'
 
 // Plan D: fuera del horario que definió el dueño, la carta se puede mirar pero no se confirman pedidos; se dice cuándo abre.
 export function closedText(entry: Entry | null | undefined): string | null {

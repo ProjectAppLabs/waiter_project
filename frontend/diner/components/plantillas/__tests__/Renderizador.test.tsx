@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react'
 import { Plantilla } from '../Renderizador'
-import type { TemplateNode } from '@/lib/types'
+import type { TemplateNode } from '@diner/lib/types'
 
 const el = (etiqueta: string, clases: string[], hijos: TemplateNode[]): TemplateNode => ({ tipo: 'elemento', etiqueta, clases, hijos })
 const datos = { 'plato.nombre': 'Bandeja paisa', 'plato.precio': 32000, 'plato.tiempo': 0, 'plato.rebaja': true, 'plato.rebaja.porcentaje': 20.5,

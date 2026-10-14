@@ -2,9 +2,9 @@
 
 import { useTranslations } from 'next-intl'
 
-import { EditorialDish, EmptyMenu, OrderStrip, SearchToggle, filterSections } from '@/components/templates/families/A/shared'
-import { tabId } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
+import { EditorialDish, EmptyMenu, OrderStrip, SearchToggle, filterSections } from '@diner/components/templates/families/A/shared'
+import { tabId } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
 
 // A5 · Índice de dos columnas (docs/diseno/plantillas/A5). Portada: «La carta» en serif 24 + «Toca una sección para abrirla», rejilla de dos
 // columnas con tarjetas de sección de 92 px (nombre en serif 19, «N platos» en mono 12); la activa en tinta (#1A1815, no el acento: en A5 el

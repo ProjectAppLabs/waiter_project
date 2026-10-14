@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 
-import KdsPage from '@/app/(pos)/kds/page'
+import KdsPage from '@/app/(waiter)/(pos)/kds/page'
 import { messages } from '@/lib/i18n/messages'
 import type { KitchenTicket } from '@/lib/services/kitchen'
 import { useAuthStore } from '@/lib/stores/authStore'

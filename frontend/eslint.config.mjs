@@ -9,7 +9,7 @@ const eslintConfig = defineConfig([
   ...fixupConfigRules(nextTs),
   {
     ...playwright.configs['flat/recommended'],
-    files: ['e2e/**/*.{ts,tsx,js,jsx}'],
+    files: ['e2e/**/*.{ts,tsx,js,jsx}', 'diner/e2e/**/*.{ts,tsx,js,jsx}'],
     rules: {
       ...playwright.configs['flat/recommended'].rules,
       'playwright/no-conditional-in-test': 'off',
@@ -18,7 +18,7 @@ const eslintConfig = defineConfig([
     },
   },
   {
-    files: ['**/__tests__/**/*.{ts,tsx}', 'e2e/**/*.{ts,tsx}', 'jest.setup.ts'],
+    files: ['**/__tests__/**/*.{ts,tsx}', 'e2e/**/*.{ts,tsx}', 'diner/e2e/**/*.{ts,tsx}', 'jest.setup.ts'],
     rules: {
       '@typescript-eslint/no-unused-vars': ['error', {
         varsIgnorePattern: '^_',
@@ -28,7 +28,7 @@ const eslintConfig = defineConfig([
     },
   },
   {
-    files: ['**/__tests__/**/*.{ts,tsx}', 'e2e/**/*.{ts,tsx}', 'jest.setup.ts'],
+    files: ['**/__tests__/**/*.{ts,tsx}', 'e2e/**/*.{ts,tsx}', 'diner/e2e/**/*.{ts,tsx}', 'jest.setup.ts'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
     },
@@ -45,6 +45,8 @@ const eslintConfig = defineConfig([
     'build/**',
     'next-env.d.ts',
     'jest.config.cjs',
+    // El HTML de Claude Design del que se genera la landing.
+    'landing/design/**',
   ]),
 ]);
 

@@ -1,7 +1,7 @@
 'use client'
 
-import { itemCount } from '@/lib/domain/cart'
-import { useDinerStore } from '@/lib/stores/dinerStore'
+import { itemCount } from '@diner/lib/domain/cart'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
 
 // Familia A · lo que los marcos piden y las props del contrato 4 no traen: la carta (fotos de las líneas del carrito y sugerencia de
 // postre), el conteo de platos en el pago y «Pedir sumiller» (llamar al mesero). Un solo módulo para que los tests lo simulen de una vez.

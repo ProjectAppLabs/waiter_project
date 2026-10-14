@@ -1,6 +1,6 @@
  'use client'
 import { useTranslations } from 'next-intl'
-import { useDinerStore } from '@/lib/stores/dinerStore'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
 export function DemoPaymentNotice() {
   const t = useTranslations('diner.pay')
   const { demoSession, session, order } = useDinerStore()

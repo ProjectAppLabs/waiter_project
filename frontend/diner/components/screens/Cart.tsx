@@ -1,16 +1,16 @@
 'use client'
 
-import { DemoPaymentNotice } from '@/components/ui/DemoPaymentNotice'
+import { DemoPaymentNotice } from '@diner/components/ui/DemoPaymentNotice'
 
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
-import { GenericCart } from '@/components/templates/generic/GenericCart'
-import { CART_LAYOUTS } from '@/components/templates/registry'
-import { pathFor } from '@/lib/domain/route'
-import { DEFAULT_TEMPLATE, familyOf } from '@/lib/domain/template'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { Entry } from '@/lib/types'
+import { GenericCart } from '@diner/components/templates/generic/GenericCart'
+import { CART_LAYOUTS } from '@diner/components/templates/registry'
+import { pathFor } from '@diner/lib/domain/route'
+import { DEFAULT_TEMPLATE, familyOf } from '@diner/lib/domain/template'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { Entry } from '@diner/lib/types'
 
 // Pedido: el carrito es de la mesa. El contenedor asegura la sesión, enruta y delega el dibujo al carrito de la familia de la plantilla.
 export function Cart({ rest, venue, token }: { entry: Entry; rest: string; venue: string; token: string | null; id: string | null }) {

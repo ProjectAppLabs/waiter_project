@@ -3,11 +3,11 @@
 import { useTranslations } from 'next-intl'
 import { useMemo, useState } from 'react'
 
-import { AddButton, FOrderBar, FTabs, Foot, MenuEmpty, ReferenceNote, SearchField, SearchToggle } from '@/components/templates/families/F/parts'
-import { fold, tabId, useMenuDishes } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { formatCop } from '@/lib/domain/cart'
-import type { Dish, Menu } from '@/lib/types'
+import { AddButton, FOrderBar, FTabs, Foot, MenuEmpty, ReferenceNote, SearchField, SearchToggle } from '@diner/components/templates/families/F/parts'
+import { fold, tabId, useMenuDishes } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import type { Dish, Menu } from '@diner/lib/types'
 
 // F4 · Nivel de picante y alérgenos (docs/diseno/plantillas/F4). Bloques del marco: «Filtra la carta» con píldoras «Sin {alérgeno}»
 // (de atributos.alergenos de toda la carta) y una por etiqueta («Vegano»…), la activa en verde semántico; lista sin fotos con nombre

@@ -1,7 +1,8 @@
 {
-  "name": "pos",
+  "name": "waiter",
   "version": "0.1.0",
   "private": true,
+  "description": "Waiter · una sola app de Next que sirve el POS, el comensal (menu.*) y la landing (el dominio central) según el host.",
   "packageManager": "npm@11.19.0",
   "engines": {
     "node": ">=24.20.0 <25",
@@ -9,7 +10,7 @@
   },
   "scripts": {
     "dev": "NODE_OPTIONS=--no-deprecation next dev",
-    "build": "NODE_OPTIONS=--no-deprecation next build",
+    "build": "node diner/scripts/mapas/copiar-trabajador.cjs && NODE_OPTIONS=--no-deprecation next build",
     "start": "NODE_OPTIONS=--no-deprecation next start",
     "lint": "eslint",
     "check:install-scripts": "node scripts/check-install-scripts.cjs",
@@ -33,16 +34,24 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
     "test:all": "npm run test:coverage && npm run test:e2e",
-    "kit:compare": "node scripts/kit-compare.cjs"
+    "kit:compare": "node scripts/kit-compare.cjs",
+    "diner:e2e": "playwright test --config=diner/playwright.config.ts",
+    "landing:generar": "cd landing && python3 scripts/dc2jsx.py \"design/Landing Waiter.dc.html\" components/sections \"../app/(landing)/hover.css\"",
+    "landing:generar:legal": "cd landing && python3 scripts/legal2jsx.py design/legal components/legal"
   },
   "dependencies": {
     "@fontsource/open-sans": "^5.3.0",
     "@heroicons/react": "2.2.0",
+    "@protomaps/basemaps": "^5.7.2",
     "@tabler/icons-react": "^3.46.0",
+    "@zxing/browser": "0.2.1",
     "axios": "1.20.0",
+    "gsap": "3.15.0",
     "js-cookie": "3.0.8",
-    "next": "16.3.3",
+    "maplibre-gl": "^6.13.0",
+    "next": "16.3.8",
     "next-intl": "4.14.0",
+    "pmtiles": "^4.5.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "zustand": "5.0.15"
@@ -62,7 +71,7 @@
     "@types/react-dom": "19.2.5",
     "@typescript/native": "npm:typescript@7.0.2",
     "eslint": "10.9.1",
-    "eslint-config-next": "16.3.3",
+    "eslint-config-next": "16.3.8",
     "eslint-plugin-playwright": "2.11.0",
     "jest": "30.4.2",
     "jest-environment-jsdom": "30.4.1",

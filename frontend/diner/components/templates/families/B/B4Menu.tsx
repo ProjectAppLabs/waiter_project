@@ -3,10 +3,10 @@
 import { useTranslations } from 'next-intl'
 import { useMemo, useState } from 'react'
 
-import { fold } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { formatCop } from '@/lib/domain/cart'
-import type { Category, Dish } from '@/lib/types'
+import { fold } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import type { Category, Dish } from '@diner/lib/types'
 
 // Día de la semana del reloj del comensal, en español y minúsculas («martes»), como el marco.
 export const weekday = (date = new Date()) => new Intl.DateTimeFormat('es-CO', { weekday: 'long', timeZone: 'America/Bogota' }).format(date)

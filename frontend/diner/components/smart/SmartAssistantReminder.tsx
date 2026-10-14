@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element -- Exporty assistant reminder illustration. */
 import {useEffect,useRef} from 'react'
 import Link from 'next/link'
-import {useDinerStore} from '@/lib/stores/dinerStore'
+import {useDinerStore} from '@diner/lib/stores/dinerStore'
 import {Icon,useSmartRoute} from './SmartMenu'
 export function SmartAssistantReminder() {
  const {keys,preview}=useDinerStore()

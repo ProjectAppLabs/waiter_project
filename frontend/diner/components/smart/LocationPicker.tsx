@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import type { Map as MapLibreMap, MapMouseEvent } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
-import { areaBounds } from '@/lib/domain/venueRedirect'
-import { flavorOverrides, MAP_VARIANTS, mapPalette, referenceColors, referenceLayer, type MapPalette, type MapVariant } from '@/lib/domain/mapTheme'
+import { areaBounds } from '@diner/lib/domain/venueRedirect'
+import { flavorOverrides, MAP_VARIANTS, mapPalette, referenceColors, referenceLayer, type MapPalette, type MapVariant } from '@diner/lib/domain/mapTheme'
 
 export interface Point { lat: number; lng: number }
 const same = (a: Point, b: Point) => Math.abs(a.lat - b.lat) < 1e-6 && Math.abs(a.lng - b.lng) < 1e-6

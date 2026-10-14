@@ -2,12 +2,12 @@
 
 import { useRouter } from 'next/navigation'
 
-import { GenericSignup } from '@/components/templates/generic/GenericSignup'
-import { SIGNUP_PATTERNS } from '@/components/templates/registry'
-import { pathFor } from '@/lib/domain/route'
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { Entry } from '@/lib/types'
+import { GenericSignup } from '@diner/components/templates/generic/GenericSignup'
+import { SIGNUP_PATTERNS } from '@diner/components/templates/registry'
+import { pathFor } from '@diner/lib/domain/route'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { Entry } from '@diner/lib/types'
 
 // Crear cuenta (cuenta/registro): dos campos y sin contraseña. Si experience creó la cuenta pendiente, se pasa a verificar el código.
 export function Signup({ rest, venue, token }: { entry: Entry; rest: string; venue: string; token: string | null; id: string | null }) {

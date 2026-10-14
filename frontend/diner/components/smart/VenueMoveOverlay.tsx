@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 
-import { useDinerStore } from '@/lib/stores/dinerStore'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
 
 // Plan D: la pantalla de paso a otra sede. Vive en los proveedores de la app (no dentro de la carta) para seguir en
 // pantalla mientras la sede nueva carga, sin el parpadeo de «Preparando tu mesa…». Es un diálogo modal para quedar

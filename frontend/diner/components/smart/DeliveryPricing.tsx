@@ -2,8 +2,8 @@
 
 import { useEffect } from 'react'
 
-import { deliveryMode, deliveryPricesText, pricedEntry } from '@/lib/domain/deliveryPricing'
-import { useDinerStore } from '@/lib/stores/dinerStore'
+import { deliveryMode, deliveryPricesText, pricedEntry } from '@diner/lib/domain/deliveryPricing'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
 
 // Plan D: mientras el cliente pide a domicilio y la sede tiene recargo, la carta muestra los precios para domicilio; si
 // vuelve a recoger o a una mesa, los de siempre. El servidor cobra lo mismo (recargo al peso en el carrito y el pedido).

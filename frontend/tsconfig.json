@@ -20,7 +20,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@diner/*": ["./diner/*"],
+      "@landing/*": ["./landing/*"]
     }
   },
   "include": [
@@ -34,6 +36,8 @@
   "exclude": [
     "node_modules",
     "e2e/**",
-    "playwright.config.ts"
+    "playwright.config.ts",
+    "diner/e2e/**",
+    "diner/playwright.config.ts"
   ]
 }

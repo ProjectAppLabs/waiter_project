@@ -3,10 +3,10 @@
 // Página viva del sistema de diseño (Plan J5): fundamentos, cada componente con sus variantes y las pantallas del
 // inventario, pintados con el tema de la sede (o de un borrador). Solo lectura: no abre sesiones ni pide nada.
 import { COMPONENTS, DEMONSTRATED_BY, FIELDS, FIELD_LABELS, SAMPLES, Sample, sampleDishes, type ComponentId, type VariantField } from './samples'
-import { DESIGN_FACTORS, SHAPE_FACTOR, SHAPE_ROLES } from '@/lib/domain/designSystem'
-import { SCREEN_LAYOUTS, designSystemAttributes } from '@/lib/domain/designVariants'
-import { COLOR_TOKENS } from '@/lib/domain/template'
-import type { DesignContract, DesignRule, Entry, MenuTheme, Template } from '@/lib/types'
+import { DESIGN_FACTORS, SHAPE_FACTOR, SHAPE_ROLES } from '@diner/lib/domain/designSystem'
+import { SCREEN_LAYOUTS, designSystemAttributes } from '@diner/lib/domain/designVariants'
+import { COLOR_TOKENS } from '@diner/lib/domain/template'
+import type { DesignContract, DesignRule, Entry, MenuTheme, Template } from '@diner/lib/types'
 import './design-system.css'
 
 export interface DesignSystemProps {

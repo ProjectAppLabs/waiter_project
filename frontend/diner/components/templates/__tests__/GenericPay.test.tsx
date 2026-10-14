@@ -1,11 +1,11 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 
-import { GenericPay } from '@/components/templates/generic/GenericPay'
-import type { PayLayoutProps } from '@/components/templates/types'
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
-import messages from '@/lib/i18n/messages/es.json'
-import type { Bill } from '@/lib/types'
+import { GenericPay } from '@diner/components/templates/generic/GenericPay'
+import type { PayLayoutProps } from '@diner/components/templates/types'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
+import messages from '@diner/lib/i18n/messages/es.json'
+import type { Bill } from '@diner/lib/types'
 
 const bill: Bill = { ok: false, total: 97812, mio: 97812, porComensal: [], partes: 1, porParte: 97812, descuento: { porcentaje: 5, monto: 4680, aplicable: true, aplicado: true } }
 const base = (): PayLayoutProps => ({

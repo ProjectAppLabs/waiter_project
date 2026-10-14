@@ -3,12 +3,12 @@
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 
-import { GenericCode } from '@/components/templates/generic/GenericCode'
-import { CODE_PATTERNS } from '@/components/templates/registry'
-import { pathFor } from '@/lib/domain/route'
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { Entry } from '@/lib/types'
+import { GenericCode } from '@diner/components/templates/generic/GenericCode'
+import { CODE_PATTERNS } from '@diner/components/templates/registry'
+import { pathFor } from '@diner/lib/domain/route'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { Entry } from '@diner/lib/types'
 
 // Verificar el código (cuenta/codigo): en demo cualquier código de seis dígitos verifica. Sin registro pendiente no hay nada que verificar.
 export function Code({ rest, venue, token }: { entry: Entry; rest: string; venue: string; token: string | null; id: string | null }) {

@@ -4,9 +4,9 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
 
-import { fold, tabId } from '@/components/templates/generic/menuParts'
-import { formatCop, itemCount } from '@/lib/domain/cart'
-import type { Cart, Category, Dish, Template } from '@/lib/types'
+import { fold, tabId } from '@diner/components/templates/generic/menuParts'
+import { formatCop, itemCount } from '@diner/lib/domain/cart'
+import type { Cart, Category, Dish, Template } from '@diner/lib/types'
 
 // Familia A · Alta cocina: piezas comunes de los cinco menús, el carrito y el pago. Todo con tokens --t-*; los marcos fijan las medidas.
 

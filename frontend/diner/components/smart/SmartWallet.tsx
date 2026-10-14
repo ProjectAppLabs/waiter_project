@@ -1,7 +1,7 @@
 'use client'
 /* eslint-disable @next/next/no-img-element -- Exported wallet illustration. */
 import {useRef,useState,type FormEvent} from 'react'
-import {useDinerStore} from '@/lib/stores/dinerStore'
+import {useDinerStore} from '@diner/lib/stores/dinerStore'
 import {Icon,Title} from './SmartMenu'
 import './smart-tokens.css'
 import './smart-wallet.css'

@@ -4,11 +4,11 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { Fragment, useMemo, useState } from 'react'
 
-import { AddButton, EmptyMenu, MenuSearch, uniqueTags } from '@/components/templates/families/E/parts'
-import { CategoryTabs, fold, tabId, useMenuDishes } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { formatCop, itemCount } from '@/lib/domain/cart'
-import type { Dish } from '@/lib/types'
+import { AddButton, EmptyMenu, MenuSearch, uniqueTags } from '@diner/components/templates/families/E/parts'
+import { CategoryTabs, fold, tabId, useMenuDishes } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { formatCop, itemCount } from '@diner/lib/domain/cart'
+import type { Dish } from '@diner/lib/types'
 
 // E1 · Índice de grifos (docs/diseno/plantillas/E1): cabecera «N grifos» + rótulo mono «ABV · IBU» (solo si algún producto trae
 // abv/ibu); lista de una columna sin fotos con barra vertical de 8×40, nombre 16/500, línea técnica mono «4.8% · 22 IBU» y precio mono;

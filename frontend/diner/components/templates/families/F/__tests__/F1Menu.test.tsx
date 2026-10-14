@@ -1,7 +1,7 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 
-import { F1Menu } from '@/components/templates/families/F/F1Menu'
-import { cartOf, line, menuProps, wrap } from '@/components/templates/families/F/__tests__/fixtures'
+import { F1Menu } from '@diner/components/templates/families/F/F1Menu'
+import { cartOf, line, menuProps, wrap } from '@diner/components/templates/families/F/__tests__/fixtures'
 
 // Falla si las filas no llevan miniatura 1x1 (o el placeholder sin foto), el «N piezas» en mono, el chip de picante / etiqueta solo cuando hay dato, o si el agotado pierde su insignia.
 it('renders the rows with photo, pieces and the optional chips only when the data exists', () => {

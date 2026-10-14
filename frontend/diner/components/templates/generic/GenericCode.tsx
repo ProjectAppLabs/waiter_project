@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
 
-import type { CodeProps } from '@/components/templates/types'
+import type { CodeProps } from '@diner/components/templates/types'
 
 export const CODE_LENGTH = 6
 export const RESEND_SECONDS = 38

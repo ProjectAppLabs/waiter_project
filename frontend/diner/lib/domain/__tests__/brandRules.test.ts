@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { designSystemVars, themeFonts } from '../designSystem'
 import { designSystemAttributes } from '../designVariants'
 import { DEFAULT_TEMPLATE, fontsToLoad, loadGoogleFonts } from '../template'
-import type { MenuTheme } from '@/lib/types'
+import type { MenuTheme } from '@diner/lib/types'
 
 // Plan L: fuentes globales de la sede, tinta del fondo, banners del tema y utilidades de marca.
 const theme = (fundamentos: Record<string, unknown>, extra: Record<string, unknown> = {}) => ({ version: 2, fundamentos: { densidad: 1, texto: 1, titulo: 1,

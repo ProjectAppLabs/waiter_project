@@ -1,7 +1,7 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 
-import { B3Menu } from '@/components/templates/families/B/B3Menu'
-import { angus, menuProps, picada, sushi, wrap } from '@/components/templates/families/B/__tests__/fixtures'
+import { B3Menu } from '@diner/components/templates/families/B/B3Menu'
+import { angus, menuProps, picada, sushi, wrap } from '@diner/components/templates/families/B/__tests__/fixtures'
 
 // Falla si el selector de grupo no es estado con aria-pressed, si «por persona» no es precio ÷ grupo con datos reales (y solo en
 // las categorías para compartir), o si el CTA dorado no añade la bandeja destacada.

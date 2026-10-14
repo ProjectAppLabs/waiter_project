@@ -1,10 +1,10 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import OrganizationLanding from '../[rest]/page'
-import { getEntry, getOrganization, quoteDelivery } from '@/lib/services/api'
+import OrganizationLanding from '../diner/[rest]/page'
+import { getEntry, getOrganization, quoteDelivery } from '@diner/lib/services/api'
 
 const replace = jest.fn(), push = jest.fn()
 jest.mock('next/navigation', () => ({ useParams: () => ({ rest: 'burger-house' }), useRouter: () => ({ replace, push }) }))
-jest.mock('@/lib/services/api', () => ({ getOrganization: jest.fn(), getEntry: jest.fn().mockRejectedValue(new Error('sin tema')), quoteDelivery: jest.fn() }))
+jest.mock('@diner/lib/services/api', () => ({ getOrganization: jest.fn(), getEntry: jest.fn().mockRejectedValue(new Error('sin tema')), quoteDelivery: jest.fn() }))
 afterEach(() => jest.clearAllMocks())
 
 // Falla si la portada de una organización con un solo restaurante no lleva directo a su menú (plan O).

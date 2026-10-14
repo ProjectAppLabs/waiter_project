@@ -3,7 +3,7 @@
 import { gsap } from 'gsap'
 import { useEffect } from 'react'
 
-import { CART_ADDED } from '@/lib/domain/cartEvents'
+import { CART_ADDED } from '@diner/lib/domain/cartEvents'
 
 // El carrito visible al que cae el papelito: primero el del mesero virtual si está abierto, si no el del muelle.
 export function cartTarget(): HTMLElement | null {

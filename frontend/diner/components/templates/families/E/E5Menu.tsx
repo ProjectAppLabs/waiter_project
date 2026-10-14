@@ -4,11 +4,11 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useMemo, useState } from 'react'
 
-import { EmptyMenu, MenuSearch, SoldOut, useAttrParts } from '@/components/templates/families/E/parts'
-import { CategoryTabs, tabId, useMenuDishes } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { formatCop, itemCount } from '@/lib/domain/cart'
-import type { Dish } from '@/lib/types'
+import { EmptyMenu, MenuSearch, SoldOut, useAttrParts } from '@diner/components/templates/families/E/parts'
+import { CategoryTabs, tabId, useMenuDishes } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { formatCop, itemCount } from '@diner/lib/domain/cart'
+import type { Dish } from '@diner/lib/types'
 
 // Huecos del flight: el marco dibuja cuatro (tamaño del diseño; el flight no viene en los datos estándar).
 export const FLIGHT_SIZE = 4

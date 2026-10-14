@@ -2,8 +2,8 @@
 import { render, screen } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 
-import { DishCard } from '@/components/ui/DishCard'
-import messages from '@/lib/i18n/messages/es.json'
+import { DishCard } from '@diner/components/ui/DishCard'
+import messages from '@diner/lib/i18n/messages/es.json'
 
 const wrap = (ui: React.ReactElement) => render(<NextIntlClientProvider locale="es" messages={messages}>{ui}</NextIntlClientProvider>)
 const base = { id: 3, nombre: 'Hamburguesa Angus', precio: 43911, agotado: false, categorias: [2], foto: '/api/v1/x/y/fotos/3/?v=1' }

@@ -1,11 +1,11 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 
-import { TablaCufeHistory } from '@/components/templates/patterns/TablaCufeHistory'
-import type { HistoryProps } from '@/components/templates/types'
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
-import messages from '@/lib/i18n/messages/es.json'
-import type { AccountOrder } from '@/lib/types'
+import { TablaCufeHistory } from '@diner/components/templates/patterns/TablaCufeHistory'
+import type { HistoryProps } from '@diner/components/templates/types'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
+import messages from '@diner/lib/i18n/messages/es.json'
+import type { AccountOrder } from '@diner/lib/types'
 
 const account = { id: 'a1', nombre: 'Camila Restrepo', correo: 'camila@correo.com', verificada: true }
 const orders: AccountOrder[] = [

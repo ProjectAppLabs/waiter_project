@@ -2,8 +2,8 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { NextIntlClientProvider } from 'next-intl'
 
-import OrganizationLayout from '@/app/organizacion/layout'
-import PlatformLayout from '@/app/plataforma/layout'
+import OrganizationLayout from '@/app/(waiter)/organizacion/layout'
+import PlatformLayout from '@/app/(waiter)/plataforma/layout'
 import { messages } from '@/lib/i18n/messages'
 
 const mockReplace = jest.fn()

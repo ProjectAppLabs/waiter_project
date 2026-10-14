@@ -1,4 +1,4 @@
-import type { Cart } from '@/lib/types'
+import type { Cart } from '@diner/lib/types'
 
 // Cuando algo entra al pedido (desde la carta, el plato, un combo o el mesero virtual), la pantalla lo celebra con el
 // papelito que cae al carrito. El store solo avisa; la animación vive en la interfaz.

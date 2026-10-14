@@ -2,8 +2,8 @@ import { act, render } from '@testing-library/react'
 import { gsap } from 'gsap'
 
 import { CartToss, cartTarget, toss } from '../CartToss'
-import { announceAdd, myCount } from '@/lib/domain/cartEvents'
-import type { Cart } from '@/lib/types'
+import { announceAdd, myCount } from '@diner/lib/domain/cartEvents'
+import type { Cart } from '@diner/lib/types'
 
 beforeEach(() => {
   document.body.innerHTML = ''

@@ -1,11 +1,11 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-import { A3Menu } from '@/components/templates/families/A/A3Menu'
-import { dimmedAncestors, menuProps, wrap } from '@/components/templates/families/A/__tests__/fixtures'
+import { A3Menu } from '@diner/components/templates/families/A/A3Menu'
+import { dimmedAncestors, menuProps, wrap } from '@diner/components/templates/families/A/__tests__/fixtures'
 
 const mockCall = jest.fn()
-jest.mock('@/lib/stores/dinerStore', () => ({ useDinerStore: (selector: (s: { call: () => Promise<boolean>; cart: null; entry: null }) => unknown) => selector({ call: mockCall, cart: null, entry: null }) }))
+jest.mock('@diner/lib/stores/dinerStore', () => ({ useDinerStore: (selector: (s: { call: () => Promise<boolean>; cart: null; entry: null }) => unknown) => selector({ call: mockCall, cart: null, entry: null }) }))
 
 beforeEach(() => { mockCall.mockReset() })
 

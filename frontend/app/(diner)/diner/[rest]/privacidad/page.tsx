@@ -3,9 +3,9 @@
 import { useParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
-import { getOrganization } from '@/lib/services/api'
-import '@/components/smart/smart-tokens.css'
-import '@/components/smart/smart-forms.css'
+import { getOrganization } from '@diner/lib/services/api'
+import '@diner/components/smart/smart-tokens.css'
+import '@diner/components/smart/smart-forms.css'
 
 // Plan D: la política de tratamiento de datos que se acepta al guardar direcciones (menú) o con «Acepto» (WhatsApp).
 // Versión 2026-10-09, la misma que guarda el servidor (loyalty/delivery.py, POLICY_VERSION).

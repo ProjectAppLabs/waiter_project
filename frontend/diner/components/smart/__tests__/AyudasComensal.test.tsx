@@ -2,8 +2,8 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { IngredientIllustration } from '../SmartIngredients'
 import { SmartAssistantReminder } from '../SmartAssistantReminder'
 import { ChatCarousel, ChatReply } from '../ChatReply'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
 import { gsap } from 'gsap'
 
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }), useSearchParams: () => null }))

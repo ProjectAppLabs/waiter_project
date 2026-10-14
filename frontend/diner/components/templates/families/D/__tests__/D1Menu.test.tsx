@@ -1,10 +1,10 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 
-import { D1Menu } from '@/components/templates/families/D/D1Menu'
-import { cafe, cartOf, coldBrew, entryOf, horno, line, menuProps, vacia, wrap } from '@/components/templates/families/D/__tests__/fixtures'
+import { D1Menu } from '@diner/components/templates/families/D/D1Menu'
+import { cafe, cartOf, coldBrew, entryOf, horno, line, menuProps, vacia, wrap } from '@diner/components/templates/families/D/__tests__/fixtures'
 
 const mockStore = { entry: null, account: null, accountOrders: [], loadAccount: jest.fn() }
-jest.mock('@/lib/stores/dinerStore', () => ({ useDinerStore: (sel?: (s: typeof mockStore) => unknown) => (sel ? sel(mockStore) : mockStore) }))
+jest.mock('@diner/lib/stores/dinerStore', () => ({ useDinerStore: (sel?: (s: typeof mockStore) => unknown) => (sel ? sel(mockStore) : mockStore) }))
 
 // Falla si la pizarra pierde la marca en la cabecera, la mesa en versalitas, las etiquetas de categoría, el precio en mono o si un
 // plato en dos categorías sale dos veces en «Todo».

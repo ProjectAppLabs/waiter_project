@@ -1,6 +1,6 @@
 import { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
 import * as api from '../api'
-import { setPreviewReadOnly, PREVIEW_MESSAGE } from '@/lib/domain/preview'
+import { setPreviewReadOnly, PREVIEW_MESSAGE } from '@diner/lib/domain/preview'
 
 const transporte = jest.fn()
 const adaptador = api.http.defaults.adapter

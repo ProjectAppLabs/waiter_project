@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react'
 import { gsap } from 'gsap'
 
-import { INICIAR_SESION } from '@/lib/sesion'
+import { INICIAR_SESION } from '@landing/lib/sesion'
 
 const SECCIONES = [
   { id: 'como-funciona', label: 'Producto' },

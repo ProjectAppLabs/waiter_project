@@ -1,12 +1,12 @@
 'use client'
 
 import { create } from 'zustand'
-import { announceAdd } from '@/lib/domain/cartEvents'
+import { announceAdd } from '@diner/lib/domain/cartEvents'
 
-import { DEFAULT_TEMPLATE, applyPreview, parsePreview, templateFromSpec } from '@/lib/domain/template'
-import { setPreviewReadOnly } from '@/lib/domain/preview'
-import { addBundle, getFavorites, setFavorite, ApiError, addLine, callWaiter, confirmOrder, getAccount, getCart, getEntry, getThemeDraft, getOrder, getTemplates, logoutAccount, openSession, registerAccount, removeLine, quoteBill, requestBill, simulatePayment, updateLine, verifyAccount } from '@/lib/services/api'
-import type { Account, AccountOrder, Bill, Cart, Entry, OrderStatus, PayMethod, PayScope, PayResult, PayState, RegisterForm, Session, Template } from '@/lib/types'
+import { DEFAULT_TEMPLATE, applyPreview, parsePreview, templateFromSpec } from '@diner/lib/domain/template'
+import { setPreviewReadOnly } from '@diner/lib/domain/preview'
+import { addBundle, getFavorites, setFavorite, ApiError, addLine, callWaiter, confirmOrder, getAccount, getCart, getEntry, getThemeDraft, getOrder, getTemplates, logoutAccount, openSession, registerAccount, removeLine, quoteBill, requestBill, simulatePayment, updateLine, verifyAccount } from '@diner/lib/services/api'
+import type { Account, AccountOrder, Bill, Cart, Entry, OrderStatus, PayMethod, PayScope, PayResult, PayState, RegisterForm, Session, Template } from '@diner/lib/types'
 
 interface Keys { rest: string; venue: string; token: string | null }
 // Registro pendiente de verificar: el id que devolvió experience y el formulario, por si hay que reenviar el código.
@@ -54,7 +54,7 @@ interface DinerState {
   setQty: (lineId: number, qty: number) => Promise<void>
   remove: (lineId: number) => Promise<void>
   addBundle: (lines: {producto_id:number;cantidad:number;nota:string}[]) => Promise<void>
-  confirm: (takeaway?: boolean, details?: {notas: string; alergenos: string; metodo_pago?: import('@/lib/types').DeliveryMethod}) => Promise<string | null>
+  confirm: (takeaway?: boolean, details?: {notas: string; alergenos: string; metodo_pago?: import('@diner/lib/types').DeliveryMethod}) => Promise<string | null>
   refreshOrder: (orderId: string) => Promise<void>
   call: () => Promise<boolean>
   askBill: () => Promise<Bill | null>

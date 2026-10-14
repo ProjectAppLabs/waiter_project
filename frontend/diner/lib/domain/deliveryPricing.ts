@@ -1,4 +1,4 @@
-import type { Cart, Dish, Entry } from '@/lib/types'
+import type { Cart, Dish, Entry } from '@diner/lib/types'
 
 // Plan D: el recargo de domicilio que define el dueño (por ejemplo, para ofrecer envío gratis). El precio con recargo se
 // redondea al peso, igual que en el servidor, y se muestra desde que el cliente está pidiendo a domicilio: la ley pide

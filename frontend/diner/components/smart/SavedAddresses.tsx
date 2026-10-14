@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react'
 
-import { deleteAddress, revokeData, savedAddresses } from '@/lib/services/api'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { SavedAddress } from '@/lib/types'
+import { deleteAddress, revokeData, savedAddresses } from '@diner/lib/services/api'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { SavedAddress } from '@diner/lib/types'
 
 // Plan D: las direcciones que el comensal autorizó guardar, para borrarlas una a una o retirar la autorización
 // (Ley 1581 de 2012). Los pedidos hechos se conservan por obligación contable.

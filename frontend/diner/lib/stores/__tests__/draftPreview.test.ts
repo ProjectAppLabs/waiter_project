@@ -1,10 +1,10 @@
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
-import { setPreviewReadOnly } from '@/lib/domain/preview'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
+import { setPreviewReadOnly } from '@diner/lib/domain/preview'
 import { useDinerStore } from '../dinerStore'
-import * as api from '@/lib/services/api'
-import type { Entry } from '@/lib/types'
+import * as api from '@diner/lib/services/api'
+import type { Entry } from '@diner/lib/types'
 
-jest.mock('@/lib/services/api', () => ({ ...jest.requireActual('@/lib/services/api'),
+jest.mock('@diner/lib/services/api', () => ({ ...jest.requireActual('@diner/lib/services/api'),
   getEntry: jest.fn(), getThemeDraft: jest.fn(), openSession: jest.fn(), addLine: jest.fn(), getCart: jest.fn() }))
 const keys = { rest: 'burger-house', venue: 'poblado', token: null }
 const entry = { contexto: { plantilla: DEFAULT_TEMPLATE }, carta: { categorias: [] } } as unknown as Entry

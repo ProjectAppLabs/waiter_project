@@ -4,9 +4,9 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useMemo } from 'react'
 
-import { tabId } from '@/components/templates/generic/menuParts'
-import { formatCop, itemCount } from '@/lib/domain/cart'
-import type { Cart, Category, Dish, Entry } from '@/lib/types'
+import { tabId } from '@diner/components/templates/generic/menuParts'
+import { formatCop, itemCount } from '@diner/lib/domain/cart'
+import type { Cart, Category, Dish, Entry } from '@diner/lib/types'
 
 // Piezas compartidas por la familia B (Casual de barrio): píldoras de categoría del marco, foto con recorte y agotado,
 // atributos opcionales (solo si existen), ＋ de 44 px y la barra oscura de pedido de los marcos B1/B5. Todo con tokens --t-*.

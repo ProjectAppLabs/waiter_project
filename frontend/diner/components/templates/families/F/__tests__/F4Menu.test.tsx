@@ -1,7 +1,7 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 
-import { F4Menu } from '@/components/templates/families/F/F4Menu'
-import { cartOf, entryOf, line, menuProps, wrap } from '@/components/templates/families/F/__tests__/fixtures'
+import { F4Menu } from '@diner/components/templates/families/F/F4Menu'
+import { cartOf, entryOf, line, menuProps, wrap } from '@diner/components/templates/families/F/__tests__/fixtures'
 
 // Falla si la escala de picante no llena tantas barras como atributos.picante (de cuatro), si se pinta sin dato, o si «Contiene:» falta o se inventa.
 it('paints the spicy scale and the allergens only when the data exists', () => {

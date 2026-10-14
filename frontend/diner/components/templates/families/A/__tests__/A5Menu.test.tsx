@@ -1,8 +1,8 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-import { A5Menu } from '@/components/templates/families/A/A5Menu'
-import { dimmedAncestors, menuProps, wrap } from '@/components/templates/families/A/__tests__/fixtures'
+import { A5Menu } from '@diner/components/templates/families/A/A5Menu'
+import { dimmedAncestors, menuProps, wrap } from '@diner/components/templates/families/A/__tests__/fixtures'
 
 // Falla si la portada no lista las secciones en tarjetas con «N platos» en mono, si tocar una no la abre (setCategory), o si sin nada pedido
 // se dibuja una barra de pedido vacía.

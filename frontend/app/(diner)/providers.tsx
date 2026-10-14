@@ -3,8 +3,8 @@
 import { NextIntlClientProvider } from 'next-intl'
 import { useEffect } from 'react'
 
-import messages from '@/lib/i18n/messages/es.json'
-import { VenueMoveOverlay } from '@/components/smart/VenueMoveOverlay'
+import messages from '@diner/lib/i18n/messages/es.json'
+import { VenueMoveOverlay } from '@diner/components/smart/VenueMoveOverlay'
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   // PWA: registro del service worker (solo instalabilidad; el aviso exige HTTPS en producción).

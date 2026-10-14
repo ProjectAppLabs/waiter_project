@@ -1,4 +1,4 @@
-import { contrastRatio, readableText } from '@/lib/domain/contrast'
+import { contrastRatio, readableText } from '@diner/lib/domain/contrast'
 
 // Plan D: los colores del mapa de domicilio. «marca» los saca de la plantilla (fondo, superficie, tinta y acento);
 // «claro», «oscuro» y «gris» son estilos fijos. En todos, las etiquetas se leen con 4.5:1 sobre el terreno, las calles y

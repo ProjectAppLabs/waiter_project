@@ -1,11 +1,11 @@
 'use client'
 /* eslint-disable @next/next/no-img-element -- Original exported feedback illustrations. */
 import {useEffect, useRef, useState} from 'react'
-import {http} from '@/lib/services/api'
-import {useDinerStore} from '@/lib/stores/dinerStore'
+import {http} from '@diner/lib/services/api'
+import {useDinerStore} from '@diner/lib/stores/dinerStore'
 import {FoodPhoto, Icon, Title, useSmartRoute} from './SmartMenu'
 import {Recorrido} from './Recorrido'
-import {prizeText} from '@/lib/domain/rewards'
+import {prizeText} from '@diner/lib/domain/rewards'
 
 type Feedback = {rating:number; comment:string; dishes:Record<string,number>}
 type Item = {product_id:number; name:string; qty:number}

@@ -1,5 +1,5 @@
-import { areaBounds } from '@/lib/domain/venueRedirect'
-import type { Entry } from '@/lib/types'
+import { areaBounds } from '@diner/lib/domain/venueRedirect'
+import type { Entry } from '@diner/lib/types'
 
 // La zona de entrega de la sede (centro y radio de domicilio) para limitar el mapa; sin datos, el mapa queda libre.
 export function zoneOf(entry: Entry | null | undefined) {

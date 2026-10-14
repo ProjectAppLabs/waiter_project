@@ -1,6 +1,6 @@
 import { FONTS } from '@/lib/domain/brand'
 
-// Las seis familias de la marca (las mismas que carga diner/app/layout.tsx): el select y las vistas previas se
+// Las seis familias de la marca (las mismas que carga app/(diner)/layout.tsx): el select y las vistas previas se
 // pintan con la fuente real. Se añaden al montar el formulario (no en el layout) para que el resto del POS no
 // descargue fuentes que no usa.
 export const BRAND_FONTS_LINK_ID = 'waiter-brand-fonts'

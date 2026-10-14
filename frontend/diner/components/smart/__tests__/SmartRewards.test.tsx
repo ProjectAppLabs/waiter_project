@@ -1,14 +1,14 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { SmartRewards } from '../SmartEntry'
-import { applyCoupon, getRewards } from '@/lib/services/api'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
-import { prizeText } from '@/lib/domain/rewards'
-import type { Account, Cart, DinerRewards, RewardOffer } from '@/lib/types'
+import { applyCoupon, getRewards } from '@diner/lib/services/api'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
+import { prizeText } from '@diner/lib/domain/rewards'
+import type { Account, Cart, DinerRewards, RewardOffer } from '@diner/lib/types'
 
 const push = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push }), useParams: () => ({ rest: 'demo', sede: 'salon' }), useSearchParams: () => null }))
-jest.mock('@/lib/services/api', () => ({ ...jest.requireActual('@/lib/services/api'), getRewards: jest.fn(), applyCoupon: jest.fn() }))
+jest.mock('@diner/lib/services/api', () => ({ ...jest.requireActual('@diner/lib/services/api'), getRewards: jest.fn(), applyCoupon: jest.fn() }))
 const initial = useDinerStore.getState()
 afterEach(() => { useDinerStore.setState(initial, true); jest.clearAllMocks() })
 

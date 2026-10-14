@@ -2,11 +2,11 @@
 
 import { useTranslations } from 'next-intl'
 
-import { AddButton, DarkOrderBar, DishPhoto, MenuEmpty, ReferenceNote, SearchField, TabRow } from '@/components/templates/families/D/parts'
-import { tabId, useMenuDishes } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { formatCop } from '@/lib/domain/cart'
-import type { Dish } from '@/lib/types'
+import { AddButton, DarkOrderBar, DishPhoto, MenuEmpty, ReferenceNote, SearchField, TabRow } from '@diner/components/templates/families/D/parts'
+import { tabId, useMenuDishes } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import type { Dish } from '@diner/lib/types'
 
 // D5 · Desayuno con horario (docs/diseno/plantillas/D5). Tabs de franja de ancho igual (las categorías: la activa en acento, las
 // demás con borde); banda sobre acentoSuave; filas de 84 px con miniatura 56×56 (recorte 1x1, radio 12), nombre 16/500,

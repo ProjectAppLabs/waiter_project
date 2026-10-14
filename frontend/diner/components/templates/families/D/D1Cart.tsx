@@ -3,9 +3,9 @@
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 
-import { CartActions, CartStates, LineMeta, Others, Stepper, discountView, useCartAccount, useOpenLines } from '@/components/templates/families/D/cartParts'
-import type { CartLayoutProps } from '@/components/templates/types'
-import { formatCop, itemCount, mine, others } from '@/lib/domain/cart'
+import { CartActions, CartStates, LineMeta, Others, Stepper, discountView, useCartAccount, useOpenLines } from '@diner/components/templates/families/D/cartParts'
+import type { CartLayoutProps } from '@diner/components/templates/types'
+import { formatCop, itemCount, mine, others } from '@diner/lib/domain/cart'
 
 // D1 · Carrito de pizarra (docs/diseno/plantillas/D1/carrito.html). Difiere de la piel de familia: pizarra oscura, «Tu pedido»
 // centrado en serif con el conteo debajo; líneas con el nombre en serif 20, guía de puntos y precio mono 15; totales sobre la

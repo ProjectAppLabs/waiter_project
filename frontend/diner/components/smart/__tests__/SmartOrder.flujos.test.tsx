@@ -1,11 +1,11 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { SmartBill, SmartCart, SmartDemoPay, SmartStatus } from '../SmartOrder'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { Cart, Entry, OrderStatus } from '@/lib/types'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { Cart, Entry, OrderStatus } from '@diner/lib/types'
 
 const mockPush = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }), useSearchParams: () => null }))
-jest.mock('@/lib/services/api')
+jest.mock('@diner/lib/services/api')
 const inicial = useDinerStore.getInitialState()
 const entrada = { contexto: { mesa: { numero: 3 } }, carta: { categorias: [] } } as unknown as Entry
 const carrito: Cart = { sesion: 'visita', total: 24000, mio: 24000, por_comensal: [], lineas: [{ id: 1, producto_id: 7, nombre: 'Sopa', cantidad: 2, precio: 12000, subtotal: 24000, mio: true, comensal: 'ana', nota: 'Sin sal' }] }
@@ -183,7 +183,7 @@ it('simula el consumo personal con el método elegido y ofrece pagar con el mese
 // datos; luego el detalle con la dirección para confirmarla, platos, envío y total, y el medio de pago), si «Cambiar»
 // no vuelve a los datos o si pagar contra entrega no confirma con ese método y lleva al estado del pedido.
 it('pide a domicilio en dos pasos y paga contra entrega', async () => {
-  const api = jest.requireMock('@/lib/services/api')
+  const api = jest.requireMock('@diner/lib/services/api')
   api.getVenueLocation.mockResolvedValue({ direccion: 'Calle 10', latitud: 6.2, longitud: -75.5 })
   const cotizado = { lat: 6.21, lng: -75.57, direccion: 'Calle 9 # 40-10', indicaciones: 'Apto 301', telefono: '+573001234567', nombre: 'Ana',
     envio: 5000, distancia_km: 2.4, sede: { slug: 'salon', nombre: 'El Poblado' }, metodos: ['online', 'cash'], minimo: 0 }
@@ -230,7 +230,7 @@ it('pide a domicilio en dos pasos y paga contra entrega', async () => {
 
 // Falla si se puede seguir sin aceptar el tratamiento de datos (también al guardar la dirección).
 it('no sigue sin la autorización de datos', async () => {
-  const api = jest.requireMock('@/lib/services/api')
+  const api = jest.requireMock('@diner/lib/services/api')
   api.getVenueLocation.mockResolvedValue({ direccion: '', latitud: null, longitud: null })
   useDinerStore.setState({ cart: carrito, session: { id: 'visita', estado: 'abierta', mesa: null }, entry: { domicilio: { enabled: true, buscador: false }, contexto: { mesa: null }, carta: { categorias: [] } } as unknown as Entry })
   Object.defineProperty(navigator, 'geolocation', { configurable: true, value: { getCurrentPosition: (ok: (p: unknown) => void) => ok({ coords: { latitude: 6.21, longitude: -75.57 } }) } })
@@ -248,7 +248,7 @@ it('no sigue sin la autorización de datos', async () => {
 
 // Falla si al llegar de otra sede con su pedido no se reabre la confirmación en domicilio (el cliente venía pagando).
 it('reabre la confirmación en domicilio al llegar con el pedido', async () => {
-  const api = jest.requireMock('@/lib/services/api')
+  const api = jest.requireMock('@diner/lib/services/api')
   api.getVenueLocation.mockResolvedValue({ direccion: '', latitud: 5.8, longitud: -73 })
   useDinerStore.setState({ cart: carrito, reopenDelivery: true, deliveryDraft: { lat: 5.83, lng: -73.03, direccion: 'Calle 15' },
     entry: { domicilio: { enabled: true, buscador: false }, contexto: { mesa: null }, carta: { categorias: [] } } as unknown as Entry })

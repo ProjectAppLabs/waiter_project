@@ -13,19 +13,23 @@ const customJestConfig = {
   // La mitad de los núcleos: con todos, las suites se ahogaban entre ellas cuando la máquina ya tenía carga.
   maxWorkers: '50%',
   testMatch: ['<rootDir>/**/__tests__/**/*.test.(ts|tsx)'],
+  // Una sola app: @/ es el POS; el comensal y la landing tienen su propio alias.
   moduleNameMapper: {
+    '^@diner/(.*)$': '<rootDir>/diner/$1',
+    '^@landing/(.*)$': '<rootDir>/landing/$1',
     '^@/(.*)$': '<rootDir>/$1',
   },
   collectCoverageFrom: [
     'app/**/*.{ts,tsx}',
     'components/**/*.{ts,tsx}',
     'lib/**/*.{ts,tsx}',
+    'diner/components/**/*.{ts,tsx}',
+    'diner/lib/**/*.{ts,tsx}',
     '!**/*.d.ts',
     '!**/node_modules/**',
     '!**/__tests__/**',
     '!**/e2e/**',
-    '!app/layout.tsx',
-    '!app/globals.css',
+    '!app/*/layout.tsx',
     '!lib/types.ts',
   ],
   coverageProvider: 'v8',
@@ -37,6 +41,13 @@ const customJestConfig = {
       functions: 66,
       lines: 90,
       statements: 90,
+    },
+    // El comensal conserva el trinquete de su app propia; se mide aparte del global.
+    './diner/': {
+      branches: 86,
+      functions: 82,
+      lines: 96,
+      statements: 96,
     },
   },
   coverageReporters: ['text-summary', 'text', 'lcov', 'html', 'json-summary'],

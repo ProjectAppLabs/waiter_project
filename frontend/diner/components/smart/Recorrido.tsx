@@ -2,8 +2,8 @@
 
 /* eslint-disable @next/next/no-img-element -- Las ilustraciones son PNG del paquete de fábrica o el logo de la marca. */
 import type { HTMLAttributes, ReactNode } from 'react'
-import { Plantilla } from '@/components/plantillas/Renderizador'
-import { usePlantilla } from '@/components/plantillas/usePlantilla'
+import { Plantilla } from '@diner/components/plantillas/Renderizador'
+import { usePlantilla } from '@diner/components/plantillas/usePlantilla'
 
 // Plan K, paquete C: la pantalla de recorrido (ilustración orbital, título, frase, contenido propio de la pantalla y pie con
 // acciones) que arman la introducción, la ubicación, la cuenta lista, el correo, el canal, el éxito al restablecer, el éxito

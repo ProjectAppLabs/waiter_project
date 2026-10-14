@@ -3,9 +3,9 @@
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
-import type { PayLayoutProps } from '@/components/templates/types'
-import { formatCop } from '@/lib/domain/cart'
-import type { OrderState, PayMethod } from '@/lib/types'
+import type { PayLayoutProps } from '@diner/components/templates/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import type { OrderState, PayMethod } from '@diner/lib/types'
 
 // Barras del pedido en la pantalla «Pagado»: recibido · en preparación · servido.
 const STEP_BARS: Record<OrderState, number> = { pendiente_pago: 0, enviado: 1, en_cocina: 2, listo: 2, servido: 3, pagado: 3, fallido: 0 }

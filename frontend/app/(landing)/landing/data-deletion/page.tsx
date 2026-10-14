@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
-import { PaginaLegal } from '@/components/legal/PaginaLegal'
-import { EliminacionDatos } from '@/components/legal/EliminacionDatos'
+import { PaginaLegal } from '@landing/components/legal/PaginaLegal'
+import { EliminacionDatos } from '@landing/components/legal/EliminacionDatos'
 
 export const metadata: Metadata = {
   title: 'Eliminación de datos de Waiter',

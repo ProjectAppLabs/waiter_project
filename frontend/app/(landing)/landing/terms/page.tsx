@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
-import { PaginaLegal } from '@/components/legal/PaginaLegal'
-import { Condiciones } from '@/components/legal/Condiciones'
+import { PaginaLegal } from '@landing/components/legal/PaginaLegal'
+import { Condiciones } from '@landing/components/legal/Condiciones'
 
 export const metadata: Metadata = {
   title: 'Condiciones del servicio de Waiter',

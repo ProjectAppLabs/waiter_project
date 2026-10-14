@@ -2,16 +2,16 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { NextIntlClientProvider } from 'next-intl'
 
-import { Menu } from '@/components/screens/Menu'
-import messages from '@/lib/i18n/messages/es.json'
-import type { Category, Entry } from '@/lib/types'
+import { Menu } from '@diner/components/screens/Menu'
+import messages from '@diner/lib/i18n/messages/es.json'
+import type { Category, Entry } from '@diner/lib/types'
 
 const mockPush = jest.fn()
 const mockAdd = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
-jest.mock('@/lib/stores/dinerStore', () => ({ useDinerStore: () => ({ add: mockAdd }) }))
+jest.mock('@diner/lib/stores/dinerStore', () => ({ useDinerStore: () => ({ add: mockAdd }) }))
 // El contenedor se prueba con el genérico: la familia B registra su propio menú bajo B1 (probado en families/B/__tests__).
-jest.mock('@/components/templates/registry', () => ({ MENU_LAYOUTS: {} }))
+jest.mock('@diner/components/templates/registry', () => ({ MENU_LAYOUTS: {} }))
 
 const brand = { nombre: 'La Provincia', lema: '', logo: null, saludo: '', mesero: '', bienvenida: '', color: '#7A2E2A', colorTexto: '#FFFFFF', colorSuave: '#F6EBEA', fuente: 'Instrument Serif', radio: 14 }
 const dish = (id: number, nombre: string, categorias: number[], agotado = false) => ({ id, nombre, precio: 10000 * id, agotado, categorias })

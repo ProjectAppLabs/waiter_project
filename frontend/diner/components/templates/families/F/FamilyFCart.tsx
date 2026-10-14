@@ -4,11 +4,11 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
-import { DishPhoto, useCarta, useCountLabel } from '@/components/templates/families/F/parts'
-import type { CartLayoutProps } from '@/components/templates/types'
-import { formatCop, mine, others } from '@/lib/domain/cart'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { CartLine, Dish, Menu } from '@/lib/types'
+import { DishPhoto, useCarta, useCountLabel } from '@diner/components/templates/families/F/parts'
+import type { CartLayoutProps } from '@diner/components/templates/types'
+import { formatCop, mine, others } from '@diner/lib/domain/cart'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { CartLine, Dish, Menu } from '@diner/lib/types'
 
 // Carrito de la familia F (docs/diseno/plantillas/F*/carrito.html). El registro admite una entrada por familia, así que las
 // cuatro pieles viven aquí y se ramifican por template.codigo:

@@ -1,11 +1,11 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 
-import { FamilyDCart } from '@/components/templates/families/D/FamilyDCart'
-import { cartOf, cartProps, entryOf, line, templateOf, wrap } from '@/components/templates/families/D/__tests__/fixtures'
-import type { Account, Entry } from '@/lib/types'
+import { FamilyDCart } from '@diner/components/templates/families/D/FamilyDCart'
+import { cartOf, cartProps, entryOf, line, templateOf, wrap } from '@diner/components/templates/families/D/__tests__/fixtures'
+import type { Account, Entry } from '@diner/lib/types'
 
 const mockStore = { entry: null as Entry | null, account: null as Account | null, accountOrders: [], loadAccount: jest.fn() }
-jest.mock('@/lib/stores/dinerStore', () => ({ useDinerStore: (sel?: (s: typeof mockStore) => unknown) => (sel ? sel(mockStore) : mockStore) }))
+jest.mock('@diner/lib/stores/dinerStore', () => ({ useDinerStore: (sel?: (s: typeof mockStore) => unknown) => (sel ? sel(mockStore) : mockStore) }))
 
 const verified: Account = { id: 'a1', nombre: 'Camila', correo: 'c@c.co', verificada: true }
 const two = () => cartOf([line(), line({ id: 2, comensal: 'other', mio: false, producto_id: 2, nombre: 'Cortado', precio: 6500, cantidad: 1, subtotal: 6500 })])

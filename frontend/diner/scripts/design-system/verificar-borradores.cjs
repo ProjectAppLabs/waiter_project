@@ -10,7 +10,7 @@ async function main() {
   assert(process.env.DRAFT_KEY_FILE, 'Falta la clave creada en la base desechable')
   const { key } = JSON.parse(await fs.readFile(process.env.DRAFT_KEY_FILE, 'utf8'))
   const output = path.resolve(process.env.DRAFT_EVIDENCE || 'test-reports/j4/navegador')
-  const diner = process.env.DINER_URL || 'http://localhost:3001'
+  const diner = process.env.DINER_URL || 'http://menu.localhost:3001'
   const venue = '/burger-house/poblado'
   await fs.mkdir(output, { recursive: true })
   const rpc = async (name, arguments_ = {}) => {

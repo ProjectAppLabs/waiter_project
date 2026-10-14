@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic'
 import { useEffect, useState } from 'react'
 
-import { getLocateLink, sendLocateLink } from '@/lib/services/api'
+import { getLocateLink, sendLocateLink } from '@diner/lib/services/api'
 import type { Point } from './LocationPicker'
 import './smart-tokens.css'
 import './smart-checkout.css'

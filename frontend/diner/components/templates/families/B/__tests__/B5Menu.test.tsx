@@ -1,7 +1,7 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 
-import { B5Menu } from '@/components/templates/families/B/B5Menu'
-import { clasica, menuProps, wrap } from '@/components/templates/families/B/__tests__/fixtures'
+import { B5Menu } from '@diner/components/templates/families/B/B5Menu'
+import { clasica, menuProps, wrap } from '@diner/components/templates/families/B/__tests__/fixtures'
 
 // Falla si el acordeón no abre la primera sección con «N · cerrar» y cierra las demás con «N · abrir», si las filas llevan ＋ (el spec
 // manda abrir el plato), o si tocar una fila no abre el plato.

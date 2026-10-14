@@ -2,10 +2,10 @@ import { render } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import type { ReactElement } from 'react'
 
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
-import messages from '@/lib/i18n/messages/es.json'
-import type { Cart, CartLine, Category, Dish, Entry, Template } from '@/lib/types'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
+import messages from '@diner/lib/i18n/messages/es.json'
+import type { Cart, CartLine, Category, Dish, Entry, Template } from '@diner/lib/types'
 
 // Carta de prueba de la familia C: fotos y sin fotos, categorías (con una de extras), agotado, favorito y atributos presentes/ausentes.
 export const brand = { nombre: 'El Fogón', lema: 'Cocina de barrio', logo: null, saludo: '', mesero: 'Alex', bienvenida: '', color: '#7A2E2A', colorTexto: '#FFFFFF', colorSuave: '#F6EBEA', fuente: 'Fraunces', radio: 14 }

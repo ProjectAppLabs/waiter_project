@@ -1,7 +1,7 @@
 import { fireEvent, screen } from '@testing-library/react'
 
-import { FamilyDPay } from '@/components/templates/families/D/FamilyDPay'
-import { bill, payProps, templateOf, wrap } from '@/components/templates/families/D/__tests__/fixtures'
+import { FamilyDPay } from '@diner/components/templates/families/D/FamilyDPay'
+import { bill, payProps, templateOf, wrap } from '@diner/components/templates/families/D/__tests__/fixtures'
 
 // Falla si la piel de familia (D3/D5) pierde los chips de método en acento, el interruptor «Guardar», la insignia de demo, o si el
 // número de la tarjeta sale del componente (onPay solo recibe el método).

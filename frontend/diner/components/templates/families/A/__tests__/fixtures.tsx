@@ -1,10 +1,10 @@
 import { render } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
-import messages from '@/lib/i18n/messages/es.json'
-import type { Cart, Category, Dish, Entry, Template } from '@/lib/types'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
+import messages from '@diner/lib/i18n/messages/es.json'
+import type { Cart, Category, Dish, Entry, Template } from '@diner/lib/types'
 
 // Carta de prueba de la familia A: con fotos y sin fotos, agotado, atributos presentes y ausentes, una categoría vacía.
 export const brand = { nombre: 'La Provincia', lema: 'Cocina de barrio', logo: null, saludo: '', mesero: 'Alex', bienvenida: '', color: '#7A2E2A', colorTexto: '#FFFFFF', colorSuave: '#F6EBEA', fuente: 'Instrument Serif', radio: 14 }

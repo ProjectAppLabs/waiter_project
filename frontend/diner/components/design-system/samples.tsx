@@ -3,21 +3,21 @@
 // Muestras de la página viva del sistema de diseño (Plan J5). Cada muestra usa los componentes y las clases reales del
 // menú, dentro de un contenedor con los atributos data-ds-* del tema, para que el CSS de variantes actúe igual que en la carta.
 import type { ReactNode } from 'react'
-import { COMPONENT_VARIANTS, SCREEN_LAYOUTS, designSystemAttributes } from '@/lib/domain/designVariants'
-import type { Dish, Entry, MenuBanner, Template } from '@/lib/types'
-import { CategoryNav, DishHero, DishRating, FoodCard, FoodPhoto, Icon, PriceBlock, SearchBox, SectionHeading, money } from '@/components/smart/SmartMenu'
-import { SmartHeader } from '@/components/smart/SmartHome'
-import { MenuBanners } from '@/components/smart/MenuBanners'
-import { CartLineItem, OrderSummary, StatusCard } from '@/components/smart/SmartOrder'
-import { HistoryCard, PaperReceipt, ProfileSection } from '@/components/smart/SmartAccount'
-import { CouponField, PointsBalanceView } from '@/components/smart/SmartBenefits'
-import { RewardBanner } from '@/components/smart/SmartEntry'
-import { Recorrido } from '@/components/smart/Recorrido'
+import { COMPONENT_VARIANTS, SCREEN_LAYOUTS, designSystemAttributes } from '@diner/lib/domain/designVariants'
+import type { Dish, Entry, MenuBanner, Template } from '@diner/lib/types'
+import { CategoryNav, DishHero, DishRating, FoodCard, FoodPhoto, Icon, PriceBlock, SearchBox, SectionHeading, money } from '@diner/components/smart/SmartMenu'
+import { SmartHeader } from '@diner/components/smart/SmartHome'
+import { MenuBanners } from '@diner/components/smart/MenuBanners'
+import { CartLineItem, OrderSummary, StatusCard } from '@diner/components/smart/SmartOrder'
+import { HistoryCard, PaperReceipt, ProfileSection } from '@diner/components/smart/SmartAccount'
+import { CouponField, PointsBalanceView } from '@diner/components/smart/SmartBenefits'
+import { RewardBanner } from '@diner/components/smart/SmartEntry'
+import { Recorrido } from '@diner/components/smart/Recorrido'
 import dynamic from 'next/dynamic'
 
 // El mapa usa WebGL: solo en el navegador.
-const MapSample = dynamic(() => import('@/components/smart/LocationPicker').then((m) => function Muestra() { return <m.LocationPicker center={{ lat: 6.2087, lng: -75.5671 }} value={null} onChange={() => undefined} label="Mapa de muestra" /> }), { ssr: false, loading: () => <div className="sm-map-wrap"><div className="sm-map" aria-busy="true" /><span aria-hidden="true" className="sm-map-pin"><span /></span></div> })
-import type { AccountOrder, Cart, CartLine, OrderStatus } from '@/lib/types'
+const MapSample = dynamic(() => import('@diner/components/smart/LocationPicker').then((m) => function Muestra() { return <m.LocationPicker center={{ lat: 6.2087, lng: -75.5671 }} value={null} onChange={() => undefined} label="Mapa de muestra" /> }), { ssr: false, loading: () => <div className="sm-map-wrap"><div className="sm-map" aria-busy="true" /><span aria-hidden="true" className="sm-map-pin"><span /></span></div> })
+import type { AccountOrder, Cart, CartLine, OrderStatus } from '@diner/lib/types'
 
 // Copia del inventario de experience (id, nombre y variantes que consume) para dibujar la página aunque el contrato
 // público no responda; la prueba de paridad falla si diverge de inventario.json.

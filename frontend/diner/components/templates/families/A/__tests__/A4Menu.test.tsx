@@ -1,7 +1,7 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 
-import { A4Menu } from '@/components/templates/families/A/A4Menu'
-import { dimmedAncestors, entryOf, entradas, fuertes, menuProps, wrap } from '@/components/templates/families/A/__tests__/fixtures'
+import { A4Menu } from '@diner/components/templates/families/A/A4Menu'
+import { dimmedAncestors, entryOf, entradas, fuertes, menuProps, wrap } from '@diner/components/templates/families/A/__tests__/fixtures'
 
 // jsdom no implementa scrollIntoView (la ficha se desplaza al elegir una fila).
 beforeAll(() => { Element.prototype.scrollIntoView = jest.fn() })

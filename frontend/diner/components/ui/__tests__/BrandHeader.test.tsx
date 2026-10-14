@@ -1,9 +1,9 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 
-import { BrandHeader } from '@/components/ui/BrandHeader'
-import messages from '@/lib/i18n/messages/es.json'
-import type { Brand } from '@/lib/types'
+import { BrandHeader } from '@diner/components/ui/BrandHeader'
+import messages from '@diner/lib/i18n/messages/es.json'
+import type { Brand } from '@diner/lib/types'
 
 const wrap = (ui: React.ReactElement) => render(<NextIntlClientProvider locale="es" messages={messages}>{ui}</NextIntlClientProvider>)
 const brand: Brand = {

@@ -3,12 +3,12 @@
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
-import { AddButton, FOrderBar, FTabs, Foot, MenuEmpty, ReferenceNote, SearchField, SearchToggle, useCountLabel } from '@/components/templates/families/F/parts'
-import { tabId, useMenuDishes } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { formatCop, itemCount } from '@/lib/domain/cart'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { Cart, Dish } from '@/lib/types'
+import { AddButton, FOrderBar, FTabs, Foot, MenuEmpty, ReferenceNote, SearchField, SearchToggle, useCountLabel } from '@diner/components/templates/families/F/parts'
+import { tabId, useMenuDishes } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { formatCop, itemCount } from '@diner/lib/domain/cart'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { Cart, Dish } from '@diner/lib/types'
 
 // F3 · Omakase por tiempos (docs/diseno/plantillas/F3). El marco es una pantalla oscura de seguimiento de un solo menú; el layout
 // sigue pintando la carta completa con esa jerarquía: cabecera centrada (antetítulo en versalitas con la sede y la mesa, título

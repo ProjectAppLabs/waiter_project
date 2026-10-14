@@ -3,11 +3,11 @@
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
-import { DishPhoto, FOrderBar, FTabs, Foot, MenuEmpty, ReferenceNote, SearchField, SearchToggle, peopleOf } from '@/components/templates/families/F/parts'
-import { tabId, useMenuDishes } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { formatCop } from '@/lib/domain/cart'
-import type { Dish } from '@/lib/types'
+import { DishPhoto, FOrderBar, FTabs, Foot, MenuEmpty, ReferenceNote, SearchField, SearchToggle, peopleOf } from '@diner/components/templates/families/F/parts'
+import { tabId, useMenuDishes } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import type { Dish } from '@diner/lib/types'
 
 // F5 · Sets para compartir (docs/diseno/plantillas/F5). Bloques del marco: cabecera con la categoría 20/700 y «Precio por persona
 // calculado»; tarjetas con radio 16: franja de foto de 84 px (3x2) cuando el plato la tiene, nombre 17/700, precio mono 16,

@@ -5,13 +5,13 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
-import { Icon } from '@/components/smart/SmartMenu'
-import { designSystemAttributes } from '@/lib/domain/designVariants'
-import { applyGoogleFonts, templateVars } from '@/lib/domain/template'
-import { themeVars } from '@/lib/domain/theme'
-import { getEntry, getOrganization, quoteDelivery } from '@/lib/services/api'
-import { carryTo } from '@/lib/domain/venueRedirect'
-import type { Entry, OrganizationEntry } from '@/lib/types'
+import { Icon } from '@diner/components/smart/SmartMenu'
+import { designSystemAttributes } from '@diner/lib/domain/designVariants'
+import { applyGoogleFonts, templateVars } from '@diner/lib/domain/template'
+import { themeVars } from '@diner/lib/domain/theme'
+import { getEntry, getOrganization, quoteDelivery } from '@diner/lib/services/api'
+import { carryTo } from '@diner/lib/domain/venueRedirect'
+import type { Entry, OrganizationEntry } from '@diner/lib/types'
 
 // Plan O: portada de la organización (/<org>/). Con un solo restaurante lleva directo a su menú; con varios, se elige.
 // El diseño del menú es de la organización, así que la portada toma el tema de su primer restaurante.

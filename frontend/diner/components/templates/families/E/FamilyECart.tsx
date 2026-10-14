@@ -4,10 +4,10 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
-import { Avatar, Chip, TotalRow, useAccount, useDinerLabels } from '@/components/templates/families/E/parts'
-import type { CartLayoutProps } from '@/components/templates/types'
-import { formatCop, itemCount, mine, others } from '@/lib/domain/cart'
-import type { CartLine } from '@/lib/types'
+import { Avatar, Chip, TotalRow, useAccount, useDinerLabels } from '@diner/components/templates/families/E/parts'
+import type { CartLayoutProps } from '@diner/components/templates/types'
+import { formatCop, itemCount, mine, others } from '@diner/lib/domain/cart'
+import type { CartLine } from '@diner/lib/types'
 
 type Variant = 'E1' | 'E2' | 'E3' | 'E4' | 'E5'
 const variantOf = (code: string): Variant => (['E2', 'E3', 'E4', 'E5'].includes(code.toUpperCase()) ? (code.toUpperCase() as Variant) : 'E1')

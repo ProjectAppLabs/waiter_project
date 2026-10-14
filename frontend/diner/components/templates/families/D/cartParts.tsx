@@ -4,10 +4,10 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
-import type { CartHrefs, CartLayoutProps } from '@/components/templates/types'
-import { formatCop } from '@/lib/domain/cart'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { Account, CartLine, Discount } from '@/lib/types'
+import type { CartHrefs, CartLayoutProps } from '@diner/components/templates/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { Account, CartLine, Discount } from '@diner/lib/types'
 
 // Piezas compartidas de los carritos de la familia D. Conservan lo funcional del genérico (cantidad, quitar, enviar a cocina, ir a
 // pagar, pagar en la mesa, lo de los demás) con el trazo de cada marco.

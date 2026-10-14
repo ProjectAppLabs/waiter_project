@@ -1,13 +1,13 @@
 import { act, render, screen } from '@testing-library/react'
-import DinerPage from '../[rest]/[sede]/[[...ruta]]/page'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
-import type { Entry, MenuTheme } from '@/lib/types'
+import DinerPage from '../diner/[rest]/[sede]/[[...ruta]]/page'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
+import type { Entry, MenuTheme } from '@diner/lib/types'
 
 const params = { rest: 'demo', sede: 'salon', ruta: ['carta'] }
 jest.mock('next/navigation', () => ({ useParams: () => params, useSearchParams: () => null }))
-jest.mock('@/components/smart/FirstVisitIntro', () => ({ FirstVisitIntro: ({ children }: { children: React.ReactNode }) => children }))
-jest.mock('@/components/smart/SmartMenu', () => ({ SmartExperience: () => <p>Carta de prueba</p> }))
+jest.mock('@diner/components/smart/FirstVisitIntro', () => ({ FirstVisitIntro: ({ children }: { children: React.ReactNode }) => children }))
+jest.mock('@diner/components/smart/SmartMenu', () => ({ SmartExperience: () => <p>Carta de prueba</p> }))
 const initial = useDinerStore.getState()
 afterEach(() => useDinerStore.setState(initial, true))
 

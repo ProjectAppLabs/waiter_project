@@ -2,10 +2,10 @@
 
 import { useTranslations } from 'next-intl'
 
-import { EditorialTabs, EmptyMenu, OrderStrip, SearchToggle, SoldOutBadge, dimIf } from '@/components/templates/families/A/shared'
-import { fold, tabId } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { formatCop } from '@/lib/domain/cart'
+import { EditorialTabs, EmptyMenu, OrderStrip, SearchToggle, SoldOutBadge, dimIf } from '@diner/components/templates/families/A/shared'
+import { fold, tabId } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { formatCop } from '@diner/lib/domain/cart'
 
 // A2 · Menú degustación por pasos (docs/diseno/plantillas/A2). Mapeo del spec: la categoría elegida es el menú (antetítulo = categoria.nombre),
 // su primer producto da el nombre y el precio «por persona», y los demás productos son los pasos numerados (01, 02…). Un paso agotado va al

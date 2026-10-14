@@ -2,10 +2,10 @@
 import {useId,useRef,useState,type FormEvent} from 'react'
 import Link from 'next/link'
 import {useSearchParams} from 'next/navigation'
-import {http} from '@/lib/services/api'
+import {http} from '@diner/lib/services/api'
 import {Recorrido} from './Recorrido'
-import {useDinerStore} from '@/lib/stores/dinerStore'
-import type {AccountSummary} from '@/lib/types'
+import {useDinerStore} from '@diner/lib/stores/dinerStore'
+import type {AccountSummary} from '@diner/lib/types'
 import {Empty,Icon,Title,useSmartRoute} from './SmartMenu'
 export function PasswordField({label,value,onChange,autoComplete}: {label:string;value:string;onChange:(value:string)=>void;autoComplete:string}) {
  const [visible,setVisible]=useState(false)

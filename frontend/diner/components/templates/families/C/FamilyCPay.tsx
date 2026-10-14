@@ -3,10 +3,10 @@
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
-import { familyCCode, isDarkC, money } from '@/components/templates/families/C/parts'
-import type { PayLayoutProps } from '@/components/templates/types'
-import { formatCop } from '@/lib/domain/cart'
-import type { OrderState, PayMethod } from '@/lib/types'
+import { familyCCode, isDarkC, money } from '@diner/components/templates/families/C/parts'
+import type { PayLayoutProps } from '@diner/components/templates/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import type { OrderState, PayMethod } from '@diner/lib/types'
 
 // Pago de la familia C (docs/diseno/plantillas/C*/pago.html). Base (C1, C2, C4, C5): banda superior de acento con «Total» y la
 // cifra en mono 28; los métodos como filas de 62 px (la elegida con borde 2 px de acento y peso 500); CTA «PAGAR $ {total}» de 64 px

@@ -3,11 +3,11 @@
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 
-import { AddButton, EmptyMenu, MenuSearch, SoldOut } from '@/components/templates/families/E/parts'
-import { CategoryTabs, tabId, useMenuDishes } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { formatCop, itemCount } from '@/lib/domain/cart'
-import type { Dish } from '@/lib/types'
+import { AddButton, EmptyMenu, MenuSearch, SoldOut } from '@diner/components/templates/families/E/parts'
+import { CategoryTabs, tabId, useMenuDishes } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { formatCop, itemCount } from '@diner/lib/domain/cart'
+import type { Dish } from '@diner/lib/types'
 
 // E2 · Coctelería en fichas (docs/diseno/plantillas/E2): la cabecera del marco ES la marca, en la voz de la plantilla (Instrument
 // Serif 25) con subtítulo gris (el lema o «N cócteles»); es la única cabecera de la pantalla (la página no pinta la suya sobre este

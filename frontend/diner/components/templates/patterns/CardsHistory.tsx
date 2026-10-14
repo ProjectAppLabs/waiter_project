@@ -2,9 +2,9 @@
 
 import { useTranslations } from 'next-intl'
 
-import type { HistoryProps } from '@/components/templates/types'
-import { formatCop } from '@/lib/domain/cart'
-import type { AccountOrder } from '@/lib/types'
+import type { HistoryProps } from '@diner/components/templates/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import type { AccountOrder } from '@diner/lib/types'
 
 const dayLabel = (iso: string) => new Intl.DateTimeFormat('es-CO', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'America/Bogota' }).format(new Date(iso))
 // «Hamburguesa Angus +2» (primer producto y cuántos más) o «4 ítems» cuando el pedido no trae sus líneas.

@@ -3,10 +3,10 @@
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 
-import { BrandName, EmptyList, FOOT_CLASS, SearchField, money, price } from '@/components/templates/families/C/parts'
-import { CategoryTabs, tabId, useMenuDishes } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { itemCount } from '@/lib/domain/cart'
+import { BrandName, EmptyList, FOOT_CLASS, SearchField, money, price } from '@diner/components/templates/families/C/parts'
+import { CategoryTabs, tabId, useMenuDishes } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { itemCount } from '@diner/lib/domain/cart'
 
 // C4 · Pizarra de camión (docs/diseno/plantillas/C4). Pizarra oscura con tiza: una sola cabecera centrada con el nombre del
 // restaurante (o su logo) en Bebas Neue 34 y una línea de sede en versalitas («{sede} · {lema} · Mesa N», con lo que exista: el

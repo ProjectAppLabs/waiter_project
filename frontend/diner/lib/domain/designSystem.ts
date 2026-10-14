@@ -1,4 +1,4 @@
-import type { MenuTheme } from '@/lib/types'
+import type { MenuTheme } from '@diner/lib/types'
 
 // Contrato de experience/diseno/esquema.json; la prueba de paridad vigila rangos y valores predeterminados.
 export const DESIGN_FACTORS = {

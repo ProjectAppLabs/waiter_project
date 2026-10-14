@@ -1,9 +1,9 @@
 import { fireEvent, render } from '@testing-library/react'
-import { contracts, parseTemplate } from '@/components/plantillas/__tests__/helpers'
+import { contracts, parseTemplate } from '@diner/components/plantillas/__tests__/helpers'
 import { FoodCard, dishTemplateData } from '../SmartMenu'
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { Dish, MenuTheme } from '@/lib/types'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { Dish, MenuTheme } from '@diner/lib/types'
 
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
 const contract = contracts

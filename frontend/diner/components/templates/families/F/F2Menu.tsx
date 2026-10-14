@@ -3,11 +3,11 @@
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
-import { AddButton, FOrderBar, FTabs, Foot, MenuEmpty, ReferenceNote, SearchField, SearchToggle } from '@/components/templates/families/F/parts'
-import { tabId, useMenuDishes } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { formatCop } from '@/lib/domain/cart'
-import type { Dish } from '@/lib/types'
+import { AddButton, FOrderBar, FTabs, Foot, MenuEmpty, ReferenceNote, SearchField, SearchToggle } from '@diner/components/templates/families/F/parts'
+import { tabId, useMenuDishes } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import type { Dish } from '@diner/lib/types'
 
 // F2 · Bento en cuadrícula (docs/diseno/plantillas/F2). El marco muestra un solo producto (la caja) con cuatro compartimentos;
 // el layout sigue pintando la carta completa: la categoría activa es la caja, el plato seleccionado da nombre y precio a la

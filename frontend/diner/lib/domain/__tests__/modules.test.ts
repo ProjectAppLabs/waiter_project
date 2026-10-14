@@ -1,4 +1,4 @@
-import { accountScreen, dinerHas } from '@/lib/domain/modules'
+import { accountScreen, dinerHas } from '@diner/lib/domain/modules'
 
 // Falla si un servidor anterior (sin la lista de módulos) apaga funciones del menú, o si con la lista el menú muestra
 // el chat, el pago en línea o la cuenta de un módulo apagado.

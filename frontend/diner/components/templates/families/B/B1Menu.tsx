@@ -3,11 +3,11 @@
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
-import { AddButton, DishMeta, FrameOrderBar, Photo, Pills, SEARCH_FIELD, SEARCH_SURFACE } from '@/components/templates/families/B/parts'
-import { tabId, useMenuDishes } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { formatCop } from '@/lib/domain/cart'
-import type { Dish } from '@/lib/types'
+import { AddButton, DishMeta, FrameOrderBar, Photo, Pills, SEARCH_FIELD, SEARCH_SURFACE } from '@diner/components/templates/families/B/parts'
+import { tabId, useMenuDishes } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import type { Dish } from '@diner/lib/types'
 
 // B1 · Rejilla con foto (docs/diseno/plantillas/B1): píldoras de categoría arriba (activa en acento), rejilla de 2 columnas con foto de
 // 82 px, nombre, precio en mono y ＋ redondo en acento; barra oscura de pedido abajo. El marco no dibuja buscador: va plegado tras

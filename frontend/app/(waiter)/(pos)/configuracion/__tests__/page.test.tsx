@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 
-import ConfiguracionPage from '@/app/(pos)/configuracion/page'
+import ConfiguracionPage from '@/app/(waiter)/(pos)/configuracion/page'
 import { messages } from '@/lib/i18n/messages'
 import { listPosEmployees, type PosEmployee } from '@/lib/services/employees'
 import { getRestaurantInfo, type RestaurantInfo } from '@/lib/services/restaurantInfo'

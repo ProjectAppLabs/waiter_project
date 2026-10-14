@@ -1,13 +1,13 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { SmartLocation, SmartWelcome } from '../SmartEntry'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import { getEntry, getVenueLocation } from '@/lib/services/api'
-import type { Entry } from '@/lib/types'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import { getEntry, getVenueLocation } from '@diner/lib/services/api'
+import type { Entry } from '@diner/lib/types'
 
 const mockPush = jest.fn()
 const mockLeerQr = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }), useSearchParams: () => null }))
-jest.mock('@/lib/services/api')
+jest.mock('@diner/lib/services/api')
 jest.mock('@zxing/browser', () => ({ BrowserQRCodeReader: jest.fn().mockImplementation(() => ({ decodeFromImageUrl: mockLeerQr })) }))
 const inicial = useDinerStore.getInitialState()
 const entrada = { contexto: { restaurante: { slug: 'casa', nombre: 'Casa' }, sede: { slug: 'centro', nombre: 'Centro' }, mesa: null, marca: { nombre: 'Casa', logo: null, lema: '' } }, carta: { categorias: [] } } as unknown as Entry

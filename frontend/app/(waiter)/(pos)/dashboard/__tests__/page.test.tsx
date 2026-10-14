@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 
-import DashboardPage from '@/app/(pos)/dashboard/page'
+import DashboardPage from '@/app/(waiter)/(pos)/dashboard/page'
 import type { AttentionItem, SalesHistory } from '@/lib/domain/insights'
 import type { KitOrder } from '@/lib/domain/orderState'
 import { messages } from '@/lib/i18n/messages'

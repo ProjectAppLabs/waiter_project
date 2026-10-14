@@ -3,12 +3,12 @@
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
-import { AddButton, EmptyMenu, OrderStrip, SearchToggle, SoldOutBadge, attributeChips, dimIf, filterSections } from '@/components/templates/families/A/shared'
-import { useCallWaiter } from '@/components/templates/families/A/storeExtras'
-import { tabId } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { formatCop } from '@/lib/domain/cart'
-import type { Dish } from '@/lib/types'
+import { AddButton, EmptyMenu, OrderStrip, SearchToggle, SoldOutBadge, attributeChips, dimIf, filterSections } from '@diner/components/templates/families/A/shared'
+import { useCallWaiter } from '@diner/components/templates/families/A/storeExtras'
+import { tabId } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import type { Dish } from '@diner/lib/types'
 
 // A3 · Carta de vinos indexada (docs/diseno/plantillas/A3). Bloques del spec: píldoras de categoría con conteo (la activa rellena en el acento;
 // «Todo» se añade al frente para conservar el filtro de Waiter), rótulos de grupo en versalitas sobre la superficie, filas de dos líneas

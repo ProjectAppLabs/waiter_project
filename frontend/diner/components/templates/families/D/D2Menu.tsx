@@ -3,12 +3,12 @@
 import { useTranslations } from 'next-intl'
 import { useMemo, useRef, useState } from 'react'
 
-import { AddButton, AttributeChips, DarkOrderBar, MenuEmpty, ReferenceNote, SearchField, SoldOutBadge } from '@/components/templates/families/D/parts'
-import { CategoryTabs, tabId, unique, useMenuDishes } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { formatCop } from '@/lib/domain/cart'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { Dish } from '@/lib/types'
+import { AddButton, AttributeChips, DarkOrderBar, MenuEmpty, ReferenceNote, SearchField, SoldOutBadge } from '@diner/components/templates/families/D/parts'
+import { CategoryTabs, tabId, unique, useMenuDishes } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { Dish } from '@diner/lib/types'
 
 // D2 · Constructor de bebida (docs/diseno/plantillas/D2). El marco muestra solo la ficha-constructor de una bebida (Tamaño en
 // segmentos, Leche en chips, Extras en filas, precio recalculado y «Añadir»). Aquí el layout pinta la carta completa: arriba la

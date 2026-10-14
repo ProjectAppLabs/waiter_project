@@ -3,8 +3,8 @@
 import { useTranslations } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
 
-import { CODE_LENGTH, RESEND_SECONDS } from '@/components/templates/generic/GenericCode'
-import type { CodeProps } from '@/components/templates/types'
+import { CODE_LENGTH, RESEND_SECONDS } from '@diner/components/templates/generic/GenericCode'
+import type { CodeProps } from '@diner/components/templates/types'
 
 const pad = (n: number) => `0:${String(n).padStart(2, '0')}`
 

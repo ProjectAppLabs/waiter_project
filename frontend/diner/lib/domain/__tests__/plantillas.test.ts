@@ -1,9 +1,9 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { COMPONENT_CONTRACTS, TEMPLATE_TAGS, decorationFile, resolveData, templateFor, truthy } from '../plantillas'
-import type { MenuTheme, TemplateNode } from '@/lib/types'
+import type { MenuTheme, TemplateNode } from '@diner/lib/types'
 
-const contractsDir = join(__dirname, '../../../../experience/experience_app/diseno/componentes')
+const contractsDir = join(__dirname, '../../../../../experience/experience_app/diseno/componentes')
 const contract = { ...JSON.parse(readFileSync(join(contractsDir, '../componentes.json'), 'utf8')),
   componentes: Object.fromEntries(readdirSync(contractsDir).filter((f) => f.endsWith('.json')).map((f) => [f.replace(/\.json$/, ''), JSON.parse(readFileSync(join(contractsDir, f), 'utf8'))])) }
 const theme = (plato: unknown): MenuTheme => ({ version: 2, componentes: { plato } } as unknown as MenuTheme)

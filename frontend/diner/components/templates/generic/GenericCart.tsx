@@ -4,9 +4,9 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useRef, useState } from 'react'
 
-import type { CartLayoutProps } from '@/components/templates/types'
-import { formatCop, itemCount, mine, others } from '@/lib/domain/cart'
-import type { CartLine } from '@/lib/types'
+import type { CartLayoutProps } from '@diner/components/templates/types'
+import { formatCop, itemCount, mine, others } from '@diner/lib/domain/cart'
+import type { CartLine } from '@diner/lib/types'
 
 const TABS = ['mine', 'table'] as const
 type Tab = (typeof TABS)[number]

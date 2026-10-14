@@ -1,11 +1,11 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 
-import { FamilyFCart } from '@/components/templates/families/F/FamilyFCart'
-import { cartOf, entryOf, line, templateOf, wrap } from '@/components/templates/families/F/__tests__/fixtures'
-import type { CartLayoutProps } from '@/components/templates/types'
+import { FamilyFCart } from '@diner/components/templates/families/F/FamilyFCart'
+import { cartOf, entryOf, line, templateOf, wrap } from '@diner/components/templates/families/F/__tests__/fixtures'
+import type { CartLayoutProps } from '@diner/components/templates/types'
 
 const mockStore = { entry: entryOf(), account: { id: 'a', nombre: 'Camila Ruiz', correo: 'c@c.co', verificada: true } }
-jest.mock('@/lib/stores/dinerStore', () => ({ useDinerStore: (selector?: (s: typeof mockStore) => unknown) => (selector ? selector(mockStore) : mockStore) }))
+jest.mock('@diner/lib/stores/dinerStore', () => ({ useDinerStore: (selector?: (s: typeof mockStore) => unknown) => (selector ? selector(mockStore) : mockStore) }))
 
 const base = (codigo: string, over: Partial<CartLayoutProps> = {}): CartLayoutProps => ({
   cart: cartOf([line({}), line({ id: 2, producto_id: 4, nombre: 'Sopa miso', precio: 9000, cantidad: 1, subtotal: 9000 })]),

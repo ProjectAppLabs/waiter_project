@@ -1,9 +1,9 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 
-import { E5Menu, shortName } from '@/components/templates/families/E/E5Menu'
-import { cartOf, line, menuProps, wrap } from '@/components/templates/families/E/__tests__/fixtures'
+import { E5Menu, shortName } from '@diner/components/templates/families/E/E5Menu'
+import { cartOf, line, menuProps, wrap } from '@diner/components/templates/families/E/__tests__/fixtures'
 
-jest.mock('@/lib/stores/dinerStore', () => ({ useDinerStore: () => ({ account: null }) }))
+jest.mock('@diner/lib/stores/dinerStore', () => ({ useDinerStore: () => ({ account: null }) }))
 
 const slots = () => within(screen.getByRole('list', { name: 'Tu flight' })).getAllByRole('listitem')
 

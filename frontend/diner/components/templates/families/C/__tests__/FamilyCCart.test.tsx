@@ -1,14 +1,14 @@
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
 
-import { FamilyCCart } from '@/components/templates/families/C/FamilyCCart'
-import { cartOf, entryOf, line, templateC, wrap } from '@/components/templates/families/C/__tests__/fixtures'
-import type { CartLayoutProps } from '@/components/templates/types'
-import type { Discount } from '@/lib/types'
+import { FamilyCCart } from '@diner/components/templates/families/C/FamilyCCart'
+import { cartOf, entryOf, line, templateC, wrap } from '@diner/components/templates/families/C/__tests__/fixtures'
+import type { CartLayoutProps } from '@diner/components/templates/types'
+import type { Discount } from '@diner/lib/types'
 
 // La miniatura de C2 y el extra de cierre de C3 salen de la carta del store (la línea solo trae producto_id); el ＋ de C3 agrega por
 // el store: se simula con la carta de prueba y un add espía.
 const storeAdd = jest.fn()
-jest.mock('@/lib/stores/dinerStore', () => ({ useDinerStore: (sel: (s: { entry: unknown; add: unknown }) => unknown) => sel({ entry: entryOf(), add: storeAdd }) }))
+jest.mock('@diner/lib/stores/dinerStore', () => ({ useDinerStore: (sel: (s: { entry: unknown; add: unknown }) => unknown) => sel({ entry: entryOf(), add: storeAdd }) }))
 
 const hrefs = { home: '/h', menu: '/m', pay: '/p', table: '/t', signup: '/s' }
 const applied: Discount = { porcentaje: 5, monto: 3290, aplicable: true, aplicado: true }

@@ -1,7 +1,7 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 
-import { C5Menu } from '@/components/templates/families/C/C5Menu'
-import { cartOf, line, menuProps, wrap } from '@/components/templates/families/C/__tests__/fixtures'
+import { C5Menu } from '@diner/components/templates/families/C/C5Menu'
+import { cartOf, line, menuProps, wrap } from '@diner/components/templates/families/C/__tests__/fixtures'
 
 // Falla si el resumen no muestra el total en mono, las filas «{n}×», la nota y el total de línea; si el upsell repite lo que ya está
 // en el pedido o sale de otra categoría; o si «Pagar» no enlaza con el pedido.

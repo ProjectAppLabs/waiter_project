@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element -- Original illustrations exported from the supplied design. */
 import { useRef, useState } from 'react'
 import Link from 'next/link'
-import type { Dish, Entry } from '@/lib/types'
+import type { Dish, Entry } from '@diner/lib/types'
 import { SmartDish, DishRating, FoodPhoto, Icon, money, Title, useSmartRoute } from './SmartMenu'
 import {Recorrido} from './Recorrido'
 

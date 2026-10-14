@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element -- Wompi supplies a transaction-specific QR image. */
 import {useCallback,useEffect,useRef,useState} from 'react'
 import type {ReactNode} from 'react'
-import {tokenizeCard,type PaymentContext,type OnlinePayment,type OnlineMethod} from '@/lib/services/payments'
+import {tokenizeCard,type PaymentContext,type OnlinePayment,type OnlineMethod} from '@diner/lib/services/payments'
 import {money} from './SmartMenu'
 import './smart-tokens.css'
 import './smart-payments.css'

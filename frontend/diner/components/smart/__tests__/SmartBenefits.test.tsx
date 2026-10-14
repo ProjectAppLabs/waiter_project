@@ -1,9 +1,9 @@
 import {fireEvent,render,screen,waitFor} from '@testing-library/react'
 import {ShareLocation,CouponField} from '../SmartBenefits'
-import {applyCoupon} from '@/lib/services/api'
-import {useDinerStore} from '@/lib/stores/dinerStore'
-jest.mock('@/lib/services/api',()=>({applyCoupon:jest.fn(),getRewards:jest.fn()}))
-jest.mock('@/lib/stores/dinerStore',()=>({useDinerStore:Object.assign(jest.fn(),{setState:jest.fn()})}))
+import {applyCoupon} from '@diner/lib/services/api'
+import {useDinerStore} from '@diner/lib/stores/dinerStore'
+jest.mock('@diner/lib/services/api',()=>({applyCoupon:jest.fn(),getRewards:jest.fn()}))
+jest.mock('@diner/lib/stores/dinerStore',()=>({useDinerStore:Object.assign(jest.fn(),{setState:jest.fn()})}))
 jest.mock('../SmartHome',()=>({SmartHeader:()=>null}))
 jest.mock('../SmartMenu',()=>({Icon:()=>null,money:(n:number)=>String(n),useSmartRoute:()=>({href:(s:string)=>'/'+s})}))
 const location={direccion:'Calle 10',latitud:6,longitud:-75}

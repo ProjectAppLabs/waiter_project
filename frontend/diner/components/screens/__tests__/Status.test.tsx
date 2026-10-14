@@ -1,9 +1,9 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 
-import { Status } from '@/components/screens/Status'
-import messages from '@/lib/i18n/messages/es.json'
-import type { Entry, OrderStatus } from '@/lib/types'
+import { Status } from '@diner/components/screens/Status'
+import messages from '@diner/lib/i18n/messages/es.json'
+import type { Entry, OrderStatus } from '@diner/lib/types'
 
 const mockPush = jest.fn()
 const mockRefreshOrder = jest.fn().mockResolvedValue(undefined)
@@ -11,7 +11,7 @@ const mockCall = jest.fn().mockResolvedValue(true)
 let mockOrder: OrderStatus | null = null
 let mockError: string | null = null
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
-jest.mock('@/lib/stores/dinerStore', () => ({ useDinerStore: () => ({ order: mockOrder, error: mockError, busy: false, refreshOrder: mockRefreshOrder, call: mockCall }) }))
+jest.mock('@diner/lib/stores/dinerStore', () => ({ useDinerStore: () => ({ order: mockOrder, error: mockError, busy: false, refreshOrder: mockRefreshOrder, call: mockCall }) }))
 
 const brand = { nombre: 'La Provincia', lema: '', logo: null, saludo: '', mesero: 'Alex', bienvenida: '', color: '#7A2E2A', colorTexto: '#FFFFFF', colorSuave: '#F6EBEA', fuente: 'Instrument Serif', radio: 14 }
 const entry: Entry = { contexto: { restaurante: { slug: 'la-provincia', nombre: 'La Provincia' }, sede: { slug: 'centro', nombre: 'Centro' }, mesa: { numero: 14, token: '8H2KQ7' }, marca: brand }, carta: { restaurante: 'la-provincia', categorias: [] } }

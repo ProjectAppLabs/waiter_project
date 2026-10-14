@@ -2,13 +2,13 @@
 /* eslint-disable @next/next/no-img-element -- Original Exporty assets. */
 import {useEffect,useRef,useState} from 'react'
 import Link from 'next/link'
-import type {DinerRewards,OrderStatus,VenueLocation} from '@/lib/types'
-import {applyCoupon,getRewards} from '@/lib/services/api'
-import {useDinerStore} from '@/lib/stores/dinerStore'
+import type {DinerRewards,OrderStatus,VenueLocation} from '@diner/lib/types'
+import {applyCoupon,getRewards} from '@diner/lib/services/api'
+import {useDinerStore} from '@diner/lib/stores/dinerStore'
 import {SmartHeader} from './SmartHome'
 import {Icon,money,useSmartRoute} from './SmartMenu'
-import {Plantilla} from '@/components/plantillas/Renderizador'
-import {usePlantilla} from '@/components/plantillas/usePlantilla'
+import {Plantilla} from '@diner/components/plantillas/Renderizador'
+import {usePlantilla} from '@diner/components/plantillas/usePlantilla'
 import {Recorrido} from './Recorrido'
 
 export function ShareLocation({venue,onLocated,onManual}:{venue:VenueLocation|null;onLocated:(distance:number|null)=>void;onManual:()=>void}) {

@@ -1,10 +1,10 @@
 import {fireEvent,render,screen,waitFor,within} from '@testing-library/react'
 import {SmartReservationPay} from '../SmartReservationPay'
-import {createReservationPayment,reservationPayContext} from '@/lib/services/payments'
-import {parseRoute,pathFor} from '@/lib/domain/route'
-import type {Entry} from '@/lib/types'
+import {createReservationPayment,reservationPayContext} from '@diner/lib/services/payments'
+import {parseRoute,pathFor} from '@diner/lib/domain/route'
+import type {Entry} from '@diner/lib/types'
 
-jest.mock('@/lib/services/payments',()=>({reservationPayContext:jest.fn(),createReservationPayment:jest.fn(),readReservationPayment:jest.fn(),finishReservationPaymentTest:jest.fn(),tokenizeCard:jest.fn()}))
+jest.mock('@diner/lib/services/payments',()=>({reservationPayContext:jest.fn(),createReservationPayment:jest.fn(),readReservationPayment:jest.fn(),finishReservationPaymentTest:jest.fn(),tokenizeCard:jest.fn()}))
 jest.mock('../SmartMenu',()=>({Icon:()=>null,money:(n:number)=>`$${n}`,useSmartRoute:()=>({href:(s:string)=>`/demo/salon/${s}`,go:jest.fn()})}))
 const TOKEN='UFLe_VaK1Qx627Ebdh2IMtiA9lIBurnn'
 const entry={contexto:{restaurante:{slug:'demo',nombre:'Demo'},sede:{slug:'salon',nombre:'Poblado'},mesa:null,marca:{nombre:'Burger House',logo:null}},carta:{restaurante:'Burger House',categorias:[]}} as unknown as Entry

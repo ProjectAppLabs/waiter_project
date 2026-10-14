@@ -1,9 +1,9 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 
-import { E3Menu } from '@/components/templates/families/E/E3Menu'
-import { cartOf, entryOf, grifos, line, menuProps, wrap } from '@/components/templates/families/E/__tests__/fixtures'
+import { E3Menu } from '@diner/components/templates/families/E/E3Menu'
+import { cartOf, entryOf, grifos, line, menuProps, wrap } from '@diner/components/templates/families/E/__tests__/fixtures'
 
-jest.mock('@/lib/stores/dinerStore', () => ({ useDinerStore: () => ({ account: null }) }))
+jest.mock('@diner/lib/stores/dinerStore', () => ({ useDinerStore: () => ({ account: null }) }))
 
 // Falla si con platos «solo hoy» la cabecera en acento no los cuenta en mono grande, si no van primero con su chip, si el subtítulo
 // inventa una cantidad de promo, o si la nota aparece sin platos de hoy.

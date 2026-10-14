@@ -2,14 +2,14 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 import { MOVE_DELAY, useVenueSwitch, VenueGuide } from '../VenueGuide'
 import { VenueMoveOverlay } from '../VenueMoveOverlay'
-import { areaBounds, carryTo, takeCarried } from '@/lib/domain/venueRedirect'
-import { addLine, quoteDelivery } from '@/lib/services/api'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { Cart, Entry } from '@/lib/types'
+import { areaBounds, carryTo, takeCarried } from '@diner/lib/domain/venueRedirect'
+import { addLine, quoteDelivery } from '@diner/lib/services/api'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { Cart, Entry } from '@diner/lib/types'
 
 const push = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push, replace: push }), useSearchParams: () => null }))
-jest.mock('@/lib/services/api')
+jest.mock('@diner/lib/services/api')
 jest.mock('next/dynamic', () => () => function Mapa() { return null })
 const inicial = useDinerStore.getInitialState()
 const sinMesa = { domicilio: { enabled: true, buscador: true, centro: { lat: 6.2, lng: -75.5 }, radio_km: 5 }, contexto: { mesa: null }, carta: { categorias: [] } } as unknown as Entry
@@ -91,7 +91,7 @@ it('lleva la ubicación una sola vez y calcula la zona del mapa', () => {
 // negó, o si una ubicación que atiende otra sede no lleva al cliente allá.
 it('pide la ubicación al escoger domicilio y lo lleva a su sede', async () => {
   const { DeliverySheet } = await import('../DeliverySheet')
-  const api = jest.requireMock('@/lib/services/api')
+  const api = jest.requireMock('@diner/lib/services/api')
   api.getVenueLocation.mockResolvedValue({ direccion: '', latitud: 6.2, longitud: -75.5 })
   api.reverseAddress.mockResolvedValue('')
   api.quoteDelivery.mockResolvedValue({ cobertura: true, sede: { slug: 'duitama', nombre: 'Duitama' }, distancia_km: .5, envio: 3000, minimo: 0, metodos: ['cash'] })

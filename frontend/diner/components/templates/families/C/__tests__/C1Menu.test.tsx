@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, screen } from '@testing-library/react'
 
-import { C1Menu } from '@/components/templates/families/C/C1Menu'
-import { cartOf, entryOf, line, menuProps, wrap } from '@/components/templates/families/C/__tests__/fixtures'
+import { C1Menu } from '@diner/components/templates/families/C/C1Menu'
+import { cartOf, entryOf, line, menuProps, wrap } from '@diner/components/templates/families/C/__tests__/fixtures'
 
 // Falla si el número deja de ser único en la carta (Limonada es el 4, no «el 1» de Bebidas), si el subtítulo inventa texto
 // (descripción → primera línea; favorito → «El más pedido»; nada → nada), si el agotado se puede elegir, o si el precio pierde la fuente mono.

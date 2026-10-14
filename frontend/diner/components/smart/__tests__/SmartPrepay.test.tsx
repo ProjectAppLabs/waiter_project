@@ -1,6 +1,6 @@
 import {fireEvent,render,screen,waitFor,within} from '@testing-library/react'
 import {SmartCart,SmartStatus} from '../SmartOrder'
-import {useDinerStore} from '@/lib/stores/dinerStore'
+import {useDinerStore} from '@diner/lib/stores/dinerStore'
 const push=jest.fn()
 jest.mock('next/navigation',()=>({useRouter:()=>({push})}))
 const initial=useDinerStore.getState()

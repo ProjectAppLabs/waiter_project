@@ -1,5 +1,5 @@
 /** @jest-environment node */
-import { GET } from '@/app/api/mapas/resolver/route'
+import { GET } from '@/app/(waiter)/api/mapas/resolver/route'
 
 const call = (url: string) => GET(new Request(`http://pos/api/mapas/resolver?url=${encodeURIComponent(url)}`))
 const redirect = (location: string) => new Response(null, { status: 302, headers: { location } })

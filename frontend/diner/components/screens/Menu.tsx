@@ -3,12 +3,12 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
-import { GenericMenu } from '@/components/templates/generic/GenericMenu'
-import { MENU_LAYOUTS } from '@/components/templates/registry'
-import { pathFor } from '@/lib/domain/route'
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { Entry } from '@/lib/types'
+import { GenericMenu } from '@diner/components/templates/generic/GenericMenu'
+import { MENU_LAYOUTS } from '@diner/components/templates/registry'
+import { pathFor } from '@diner/lib/domain/route'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { Entry } from '@diner/lib/types'
 
 // Carta: el contenedor guarda la búsqueda y el filtro (son de Waiter) y delega el dibujo al layout de la plantilla (registro por código).
 export function Menu({ entry, rest, venue, token }: { entry: Entry; rest: string; venue: string; token: string | null; id: string | null }) {

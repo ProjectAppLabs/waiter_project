@@ -2,9 +2,9 @@
 
 import { useTranslations } from 'next-intl'
 
-import type { HistoryProps } from '@/components/templates/types'
-import { formatCop } from '@/lib/domain/cart'
-import type { AccountOrder } from '@/lib/types'
+import type { HistoryProps } from '@diner/components/templates/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import type { AccountOrder } from '@diner/lib/types'
 
 const dateLabel = (iso: string) => new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'short', timeZone: 'America/Bogota' }).format(new Date(iso)).replace(' de ', ' ').replace('.', '')
 

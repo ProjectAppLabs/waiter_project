@@ -1,12 +1,12 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
-import { CART_LAYOUTS } from '@/components/templates/registry'
-import { GenericCart } from '@/components/templates/generic/GenericCart'
-import { AccountHome } from '@/components/templates/generic/AccountHome'
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import messages from '@/lib/i18n/messages/es.json'
-import type { TemplateFamily } from '@/lib/types'
+import { CART_LAYOUTS } from '@diner/components/templates/registry'
+import { GenericCart } from '@diner/components/templates/generic/GenericCart'
+import { AccountHome } from '@diner/components/templates/generic/AccountHome'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import messages from '@diner/lib/i18n/messages/es.json'
+import type { TemplateFamily } from '@diner/lib/types'
 
 const account = { id: 'a', nombre: 'Ana', correo: 'ana@example.com', verificada: true }
 const wrap = (ui: React.ReactNode) => render(<NextIntlClientProvider locale="es" messages={messages}>{ui}</NextIntlClientProvider>)

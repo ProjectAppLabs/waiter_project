@@ -3,9 +3,9 @@
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
-import type { PayLayoutProps } from '@/components/templates/types'
-import { formatCop } from '@/lib/domain/cart'
-import type { OrderState, PayMethod } from '@/lib/types'
+import type { PayLayoutProps } from '@diner/components/templates/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import type { OrderState, PayMethod } from '@diner/lib/types'
 
 type Variant = 'B1' | 'B2' | 'B3' | 'B4' | 'B5'
 type Split = 'mine' | 'parts' | 'all'

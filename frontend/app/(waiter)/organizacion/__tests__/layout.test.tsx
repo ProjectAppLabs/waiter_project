@@ -1,7 +1,7 @@
 import { render as rtlRender, screen, waitFor, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 
-import OrganizationLayout from '@/app/organizacion/layout'
+import OrganizationLayout from '@/app/(waiter)/organizacion/layout'
 import { messages } from '@/lib/i18n/messages'
 import { useAuthStore } from '@/lib/stores/authStore'
 

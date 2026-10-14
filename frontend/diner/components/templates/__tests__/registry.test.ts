@@ -1,13 +1,13 @@
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
-import { AccountHome } from '@/components/templates/generic/AccountHome'
-import { EmptyHistory } from '@/components/templates/generic/EmptyHistory'
-import { GenericCart } from '@/components/templates/generic/GenericCart'
-import { GenericCode } from '@/components/templates/generic/GenericCode'
-import { GenericHistory } from '@/components/templates/generic/GenericHistory'
-import { GenericMenu } from '@/components/templates/generic/GenericMenu'
-import { GenericPay } from '@/components/templates/generic/GenericPay'
-import { GenericSignup } from '@/components/templates/generic/GenericSignup'
-import { CART_LAYOUTS, CODE_PATTERNS, HISTORY_PATTERNS, MENU_LAYOUTS, PAY_LAYOUTS, SIGNUP_PATTERNS, cartLayout, codePattern, historyPattern, menuLayout, ownsChrome, payLayout, signupPattern } from '@/components/templates/registry'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
+import { AccountHome } from '@diner/components/templates/generic/AccountHome'
+import { EmptyHistory } from '@diner/components/templates/generic/EmptyHistory'
+import { GenericCart } from '@diner/components/templates/generic/GenericCart'
+import { GenericCode } from '@diner/components/templates/generic/GenericCode'
+import { GenericHistory } from '@diner/components/templates/generic/GenericHistory'
+import { GenericMenu } from '@diner/components/templates/generic/GenericMenu'
+import { GenericPay } from '@diner/components/templates/generic/GenericPay'
+import { GenericSignup } from '@diner/components/templates/generic/GenericSignup'
+import { CART_LAYOUTS, CODE_PATTERNS, HISTORY_PATTERNS, MENU_LAYOUTS, PAY_LAYOUTS, SIGNUP_PATTERNS, cartLayout, codePattern, historyPattern, menuLayout, ownsChrome, payLayout, signupPattern } from '@diner/components/templates/registry'
 
 // Falla si una clave que aún no existe (los 30 llegan en otra oleada) rompe el motor en vez de caer al genérico, o si una registrada no se respeta.
 it('falls back to the generic layout for every missing key and honours registered ones', () => {

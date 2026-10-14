@@ -1,4 +1,4 @@
-import type { ComponentTemplate, MenuTheme, TemplateNode } from '@/lib/types'
+import type { ComponentTemplate, MenuTheme, TemplateNode } from '@diner/lib/types'
 
 // Plan K2: qué plantilla de componente aplica y cómo se leen sus datos. La validación de fondo la hizo experience
 // (diseno/plantillas.py); aquí solo se comprueba lo que protege al comensal: versión del contrato, forma del árbol,

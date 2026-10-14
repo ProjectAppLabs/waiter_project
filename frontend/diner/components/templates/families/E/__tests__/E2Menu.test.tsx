@@ -1,9 +1,9 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 
-import { E2Menu } from '@/components/templates/families/E/E2Menu'
-import { cartOf, entryOf, grifos, line, menuProps, wrap } from '@/components/templates/families/E/__tests__/fixtures'
+import { E2Menu } from '@diner/components/templates/families/E/E2Menu'
+import { cartOf, entryOf, grifos, line, menuProps, wrap } from '@diner/components/templates/families/E/__tests__/fixtures'
 
-jest.mock('@/lib/stores/dinerStore', () => ({ useDinerStore: () => ({ account: null }) }))
+jest.mock('@diner/lib/stores/dinerStore', () => ({ useDinerStore: () => ({ account: null }) }))
 
 // Falla si la cabecera no lleva la marca en la voz de la plantilla con su lema (es la cabecera del marco: la página no pinta otra),
 // si las fichas pierden ingredientes o chips de perfil, si una ficha sin etiquetas deja una fila de chips vacía bajo el nombre, o si

@@ -2,13 +2,13 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { NextIntlClientProvider } from 'next-intl'
 
-import { Dish } from '@/components/screens/Dish'
-import messages from '@/lib/i18n/messages/es.json'
-import type { Dish as MenuItem, Entry } from '@/lib/types'
+import { Dish } from '@diner/components/screens/Dish'
+import messages from '@diner/lib/i18n/messages/es.json'
+import type { Dish as MenuItem, Entry } from '@diner/lib/types'
 
 const mockAdd = jest.fn()
 const mockState = { error: null as string | null }
-jest.mock('@/lib/stores/dinerStore', () => {
+jest.mock('@diner/lib/stores/dinerStore', () => {
   const useDinerStore = () => ({ add: mockAdd })
   useDinerStore.getState = () => mockState
   return { useDinerStore }

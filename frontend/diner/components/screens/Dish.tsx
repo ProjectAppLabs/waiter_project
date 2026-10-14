@@ -4,10 +4,10 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
-import { formatCop } from '@/lib/domain/cart'
-import { pathFor } from '@/lib/domain/route'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { Entry } from '@/lib/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import { pathFor } from '@diner/lib/domain/route'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { Entry } from '@diner/lib/types'
 
 // Plato (sistema de diseño §06): foto 4:3, nombre en la serif del restaurante, nota, cantidad y una sola acción en el color del restaurante.
 export function Dish({ entry, rest, venue, token, id }: { entry: Entry; rest: string; venue: string; token: string | null; id: string | null }) {

@@ -3,11 +3,11 @@
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
-import { useCarta, useCountLabel } from '@/components/templates/families/F/parts'
-import type { PayLayoutProps } from '@/components/templates/types'
-import { formatCop } from '@/lib/domain/cart'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { OrderState, PayMethod } from '@/lib/types'
+import { useCarta, useCountLabel } from '@diner/components/templates/families/F/parts'
+import type { PayLayoutProps } from '@diner/components/templates/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { OrderState, PayMethod } from '@diner/lib/types'
 
 // Pago de la familia F (docs/diseno/plantillas/F*/pago.html), una entrada por familia ramificada por template.codigo:
 //  · F1 y F2 (base): cabecera «Confirmar y pagar» + «44 piezas · mesa 14»; caja resumen Productos / Descuento 5% / Total; campos

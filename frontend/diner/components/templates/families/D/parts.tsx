@@ -4,11 +4,11 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useEffect, useMemo } from 'react'
 
-import { tabId } from '@/components/templates/generic/menuParts'
-import { formatCop, itemCount } from '@/lib/domain/cart'
-import { getAccount } from '@/lib/services/api'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { Cart, Category, Dish, DishAttributes, PhotoCrop } from '@/lib/types'
+import { tabId } from '@diner/components/templates/generic/menuParts'
+import { formatCop, itemCount } from '@diner/lib/domain/cart'
+import { getAccount } from '@diner/lib/services/api'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { Cart, Category, Dish, DishAttributes, PhotoCrop } from '@diner/lib/types'
 
 // Piezas compartidas de la familia D (Café y panadería). Solo tokens --t-* y los fijos de Waiter (verde/rojo/ámbar, gris #F2EEE8
 // del placeholder «Foto del plato»); nada de hex del marco en duro.

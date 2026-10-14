@@ -4,11 +4,11 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { Fragment, useMemo } from 'react'
 
-import { AddButton, MenuEmpty, ReferenceNote, SearchField, SoldOutBadge } from '@/components/templates/families/D/parts'
-import { CategoryTabs, tabId, useMenuDishes } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { formatCop, itemCount } from '@/lib/domain/cart'
-import type { Dish } from '@/lib/types'
+import { AddButton, MenuEmpty, ReferenceNote, SearchField, SoldOutBadge } from '@diner/components/templates/families/D/parts'
+import { CategoryTabs, tabId, useMenuDishes } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { formatCop, itemCount } from '@diner/lib/domain/cart'
+import type { Dish } from '@diner/lib/types'
 
 // D1 · Pizarra de café (docs/diseno/plantillas/D1). Pizarra oscura: cabecera del marco con la marca en serif (o su logo) y, a la
 // derecha, la mesa en versalitas (la ventana horaria de la sede no existe en los datos: se usa la mesa; sin mesa, «Domicilio»);

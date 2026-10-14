@@ -2,11 +2,11 @@
 
 import { useTranslations } from 'next-intl'
 
-import { AddButton, DarkOrderBar, DishPhoto, MenuEmpty, ReferenceNote, SearchField, SoldOutBadge } from '@/components/templates/families/D/parts'
-import { CategoryTabs, tabId, useMenuDishes } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { formatCop } from '@/lib/domain/cart'
-import type { Dish } from '@/lib/types'
+import { AddButton, DarkOrderBar, DishPhoto, MenuEmpty, ReferenceNote, SearchField, SoldOutBadge } from '@diner/components/templates/families/D/parts'
+import { CategoryTabs, tabId, useMenuDishes } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import type { Dish } from '@diner/lib/types'
 
 // D3 · Vitrina de panadería (docs/diseno/plantillas/D3). Fondo crema; cabecera «Salió del horno» con, a la derecha en mono acento,
 // el conteo de piezas visibles (la hora del último horneado de la sede no existe en los datos); rejilla de 2 columnas de tarjetas

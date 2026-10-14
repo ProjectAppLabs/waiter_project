@@ -1,7 +1,7 @@
 import axios from 'axios'
-import { isPreviewReadOnly, PREVIEW_MESSAGE } from '@/lib/domain/preview'
+import { isPreviewReadOnly, PREVIEW_MESSAGE } from '@diner/lib/domain/preview'
 
-import type { Account, AccountSummary, Bill, Cart, DeliveryMethod, DeliveryQuote, SavedAddress, DesignContract, Entry, OrderStatus, PayMethod, PayScope, PayResult, RegisterForm, Session, Template, TemplateCatalog } from '@/lib/types'
+import type { Account, AccountSummary, Bill, Cart, DeliveryMethod, DeliveryQuote, SavedAddress, DesignContract, Entry, OrderStatus, PayMethod, PayScope, PayResult, RegisterForm, Session, Template, TemplateCatalog } from '@diner/lib/types'
 
 // Único punto de I/O del comensal: la API pública del bloque 3, por el proxy same-origin (/api → experience).
 export const http = axios.create({ baseURL: '', withCredentials: true, timeout: 15_000 })
@@ -33,7 +33,7 @@ export async function getEntry(rest: string, venue: string, token: string | null
   return (await http.get<Entry>(base(rest, venue, token))).data
 }
 // Plan O: los restaurantes de una organización, para su portada.
-export async function getOrganization(rest: string): Promise<import('@/lib/types').OrganizationEntry> {
+export async function getOrganization(rest: string): Promise<import('@diner/lib/types').OrganizationEntry> {
   return (await http.get(`/api/v1/${encodeURIComponent(rest)}/`)).data
 }
 export async function getThemeDraft(rest: string, venue: string, token: string): Promise<{plantilla: Template; caduca: string}> {
@@ -112,10 +112,10 @@ export async function addBundle(sessionId: string, lineas: {producto_id:number;c
  return (await http.post<Cart>(`/api/v1/sesiones/${sessionId}/platos/`,{lineas})).data
 }
 
-export async function getVenueLocation(rest:string,venue:string):Promise<import('@/lib/types').VenueLocation> {
+export async function getVenueLocation(rest:string,venue:string):Promise<import('@diner/lib/types').VenueLocation> {
  return (await http.get(`/api/v1/${rest}/${venue}/ubicacion/`)).data
 }
-export async function getRewards(rest:string,venue:string):Promise<import('@/lib/types').DinerRewards> {
+export async function getRewards(rest:string,venue:string):Promise<import('@diner/lib/types').DinerRewards> {
  return (await http.get(`/api/v1/${rest}/${venue}/recompensas/`)).data
 }
 export async function applyCoupon(sessionId:string,code:string|null):Promise<Cart> {

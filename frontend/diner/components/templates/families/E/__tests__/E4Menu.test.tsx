@@ -1,12 +1,12 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 
-import { E4Menu } from '@/components/templates/families/E/E4Menu'
-import { cartOf, entryOf, line, menuProps, templateOf, wrap } from '@/components/templates/families/E/__tests__/fixtures'
+import { E4Menu } from '@diner/components/templates/families/E/E4Menu'
+import { cartOf, entryOf, line, menuProps, templateOf, wrap } from '@diner/components/templates/families/E/__tests__/fixtures'
 
-import type { Bill } from '@/lib/types'
+import type { Bill } from '@diner/lib/types'
 
 const mockStore = { account: null as { id: string; nombre: string; correo: string; verificada: boolean } | null, bill: null as Bill | null }
-jest.mock('@/lib/stores/dinerStore', () => ({ useDinerStore: () => mockStore }))
+jest.mock('@diner/lib/stores/dinerStore', () => ({ useDinerStore: () => mockStore }))
 // Cuenta del salón como la usa el pago: cuatro comensales en la mesa, 30.500 por parte.
 const bill: Bill = { ok: true, total: 122000, mio: 40000, porComensal: [], partes: 4, porParte: 30500 }
 

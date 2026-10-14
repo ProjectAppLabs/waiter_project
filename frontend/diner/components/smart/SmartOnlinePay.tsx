@@ -1,8 +1,8 @@
 'use client'
-import { dinerHas } from '@/lib/domain/modules'
+import { dinerHas } from '@diner/lib/domain/modules'
 import {useMemo} from 'react'
-import {useDinerStore} from '@/lib/stores/dinerStore'
-import {finishPaymentTest,createPayment,paymentContext,readPayment} from '@/lib/services/payments'
+import {useDinerStore} from '@diner/lib/stores/dinerStore'
+import {finishPaymentTest,createPayment,paymentContext,readPayment} from '@diner/lib/services/payments'
 import {OnlinePayPanel,type PayAdapter,type PayTexts} from './OnlinePayPanel'
 import {Title,useSmartRoute} from './SmartMenu'
 

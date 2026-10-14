@@ -4,11 +4,11 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
-import { primaryCta, secondaryCta, skinOf } from '@/components/templates/families/A/shared'
-import { useEntry } from '@/components/templates/families/A/storeExtras'
-import type { CartLayoutProps } from '@/components/templates/types'
-import { formatCop, itemCount } from '@/lib/domain/cart'
-import type { CartLine, Dish, Entry } from '@/lib/types'
+import { primaryCta, secondaryCta, skinOf } from '@diner/components/templates/families/A/shared'
+import { useEntry } from '@diner/components/templates/families/A/storeExtras'
+import type { CartLayoutProps } from '@diner/components/templates/types'
+import { formatCop, itemCount } from '@diner/lib/domain/cart'
+import type { CartLine, Dish, Entry } from '@diner/lib/types'
 
 // Carrito de la familia A · Alta cocina (docs/diseno/plantillas/A*/carrito.html). A1 define la base (A2 y A5 la reutilizan con su piel):
 // cabecera centrada «Tu pedido / N platos», líneas con nombre en serif, guía de puntos y precio en mono, nota debajo; totales sobre la

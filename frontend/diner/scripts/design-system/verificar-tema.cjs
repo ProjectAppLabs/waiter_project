@@ -4,8 +4,8 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs/promises')
 const path = require('node:path')
 const { chromium } = require('playwright-core')
-const output = path.resolve(process.env.THEME_EVIDENCE || '../test-reports/j2')
-const base = process.env.DINER_URL || 'http://localhost:3001'
+const output = path.resolve(process.env.THEME_EVIDENCE || '../../test-reports/j2')
+const base = process.env.DINER_URL || 'http://menu.localhost:3001'
 
 async function main() {
   const browser = process.env.CDP_URL

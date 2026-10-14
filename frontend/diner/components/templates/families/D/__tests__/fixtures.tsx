@@ -1,10 +1,10 @@
 import { render } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 
-import type { CartLayoutProps, MenuLayoutProps, PayLayoutProps } from '@/components/templates/types'
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
-import messages from '@/lib/i18n/messages/es.json'
-import type { Bill, Cart, CartLine, Category, Dish, Entry, Template } from '@/lib/types'
+import type { CartLayoutProps, MenuLayoutProps, PayLayoutProps } from '@diner/components/templates/types'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
+import messages from '@diner/lib/i18n/messages/es.json'
+import type { Bill, Cart, CartLine, Category, Dish, Entry, Template } from '@diner/lib/types'
 
 // Carta de prueba de la familia D: con y sin foto, agotado, atributos presentes y ausentes, un plato en dos categorías.
 export const latte: Dish = { id: 1, nombre: 'Latte', precio: 9000, agotado: false, categorias: [1], descripcion: 'Espresso doble con leche', foto: '/fotos/1/', atributos: { tamanos: [{ nombre: '8 oz', precio: 8000 }, { nombre: '12 oz', precio: 9000 }, { nombre: '16 oz', precio: 11000 }] } }

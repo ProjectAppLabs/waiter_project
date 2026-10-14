@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
-const reviews=require('../../../docs/diseno/exporty/exporty-review.json');
+const reviews=require('../../../../docs/diseno/exporty/exporty-review.json');
 const evidence=JSON.parse(fs.readFileSync(process.env.EXPORTY_EVIDENCE||'/tmp/exporty-audit/current/evidence.json','utf8'));
 const {chromium}=require('playwright-core');
 (async()=>{const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||'/usr/bin/google-chrome',args:['--no-sandbox']});const page=await browser.newPage({viewport:{width:1280,height:1000}});const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(process.env.AUDIT_URL||'http://192.168.56.10:3002');assert.equal(await page.locator('#screen-select option').count(),99);for(let n=1;n<=99;n++){await page.locator('#screen-select').selectOption(String(n));assert.match(await page.locator('#review h2').innerText(),new RegExp('^'+String(n).padStart(2,'0')+' ·'));const missing=await page.locator('.frame.empty').count();const result=await page.locator('#review .frame img').evaluateAll(async imgs=>Promise.all(imgs.map(async i=>{await i.decode();return i.naturalWidth>0})));assert.equal(result.length,missing?1:2);assert.ok(result.every(Boolean))}

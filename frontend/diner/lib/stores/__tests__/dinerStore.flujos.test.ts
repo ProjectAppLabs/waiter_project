@@ -1,9 +1,9 @@
 import { useDinerStore } from '../dinerStore'
-import * as api from '@/lib/services/api'
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
-import type { Cart, Entry } from '@/lib/types'
+import * as api from '@diner/lib/services/api'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
+import type { Cart, Entry } from '@diner/lib/types'
 
-jest.mock('@/lib/services/api')
+jest.mock('@diner/lib/services/api')
 const inicial = useDinerStore.getInitialState()
 const claves = { rest: 'casa', venue: 'centro', token: 'MESA' }
 const cuenta = { id: 'ana', nombre: 'Ana', correo: 'ana@example.invalid', verificada: true }

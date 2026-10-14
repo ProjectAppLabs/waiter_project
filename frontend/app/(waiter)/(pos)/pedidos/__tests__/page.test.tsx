@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 
-import PedidosPage from '@/app/(pos)/pedidos/page'
+import PedidosPage from '@/app/(waiter)/(pos)/pedidos/page'
 import type { OrderLocation } from '@/lib/domain/orderLocation'
 import type { KitOrder, KitStatus } from '@/lib/domain/orderState'
 import { messages } from '@/lib/i18n/messages'

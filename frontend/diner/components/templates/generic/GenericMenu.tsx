@@ -2,8 +2,8 @@
 
 import { useTranslations } from 'next-intl'
 
-import { CategoryTabs, TemplateDishCard, tabId, useMenuDishes } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
+import { CategoryTabs, TemplateDishCard, tabId, useMenuDishes } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
 
 // Menú genérico (referencia B1 · Rejilla con foto): título en la voz de la plantilla, buscador, píldoras de categoría y rejilla de 2 columnas.
 // La barra oscura de pedido la pinta la página (OrderBar); aquí solo se deja sitio abajo.

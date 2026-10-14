@@ -3,7 +3,7 @@
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 
-import { LocateDelivery } from '@/components/smart/LocateDelivery'
+import { LocateDelivery } from '@diner/components/smart/LocateDelivery'
 
 // Plan D: el enlace «Ubica la entrega» que el mesero manda por WhatsApp, para ubicar una casa en el mapa (por ejemplo,
 // si el pedido es para otra persona). Al confirmar, la conversación sigue en WhatsApp.

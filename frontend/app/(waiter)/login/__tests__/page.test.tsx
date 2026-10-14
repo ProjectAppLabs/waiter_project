@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { NextIntlClientProvider } from 'next-intl'
 
-import LoginPage from '@/app/login/page'
+import LoginPage from '@/app/(waiter)/login/page'
 import { here, leaveTo } from '@/lib/domain/tenant'
 import { messages } from '@/lib/i18n/messages'
 import { universalActivate, universalLogin, universalRequestCode, universalVerify2fa, type AccessDestination } from '@/lib/services/core/access'

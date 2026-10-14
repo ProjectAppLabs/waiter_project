@@ -1,4 +1,4 @@
-import type { Cart, CartLine } from '@/lib/types'
+import type { Cart, CartLine } from '@diner/lib/types'
 
 export function mine(cart: Cart): CartLine[] {
   return cart.lineas.filter((l) => l.mio)

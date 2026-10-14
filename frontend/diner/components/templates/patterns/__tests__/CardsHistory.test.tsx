@@ -1,11 +1,11 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 
-import { CardsHistory, orderSummary } from '@/components/templates/patterns/CardsHistory'
-import type { HistoryProps } from '@/components/templates/types'
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
-import messages from '@/lib/i18n/messages/es.json'
-import type { AccountOrder } from '@/lib/types'
+import { CardsHistory, orderSummary } from '@diner/components/templates/patterns/CardsHistory'
+import type { HistoryProps } from '@diner/components/templates/types'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
+import messages from '@diner/lib/i18n/messages/es.json'
+import type { AccountOrder } from '@diner/lib/types'
 
 const account = { id: 'a1', nombre: 'Camila Restrepo', correo: 'camila@correo.com', verificada: true }
 const recent: AccountOrder = { id: 'o2', fecha: '2025-11-16T02:41:00Z', local: 'El Fogón de la 85', mesa: 14, items: 3, total: 97812, estado: 'pagado', descuento: 5, lineas: [{ producto_id: 3, nombre: 'Hamburguesa Angus', cantidad: 1, precio: 43911 }, { producto_id: 5, nombre: 'Limonada de Coco', cantidad: 2, precio: 11781 }, { producto_id: 15, nombre: 'Brownie', cantidad: 1, precio: 17731 }] }

@@ -1,6 +1,6 @@
 // Contrato 4 · Props de los layouts del motor. Los datos (carta, carrito, cuenta, pago) son los mismos para las 30 plantillas;
 // cada layout decide dónde y cómo los pinta. Los nombres de estas props son vinculantes (docs/planes/2026-09-05-plan-H-plantillas.md).
-import type { Account, AccountOrder, Bill, Cart, Discount, Dish, Entry, OrderStatus, PayMethod, PayScope, PayResult, PayState, RegisterForm, Template } from '@/lib/types'
+import type { Account, AccountOrder, Bill, Cart, Discount, Dish, Entry, OrderStatus, PayMethod, PayScope, PayResult, PayState, RegisterForm, Template } from '@diner/lib/types'
 
 // Menú: la búsqueda y el filtro son de Waiter (el contenedor guarda el estado); el layout elige dónde los pinta.
 export interface MenuLayoutProps {

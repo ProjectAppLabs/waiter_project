@@ -2,10 +2,10 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { NextIntlClientProvider } from 'next-intl'
 
-import { GenericCode } from '@/components/templates/generic/GenericCode'
-import type { CodeProps } from '@/components/templates/types'
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
-import messages from '@/lib/i18n/messages/es.json'
+import { GenericCode } from '@diner/components/templates/generic/GenericCode'
+import type { CodeProps } from '@diner/components/templates/types'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
+import messages from '@diner/lib/i18n/messages/es.json'
 
 const props = (over: Partial<CodeProps> = {}): CodeProps => ({ template: DEFAULT_TEMPLATE, email: 'camila@correo.com', onVerify: jest.fn(), onResend: jest.fn(), onOtherChannel: jest.fn(), onBack: jest.fn(), busy: false, error: null, ...over })
 const wrap = (p: CodeProps) => render(<NextIntlClientProvider locale="es" messages={messages}><GenericCode {...p} /></NextIntlClientProvider>)

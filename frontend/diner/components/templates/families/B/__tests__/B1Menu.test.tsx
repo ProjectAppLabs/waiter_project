@@ -1,7 +1,7 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 
-import { B1Menu } from '@/components/templates/families/B/B1Menu'
-import { angus, cartOf, clasica, entryOf, hamburguesas, menuProps, postres, tacos, wrap } from '@/components/templates/families/B/__tests__/fixtures'
+import { B1Menu } from '@diner/components/templates/families/B/B1Menu'
+import { angus, cartOf, clasica, entryOf, hamburguesas, menuProps, postres, tacos, wrap } from '@diner/components/templates/families/B/__tests__/fixtures'
 
 // Falla si la rejilla no pinta la carta real: fotos donde las hay, placeholder «Foto del plato» donde no, agotado con insignia y sin ＋,
 // y los atributos solo cuando existen (nada inventado para la Clásica).

@@ -1,4 +1,4 @@
-import type { PreviewPayload, Template, TemplateFamily, TemplateSpec, TemplateTokens } from '@/lib/types'
+import type { PreviewPayload, Template, TemplateFamily, TemplateSpec, TemplateTokens } from '@diner/lib/types'
 import { designSystemVars, themeFonts } from './designSystem'
 import { contrastRatio, readableText } from './contrast'
 
@@ -187,7 +187,7 @@ export function previewOverride(searchParams: URLSearchParams | string | null | 
   return applyPreview(base, payload)
 }
 
-// Fuentes que ya carga app/layout.tsx (las de Waiter y las seis de marca): no se vuelven a pedir.
+// Fuentes que ya carga app/(diner)/layout.tsx (las de Waiter y las seis de marca): no se vuelven a pedir.
 export const PRELOADED_FONTS = ['Ubuntu', 'IBM Plex Mono', 'Instrument Serif', 'Playfair Display', 'Fraunces', 'DM Serif Display', 'Lora', 'Cormorant Garamond']
 const slug = (font: string) => font.toLowerCase().replace(/[^a-z0-9]+/g, '-')
 export const googleFontHref = (font: string) => `https://fonts.googleapis.com/css2?family=${encodeURIComponent(font).replace(/%20/g, '+')}:wght@400;500;600;700&display=swap`

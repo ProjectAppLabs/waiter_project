@@ -3,11 +3,11 @@
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 
-import { D1Cart } from '@/components/templates/families/D/D1Cart'
-import { D3Cart } from '@/components/templates/families/D/D3Cart'
-import { CartActions, CartStates, LineMeta, Others, Stepper, discountView, useCartAccount, useOpenLines } from '@/components/templates/families/D/cartParts'
-import type { CartLayoutProps } from '@/components/templates/types'
-import { formatCop, itemCount, mine, others } from '@/lib/domain/cart'
+import { D1Cart } from '@diner/components/templates/families/D/D1Cart'
+import { D3Cart } from '@diner/components/templates/families/D/D3Cart'
+import { CartActions, CartStates, LineMeta, Others, Stepper, discountView, useCartAccount, useOpenLines } from '@diner/components/templates/families/D/cartParts'
+import type { CartLayoutProps } from '@diner/components/templates/types'
+import { formatCop, itemCount, mine, others } from '@diner/lib/domain/cart'
 
 // Cómo dibuja el 5 % cada plantilla de la familia (spec.pantallas.carrito.descuento5): chip junto al total (D2), «ya usado» con
 // «—» (D4), banner bajo la cabecera (D5); el resto, línea verde.

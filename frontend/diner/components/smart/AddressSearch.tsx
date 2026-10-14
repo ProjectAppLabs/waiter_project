@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react'
 
-import { searchAddress } from '@/lib/services/api'
+import { searchAddress } from '@diner/lib/services/api'
 import { NO_COVERAGE } from './zone'
 
 export interface FoundAddress { texto: string; lat: number; lng: number }

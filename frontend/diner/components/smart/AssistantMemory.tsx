@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react'
 
-import { dinerHas } from '@/lib/domain/modules'
-import { forgetAssistantMemory, getAssistantMemory, type AssistantMemory as Memory } from '@/lib/services/api'
-import { useDinerStore } from '@/lib/stores/dinerStore'
+import { dinerHas } from '@diner/lib/domain/modules'
+import { forgetAssistantMemory, getAssistantMemory, type AssistantMemory as Memory } from '@diner/lib/services/api'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
 
 // Plan AS: el asistente recuerda gustos, favoritos y últimos pedidos para recomendar mejor. El comensal ve qué recuerda
 // en este restaurante y lo puede borrar todo; las alergias salen de su cuenta y se cambian en «Información de mi cuenta».

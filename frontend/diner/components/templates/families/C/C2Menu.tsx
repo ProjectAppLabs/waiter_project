@@ -3,10 +3,10 @@
 import { useTranslations } from 'next-intl'
 import { useRef, useState } from 'react'
 
-import { DishPhoto, EmptyList, FOOT_CLASS, SearchField, extrasOf, price } from '@/components/templates/families/C/parts'
-import { CategoryTabs, tabId, useMenuDishes } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
-import type { Dish } from '@/lib/types'
+import { DishPhoto, EmptyList, FOOT_CLASS, SearchField, extrasOf, price } from '@diner/components/templates/families/C/parts'
+import { CategoryTabs, tabId, useMenuDishes } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import type { Dish } from '@diner/lib/types'
 
 // C2 · Foto a sangre (docs/diseno/plantillas/C2). Un producto por pantalla: foto vertical a sangre (recorte 3x4 por object-cover)
 // con chip rojo «Solo hoy» (atributos.soloHoy), nombre 24/700 y precio mono 20 en la misma línea, descripción, selector de tamaño

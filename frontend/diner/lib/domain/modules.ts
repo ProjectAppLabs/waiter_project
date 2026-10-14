@@ -1,4 +1,4 @@
-import type { Entry } from '@/lib/types'
+import type { Entry } from '@diner/lib/types'
 
 // Plan W: lo que el restaurante tiene activo en el menú. El servidor manda solo los módulos que afectan al comensal;
 // sin la lista (versión anterior del servidor), todo sigue como antes.

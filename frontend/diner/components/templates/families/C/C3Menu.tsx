@@ -3,10 +3,10 @@
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
-import { EmptyList, FOOT_CLASS, SearchField, price } from '@/components/templates/families/C/parts'
-import { fold } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
-import type { Dish } from '@/lib/types'
+import { EmptyList, FOOT_CLASS, SearchField, price } from '@diner/components/templates/families/C/parts'
+import { fold } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import type { Dish } from '@diner/lib/types'
 
 // C3 · Ármalo tú (docs/diseno/plantillas/C3). Constructor por pasos: cada categoría de la carta es un paso, en orden. Cabecera con
 // barra de progreso (un segmento por paso; hechos y actual en acento), «Paso {i} de {n}» y «Elige {categoría}»; opciones como filas

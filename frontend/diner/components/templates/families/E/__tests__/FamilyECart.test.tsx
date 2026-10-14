@@ -1,11 +1,11 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 
-import { FamilyECart } from '@/components/templates/families/E/FamilyECart'
-import { cartOf, line, templateOf, wrap } from '@/components/templates/families/E/__tests__/fixtures'
-import type { CartLayoutProps } from '@/components/templates/types'
+import { FamilyECart } from '@diner/components/templates/families/E/FamilyECart'
+import { cartOf, line, templateOf, wrap } from '@diner/components/templates/families/E/__tests__/fixtures'
+import type { CartLayoutProps } from '@diner/components/templates/types'
 
 const mockStore = { account: null as { id: string; nombre: string; correo: string; verificada: boolean } | null }
-jest.mock('@/lib/stores/dinerStore', () => ({ useDinerStore: () => mockStore }))
+jest.mock('@diner/lib/stores/dinerStore', () => ({ useDinerStore: () => mockStore }))
 
 const hrefs = { home: '/norte/centro/t/Z2XUVG', menu: '/norte/centro/t/Z2XUVG/carta', pay: '/norte/centro/t/Z2XUVG/pago', table: '/norte/centro/t/Z2XUVG/la-cuenta', signup: '/norte/centro/t/Z2XUVG/cuenta/registro' }
 const lines = [line({ id: 1, cantidad: 2, subtotal: 28000, nota: 'bien fría' }), line({ id: 2, comensal: 'c-2', mio: false, producto_id: 4, nombre: 'Humo de páramo', precio: 34000, subtotal: 34000 })]

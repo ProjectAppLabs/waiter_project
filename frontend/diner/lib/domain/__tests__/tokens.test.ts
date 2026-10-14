@@ -3,12 +3,15 @@ import { join } from 'node:path'
 
 import { compile } from 'tailwindcss'
 
-import { DEFAULT_TEMPLATE, templateVars } from '@/lib/domain/template'
+import { DEFAULT_TEMPLATE, templateVars } from '@diner/lib/domain/template'
 
+// El comensal es parte de la app única: sus páginas y su globals.css viven en app/(diner) y sus componentes en diner/.
 const ROOT = join(__dirname, '..', '..', '..')
-const CSS = readFileSync(join(ROOT, 'app', 'globals.css'), 'utf8')
+const APP = join(ROOT, '..')
+const PAGES = join(APP, 'app', '(diner)')
+const CSS = readFileSync(join(PAGES, 'globals.css'), 'utf8')
 const walk = (dir: string): string[] => readdirSync(dir).flatMap((f) => { const p = join(dir, f); return statSync(p).isDirectory() ? walk(p) : p.endsWith('.tsx') ? [p] : [] })
-const sources = () => [...walk(join(ROOT, 'app')), ...walk(join(ROOT, 'components'))]
+const sources = () => [...walk(PAGES), ...walk(join(ROOT, 'components'))]
 
 // Falla si el token del radio del restaurante vuelve a chocar con un sufijo de lado de Tailwind (rounded-r, -l, -t, -b…):
 // la utilidad compilaría border-top-right en vez del radio del restaurante. Un "rounded-t-tarjeta" (token de plantilla) no es un uso desnudo.
@@ -21,9 +24,9 @@ it('names the restaurant radius token so it cannot collide with Tailwind side ut
 
 // Compila globals.css con Tailwind de verdad sobre una lista de candidatos: es la única forma de saber a qué CSS llega cada utilidad.
 async function build(candidates: string[]): Promise<string> {
-  const twDir = join(ROOT, 'node_modules', 'tailwindcss')
+  const twDir = join(APP, 'node_modules', 'tailwindcss')
   const compiler = await compile(CSS, {
-    base: ROOT,
+    base: PAGES,
     loadStylesheet: async (id: string) => { const p = id === 'tailwindcss' ? join(twDir, 'index.css') : join(twDir, id.replace('tailwindcss/', '')); return { path: p, base: twDir, content: readFileSync(p, 'utf8') } },
   })
   return compiler.build(candidates)

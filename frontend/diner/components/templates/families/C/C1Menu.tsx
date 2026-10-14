@@ -4,11 +4,11 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useMemo, useState } from 'react'
 
-import { BrandName, EmptyList, FOOT_CLASS, SearchField, SoldOutBadge, TableChip, money, price } from '@/components/templates/families/C/parts'
-import { CategoryTabs, fold, tabId } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { itemCount } from '@/lib/domain/cart'
-import type { Category, Dish } from '@/lib/types'
+import { BrandName, EmptyList, FOOT_CLASS, SearchField, SoldOutBadge, TableChip, money, price } from '@diner/components/templates/families/C/parts'
+import { CategoryTabs, fold, tabId } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { itemCount } from '@diner/lib/domain/cart'
+import type { Category, Dish } from '@diner/lib/types'
 
 // C1 · Combos numerados (docs/diseno/plantillas/C1). Marco oscuro: cabecera única con el nombre del restaurante (o su logo) en la
 // voz de la plantilla (Bebas Neue 30) y, donde el marco pone el chip de espera (dato no estándar, omitido), el chip de mesa de

@@ -1,4 +1,4 @@
-import WaiterLanding from '@/components/WaiterLanding'
+import WaiterLanding from '@landing/components/WaiterLanding'
 
 // El home es la landing tal como quedó en Claude Design, con los valores por defecto de sus propiedades.
 export default function Home() {

@@ -1,8 +1,8 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-import { A1Menu } from '@/components/templates/families/A/A1Menu'
-import { cartOf, dimmedAncestors, entradas, entryOf, fuertes, menuProps, postres, wrap } from '@/components/templates/families/A/__tests__/fixtures'
+import { A1Menu } from '@diner/components/templates/families/A/A1Menu'
+import { cartOf, dimmedAncestors, entradas, entryOf, fuertes, menuProps, postres, wrap } from '@diner/components/templates/families/A/__tests__/fixtures'
 
 // Falla si la cabecera pierde la marca centrada con «lema · Mesa N» (la única cabecera: la página no pinta la suya sobre este layout), si la
 // marca se repite, si las secciones no llevan su rótulo en versalitas, si un plato con descripción no la pinta entera (el marco es editorial:

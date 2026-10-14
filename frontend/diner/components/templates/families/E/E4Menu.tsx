@@ -4,11 +4,11 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useMemo } from 'react'
 
-import { AddButton, Avatar, EmptyMenu, MenuSearch, SoldOut, payHrefFrom, useAccount, useAttrParts, useBill, useDinerLabels } from '@/components/templates/families/E/parts'
-import { CategoryTabs, tabId, useMenuDishes } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { formatCop, itemCount } from '@/lib/domain/cart'
-import type { CartLine, Dish } from '@/lib/types'
+import { AddButton, Avatar, EmptyMenu, MenuSearch, SoldOut, payHrefFrom, useAccount, useAttrParts, useBill, useDinerLabels } from '@diner/components/templates/families/E/parts'
+import { CategoryTabs, tabId, useMenuDishes } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { formatCop, itemCount } from '@diner/lib/domain/cart'
+import type { CartLine, Dish } from '@diner/lib/types'
 
 // E4 · Cuenta compartida (docs/diseno/plantillas/E4, la única clara de la familia): arriba la cuenta viva de la mesa como en el marco:
 // «Mesa N · P personas», «N ítems en la mesa» y el total mono 20; una fila por comensal con avatar de iniciales (acento para mí;

@@ -1,18 +1,18 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { act, render, screen } from '@testing-library/react'
-import DesignSystemPage from '../[rest]/[sede]/design-system/page'
-import { COMPONENT_VARIANTS, SCREEN_LAYOUTS } from '@/lib/domain/designVariants'
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
-import * as api from '@/lib/services/api'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { DesignContract, Entry, MenuTheme } from '@/lib/types'
+import DesignSystemPage from '../diner/[rest]/[sede]/design-system/page'
+import { COMPONENT_VARIANTS, SCREEN_LAYOUTS } from '@diner/lib/domain/designVariants'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
+import * as api from '@diner/lib/services/api'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { DesignContract, Entry, MenuTheme } from '@diner/lib/types'
 
 let query: Record<string, string> = {}
 jest.mock('next/navigation', () => ({ useParams: () => ({ rest: 'demo', sede: 'salón' }), useSearchParams: () => ({ get: (key: string) => query[key] ?? null }), useRouter: () => ({ push: jest.fn() }) }))
-jest.mock('@/lib/services/api', () => ({ ...jest.requireActual('@/lib/services/api'), getDesignContract: jest.fn() }))
+jest.mock('@diner/lib/services/api', () => ({ ...jest.requireActual('@diner/lib/services/api'), getDesignContract: jest.fn() }))
 
-const root = join(__dirname, '../../../experience/experience_app/diseno')
+const root = join(__dirname, '../../../../experience/experience_app/diseno')
 const contract: DesignContract = { version: 2, esquema: JSON.parse(readFileSync(join(root, 'esquema.json'), 'utf8')), inventario: JSON.parse(readFileSync(join(root, 'inventario.json'), 'utf8')) }
 const entry = { banners: null, contexto: { restaurante: { slug: 'demo', nombre: 'Demo' }, sede: { slug: 'salón', nombre: 'Salón principal' }, mesa: null,
   marca: { nombre: 'Casa Demo', lema: '', logo: null, saludo: '', mesero: '', bienvenida: '', color: '#6755A0', colorTexto: '#FFFFFF', colorSuave: '#EEEBF5', fuente: 'Mulish', radio: 16 } },

@@ -2,10 +2,10 @@ import { render } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import type { ReactElement } from 'react'
 
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
-import messages from '@/lib/i18n/messages/es.json'
-import type { Cart, CartLine, Category, Dish, Entry, Template } from '@/lib/types'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
+import messages from '@diner/lib/i18n/messages/es.json'
+import type { Cart, CartLine, Category, Dish, Entry, Template } from '@diner/lib/types'
 
 // Carta de prueba de la familia E: cervezas con ABV/IBU y etiquetas, un cóctel con descripción, un barril vacío (agotado), un plato
 // con tamaños y «solo hoy», y otro sin atributos ni foto. Cubre: fotos y sin fotos, categorías, agotado, atributos presentes/ausentes.

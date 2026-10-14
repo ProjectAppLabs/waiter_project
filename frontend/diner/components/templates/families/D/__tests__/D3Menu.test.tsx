@@ -1,10 +1,10 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 
-import { D3Menu } from '@/components/templates/families/D/D3Menu'
-import { cartOf, line, menuProps, wrap } from '@/components/templates/families/D/__tests__/fixtures'
+import { D3Menu } from '@diner/components/templates/families/D/D3Menu'
+import { cartOf, line, menuProps, wrap } from '@diner/components/templates/families/D/__tests__/fixtures'
 
 const mockStore = { entry: null, account: null, accountOrders: [], loadAccount: jest.fn() }
-jest.mock('@/lib/stores/dinerStore', () => ({ useDinerStore: (sel?: (s: typeof mockStore) => unknown) => (sel ? sel(mockStore) : mockStore) }))
+jest.mock('@diner/lib/stores/dinerStore', () => ({ useDinerStore: (sel?: (s: typeof mockStore) => unknown) => (sel ? sel(mockStore) : mockStore) }))
 
 // Falla si la vitrina pierde el título, el conteo en mono acento, la rejilla de tarjetas con foto (o el placeholder «Foto del plato»),
 // el precio en mono o la banda inferior.

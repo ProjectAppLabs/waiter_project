@@ -1,11 +1,11 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 
-import { FamilyBCart } from '@/components/templates/families/B/FamilyBCart'
-import { cartOf, entryOf, line, templateOf, wrap } from '@/components/templates/families/B/__tests__/fixtures'
-import type { CartLayoutProps } from '@/components/templates/types'
+import { FamilyBCart } from '@diner/components/templates/families/B/FamilyBCart'
+import { cartOf, entryOf, line, templateOf, wrap } from '@diner/components/templates/families/B/__tests__/fixtures'
+import type { CartLayoutProps } from '@diner/components/templates/types'
 
 // El carrito busca la foto de cada línea en la carta (las líneas no la traen): el store solo aporta `entry`.
-jest.mock('@/lib/stores/dinerStore', () => ({ useDinerStore: () => ({ entry: mockEntry }) }))
+jest.mock('@diner/lib/stores/dinerStore', () => ({ useDinerStore: () => ({ entry: mockEntry }) }))
 const mockEntry = entryOf()
 
 const discount = { porcentaje: 5, monto: 3808, aplicable: true, aplicado: true }

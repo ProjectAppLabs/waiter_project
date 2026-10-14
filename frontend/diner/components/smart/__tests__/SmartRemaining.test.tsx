@@ -2,8 +2,8 @@ import {fireEvent,render,screen,waitFor,within} from '@testing-library/react'
 import {SmartFeedback} from '../SmartFeedback'
 import {SmartPassword} from '../SmartPassword'
 import {SmartWallet} from '../SmartWallet'
-import {http} from '@/lib/services/api'
-import {useDinerStore} from '@/lib/stores/dinerStore'
+import {http} from '@diner/lib/services/api'
+import {useDinerStore} from '@diner/lib/stores/dinerStore'
 const push=jest.fn()
 jest.mock('next/navigation',()=>({useRouter:()=>({push}),useSearchParams:()=>new URLSearchParams()}))
 const initial=useDinerStore.getState()

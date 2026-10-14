@@ -4,11 +4,11 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useMemo, useState } from 'react'
 
-import { AddButton, EmptyMenu, MenuSearch, SoldOut } from '@/components/templates/families/E/parts'
-import { CategoryTabs, tabId, useMenuDishes } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { formatCop, itemCount } from '@/lib/domain/cart'
-import type { Dish } from '@/lib/types'
+import { AddButton, EmptyMenu, MenuSearch, SoldOut } from '@diner/components/templates/families/E/parts'
+import { CategoryTabs, tabId, useMenuDishes } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { formatCop, itemCount } from '@diner/lib/domain/cart'
+import type { Dish } from '@diner/lib/types'
 
 // E3 · Happy hour con reloj (docs/diseno/plantillas/E3): cabecera en acento (rojo, texto blanco) con rótulo en versalitas y una cifra
 // mono de 42 px; tarjetas de una columna sobre superficie con nombre 16/500, subtítulo y precio mono en menta; nota al pie; CTA.

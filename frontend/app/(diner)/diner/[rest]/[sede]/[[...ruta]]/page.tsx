@@ -2,13 +2,13 @@
 
 import { useParams, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useMemo } from 'react'
-import { FirstVisitIntro } from '@/components/smart/FirstVisitIntro'
-import { SmartExperience } from '@/components/smart/SmartMenu'
-import { parseRoute } from '@/lib/domain/route'
-import { applyGoogleFonts, templateVars } from '@/lib/domain/template'
-import { designSystemAttributes } from '@/lib/domain/designVariants'
-import { themeVars } from '@/lib/domain/theme'
-import { useDinerStore } from '@/lib/stores/dinerStore'
+import { FirstVisitIntro } from '@diner/components/smart/FirstVisitIntro'
+import { SmartExperience } from '@diner/components/smart/SmartMenu'
+import { parseRoute } from '@diner/lib/domain/route'
+import { applyGoogleFonts, templateVars } from '@diner/lib/domain/template'
+import { designSystemAttributes } from '@diner/lib/domain/designVariants'
+import { themeVars } from '@diner/lib/domain/theme'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
 
 function DinerPage() {
   const params = useParams<{ rest: string; sede: string; ruta?: string[] }>()

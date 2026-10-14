@@ -9,6 +9,8 @@ import './aurora.css'
 export const metadata: Metadata = {
   title: 'Waiter · Tu restaurante atiende, cobra y lleva domicilios',
   description: 'El cliente pide desde su mesa con un toque, la cocina recibe la comanda al instante y tú ves todo en un solo lugar. Sin comisiones de apps de domicilio.',
+  // Antes era app/icon.svg de la app aparte; con una sola app vive en public/ para no depender de una ruta interna.
+  icons: { icon: '/icon.svg' },
 }
 export const viewport: Viewport = { width: 'device-width', initialScale: 1 }
 

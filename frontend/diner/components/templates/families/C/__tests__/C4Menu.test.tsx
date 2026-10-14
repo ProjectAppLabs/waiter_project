@@ -1,7 +1,7 @@
 import { fireEvent, screen } from '@testing-library/react'
 
-import { C4Menu } from '@/components/templates/families/C/C4Menu'
-import { cartOf, entryOf, line, menuProps, wrap } from '@/components/templates/families/C/__tests__/fixtures'
+import { C4Menu } from '@diner/components/templates/families/C/C4Menu'
+import { cartOf, entryOf, line, menuProps, wrap } from '@diner/components/templates/families/C/__tests__/fixtures'
 
 // Falla si la pizarra pierde su única cabecera centrada (nombre en la voz de la plantilla y línea de sede con sede, lema y mesa reales,
 // sin repetir nada), si tocar una fila no agrega, si el agotado no va tachado con «se acabó» en vez de precio, o si la caja de

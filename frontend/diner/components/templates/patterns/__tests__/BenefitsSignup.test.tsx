@@ -2,10 +2,10 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { NextIntlClientProvider } from 'next-intl'
 
-import { BenefitsSignup } from '@/components/templates/patterns/BenefitsSignup'
-import type { SignupProps } from '@/components/templates/types'
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
-import messages from '@/lib/i18n/messages/es.json'
+import { BenefitsSignup } from '@diner/components/templates/patterns/BenefitsSignup'
+import type { SignupProps } from '@diner/components/templates/types'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
+import messages from '@diner/lib/i18n/messages/es.json'
 
 const props = (over: Partial<SignupProps> = {}): SignupProps => ({ template: DEFAULT_TEMPLATE, onSubmit: jest.fn(), onSkip: jest.fn(), busy: false, error: null, discountPct: 5, ...over })
 const wrap = (p: SignupProps) => render(<NextIntlClientProvider locale="es" messages={messages}><BenefitsSignup {...p} /></NextIntlClientProvider>)

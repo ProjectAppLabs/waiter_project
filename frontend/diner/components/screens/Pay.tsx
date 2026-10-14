@@ -4,12 +4,12 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 
-import { GenericPay } from '@/components/templates/generic/GenericPay'
-import { PAY_LAYOUTS } from '@/components/templates/registry'
-import { pathFor } from '@/lib/domain/route'
-import { DEFAULT_TEMPLATE, familyOf } from '@/lib/domain/template'
-import { payableTotal, useDinerStore } from '@/lib/stores/dinerStore'
-import type { Bill, Entry, PayMethod } from '@/lib/types'
+import { GenericPay } from '@diner/components/templates/generic/GenericPay'
+import { PAY_LAYOUTS } from '@diner/components/templates/registry'
+import { pathFor } from '@diner/lib/domain/route'
+import { DEFAULT_TEMPLATE, familyOf } from '@diner/lib/domain/template'
+import { payableTotal, useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { Bill, Entry, PayMethod } from '@diner/lib/types'
 
 export const PAY_METHODS: PayMethod[] = ['tarjeta', 'pse', 'nequi', 'efectivo']
 

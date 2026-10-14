@@ -3,11 +3,11 @@
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 
-import { CartActions, CartStates, LineMeta, Others, Stepper, discountView, useCartAccount } from '@/components/templates/families/D/cartParts'
-import { DishPhoto, useDishIndex } from '@/components/templates/families/D/parts'
-import type { CartLayoutProps } from '@/components/templates/types'
-import { formatCop, itemCount, mine, others } from '@/lib/domain/cart'
-import type { Dish } from '@/lib/types'
+import { CartActions, CartStates, LineMeta, Others, Stepper, discountView, useCartAccount } from '@diner/components/templates/families/D/cartParts'
+import { DishPhoto, useDishIndex } from '@diner/components/templates/families/D/parts'
+import type { CartLayoutProps } from '@diner/components/templates/types'
+import { formatCop, itemCount, mine, others } from '@diner/lib/domain/cart'
+import type { Dish } from '@diner/lib/types'
 
 // D3 · Carrito de vitrina (docs/diseno/plantillas/D3/carrito.html). Difiere de la piel de familia: cada línea lleva miniatura 54×54
 // (radio 10; la foto se busca en la carta cargada por producto_id, con placeholder si no hay), nombre 16/500 y precio mono, meta, y

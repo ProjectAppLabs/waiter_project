@@ -31,7 +31,7 @@ it('names css variables in kebab-case under --kit-', () => {
 
 // Falla si la vista /kit documenta un valor que el CSS ya no usa (o al revés): la documentación mentiría.
 it('documents the same palette, radii, tap sizes and aurora colors that globals.css declares', () => {
-  const css = readFileSync(join(process.cwd(), 'app/globals.css'), 'utf8')
+  const css = readFileSync(join(process.cwd(), 'app/(waiter)/globals.css'), 'utf8')
   for (const [token, hex] of Object.entries(KIT_LIGHT)) expect(css).toContain(`${cssVar(token as keyof typeof KIT_LIGHT)}: ${hex}`)
   for (const r of RADII) expect(css).toContain(`--radius-${r.token}: ${r.px}px`)
   for (const s of TAP_SIZES) expect(css).toContain(`--spacing-${s.token}: ${s.px}px`)

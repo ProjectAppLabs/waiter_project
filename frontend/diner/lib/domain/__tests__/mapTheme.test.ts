@@ -1,5 +1,5 @@
-import { contrastRatio } from '@/lib/domain/contrast'
-import { flavorOverrides, HIDDEN_POIS, MAP_VARIANTS, mapPalette, mix, readableGraphic, referenceColors, referenceLayer, REFERENCE_GROUPS, type MapTokens } from '@/lib/domain/mapTheme'
+import { contrastRatio } from '@diner/lib/domain/contrast'
+import { flavorOverrides, HIDDEN_POIS, MAP_VARIANTS, mapPalette, mix, readableGraphic, referenceColors, referenceLayer, REFERENCE_GROUPS, type MapTokens } from '@diner/lib/domain/mapTheme'
 
 const MARCAS: Record<string, MapTokens> = {
   burger: { fondo: '#F9F3EB', superficie: '#FFFFFF', tinta: '#1A1815', acento: '#C1873A' },

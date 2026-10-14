@@ -1,7 +1,7 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 
-import { C2Menu } from '@/components/templates/families/C/C2Menu'
-import { cartOf, combos, entryOf, line, menuProps, wrap } from '@/components/templates/families/C/__tests__/fixtures'
+import { C2Menu } from '@diner/components/templates/families/C/C2Menu'
+import { cartOf, combos, entryOf, line, menuProps, wrap } from '@diner/components/templates/families/C/__tests__/fixtures'
 
 const slides = () => screen.getAllByRole('article', { hidden: true })
 

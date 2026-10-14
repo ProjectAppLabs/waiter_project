@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
-import type { SignupProps } from '@/components/templates/types'
+import type { SignupProps } from '@diner/components/templates/types'
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 

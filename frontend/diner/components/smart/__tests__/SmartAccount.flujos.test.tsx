@@ -1,12 +1,12 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { SmartAccount, SmartAccountEdit, SmartCode, SmartHistory, SmartReceipt, SmartSignup } from '../SmartAccount'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import { updateAccount } from '@/lib/services/api'
-import type { AccountOrder } from '@/lib/types'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import { updateAccount } from '@diner/lib/services/api'
+import type { AccountOrder } from '@diner/lib/types'
 
 const mockPush = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }), useSearchParams: () => null }))
-jest.mock('@/lib/services/api')
+jest.mock('@diner/lib/services/api')
 const inicial = useDinerStore.getInitialState()
 const cuenta = { id: 'ana', nombre: 'Ana Ruiz', correo: 'ana@example.invalid', verificada: true, celular: '3001234567', novedades: false }
 const formulario = { nombre: cuenta.nombre, correo: cuenta.correo, celular: '', aceptaDatos: true, novedades: false }

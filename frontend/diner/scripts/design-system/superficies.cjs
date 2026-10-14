@@ -2,8 +2,8 @@
  * Cada regla que pinta un fondo claro de tarjeta (superficie o acentoSuave) escribe con la tinta de tarjeta; cada regla que
  * pinta el fondo de la página vuelve a la tinta del fondo; y una que deja el fondo transparente hereda lo que tiene detrás.
  * Así bg y tinta viajan juntos aunque una variante o una pantalla cambie el fondo de un elemento.
- *   node diner/scripts/design-system/superficies.cjs          reescribe el bloque
- *   node diner/scripts/design-system/superficies.cjs --check  termina con 1 si el bloque no está al día (lo usa la prueba) */
+ *   node frontend/diner/scripts/design-system/superficies.cjs          reescribe el bloque
+ *   node frontend/diner/scripts/design-system/superficies.cjs --check  termina con 1 si el bloque no está al día (lo usa la prueba) */
 const fs = require('node:fs')
 const path = require('node:path')
 
@@ -90,5 +90,5 @@ const current = fs.readFileSync(TARGET, 'utf8')
 const block = generate()
 const a = current.indexOf(START), b = current.indexOf(END)
 const next = a === -1 ? `${current.trimEnd()}\n\n${block}\n` : current.slice(0, a) + block + current.slice(b + END.length)
-if (process.argv.includes('--check')) { if (next !== current) { console.error('smart-marca.css: el bloque de contexto de tinta no está al día; corre node diner/scripts/design-system/superficies.cjs'); process.exit(1) } }
+if (process.argv.includes('--check')) { if (next !== current) { console.error('smart-marca.css: el bloque de contexto de tinta no está al día; corre node frontend/diner/scripts/design-system/superficies.cjs'); process.exit(1) } }
 else { fs.writeFileSync(TARGET, next); console.log(`bloque de contexto regenerado (${block.split('\n').length} líneas)`) }

@@ -1,5 +1,5 @@
-import { formatCop, itemCount, recommended } from '@/lib/domain/cart'
-import { greetingFor, themeVars } from '@/lib/domain/theme'
+import { formatCop, itemCount, recommended } from '@diner/lib/domain/cart'
+import { greetingFor, themeVars } from '@diner/lib/domain/theme'
 
 const brand = { nombre: 'La Provincia', lema: '', logo: null, saludo: '', mesero: 'Alex', bienvenida: '', color: '#7A2E2A', colorTexto: '#FFFFFF', colorSuave: '#F2EAEA', fuente: 'Fraunces', radio: 24 }
 

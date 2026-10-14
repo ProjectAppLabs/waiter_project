@@ -1,15 +1,15 @@
 'use client'
 
-import { DemoPaymentNotice } from '@/components/ui/DemoPaymentNotice'
+import { DemoPaymentNotice } from '@diner/components/ui/DemoPaymentNotice'
 
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
-import { formatCop } from '@/lib/domain/cart'
-import { pathFor } from '@/lib/domain/route'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { Entry, OrderState } from '@/lib/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import { pathFor } from '@diner/lib/domain/route'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { Entry, OrderState } from '@diner/lib/types'
 
 const STEPS: OrderState[] = ['enviado', 'en_cocina', 'listo', 'servido']
 const POLL_MS = 8_000

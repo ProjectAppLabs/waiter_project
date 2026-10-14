@@ -4,11 +4,11 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
-import { BAND_FIGURE, BAND_TEXT, usePhotoIndex } from '@/components/templates/families/B/parts'
-import type { CartLayoutProps } from '@/components/templates/types'
-import { formatCop, itemCount, mine, others } from '@/lib/domain/cart'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { CartLine } from '@/lib/types'
+import { BAND_FIGURE, BAND_TEXT, usePhotoIndex } from '@diner/components/templates/families/B/parts'
+import type { CartLayoutProps } from '@diner/components/templates/types'
+import { formatCop, itemCount, mine, others } from '@diner/lib/domain/cart'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { CartLine } from '@diner/lib/types'
 
 type Variant = 'B1' | 'B2' | 'B3' | 'B4' | 'B5'
 const variantOf = (code: string): Variant => (['B2', 'B3', 'B4', 'B5'].includes(code.toUpperCase()) ? (code.toUpperCase() as Variant) : 'B1')

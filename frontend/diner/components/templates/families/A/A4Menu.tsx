@@ -3,10 +3,10 @@
 import { useTranslations } from 'next-intl'
 import { useRef, useState } from 'react'
 
-import { AddButton, DishPhoto, EditorialTabs, EmptyMenu, OrderStrip, SearchToggle, SoldOutBadge, attributeChips, dimIf } from '@/components/templates/families/A/shared'
-import { tabId, useMenuDishes } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { formatCop } from '@/lib/domain/cart'
+import { AddButton, DishPhoto, EditorialTabs, EmptyMenu, OrderStrip, SearchToggle, SoldOutBadge, attributeChips, dimIf } from '@diner/components/templates/families/A/shared'
+import { tabId, useMenuDishes } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { formatCop } from '@diner/lib/domain/cart'
 
 // A4 · Plato con relato (docs/diseno/plantillas/A4). El marco es la ficha de un solo plato: foto 3:2 a sangre (158 px; placeholder #E8E1D5 del
 // spec), nombre en serif 26, descripción larga, chips grises de atributos, y pie con precio mono 22 + «Añadir». El marco no dibuja la lista que

@@ -3,8 +3,8 @@
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 
-import { formatCop, itemCount } from '@/lib/domain/cart'
-import type { Cart } from '@/lib/types'
+import { formatCop, itemCount } from '@diner/lib/domain/cart'
+import type { Cart } from '@diner/lib/types'
 
 // Barra de pedido fija abajo: nunca se pierde de vista lo que va a pagar. Oscura por norma (nuestra, no del restaurante).
 export function OrderBar({ cart, href }: { cart: Cart | null; href: string }) {

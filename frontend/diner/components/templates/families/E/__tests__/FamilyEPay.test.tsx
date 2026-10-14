@@ -1,9 +1,9 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 
-import { FamilyEPay } from '@/components/templates/families/E/FamilyEPay'
-import { templateOf, wrap } from '@/components/templates/families/E/__tests__/fixtures'
-import type { PayLayoutProps } from '@/components/templates/types'
-import type { Bill } from '@/lib/types'
+import { FamilyEPay } from '@diner/components/templates/families/E/FamilyEPay'
+import { templateOf, wrap } from '@diner/components/templates/families/E/__tests__/fixtures'
+import type { PayLayoutProps } from '@diner/components/templates/types'
+import type { Bill } from '@diner/lib/types'
 
 const bill: Bill = { ok: true, total: 63000, mio: 24000, porComensal: [], partes: 4, porParte: 15750, descuento: { porcentaje: 5, monto: 3000, aplicable: true, aplicado: true } }
 const base = (codigo: string, over: Partial<PayLayoutProps> = {}): PayLayoutProps => ({

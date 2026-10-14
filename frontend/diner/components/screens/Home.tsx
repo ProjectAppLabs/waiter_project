@@ -4,12 +4,12 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
-import { DishCard } from '@/components/ui/DishCard'
-import { greetingFor } from '@/lib/domain/theme'
-import { recommended } from '@/lib/domain/cart'
-import { pathFor } from '@/lib/domain/route'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { Entry } from '@/lib/types'
+import { DishCard } from '@diner/components/ui/DishCard'
+import { greetingFor } from '@diner/lib/domain/theme'
+import { recommended } from '@diner/lib/domain/cart'
+import { pathFor } from '@diner/lib/domain/route'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { Entry } from '@diner/lib/types'
 
 // Portada (sistema de diseño §06): saludo en la serif del restaurante, línea del mesero, "Ver la carta", recomendados.
 export function Home({ entry, rest, venue, token }: { entry: Entry; rest: string; venue: string; token: string | null }) {

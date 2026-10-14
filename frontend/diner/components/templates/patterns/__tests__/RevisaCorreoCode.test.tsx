@@ -2,10 +2,10 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { NextIntlClientProvider } from 'next-intl'
 
-import { RevisaCorreoCode } from '@/components/templates/patterns/RevisaCorreoCode'
-import type { CodeProps } from '@/components/templates/types'
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
-import messages from '@/lib/i18n/messages/es.json'
+import { RevisaCorreoCode } from '@diner/components/templates/patterns/RevisaCorreoCode'
+import type { CodeProps } from '@diner/components/templates/types'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
+import messages from '@diner/lib/i18n/messages/es.json'
 
 const props = (over: Partial<CodeProps> = {}): CodeProps => ({ template: DEFAULT_TEMPLATE, email: 'camila@correo.com', onVerify: jest.fn(), onResend: jest.fn(), onOtherChannel: jest.fn(), onBack: jest.fn(), busy: false, error: null, ...over })
 const wrap = (p: CodeProps) => render(<NextIntlClientProvider locale="es" messages={messages}><RevisaCorreoCode {...p} /></NextIntlClientProvider>)

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
-import { PaginaLegal } from '@/components/legal/PaginaLegal'
-import { Privacidad } from '@/components/legal/Privacidad'
+import { PaginaLegal } from '@landing/components/legal/PaginaLegal'
+import { Privacidad } from '@landing/components/legal/Privacidad'
 
 export const metadata: Metadata = {
   title: 'Política de privacidad de Waiter',

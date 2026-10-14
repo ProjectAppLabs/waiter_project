@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 
-import EmergenciaPage from '@/app/(pos)/emergencia/page'
+import EmergenciaPage from '@/app/(waiter)/(pos)/emergencia/page'
 import { messages } from '@/lib/i18n/messages'
 import { useEmergencyOrders, type EmergencyOrder } from '@/lib/offline/emergency'
 import { useOutboxStore, type OutboxEntry } from '@/lib/offline/outbox'

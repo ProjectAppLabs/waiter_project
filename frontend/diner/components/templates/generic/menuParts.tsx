@@ -3,8 +3,8 @@
 import { useTranslations } from 'next-intl'
 import { useMemo } from 'react'
 
-import { formatCop } from '@/lib/domain/cart'
-import type { Category, Dish } from '@/lib/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import type { Category, Dish } from '@diner/lib/types'
 
 // Piezas de menú compartidas por los layouts: filtro (búsqueda tolerante + categoría), pestañas accesibles y tarjeta con tokens --t-*.
 

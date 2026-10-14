@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 
-import CajaPage from '@/app/caja/page'
+import CajaPage from '@/app/(waiter)/caja/page'
 import { messages } from '@/lib/i18n/messages'
 import { listConfigs } from '@/lib/services/cashRegister'
 import { useAuthStore } from '@/lib/stores/authStore'

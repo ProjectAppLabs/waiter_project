@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 
-import { OrderBar } from '@/components/ui/OrderBar'
-import messages from '@/lib/i18n/messages/es.json'
+import { OrderBar } from '@diner/components/ui/OrderBar'
+import messages from '@diner/lib/i18n/messages/es.json'
 
 const wrap = (ui: React.ReactElement) => render(<NextIntlClientProvider locale="es" messages={messages}>{ui}</NextIntlClientProvider>)
 const line = { id: 1, comensal: 'a', mio: true, producto_id: 3, nombre: 'Lomo', precio: 38900, cantidad: 2, nota: '', subtotal: 77800 }

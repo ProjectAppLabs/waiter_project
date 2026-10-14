@@ -3,14 +3,14 @@
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
-import { AccountHome } from '@/components/templates/generic/AccountHome'
-import { EmptyHistory } from '@/components/templates/generic/EmptyHistory'
-import { GenericHistory } from '@/components/templates/generic/GenericHistory'
-import { HISTORY_PATTERNS } from '@/components/templates/registry'
-import { pathFor } from '@/lib/domain/route'
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { AccountOrder, Entry } from '@/lib/types'
+import { AccountHome } from '@diner/components/templates/generic/AccountHome'
+import { EmptyHistory } from '@diner/components/templates/generic/EmptyHistory'
+import { GenericHistory } from '@diner/components/templates/generic/GenericHistory'
+import { HISTORY_PATTERNS } from '@diner/components/templates/registry'
+import { pathFor } from '@diner/lib/domain/route'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { AccountOrder, Entry } from '@diner/lib/types'
 
 // Mi cuenta (igual para las 30) + historial según el patrón de la plantilla (o el vacío). Sin cuenta ligada a la cookie: invita a crearla.
 export function Account({ rest, venue, token }: { entry: Entry; rest: string; venue: string; token: string | null; id: string | null }) {

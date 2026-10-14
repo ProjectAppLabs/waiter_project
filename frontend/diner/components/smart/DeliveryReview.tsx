@@ -1,7 +1,7 @@
 'use client'
 
-import { freeFromText } from '@/lib/domain/deliveryPricing'
-import type { Cart, DeliveryMethod, DeliveryQuote } from '@/lib/types'
+import { freeFromText } from '@diner/lib/domain/deliveryPricing'
+import type { Cart, DeliveryMethod, DeliveryQuote } from '@diner/lib/types'
 import { METHOD_LABEL } from './DeliverySheet'
 import { Icon, money } from './SmartMenu'
 

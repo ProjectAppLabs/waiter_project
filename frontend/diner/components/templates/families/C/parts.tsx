@@ -2,9 +2,9 @@
 
 import { useTranslations } from 'next-intl'
 
-import { fold } from '@/components/templates/generic/menuParts'
-import { formatCop } from '@/lib/domain/cart'
-import type { Brand, Category, Dish } from '@/lib/types'
+import { fold } from '@diner/components/templates/generic/menuParts'
+import { formatCop } from '@diner/lib/domain/cart'
+import type { Brand, Category, Dish } from '@diner/lib/types'
 
 // Piezas compartidas por la familia C (Rápida y food truck): pie pegado abajo, cabecera de marca, buscador compacto, foto con
 // recorte y extras.

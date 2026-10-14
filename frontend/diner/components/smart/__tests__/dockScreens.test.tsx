@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react'
 import { SmartExperience } from '../SmartMenu'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { Screen } from '@/lib/domain/route'
-import type { Entry } from '@/lib/types'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { Screen } from '@diner/lib/domain/route'
+import type { Entry } from '@diner/lib/types'
 
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }), useParams: () => ({ rest: 'demo', sede: 'salon' }), useSearchParams: () => null }))
 jest.mock('../SmartChat', () => ({ SmartChat: () => <button type="button">Mi mesero</button> }))

@@ -3,13 +3,13 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { LocateDelivery } from '../LocateDelivery'
 import { SavedAddresses } from '../SavedAddresses'
 import { SmartCart } from '../SmartOrder'
-import { deleteAddress, getLocateLink, revokeData, savedAddresses, sendLocateLink } from '@/lib/services/api'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { Cart, Entry } from '@/lib/types'
+import { deleteAddress, getLocateLink, revokeData, savedAddresses, sendLocateLink } from '@diner/lib/services/api'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { Cart, Entry } from '@diner/lib/types'
 
 const mockPush = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush, replace: mockPush }), useSearchParams: () => null }))
-jest.mock('@/lib/services/api')
+jest.mock('@diner/lib/services/api')
 // El mapa real necesita un navegador; aquí basta un pin que se mueve con un botón.
 jest.mock('next/dynamic', () => () => function Mapa({ onChange, value }: { onChange: (p: { lat: number; lng: number }) => void; value: { lat: number; lng: number } | null }) {
   return <><button type="button" onClick={() => onChange({ lat: 6.2, lng: -75.57 })}>Marcar en el mapa</button><output aria-label="Centro del mapa">{value ? `${value.lat},${value.lng}` : 'sin punto'}</output></>
@@ -69,7 +69,7 @@ it('no ofrece domicilio si la sede no lo tiene', async () => {
 // lista para el pedido o si fuera de zona no se ofrece recoger.
 it('comparte la ubicación desde el chat del mesero', async () => {
   const { ChatDelivery } = await import('../ChatDelivery')
-  const { quoteDelivery, getVenueLocation, reverseAddress } = jest.requireMock('@/lib/services/api')
+  const { quoteDelivery, getVenueLocation, reverseAddress } = jest.requireMock('@diner/lib/services/api')
   jest.mocked(getVenueLocation).mockResolvedValue({ direccion: '', latitud: 6.2, longitud: -75.5 })
   jest.mocked(reverseAddress).mockResolvedValue('Calle 9A 37-16, El Poblado, Medellín')
   jest.mocked(quoteDelivery).mockResolvedValueOnce({ cobertura: true, sede: { slug: 'salon', nombre: 'El Poblado' }, distancia_km: 0.9, envio: 4000, minimo: 20000, metodos: ['cash'] })
@@ -113,7 +113,7 @@ it('en una mesa no ofrece domicilio', async () => {
 // lleva el mapa hasta allá, o si el pin pisa la dirección encontrada.
 it('dirección y mapa en las dos direcciones', async () => {
   const { DeliverySheet } = await import('../DeliverySheet')
-  const api = jest.requireMock('@/lib/services/api')
+  const api = jest.requireMock('@diner/lib/services/api')
   api.getVenueLocation.mockResolvedValue({ direccion: '', latitud: 6.2, longitud: -75.5 })
   api.reverseAddress.mockResolvedValue('Calle 9A 37-16, El Poblado, Medellín')
   api.searchAddress.mockResolvedValue({ resultados: [{ texto: 'Cl 10 #43-12, El Poblado, Medellín, Antioquia', lat: 6.2098, lng: -75.5684 }], fueraDeCobertura: false })
@@ -135,7 +135,7 @@ it('dirección y mapa en las dos direcciones', async () => {
 // con varias coincidencias no deja escoger sin otra consulta, o si una dirección incompleta se busca en vez de pedir más.
 it('busca la dirección una sola vez y deja escoger entre varias', async () => {
   const { AddressSearch } = await import('../AddressSearch')
-  const api = jest.requireMock('@/lib/services/api')
+  const api = jest.requireMock('@diner/lib/services/api')
   api.searchAddress.mockResolvedValue({ resultados: [{ texto: 'Cl 10 #43-12, El Poblado, Medellín', lat: 6.21, lng: -75.57 }, { texto: 'Cl 10 #43-12, Envigado', lat: 6.17, lng: -75.59 }], fueraDeCobertura: false })
   const escoger = jest.fn()
   function Campo() { const [v, setV] = require('react').useState(''); return <AddressSearch rest="demo" value={v} enabled onType={setV} onPick={escoger} /> }
@@ -163,7 +163,7 @@ it('busca la dirección una sola vez y deja escoger entre varias', async () => {
 // ubicación, o si con platos se le cambia de sede sin preguntarle.
 it('manda a la sede que atiende la dirección', async () => {
   const { DeliverySheet } = await import('../DeliverySheet')
-  const api = jest.requireMock('@/lib/services/api')
+  const api = jest.requireMock('@diner/lib/services/api')
   api.getVenueLocation.mockResolvedValue({ direccion: '', latitud: 6.2, longitud: -75.5 })
   api.reverseAddress.mockResolvedValue('')
   api.quoteDelivery.mockResolvedValue({ cobertura: true, sede: { slug: 'duitama', nombre: 'Duitama' }, distancia_km: .5, envio: 3000, minimo: 0, metodos: ['cash'] })
@@ -186,7 +186,7 @@ it('manda a la sede que atiende la dirección', async () => {
 // cubre debe transferir allá; si ninguna, decir que ninguna sede tiene cobertura y ofrecer recoger.
 it('una dirección de otra ciudad transfiere o dice que no hay cobertura', async () => {
   const { DeliverySheet } = await import('../DeliverySheet')
-  const api = jest.requireMock('@/lib/services/api')
+  const api = jest.requireMock('@diner/lib/services/api')
   api.getVenueLocation.mockResolvedValue({ direccion: '', latitud: 5.83, longitud: -73.03 })
   api.reverseAddress.mockResolvedValue('')
   api.searchAddress.mockResolvedValue({ resultados: [{ texto: 'Cl 10 #43-12, El Poblado, Medellín', lat: 6.21, lng: -75.57 }], fueraDeCobertura: false })
@@ -213,7 +213,7 @@ it('una dirección de otra ciudad transfiere o dice que no hay cobertura', async
 it('sede cerrada: avisa cuándo abre y no deja confirmar', async () => {
   const { ClosedBanner } = await import('../ClosedBanner')
   const { ChatDelivery } = await import('../ChatDelivery')
-  const { quoteDelivery, getVenueLocation, reverseAddress } = jest.requireMock('@/lib/services/api')
+  const { quoteDelivery, getVenueLocation, reverseAddress } = jest.requireMock('@diner/lib/services/api')
   const carrito: Cart = { sesion: 'v', total: 9000, mio: 9000, por_comensal: [], lineas: [{ id: 1, producto_id: 7, nombre: 'Sopa', cantidad: 1, precio: 9000, subtotal: 9000, mio: true, comensal: 'a', nota: '' }] }
   const entry = { horario: { configurado: true, abierto: false, abre: { cuando: 'hoy', hora: '6 p. m.', fecha: '2026-10-10' } },
     domicilio: { enabled: true, buscador: false }, contexto: { mesa: null }, carta: { categorias: [] } } as unknown as Entry
@@ -247,7 +247,7 @@ it('sede abierta o sin horario: sin aviso', async () => {
 // ese método y lleva a su estado.
 it('termina el domicilio en el chat del mesero', async () => {
   const { ChatCheckout } = await import('../ChatCheckout')
-  const { setDelivery, confirmOrder, getOrder, getCart } = jest.requireMock('@/lib/services/api')
+  const { setDelivery, confirmOrder, getOrder, getCart } = jest.requireMock('@diner/lib/services/api')
   const carrito: Cart = { sesion: 'v', total: 9000, mio: 9000, por_comensal: [], lineas: [{ id: 1, producto_id: 7, nombre: 'Sopa', cantidad: 1, precio: 9000, subtotal: 9000, mio: true, comensal: 'a', nota: '' }] }
   const domicilio = { lat: 6.2, lng: -75.5, direccion: 'Calle 9', indicaciones: 'Torre 2', telefono: '+573001234567', nombre: 'Ana', envio: 0, distancia_km: 1,
     sede: { slug: 'salon', nombre: 'El Poblado' }, metodos: ['online', 'cash'], minimo: 0, recargo: 8, gratis_desde: 5000 }
@@ -283,7 +283,7 @@ it('termina el domicilio en el chat del mesero', async () => {
 // Falla si en modo domicilio la carta no muestra los precios con el recargo (al peso, como el servidor), si no se puede
 // volver a los precios de siempre o si el aviso no dice que el envío va incluido cuando el domicilio es gratis.
 it('precios para domicilio con recargo', async () => {
-  const { markedPrice, pricedEntry, deliveryPricesText, freeFromText } = await import('@/lib/domain/deliveryPricing')
+  const { markedPrice, pricedEntry, deliveryPricesText, freeFromText } = await import('@diner/lib/domain/deliveryPricing')
   expect(markedPrice(36900, 8)).toBe(39852)
   expect(markedPrice(9950, 10)).toBe(10945)
   const entry = { domicilio: { enabled: true, buscador: false, cobro: 'free', recargo: 10 }, contexto: { mesa: null },
@@ -316,10 +316,10 @@ it('la carta cambia a precios para domicilio con la ubicación', async () => {
 
 // Falla si el enlace de pago de WhatsApp no lleva al pago de la sede del pedido o si un enlace vencido no lo explica.
 it('el enlace de pago de WhatsApp abre el pago', async () => {
-  const { openPayLink } = jest.requireMock('@/lib/services/api')
+  const { openPayLink } = jest.requireMock('@diner/lib/services/api')
   const navigation = jest.requireMock('next/navigation')
   navigation.useSearchParams = () => new URLSearchParams('token=abc')
-  const { default: PayDeliveryPage } = await import('@/app/[rest]/domicilio/pagar/page')
+  const { default: PayDeliveryPage } = await import('@/app/(diner)/diner/[rest]/domicilio/pagar/page')
   jest.mocked(openPayLink).mockResolvedValue({ restaurante: 'demo', sede: 'salon' })
   const { unmount } = render(<PayDeliveryPage />)
   await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/demo/salon/pago'))

@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 
-import HistorialPage from '@/app/(pos)/historial/page'
+import HistorialPage from '@/app/(waiter)/(pos)/historial/page'
 import { messages } from '@/lib/i18n/messages'
 import type { KitLine, KitOrder } from '@/lib/domain/orderState'
 import { useNetworkStore } from '@/lib/offline/network'

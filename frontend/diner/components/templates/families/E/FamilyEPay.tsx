@@ -3,10 +3,10 @@
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
-import { DemoBadge, PayStates, TotalRow } from '@/components/templates/families/E/parts'
-import type { PayLayoutProps } from '@/components/templates/types'
-import { formatCop } from '@/lib/domain/cart'
-import type { PayMethod } from '@/lib/types'
+import { DemoBadge, PayStates, TotalRow } from '@diner/components/templates/families/E/parts'
+import type { PayLayoutProps } from '@diner/components/templates/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import type { PayMethod } from '@diner/lib/types'
 
 type Variant = 'E1' | 'E2' | 'E3' | 'E4' | 'E5'
 type Split = 'mine' | 'parts' | 'all'

@@ -1,7 +1,7 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 
-import { B2Menu } from '@/components/templates/families/B/B2Menu'
-import { angus, menuProps, tacos, wrap } from '@/components/templates/families/B/__tests__/fixtures'
+import { B2Menu } from '@diner/components/templates/families/B/B2Menu'
+import { angus, menuProps, tacos, wrap } from '@diner/components/templates/families/B/__tests__/fixtures'
 
 // Falla si el ranking no va favoritos primero y sin agotados, si inventa «312 pedidos» (solo «Favorito de la casa» o la categoría),
 // o si el CTA no pide el primero del ranking.

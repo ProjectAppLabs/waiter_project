@@ -1,10 +1,10 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { DEFAULT_TEMPLATE, applyGoogleFonts, applyPreview, encodePreview, familyOf, fontsToLoad, initials, loadGoogleFonts, parsePreview, previewOverride, templateFromSpec, templateVars } from '@/lib/domain/template'
-import type { TemplateSpec } from '@/lib/types'
+import { DEFAULT_TEMPLATE, applyGoogleFonts, applyPreview, encodePreview, familyOf, fontsToLoad, initials, loadGoogleFonts, parsePreview, previewOverride, templateFromSpec, templateVars } from '@diner/lib/domain/template'
+import type { TemplateSpec } from '@diner/lib/types'
 
-const B1_SPEC = join(__dirname, '..', '..', '..', '..', 'experience', 'experience_app', 'plantillas', 'catalogo', 'S1.json')
+const B1_SPEC = join(__dirname, '..', '..', '..', '..', '..', 'experience', 'experience_app', 'plantillas', 'catalogo', 'S1.json')
 const a1: TemplateSpec = {
   codigo: 'A1', nombre: 'Carta editorial', familia: 'A', fotos: { requiere: 'ninguna', recorte: 'ninguno' },
   tokens: { ...DEFAULT_TEMPLATE.tokens, fondo: '#FAF8F5', acento: '#7A2E2A', displayFont: 'Fraunces', displayPeso: 400, radioTarjeta: 4 },

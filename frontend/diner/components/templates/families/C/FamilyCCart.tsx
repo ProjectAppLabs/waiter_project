@@ -4,12 +4,12 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
-import { extrasOf, familyCCode, isDarkC, money, price } from '@/components/templates/families/C/parts'
-import type { FamilyCCode } from '@/components/templates/families/C/parts'
-import type { CartLayoutProps } from '@/components/templates/types'
-import { formatCop, itemCount, mine, others } from '@/lib/domain/cart'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { CartLine, Discount } from '@/lib/types'
+import { extrasOf, familyCCode, isDarkC, money, price } from '@diner/components/templates/families/C/parts'
+import type { FamilyCCode } from '@diner/components/templates/families/C/parts'
+import type { CartLayoutProps } from '@diner/components/templates/types'
+import { formatCop, itemCount, mine, others } from '@diner/lib/domain/cart'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { CartLine, Discount } from '@diner/lib/types'
 
 // Carrito de la familia C (docs/diseno/plantillas/C*/carrito.html). Esqueleto común: cabecera «Tu pedido · N ítems», filas, bloque
 // de totales (Subtotal / Descuento primera compra / Total) y pie con las acciones. La fila y el descuento cambian por código:

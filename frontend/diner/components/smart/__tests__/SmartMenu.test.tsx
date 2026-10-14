@@ -3,9 +3,9 @@ import { SmartBrowse, SmartDish } from '../SmartMenu'
 import { SmartAssistant, SmartPreferences, rankDishes } from '../SmartJourneys'
 import { SmartHome, greeting } from '../SmartHome'
 import { SmartHistory, SmartSignup } from '../SmartAccount'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
-import type { Entry } from '@/lib/types'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
+import type { Entry } from '@diner/lib/types'
 const push = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push }) }))
 const initial = useDinerStore.getState()

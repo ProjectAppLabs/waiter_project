@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 
-import OperacionPage from '@/app/(pos)/operacion/page'
+import OperacionPage from '@/app/(waiter)/(pos)/operacion/page'
 import { messages } from '@/lib/i18n/messages'
 import type { ShiftOrder } from '@/lib/services/ops'
 import { useAuthStore } from '@/lib/stores/authStore'

@@ -5,11 +5,11 @@ const path = require('node:path');
 const { chromium } = require('playwright-core');
 const { measureVariants } = require('../design-system/medir-variantes.cjs');
 const { auditAccessibility } = require('../design-system/auditar-accesibilidad.cjs');
-const root = path.resolve(__dirname, '../../..');
+const root = path.resolve(__dirname, '../../../..');
 const source = process.env.EXPORTY_SOURCE || '/tmp/smart-export';
 const output = process.env.EXPORTY_OUTPUT || '/tmp/exporty-audit/current';
 const viewport = process.env.AUDIT_VIEWPORT ? JSON.parse(process.env.AUDIT_VIEWPORT) : {width:375,height:812};
-const base = process.env.DINER_URL || 'http://192.168.56.10:3001';
+const base = process.env.DINER_URL || 'http://menu.localhost:3001';
 const spec = require(path.join(root, 'experience/experience_app/plantillas/catalogo/S1.json'));
 // AUDIT_TEMPLATE permite capturar la respuesta real del resolvedor de temas, además del contrato antiguo.
 const template = process.env.AUDIT_TEMPLATE ? require(path.resolve(process.env.AUDIT_TEMPLATE)) : { ...spec, layouts: {menu:'S1',carrito:'smart',pago:'smart',registro:'banner5',codigo:'casillas',historial:'tarjetas'}, descuento:{activo:true,porcentaje:5} };

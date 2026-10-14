@@ -1,10 +1,10 @@
 /** @jest-environment jsdom */
-import { DEFAULT_TEMPLATE, encodePreview } from '@/lib/domain/template'
-import { ApiError } from '@/lib/services/api'
-import { AUTHORIZING_MS, payableTotal, useDinerStore } from '@/lib/stores/dinerStore'
-import type { Entry, Template, TemplateSpec } from '@/lib/types'
+import { DEFAULT_TEMPLATE, encodePreview } from '@diner/lib/domain/template'
+import { ApiError } from '@diner/lib/services/api'
+import { AUTHORIZING_MS, payableTotal, useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { Entry, Template, TemplateSpec } from '@diner/lib/types'
 
-jest.mock('@/lib/services/api', () => {
+jest.mock('@diner/lib/services/api', () => {
   class ApiError extends Error { constructor(message: string, readonly status: number, readonly code?: string) { super(message) } }
   return {
     ApiError,
@@ -16,7 +16,7 @@ jest.mock('@/lib/services/api', () => {
   }
 })
 
-const api = jest.requireMock('@/lib/services/api')
+const api = jest.requireMock('@diner/lib/services/api')
 const keys = { rest: 'la-provincia', venue: 'centro', token: 'Z2XUVG' }
 const initial = useDinerStore.getInitialState()
 const brand = { nombre: 'La Provincia', lema: '', logo: null, saludo: '', mesero: '', bienvenida: '', color: '#7A2E2A', colorTexto: '#FFFFFF', colorSuave: '#F6EBEA', fuente: 'Instrument Serif', radio: 14 }

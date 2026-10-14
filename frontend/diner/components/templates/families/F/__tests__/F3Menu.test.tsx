@@ -1,10 +1,10 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 
-import { F3Menu } from '@/components/templates/families/F/F3Menu'
-import { cartOf, line, menuProps, wrap } from '@/components/templates/families/F/__tests__/fixtures'
+import { F3Menu } from '@diner/components/templates/families/F/F3Menu'
+import { cartOf, line, menuProps, wrap } from '@diner/components/templates/families/F/__tests__/fixtures'
 
 const mockCall = jest.fn()
-jest.mock('@/lib/stores/dinerStore', () => ({ useDinerStore: (selector?: (s: { call: () => Promise<boolean> }) => unknown) => (selector ? selector({ call: mockCall }) : { call: mockCall }) }))
+jest.mock('@diner/lib/stores/dinerStore', () => ({ useDinerStore: (selector?: (s: { call: () => Promise<boolean> }) => unknown) => (selector ? selector({ call: mockCall }) : { call: mockCall }) }))
 
 beforeEach(() => mockCall.mockReset())
 

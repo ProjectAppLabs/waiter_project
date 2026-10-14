@@ -3,8 +3,8 @@
 import { useTranslations } from 'next-intl'
 import { useRef, useState } from 'react'
 
-import type { SignupProps } from '@/components/templates/types'
-import { useDinerStore } from '@/lib/stores/dinerStore'
+import type { SignupProps } from '@diner/components/templates/types'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 // Este patrón no pide el nombre (dos campos: correo y celular); experience lo exige, así que se deriva del correo («camila.r@…» → «Camila R»).

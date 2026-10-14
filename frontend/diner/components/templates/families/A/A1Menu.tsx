@@ -2,9 +2,9 @@
 
 import { useTranslations } from 'next-intl'
 
-import { EditorialDish, EditorialTabs, EmptyMenu, OrderStrip, SearchToggle, filterSections } from '@/components/templates/families/A/shared'
-import { tabId } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
+import { EditorialDish, EditorialTabs, EmptyMenu, OrderStrip, SearchToggle, filterSections } from '@diner/components/templates/families/A/shared'
+import { tabId } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
 
 // A1 · Carta editorial (docs/diseno/plantillas/A1). Bloques del spec, en orden: cabecera centrada (marca.nombre o logo + «lema · Mesa N»),
 // cuerpo en una columna sin fotos con rótulos de categoría centrados en versalitas, plato = nombre en serif 21 / descripción larga / precio

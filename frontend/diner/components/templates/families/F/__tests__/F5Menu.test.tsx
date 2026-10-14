@@ -1,7 +1,7 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 
-import { F5Menu } from '@/components/templates/families/F/F5Menu'
-import { cartOf, line, menuProps, wrap } from '@/components/templates/families/F/__tests__/fixtures'
+import { F5Menu } from '@diner/components/templates/families/F/F5Menu'
+import { cartOf, line, menuProps, wrap } from '@diner/components/templates/families/F/__tests__/fixtures'
 
 // Falla si la tarjeta con foto pierde la franja 3x2, si la línea «por persona» se inventa sin la etiqueta «para N», o si la primera no queda seleccionada con borde de tinta.
 it('paints the set cards with the photo strip, the per-person line only with «para N», and the selection outline', () => {

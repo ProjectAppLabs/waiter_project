@@ -3,11 +3,11 @@
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
-import { primaryCta, secondaryCta, skinOf } from '@/components/templates/families/A/shared'
-import { useCartCount } from '@/components/templates/families/A/storeExtras'
-import type { PayLayoutProps } from '@/components/templates/types'
-import { formatCop } from '@/lib/domain/cart'
-import type { OrderState, PayMethod } from '@/lib/types'
+import { primaryCta, secondaryCta, skinOf } from '@diner/components/templates/families/A/shared'
+import { useCartCount } from '@diner/components/templates/families/A/storeExtras'
+import type { PayLayoutProps } from '@diner/components/templates/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import type { OrderState, PayMethod } from '@diner/lib/types'
 
 const STEP_BARS: Record<OrderState, number> = { pendiente_pago: 0, enviado: 1, en_cocina: 2, listo: 2, servido: 3, pagado: 3, fallido: 0 }
 // Maqueta de tarjeta: se formatea para verse real; el número nunca sale del componente (no hay pasarela).

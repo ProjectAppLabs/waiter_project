@@ -2,11 +2,11 @@
 
 import { useState } from 'react'
 
-import { myCount } from '@/lib/domain/cartEvents'
-import { freeFromText } from '@/lib/domain/deliveryPricing'
-import { setDelivery } from '@/lib/services/api'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { DeliveryMethod, DeliveryQuote } from '@/lib/types'
+import { myCount } from '@diner/lib/domain/cartEvents'
+import { freeFromText } from '@diner/lib/domain/deliveryPricing'
+import { setDelivery } from '@diner/lib/services/api'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { DeliveryMethod, DeliveryQuote } from '@diner/lib/types'
 import { closedText } from './ClosedBanner'
 import { money as formatCop, useSmartRoute } from './SmartMenu'
 

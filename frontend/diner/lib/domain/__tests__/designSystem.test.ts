@@ -2,12 +2,12 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { DESIGN_FACTORS, SHAPE_FACTOR, SHAPE_ROLES, designSystemVars } from '../designSystem'
 import { DEFAULT_TEMPLATE, templateVars } from '../template'
-import type { MenuTheme } from '@/lib/types'
+import type { MenuTheme } from '@diner/lib/types'
 
-const root = join(__dirname, '../../../..')
+const root = join(__dirname, '../../../../..')
 const schema = JSON.parse(readFileSync(join(root, 'experience/experience_app/diseno/esquema.json'), 'utf8'))
 const inventory = JSON.parse(readFileSync(join(root, 'experience/experience_app/diseno/inventario.json'), 'utf8'))
-const smart = join(root, 'diner/components/smart')
+const smart = join(root, 'frontend/diner/components/smart')
 const css = readdirSync(smart).filter((file) => file.endsWith('.css')).map((file) => readFileSync(join(smart, file), 'utf8')).join('\n')
 const tokensCSS = readFileSync(join(smart, 'smart-tokens.css'), 'utf8')
 const theme = (foundation: Partial<MenuTheme['fundamentos']> = {}): MenuTheme => ({

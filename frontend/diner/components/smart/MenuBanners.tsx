@@ -1,11 +1,11 @@
 'use client'
 /* eslint-disable @next/next/no-img-element -- Admin-provided banner image. */
 import Link from 'next/link'
-import type {Dish,MenuBanner} from '@/lib/types'
+import type {Dish,MenuBanner} from '@diner/lib/types'
 import {FoodPhoto,Icon,money,useSmartRoute} from './SmartMenu'
-import { Plantilla } from '@/components/plantillas/Renderizador'
-import { usePlantilla } from '@/components/plantillas/usePlantilla'
-import type { TemplateData } from '@/lib/domain/plantillas'
+import { Plantilla } from '@diner/components/plantillas/Renderizador'
+import { usePlantilla } from '@diner/components/plantillas/usePlantilla'
+import type { TemplateData } from '@diner/lib/domain/plantillas'
 import './smart-tokens.css'
 import './smart-banners.css'
 const LABELS: Record<MenuBanner['layout'], string> = { product: 'Plato destacado', promotion: 'Promoción', category: 'Explora el menú', notice: 'Novedades', image: '' }

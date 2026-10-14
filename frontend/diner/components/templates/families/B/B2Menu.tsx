@@ -3,11 +3,11 @@
 import { useTranslations } from 'next-intl'
 import { useMemo, useState } from 'react'
 
-import { AddButton, DishMeta, GOLD_INK, Photo, Pills, SEARCH_FIELD, SEARCH_SURFACE } from '@/components/templates/families/B/parts'
-import { tabId, unique, useMenuDishes } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { formatCop, recommended } from '@/lib/domain/cart'
-import type { Category, Dish } from '@/lib/types'
+import { AddButton, DishMeta, GOLD_INK, Photo, Pills, SEARCH_FIELD, SEARCH_SURFACE } from '@diner/components/templates/families/B/parts'
+import { tabId, unique, useMenuDishes } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { formatCop, recommended } from '@diner/lib/domain/cart'
+import type { Category, Dish } from '@diner/lib/types'
 
 const TOP = 5
 

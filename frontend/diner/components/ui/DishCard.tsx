@@ -2,8 +2,8 @@
 
 import { useTranslations } from 'next-intl'
 
-import { formatCop } from '@/lib/domain/cart'
-import type { Dish } from '@/lib/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import type { Dish } from '@diner/lib/types'
 
 // Tarjeta de plato del diseño: foto, nombre, descripción, precio mono y ＋ redondo en el color del restaurante.
 export function DishCard({ dish, onOpen, onAdd }: { dish: Dish; onOpen: (d: Dish) => void; onAdd: (d: Dish) => void }) {

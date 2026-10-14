@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { NextIntlClientProvider } from 'next-intl'
 
-import EnterWithPass from '@/app/entrar/page'
+import EnterWithPass from '@/app/(waiter)/entrar/page'
 import { here, leaveTo } from '@/lib/domain/tenant'
 import { messages } from '@/lib/i18n/messages'
 import { CoreError } from '@/lib/services/core/http'

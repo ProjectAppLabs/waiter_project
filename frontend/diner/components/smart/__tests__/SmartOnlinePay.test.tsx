@@ -1,9 +1,9 @@
 import {fireEvent,render,screen} from '@testing-library/react'
 import {SmartOnlinePay} from '../SmartOnlinePay'
-import {useDinerStore} from '@/lib/stores/dinerStore'
-import {paymentContext,createPayment,tokenizeCard} from '@/lib/services/payments'
+import {useDinerStore} from '@diner/lib/stores/dinerStore'
+import {paymentContext,createPayment,tokenizeCard} from '@diner/lib/services/payments'
 
-jest.mock('@/lib/services/payments',()=>({paymentContext:jest.fn(),createPayment:jest.fn(),readPayment:jest.fn(),tokenizeCard:jest.fn()}))
+jest.mock('@diner/lib/services/payments',()=>({paymentContext:jest.fn(),createPayment:jest.fn(),readPayment:jest.fn(),tokenizeCard:jest.fn()}))
 jest.mock('../SmartMenu',()=>({Title:({title}:{title:string})=><h1>{title}</h1>,money:(n:number)=>`$${n}`,useSmartRoute:()=>({go:jest.fn()})}))
 const initial=useDinerStore.getState()
 const context={available:true,attempt:null,other_payment_pending:false,environment:'test',public_key:'pub_test_dummy',amount_in_cents:5105100,methods:['BANCOLOMBIA_TRANSFER','BANCOLOMBIA_QR','NEQUI','CARD'],acceptance:{token:'terms',url:'https://wompi.co/terms'},personal_data:{token:'personal',url:'https://wompi.co/privacy'}}

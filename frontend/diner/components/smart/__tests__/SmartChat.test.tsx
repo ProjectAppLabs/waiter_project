@@ -1,10 +1,10 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { SmartChat } from '../SmartChat'
-import { addChatSelection, getChat, newChat, sendChat } from '@/lib/services/api'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { Entry } from '@/lib/types'
+import { addChatSelection, getChat, newChat, sendChat } from '@diner/lib/services/api'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { Entry } from '@diner/lib/types'
 
-jest.mock('@/lib/services/api', () => ({ getChat: jest.fn(), newChat: jest.fn(), sendChat: jest.fn(), addChatSelection: jest.fn() }))
+jest.mock('@diner/lib/services/api', () => ({ getChat: jest.fn(), newChat: jest.fn(), sendChat: jest.fn(), addChatSelection: jest.fn() }))
 const initial = useDinerStore.getState()
 const entry = { contexto: { marca: { nombre: 'Demo' } }, carta: { categorias: [{ productos: [
   { id: 7, nombre: 'Bowl', agotado: false },

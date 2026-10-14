@@ -1,7 +1,7 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 
-import { B4Menu, weekday } from '@/components/templates/families/B/B4Menu'
-import { angus, menuProps, tacos, wrap } from '@/components/templates/families/B/__tests__/fixtures'
+import { B4Menu, weekday } from '@diner/components/templates/families/B/B4Menu'
+import { angus, menuProps, tacos, wrap } from '@diner/components/templates/families/B/__tests__/fixtures'
 
 // Falla si la pizarra no pinta un paso por categoría con las opciones y su precio en mono, si el agotado se puede elegir,
 // o si inventa un precio único / recargo que la carta no tiene.

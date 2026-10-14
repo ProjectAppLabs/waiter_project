@@ -1,16 +1,16 @@
 'use client'
 
-import { accountScreen, dinerHas } from '@/lib/domain/modules'/* eslint-disable @next/next/no-img-element -- Original exported illustrations and restaurant logo. */
+import { accountScreen, dinerHas } from '@diner/lib/domain/modules'/* eslint-disable @next/next/no-img-element -- Original exported illustrations and restaurant logo. */
 import Link from 'next/link'
 import { useRef } from 'react'
-import type { Entry } from '@/lib/types'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import { initials } from '@/lib/domain/template'
-import { pickGreeting } from '@/lib/domain/greeting'
+import type { Entry } from '@diner/lib/types'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import { initials } from '@diner/lib/domain/template'
+import { pickGreeting } from '@diner/lib/domain/greeting'
 import { FoodPhoto, Icon, money, useSmartRoute } from './SmartMenu'
-import { Plantilla } from '@/components/plantillas/Renderizador'
-import { usePlantilla } from '@/components/plantillas/usePlantilla'
-import type { TemplateData } from '@/lib/domain/plantillas'
+import { Plantilla } from '@diner/components/plantillas/Renderizador'
+import { usePlantilla } from '@diner/components/plantillas/usePlantilla'
+import type { TemplateData } from '@diner/lib/domain/plantillas'
 
 // Saludo de la cabecera: frase del repertorio según la hora (lib/domain/greeting) o el texto que fijó el administrador
 // en Diseño del menú → Saludo; con cuenta lleva el primer nombre. No es un enlace: la navegación vive en el botón.

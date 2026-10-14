@@ -4,10 +4,10 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
-import { DishPhoto, EmptyList, FOOT_CLASS, SearchField, extrasOf, price } from '@/components/templates/families/C/parts'
-import { CategoryTabs, TemplateDishCard, tabId, useMenuDishes } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { itemCount } from '@/lib/domain/cart'
+import { DishPhoto, EmptyList, FOOT_CLASS, SearchField, extrasOf, price } from '@diner/components/templates/families/C/parts'
+import { CategoryTabs, TemplateDishCard, tabId, useMenuDishes } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { itemCount } from '@diner/lib/domain/cart'
 
 // C5 · Kiosco de autoservicio (docs/diseno/plantillas/C5). La pantalla principal es el resumen del pedido, no la carta: banda
 // ámbar fija del diseño con «Tu pedido» y el total en mono; filas del carrito con «{n}×» en mono terciario, nombre 16/500, nota

@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
-import type { Brand } from '@/lib/types'
+import type { Brand } from '@diner/lib/types'
 
 export function BrandHeader({ brand, table }: { brand: Brand; table: number | null }) {
   const t = useTranslations('diner.common')

@@ -1,9 +1,9 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 
-import { E1Menu } from '@/components/templates/families/E/E1Menu'
-import { cartOf, categories, entryOf, grifos, line, menuProps, wrap } from '@/components/templates/families/E/__tests__/fixtures'
+import { E1Menu } from '@diner/components/templates/families/E/E1Menu'
+import { cartOf, categories, entryOf, grifos, line, menuProps, wrap } from '@diner/components/templates/families/E/__tests__/fixtures'
 
-jest.mock('@/lib/stores/dinerStore', () => ({ useDinerStore: () => ({ account: null }) }))
+jest.mock('@diner/lib/stores/dinerStore', () => ({ useDinerStore: () => ({ account: null }) }))
 
 // Falla si la cabecera no cuenta los grifos, si el rótulo «ABV · IBU» aparece sin datos, si la línea técnica inventa valores, o si el
 // barril vacío no se atenúa con su nota en vez del ABV.

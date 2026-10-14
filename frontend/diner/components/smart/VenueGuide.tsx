@@ -3,11 +3,11 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
-import { myCount } from '@/lib/domain/cartEvents'
-import { carryTo, takeCarried, type CarriedLocation } from '@/lib/domain/venueRedirect'
-import { addLine } from '@/lib/services/api'
-import { templateVars } from '@/lib/domain/template'
-import { useDinerStore } from '@/lib/stores/dinerStore'
+import { myCount } from '@diner/lib/domain/cartEvents'
+import { carryTo, takeCarried, type CarriedLocation } from '@diner/lib/domain/venueRedirect'
+import { addLine } from '@diner/lib/services/api'
+import { templateVars } from '@diner/lib/domain/template'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
 
 // Tiempo para leer el aviso antes de pasar a la otra sede.
 export const MOVE_DELAY = 1600

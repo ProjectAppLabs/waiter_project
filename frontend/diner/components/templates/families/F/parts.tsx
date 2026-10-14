@@ -3,10 +3,10 @@
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 
-import { tabId } from '@/components/templates/generic/menuParts'
-import { formatCop, itemCount } from '@/lib/domain/cart'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { Cart, Category, Dish, Menu } from '@/lib/types'
+import { tabId } from '@diner/components/templates/generic/menuParts'
+import { formatCop, itemCount } from '@diner/lib/domain/cart'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { Cart, Category, Dish, Menu } from '@diner/lib/types'
 
 // Piezas compartidas por la familia F (sushi y especializados): conteo de piezas del carrito, pestañas con la piel de cada
 // marco, buscador plegable, foto con recorte/agotado y el ＋ de 44 px. Solo tokens --t-* y los semánticos fijos de Waiter.

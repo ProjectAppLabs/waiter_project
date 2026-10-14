@@ -1,11 +1,11 @@
 import { fireEvent, screen } from '@testing-library/react'
 
-import { FamilyAPay } from '@/components/templates/families/A/FamilyAPay'
-import { templateOf, wrap } from '@/components/templates/families/A/__tests__/fixtures'
-import type { PayLayoutProps } from '@/components/templates/types'
-import type { Bill } from '@/lib/types'
+import { FamilyAPay } from '@diner/components/templates/families/A/FamilyAPay'
+import { templateOf, wrap } from '@diner/components/templates/families/A/__tests__/fixtures'
+import type { PayLayoutProps } from '@diner/components/templates/types'
+import type { Bill } from '@diner/lib/types'
 
-jest.mock('@/lib/stores/dinerStore', () => ({ useDinerStore: (selector: (s: { cart: { lineas: { cantidad: number }[] }; entry: null; call: () => Promise<boolean> }) => unknown) => selector({ cart: { lineas: [{ cantidad: 2 }] }, entry: null, call: jest.fn() }) }))
+jest.mock('@diner/lib/stores/dinerStore', () => ({ useDinerStore: (selector: (s: { cart: { lineas: { cantidad: number }[] }; entry: null; call: () => Promise<boolean> }) => unknown) => selector({ cart: { lineas: [{ cantidad: 2 }] }, entry: null, call: jest.fn() }) }))
 
 const bill: Bill = { ok: false, total: 105945, mio: 105945, porComensal: [], partes: 1, porParte: 105945, descuento: { porcentaje: 5, monto: 5045, aplicable: true, aplicado: true } }
 const base = (codigo: string, over: Partial<PayLayoutProps> = {}): PayLayoutProps => ({

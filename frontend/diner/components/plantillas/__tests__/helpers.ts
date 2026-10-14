@@ -1,9 +1,9 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
-import type { TemplateNode } from '@/lib/types'
+import type { TemplateNode } from '@diner/lib/types'
 
 // Contratos por archivo (experience/diseno/componentes/<id>.json), como los carga plantillas.py.
-const contractsDir = join(__dirname, '../../../../experience/experience_app/diseno/componentes')
+const contractsDir = join(__dirname, '../../../../../experience/experience_app/diseno/componentes')
 export const contracts = { ...JSON.parse(readFileSync(join(contractsDir, '../componentes.json'), 'utf8')),
   componentes: Object.fromEntries(readdirSync(contractsDir).filter((f) => f.endsWith('.json')).map((f) => [f.replace(/\.json$/, ''), JSON.parse(readFileSync(join(contractsDir, f), 'utf8'))])) } as {
     etiquetas: string[]; componentes: Record<string, { version: number; datos: Record<string, unknown>; ranuras: Record<string, unknown>; plantilla_fabrica: string }> }

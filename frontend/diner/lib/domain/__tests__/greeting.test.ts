@@ -1,4 +1,4 @@
-import { momentOf, pickGreeting } from '@/lib/domain/greeting'
+import { momentOf, pickGreeting } from '@diner/lib/domain/greeting'
 
 // Falla si el saludo vuelve a ser un «Hola» plano, si la frase no respeta la hora, si el nombre no entra en la frase
 // o si el texto del administrador deja de mandar sobre el repertorio.

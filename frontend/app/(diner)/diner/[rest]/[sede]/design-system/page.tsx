@@ -4,12 +4,12 @@
 // y admite ?borrador=<token> para ver un borrador en todos los componentes antes de confirmarlo. Nunca escribe.
 import { useParams, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useMemo, useState } from 'react'
-import { DesignSystem } from '@/components/design-system/DesignSystem'
-import { applyGoogleFonts, templateVars } from '@/lib/domain/template'
-import { themeVars } from '@/lib/domain/theme'
-import { getDesignContract } from '@/lib/services/api'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { DesignContract } from '@/lib/types'
+import { DesignSystem } from '@diner/components/design-system/DesignSystem'
+import { applyGoogleFonts, templateVars } from '@diner/lib/domain/template'
+import { themeVars } from '@diner/lib/domain/theme'
+import { getDesignContract } from '@diner/lib/services/api'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { DesignContract } from '@diner/lib/types'
 
 function DesignSystemPage() {
   const params = useParams<{ rest: string; sede: string }>()

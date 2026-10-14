@@ -4,10 +4,10 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useState } from 'react'
 
-import { formatCop } from '@/lib/domain/cart'
-import { pathFor } from '@/lib/domain/route'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { Bill as BillSummary, Entry } from '@/lib/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import { pathFor } from '@diner/lib/domain/route'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { Bill as BillSummary, Entry } from '@diner/lib/types'
 
 type Mode = 'all' | 'mine' | 'split'
 const MODES: Mode[] = ['all', 'mine', 'split']

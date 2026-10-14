@@ -29,7 +29,7 @@ export type ThemeMode = (typeof THEME_MODES)[number]
 export const cssVar = (token: KitToken): string => `--kit-${token.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`
 
 // ---- Lo que documenta /kit. Si agregas un valor aquí, aparece solo en la vista; si es de CSS, decláralo también
-// en app/globals.css (la prueba de tokens falla cuando uno de los dos se queda atrás).
+// en app/(waiter)/globals.css (la prueba de tokens falla cuando uno de los dos se queda atrás).
 
 // Escala tipográfica en uso. `className` es la clase de Tailwind que se escribe en el componente.
 export const TYPE_SCALE = [

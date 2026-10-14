@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 
-import { reverseAddress } from '@/lib/services/api'
+import { reverseAddress } from '@diner/lib/services/api'
 import type { Point } from './LocationPicker'
 
 // Plan D: cuando el pin se asienta, se busca su dirección aproximada (medio segundo después, para no consultar en cada

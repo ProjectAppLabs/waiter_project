@@ -2,9 +2,9 @@
 
 import { useTranslations } from 'next-intl'
 
-import { formatCop } from '@/lib/domain/cart'
-import { initials } from '@/lib/domain/template'
-import type { Account, AccountOrder } from '@/lib/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import { initials } from '@diner/lib/domain/template'
+import type { Account, AccountOrder } from '@diner/lib/types'
 
 // Mi cuenta (Cuenta 4b-4, igual para las 30): cabecera oscura con avatar de iniciales en el acento, nombre y correo; cifras en mono
 // (pedidos, ahorrado); filas (Mis pedidos, Mis datos y privacidad); «Cerrar sesión». Sin cuenta: invitación a crearla.

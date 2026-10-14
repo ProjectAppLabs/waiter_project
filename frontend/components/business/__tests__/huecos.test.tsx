@@ -1,8 +1,8 @@
 import { act, fireEvent, render as rtlRender, screen, waitFor, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 
-import SupportEntry from '@/app/soporte/page'
-import PlatformLayout from '@/app/plataforma/layout'
+import SupportEntry from '@/app/(waiter)/soporte/page'
+import PlatformLayout from '@/app/(waiter)/plataforma/layout'
 import { AuditView } from '@/components/business/AuditView'
 import { SupportView } from '@/components/business/SupportView'
 import { TeamHoursView } from '@/components/business/TeamHoursView'

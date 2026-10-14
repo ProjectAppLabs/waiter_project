@@ -1,10 +1,10 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 
-import { D2Menu } from '@/components/templates/families/D/D2Menu'
-import { cafe, cartOf, cortado, entryOf, horno, line, menuProps, wrap } from '@/components/templates/families/D/__tests__/fixtures'
+import { D2Menu } from '@diner/components/templates/families/D/D2Menu'
+import { cafe, cartOf, cortado, entryOf, horno, line, menuProps, wrap } from '@diner/components/templates/families/D/__tests__/fixtures'
 
 const mockStore = { entry: null, account: null, accountOrders: [], loadAccount: jest.fn(), add: jest.fn().mockResolvedValue(undefined) }
-jest.mock('@/lib/stores/dinerStore', () => ({ useDinerStore: (sel?: (s: typeof mockStore) => unknown) => (sel ? sel(mockStore) : mockStore) }))
+jest.mock('@diner/lib/stores/dinerStore', () => ({ useDinerStore: (sel?: (s: typeof mockStore) => unknown) => (sel ? sel(mockStore) : mockStore) }))
 
 const builder = () => screen.getByRole('region', { name: 'Arma tu pedido' })
 

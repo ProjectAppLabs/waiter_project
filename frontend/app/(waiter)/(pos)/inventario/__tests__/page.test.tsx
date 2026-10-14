@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 
-import InventarioPage from '@/app/(pos)/inventario/page'
+import InventarioPage from '@/app/(waiter)/(pos)/inventario/page'
 import { messages } from '@/lib/i18n/messages'
 import type { Dish, Ingredient } from '@/lib/domain/pantry'
 import { downloadExport } from '@/lib/services/core/exports'

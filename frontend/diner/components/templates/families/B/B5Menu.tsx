@@ -3,11 +3,11 @@
 import { useTranslations } from 'next-intl'
 import { useMemo, useState } from 'react'
 
-import { DishMeta, FrameOrderBar, GOLD_INK, Pills, SEARCH_FIELD } from '@/components/templates/families/B/parts'
-import { fold } from '@/components/templates/generic/menuParts'
-import type { MenuLayoutProps } from '@/components/templates/types'
-import { formatCop } from '@/lib/domain/cart'
-import type { Category, Dish } from '@/lib/types'
+import { DishMeta, FrameOrderBar, GOLD_INK, Pills, SEARCH_FIELD } from '@diner/components/templates/families/B/parts'
+import { fold } from '@diner/components/templates/generic/menuParts'
+import type { MenuLayoutProps } from '@diner/components/templates/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import type { Category, Dish } from '@diner/lib/types'
 
 // B5 · Carta con secciones plegables (docs/diseno/plantillas/B5): buscador «Buscar en la carta» con botón de filtro ≡ (despliega las
 // píldoras de categoría de Waiter), acordeón de categorías (cerradas sobre superficie con «8 · abrir» en terciario; la abierta con

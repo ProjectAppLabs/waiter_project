@@ -1,5 +1,5 @@
-import { formatCop } from '@/lib/domain/cart'
-import type { RewardAction, RewardPrize } from '@/lib/types'
+import { formatCop } from '@diner/lib/domain/cart'
+import type { RewardAction, RewardPrize } from '@diner/lib/types'
 
 // Plan N: cómo se cuenta cada acción del menú que da un premio y a qué pantalla lleva para cumplirla.
 export const REWARD_ACTIONS: Record<RewardAction, { titulo: string; origen: string; pantalla: 'cuenta/registro' | 'historial' | 'cuenta' | 'pedido' }> = {

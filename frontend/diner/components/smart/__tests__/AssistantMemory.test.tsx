@@ -2,11 +2,11 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 import { AssistantMemory } from '../AssistantMemory'
 import { noticeUntil } from '../SmartChat'
-import { forgetAssistantMemory, getAssistantMemory } from '@/lib/services/api'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { Entry } from '@/lib/types'
+import { forgetAssistantMemory, getAssistantMemory } from '@diner/lib/services/api'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { Entry } from '@diner/lib/types'
 
-jest.mock('@/lib/services/api')
+jest.mock('@diner/lib/services/api')
 const inicial = useDinerStore.getInitialState()
 const RECUERDA = { nombre: 'Anita', preferencias: [{ clave: 'picante', nombre: 'Picante', veces: 3 }], favoritos: [{ producto: 7, nombre: 'Hamburguesa diabla' }], ultimos: [{ producto: 8, nombre: 'Limonada' }], alergias: ['maní'] }
 const conModulos = (modulos: string[] | undefined) => useDinerStore.setState({ ...inicial, keys: { rest: 'demo', venue: 'salon', token: null }, entry: { modulos } as unknown as Entry }, true)

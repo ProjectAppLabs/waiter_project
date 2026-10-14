@@ -1,12 +1,12 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 
-import { FamilyACart, suggestion } from '@/components/templates/families/A/FamilyACart'
-import { cartOf, entryOf, line, templateOf, wrap } from '@/components/templates/families/A/__tests__/fixtures'
-import type { CartLayoutProps } from '@/components/templates/types'
-import type { Entry } from '@/lib/types'
+import { FamilyACart, suggestion } from '@diner/components/templates/families/A/FamilyACart'
+import { cartOf, entryOf, line, templateOf, wrap } from '@diner/components/templates/families/A/__tests__/fixtures'
+import type { CartLayoutProps } from '@diner/components/templates/types'
+import type { Entry } from '@diner/lib/types'
 
 const mockState: { entry: Entry | null } = { entry: entryOf() }
-jest.mock('@/lib/stores/dinerStore', () => ({ useDinerStore: (selector: (s: { entry: Entry | null; cart: null; call: () => Promise<boolean> }) => unknown) => selector({ entry: mockState.entry, cart: null, call: jest.fn() }) }))
+jest.mock('@diner/lib/stores/dinerStore', () => ({ useDinerStore: (selector: (s: { entry: Entry | null; cart: null; call: () => Promise<boolean> }) => unknown) => selector({ entry: mockState.entry, cart: null, call: jest.fn() }) }))
 
 const hrefs = { home: '/h', menu: '/m', pay: '/p', table: '/t', signup: '/s' }
 const props = (codigo: string, over: Partial<CartLayoutProps> = {}): CartLayoutProps => ({

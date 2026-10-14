@@ -1,7 +1,7 @@
 import { fireEvent, screen } from '@testing-library/react'
 
-import { C3Menu } from '@/components/templates/families/C/C3Menu'
-import { cartOf, line, menuProps, wrap } from '@/components/templates/families/C/__tests__/fixtures'
+import { C3Menu } from '@diner/components/templates/families/C/C3Menu'
+import { cartOf, line, menuProps, wrap } from '@diner/components/templates/families/C/__tests__/fixtures'
 
 // Falla si el paso no es la categoría de Waiter (1 de 3 en «Todo»), si el precio 0 no dice «incluido» y el resto «+precio», si el
 // agotado se puede elegir, o si «Siguiente» no pasa a la siguiente categoría por setCategory.

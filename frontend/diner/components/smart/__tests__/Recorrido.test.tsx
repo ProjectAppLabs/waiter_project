@@ -1,19 +1,19 @@
 import {cleanup,fireEvent,render,screen,waitFor,within} from '@testing-library/react'
-import {factoryTree} from '@/components/plantillas/__tests__/helpers'
+import {factoryTree} from '@diner/components/plantillas/__tests__/helpers'
 import {SmartAbout} from '../SmartJourneys'
 import {SmartEmailEntry,SmartPasswordReset,SmartRegisteredAccount,SmartVerificationChannel} from '../SmartPassword'
 import {SmartLocation} from '../SmartEntry'
 import {SmartFeedback} from '../SmartFeedback'
 import {PaidCelebration} from '../SmartBenefits'
-import {http} from '@/lib/services/api'
-import {DEFAULT_TEMPLATE} from '@/lib/domain/template'
-import {useDinerStore} from '@/lib/stores/dinerStore'
-import type {Entry,MenuTheme,OrderStatus} from '@/lib/types'
+import {http} from '@diner/lib/services/api'
+import {DEFAULT_TEMPLATE} from '@diner/lib/domain/template'
+import {useDinerStore} from '@diner/lib/stores/dinerStore'
+import type {Entry,MenuTheme,OrderStatus} from '@diner/lib/types'
 
 // Plan K, paquete C: las nueve pantallas de recorrido (la ubicación con sus tres pasos) se arman con el componente Recorrido y
 // la plantilla de fábrica del contrato «recorrido» las reproduce exactamente.
 jest.mock('next/navigation',()=>({useRouter:()=>({push:jest.fn()}),useSearchParams:()=>new URLSearchParams('token=enlace')}))
-jest.mock('@/lib/services/api',()=>({...jest.requireActual('@/lib/services/api'),getVenueLocation:jest.fn(async()=>({direccion:'Calle 10 # 5-20',latitud:6.2,longitud:-75.5}))}))
+jest.mock('@diner/lib/services/api',()=>({...jest.requireActual('@diner/lib/services/api'),getVenueLocation:jest.fn(async()=>({direccion:'Calle 10 # 5-20',latitud:6.2,longitud:-75.5}))}))
 
 const entry={banners:null,contexto:{restaurante:{slug:'demo',nombre:'Demo'},sede:{slug:'salon',nombre:'Salón'},mesa:{numero:8,token:'X'},
  marca:{nombre:'Casa Demo',lema:'Sabor de casa',logo:'/logo.png',saludo:'',mesero:'',bienvenida:'',color:'#6755A0',colorTexto:'#FFFFFF',colorSuave:'#EEEBF5',fuente:'Mulish',radio:16}},

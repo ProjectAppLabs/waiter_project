@@ -1,4 +1,4 @@
-import { http, ApiError } from '@/lib/services/api'
+import { http, ApiError } from '@diner/lib/services/api'
 import { PREVIEW_MESSAGE, setPreviewReadOnly } from '../preview'
 import { pathFor } from '../route'
 

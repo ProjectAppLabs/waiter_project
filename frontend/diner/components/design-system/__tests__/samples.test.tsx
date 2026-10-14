@@ -2,12 +2,12 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { render } from '@testing-library/react'
 import { COMPONENTS, DEMONSTRATED_BY, FIELDS, PLACEHOLDERS, SAMPLES, Sample, sampleDishes, showcase, type VariantField } from '../samples'
-import { DEFAULT_TEMPLATE } from '@/lib/domain/template'
-import { useDinerStore } from '@/lib/stores/dinerStore'
-import type { Dish, Entry } from '@/lib/types'
+import { DEFAULT_TEMPLATE } from '@diner/lib/domain/template'
+import { useDinerStore } from '@diner/lib/stores/dinerStore'
+import type { Dish, Entry } from '@diner/lib/types'
 
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
-const inventory = JSON.parse(readFileSync(join(__dirname, '../../../../experience/experience_app/diseno/inventario.json'), 'utf8'))
+const inventory = JSON.parse(readFileSync(join(__dirname, '../../../../../experience/experience_app/diseno/inventario.json'), 'utf8'))
 const dish = (id: number, extra: Partial<Dish> = {}): Dish => ({ id, nombre: `Plato ${id}`, precio: 1000 * id, agotado: false, categorias: [1], ...extra })
 const entry = { banners: null, contexto: { restaurante: { slug: 'demo', nombre: 'Demo' }, sede: { slug: 'salon', nombre: 'Salón' }, mesa: null,
   marca: { nombre: 'Demo', lema: '', logo: null, saludo: '', mesero: '', bienvenida: '', color: '#6755A0', colorTexto: '#FFFFFF', colorSuave: '#EEEBF5', fuente: 'Mulish', radio: 16 } },

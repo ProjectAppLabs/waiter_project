@@ -1,7 +1,7 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 
-import { F2Menu } from '@/components/templates/families/F/F2Menu'
-import { cartOf, compartir, line, menuProps, rollos, wrap } from '@/components/templates/families/F/__tests__/fixtures'
+import { F2Menu } from '@diner/components/templates/families/F/F2Menu'
+import { cartOf, compartir, line, menuProps, rollos, wrap } from '@diner/components/templates/families/F/__tests__/fixtures'
 
 // Falla si la cuadrícula no pinta hasta cuatro celdas con precio en versalitas y nombre «· N piezas», si la primera no queda seleccionada con borde negro, o si el pie no lleva su precio y el CTA.
 it('paints the category as a 2×2 grid with the selected cell outlined and the price in the footer', () => {
