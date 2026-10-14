@@ -110,6 +110,13 @@ NEW_TESTS = {
         'experience/experience_app/tests/utils/test_round_validation.py',
         'experience/experience_app/tests/utils/test_correo_produccion.py',
     ],
+    # Alta en staging: las tres apps como workspaces en frontend/ y el modo staging seguro de experience.
+    'refactor/14102026-frontend-workspaces': [
+        'experience/experience_app/tests/utils/test_entorno_staging.py',
+        'experience/experience_app/tests/views/test_entry_and_sessions.py',
+        'experience/experience_app/tests/utils/test_correo_produccion.py',
+        'experience/experience_app/tests/utils/test_round_validation.py',
+    ],
 }
 BACKEND = [
     'sales/tests/views/test_cash_moves_idempotency.py',

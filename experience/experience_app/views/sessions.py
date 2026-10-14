@@ -75,8 +75,8 @@ def open_session(request):
     if tenant.table_token and not session.orders.exists():
         sessions.table_call(tenant, session, 'ordering')
     response = Response({'sesion': {'id': str(session.id), 'estado': session.state, 'mesa': session.table_number}, 'comensal': {'id': str(diner.id)}}, status=201)
-    response.set_cookie(COOKIE, diner.key, max_age=COOKIE_MAX_AGE, httponly=True, secure=settings.IS_PRODUCTION,
-                        samesite='Lax', path='/api/v1/')
+    response.set_cookie(COOKIE, diner.key, max_age=COOKIE_MAX_AGE, httponly=True,
+                        secure=settings.IS_PRODUCTION or settings.IS_STAGING, samesite='Lax', path='/api/v1/')
     return response
 
 
