@@ -119,6 +119,11 @@ NEW_TESTS = {
         'frontend/__tests__/proxy.test.ts',
         'frontend/e2e/hosts/ronda.spec.ts',
     ],
+    # La IP del cliente detrás de nginx y de Next, y la dirección del MCP sin PAYMENTS_PUBLIC_URL.
+    'fix/14102026-ip-cliente': [
+        'experience/experience_app/tests/views/test_detras_del_proxy.py',
+        'frontend/components/settings/__tests__/McpKeysForm.test.tsx',
+    ],
 }
 BACKEND = [
     'sales/tests/views/test_cash_moves_idempotency.py',

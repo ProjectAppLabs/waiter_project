@@ -33,11 +33,20 @@ WINDOW = 15 * 60
 LIMITS = (('id_ip', 10), ('id', 30), ('ip', 50))
 
 
+# Las conexiones que vienen de esta misma máquina: nginx o Next delante de gunicorn, o un socket unix (sin dirección).
+PROXIES_LOCALES = ('127.0.0.1', '::1', '')
+
+
 def client_ip(request):
-    # En producción Caddy pone la IP del cliente en X-Forwarded-For (descarta la que traiga el navegador) y el POS la
-    # reenvía tal cual; sin proxy vale la de la conexión.
-    forwarded = request.headers.get('X-Forwarded-For', '')
-    return forwarded.split(',')[0].strip() or request.META.get('REMOTE_ADDR', '')
+    # Delante de gunicorn, nginx agrega al FINAL de X-Forwarded-For la IP de quien se le conecta (Caddy, en deploy/, la
+    # reemplaza por esa sola entrada) y Next la reenvía tal cual: la última entrada es la del cliente y las anteriores
+    # las pudo escribir él. Sólo se le cree a la cabecera si la conexión viene de un proxy de esta máquina; si no, vale
+    # la IP de la conexión.
+    remote = request.META.get('REMOTE_ADDR', '')
+    if remote not in PROXIES_LOCALES:
+        return remote
+    entries = [entry.strip() for entry in request.headers.get('X-Forwarded-For', '').split(',')]
+    return next((entry for entry in reversed(entries) if entry), remote)
 
 
 def throttle_keys(request, login):

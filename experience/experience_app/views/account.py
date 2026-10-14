@@ -138,6 +138,7 @@ def favorites(request, restaurant, venue, product_id=None):
 @api_view(['POST'])
 def password_login(request):
     import hashlib
+    from accounts.universal import client_ip
     from django.contrib.auth.hashers import check_password, make_password
     from django.core.cache import cache
     diner = _diner(request)
@@ -146,7 +147,7 @@ def password_login(request):
     password = data.get('clave', '')
     if not isinstance(password, str) or len(password) > 128:
         return Response({'detail': 'Correo o contraseña incorrectos'}, status=400)
-    key = 'diner-login:' + hashlib.sha256((diner.session.restaurant_slug + ':' + request.META.get('REMOTE_ADDR', '') + ':' + email).encode()).hexdigest()
+    key = 'diner-login:' + hashlib.sha256((diner.session.restaurant_slug + ':' + client_ip(request) + ':' + email).encode()).hexdigest()
     attempts = cache.get(key, 0)
     if attempts >= 5:
         return Response({'detail': 'Espera 15 minutos antes de volver a intentarlo'}, status=429)
