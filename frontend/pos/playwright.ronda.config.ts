@@ -15,7 +15,7 @@ export default defineConfig({
   retries: 0,
   reporter: [
     ['list'],
-    ['json', { outputFile: process.env.WAITER_PLAYWRIGHT_REPORT ?? '../test-results/improvement/2026-10-08-waiter-r2/playwright.json' }],
+    ['json', { outputFile: process.env.WAITER_PLAYWRIGHT_REPORT ?? '../../test-results/improvement/2026-10-08-waiter-r2/playwright.json' }],
   ],
   globalSetup: './e2e/helpers/setupRonda.ts',
   use: {

@@ -181,7 +181,7 @@ def test_public_contract_exposes_templates_utilities_and_decorations(client):
     data = client.get('/api/v1/diseno/').json()['plantillas']
     assert data['version'] == 3 and data['componentes']['plato']['version'] == 1
     assert data['limites'] == plantillas.LIMITS and data['etiquetas'] == sorted(plantillas.TAGS)
-    diner = Path(__file__).resolve().parents[4] / 'diner'
+    diner = Path(__file__).resolve().parents[4] / 'frontend' / 'diner'
     assets = {p.stem for p in (diner / 'public/smart-menu').glob('*.png')}
     for decoration in data['decoraciones']['fabrica']:
         assert decoration['id'] in assets and decoration['archivo'] == f'/smart-menu/{decoration["id"]}.png'

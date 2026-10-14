@@ -1,11 +1,11 @@
 # diner — la app del comensal
 
 Frontend del bloque 3. **Solo habla con `experience/`** (`/api/v1/*` por proxy
-same-origin); no importa nada de `pos/` ni conoce Odoo ni el registro
+same-origin); no importa nada de `frontend/pos/` ni conoce Odoo ni el registro
 (`docs/decisiones/2026-09-05-comensal-app-aparte.md`).
 
 ```bash
-npm ci && npm run dev            # 192.168.56.10:3001 · EXPERIENCE_ORIGIN=http://192.168.56.10:8001
+(cd .. && npm ci) && npm run dev # 192.168.56.10:3001 · EXPERIENCE_ORIGIN=http://192.168.56.10:8001
 npm test -- lib components       # unit por lotes
 PLAYWRIGHT_BASE_URL=http://192.168.56.10:3001 npx playwright test
 ```
@@ -57,8 +57,8 @@ Las capturas usan los componentes reales con respuestas API interceptadas. No
 crean pedidos ni cuentas en el POS. `AUDIT_CASES` permite repetir casos concretos.
 El lector QR se prueba con un SVG generado por el propio script. El informe permite
 comparar las 99 referencias con las capturas actuales y revisar los 432 archivos.
-Consulta [matriz de comparación](../docs/diseno/exporty/auditoria-exporty.md) y
-[decisiones y validación](../docs/decisiones/2026-09-12-smart-menu.md).
+Consulta [matriz de comparación](../../docs/diseno/exporty/auditoria-exporty.md) y
+[decisiones y validación](../../docs/decisiones/2026-09-12-smart-menu.md).
 
 Las pruebas `e2e/smart-menu.spec.ts` sí crean una cuenta y una comanda real;
 ejecutarlas únicamente en una base demo. Comprueban registro, contraseña,
@@ -87,5 +87,5 @@ los datos reales del restaurante.
 El menú lateral y los diálogos tienen entrada/salida suave; las secciones, botones
 y favoritos usan movimientos cortos. Se implementa con CSS, sin añadir una librería.
 La preferencia del dispositivo de reducir movimiento desactiva estas animaciones.
-El asistente sigue siendo el cuestionario actual; el [mesero conversacional](../docs/planes/2026-09-13-mesero-conversacional.md)
+El asistente sigue siendo el cuestionario actual; el [mesero conversacional](../../docs/planes/2026-09-13-mesero-conversacional.md)
 es la siguiente etapa propuesta.

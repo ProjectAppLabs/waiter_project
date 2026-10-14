@@ -1,4 +1,5 @@
-# Roots reales de Python; alias frontend temporal al POS para el core canónico.
+# Roots reales de Python. El POS vive en frontend/pos (workspaces de npm): sus pruebas unitarias se leen ahí y
+# scripts/calidad/gate_ronda.py enlaza sus e2e en frontend/e2e mientras corre el core canónico.
 backend_test_roots:
   - experience/experience_app/tests
   - experience/tenancy/tests
@@ -12,7 +13,7 @@ backend_test_roots:
   - experience/reports/tests
   - experience/billing/tests
 py_test_file_glob: test_*.py
-frontend_unit_dir: .
+frontend_unit_dir: pos
 frontend_e2e_dir: e2e
 frontend_e2e_allowed_folders: [pago, historial, acceso, pedidos, consolas, cocina, inventario, helpers]
 responsive_widths: [compact=412x915, portrait=835x1194, landscape=1195x835, desktop=1440x900, wide=2560x1440]

@@ -68,24 +68,24 @@ jobs:
         with:
           node-version: '24.20.0'
           cache: npm
-          cache-dependency-path: pos/package-lock.json
+          cache-dependency-path: frontend/package-lock.json
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Dependencias del POS
-        working-directory: pos
+      - name: Dependencias de frontend/ (los tres workspaces)
+        working-directory: frontend
         run: |
           npm install --global npm@11.19.0
           npm ci --ignore-scripts --no-audit --no-fund
       - name: Reporter de pruebas
         run: npm install --prefix test-results/junit --no-save --no-audit --no-fund jest-junit@16.0.0
       - name: Tipos y regresión del POS
-        working-directory: pos
+        working-directory: frontend/pos
         run: |
           npx next typegen
           npm run typecheck
-          npx eslint e2e/helpers/ronda.ts e2e/helpers/rondaFixture.ts e2e/helpers/setupRonda.ts e2e/helpers/viewports.ts --format json --output-file ../test-results/helpers-eslint.json
-          JEST_JUNIT_OUTPUT_DIR=../test-results python ../scripts/calidad/validar_ronda.py pos
+          npx eslint e2e/helpers/ronda.ts e2e/helpers/rondaFixture.ts e2e/helpers/setupRonda.ts e2e/helpers/viewports.ts --format json --output-file ../../test-results/helpers-eslint.json
+          JEST_JUNIT_OUTPUT_DIR=../../test-results python ../../scripts/calidad/validar_ronda.py pos
       - name: Gate canónico sobre las pruebas de la ronda
         run: |
           python -m pip install PyYAML==6.0.1 ruff==0.16.4
@@ -137,15 +137,15 @@ jobs:
         with:
           node-version: '24.20.0'
           cache: npm
-          cache-dependency-path: pos/package-lock.json
+          cache-dependency-path: frontend/package-lock.json
       - name: Dependencias y navegador
         run: |
           sudo apt-get update
           sudo apt-get install -y default-libmysqlclient-dev pkg-config
           python -m pip install -r experience/requirements.txt
           npm install --global npm@11.19.0
-          npm ci --prefix pos --ignore-scripts --no-audit --no-fund
-          cd pos
+          npm ci --prefix frontend --ignore-scripts --no-audit --no-fund
+          cd frontend/pos
           npx playwright install --with-deps chromium
       - name: Fixture de pruebas aislada
         run: |
@@ -154,9 +154,9 @@ jobs:
       - name: Aplicación y recorridos
         run: |
           DJANGO_DB_NAME=test_waiter_qa_ui gunicorn --chdir experience experience_project.wsgi:application --bind 127.0.0.1:8117 --workers 2 --threads 4 --timeout 60 --keep-alive 0 --no-control-socket > test-results/backend-server.log 2>&1 &
-          cd pos
+          cd frontend/pos
           npm run build
-          npm run start -- --hostname 127.0.0.1 --port 3117 > ../test-results/pos-server.log 2>&1 &
+          npm run start -- --hostname 127.0.0.1 --port 3117 > ../../test-results/pos-server.log 2>&1 &
           npx playwright test --config=playwright.ronda.config.ts
       - uses: actions/upload-artifact@v4
         if: always()
@@ -164,4 +164,37 @@ jobs:
           name: navegador-ronda
           path: |
             test-results/
-            pos/test-results/
+            frontend/pos/test-results/
+
+  frontend:
+    name: Frontend · instalación y build del alta (pos, diner y landing)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.20.0'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      # El mismo camino que el alta del fleet: npm ci con los postinstall y después npm run build en frontend/.
+      - name: Instalación con los postinstall
+        working-directory: frontend
+        run: |
+          npm install --global npm@11.19.0
+          npm ci --no-audit --no-fund
+      - name: El lanzador del fleet encuentra next en cada app
+        working-directory: frontend
+        run: |
+          for app in pos diner landing; do (cd "$app" && node node_modules/.bin/next --version); done
+          test -s diner/public/mapas/maplibre-gl-worker.mjs
+      - name: Build de las tres apps
+        working-directory: frontend
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+        run: npm run build
+      - name: Árbol limpio después del build
+        run: |
+          sucio="$(git status --porcelain)"
+          if [ -n "$sucio" ]; then echo "$sucio"; exit 1; fi

@@ -1,6 +1,6 @@
-"""Candado de paridad con el POS: los vectores que publica pos/lib/domain/__tests__/brand-vectors.json deben derivar igual aquí.
+"""Candado de paridad con el POS: los vectores que publica frontend/pos/lib/domain/__tests__/brand-vectors.json deben derivar igual aquí.
 
-El POS (TypeScript) y la experiencia (Python) derivan el tema por separado (pos/lib/domain/brand.ts y utils/brand.py).
+El POS (TypeScript) y la experiencia (Python) derivan el tema por separado (frontend/pos/lib/domain/brand.ts y utils/brand.py).
 El POS ejecuta su implementación y publica {color, font, radius ⇒ theme}; este test vuelve a derivar cada vector con la
 nuestra y falla si difieren: la vista previa del POS mostraría un tema que el comensal no recibiría.
 Formato acordado: {"vectors": [{"color": "#C1873A", "font": "Instrument Serif", "radius": 14,
@@ -14,7 +14,7 @@ import pytest
 from experience_app.utils.brand import theme
 
 REPO = Path(__file__).resolve().parents[4]
-VECTORS_JSON = REPO / 'pos' / 'lib' / 'domain' / '__tests__' / 'brand-vectors.json'
+VECTORS_JSON = REPO / 'frontend' / 'pos' / 'lib' / 'domain' / '__tests__' / 'brand-vectors.json'
 NOT_PUBLISHED = 'el POS aún no publica los vectores'
 
 

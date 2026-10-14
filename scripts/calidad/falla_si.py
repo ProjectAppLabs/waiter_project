@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Lista las pruebas sin su comentario «Falla si …» (regla de AGENTS.md).
 
-Mira jest y Playwright (`it(` / `test(` en pos/ y diner/) y pytest (`def test_` en experience/). El comentario puede
+Mira jest y Playwright (`it(` / `test(` en frontend/pos/ y frontend/diner/) y pytest (`def test_` en experience/). El comentario puede
 ir en las líneas de arriba (con decoradores o comentarios de por medio) o en la primera línea del cuerpo.
 Uso: python3 scripts/calidad/falla_si.py [--resumen]
 """
@@ -16,7 +16,7 @@ FALLA = re.compile(r"Falla si", re.IGNORECASE)
 
 
 def archivos():
-    for carpeta in ("pos", "diner"):
+    for carpeta in ("frontend/pos", "frontend/diner"):
         base = RAIZ / carpeta
         for patron in ("**/*.test.ts", "**/*.test.tsx", "e2e/**/*.spec.ts"):
             for f in base.glob(patron):

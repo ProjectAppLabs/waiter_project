@@ -19,7 +19,7 @@ Corre lo que aplique y anota cada hallazgo con evidencia (archivo, línea o coma
   funciones de `lib/services` sin llamadas, y en experience vistas sin ruta, servicios sin llamadas y modelos sin uso.
   Para TypeScript ayuda `npx tsc --noEmit -p . --noUnusedLocals --noUnusedParameters` (solo para listar; no cambies el
   tsconfig).
-- **Lint.** `npx eslint .` en `pos/` y `diner/`: errores primero, luego avisos de variables sin usar. En experience,
+- **Lint.** `npx eslint .` en `frontend/pos/` y `frontend/diner/`: errores primero, luego avisos de variables sin usar. En experience,
   `venv/bin/ruff check .` si está instalado.
 - **Dependencias.** Paquetes de `package.json` que no se importan en ningún lado; en experience, requisitos que nadie
   importa. Ojo con las que se usan por configuración (plugins de jest, eslint, postcss, Playwright).

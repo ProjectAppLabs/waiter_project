@@ -10,8 +10,8 @@ prueba que su integración externa exista.
 - `experience/` es el sistema propio: Django y DRF sobre MySQL 8.4. Contiene organizaciones,
   acceso, catálogo, inventario, salón, pedidos, cocina, caja, fidelización, reservas e informes,
   además de la experiencia del comensal y el diseño de su menú.
-- `pos/` es la aplicación Next.js del operador y contiene las consolas del dueño y de
-  ProjectApp. Habla con las APIs propias del POS y de la plataforma; `diner/` sirve el menú
+- `frontend/pos/` es la aplicación Next.js del operador y contiene las consolas del dueño y de
+  ProjectApp. Habla con las APIs propias del POS y de la plataforma; `frontend/diner/` sirve el menú
   del comensal y habla con la API de `experience/`.
 - La organización y sus restaurantes se resuelven en el sistema propio. La marca, las
   plantillas y sus ajustes viven allí; los eventos en vivo llegan por SSE desde Django.

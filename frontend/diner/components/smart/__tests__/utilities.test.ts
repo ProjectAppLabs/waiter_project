@@ -2,9 +2,9 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 // Plan K1: las utilidades ds-* que admite una plantilla son las mismas en el validador de experience y en el CSS del menú.
-const root = join(__dirname, '../../../..')
+const root = join(__dirname, '../../../../..')
 const catalog = JSON.parse(readFileSync(join(root, 'experience/experience_app/diseno/utilidades.json'), 'utf8'))
-const css = readFileSync(join(root, 'diner/components/smart/smart-utilities.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+const css = readFileSync(join(root, 'frontend/diner/components/smart/smart-utilities.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
 const declared = catalog.grupos.flatMap((group: { utilidades: { clase: string; descripcion: string }[] }) => group.utilidades)
 const implemented = new Set([...css.matchAll(/\.smart-menu \.(ds-[a-z0-9-]+)/g)].map((m) => m[1]))
 

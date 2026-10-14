@@ -72,10 +72,10 @@ A: salón y pedidos; B: KDS; C: backoffice y ROI; E: cobro, caja y roles;
 G: configuración de marca; H: galería, personalización y vista previa de 30 plantillas.
 El catálogo y los ajustes de plantillas viven en `experience/`; el POS los administra
 mediante `/experience/api/pos/v1/admin/menu_settings`, con la sesión propia. Los secretos permanecen en
-el servidor. El comensal usa la app independiente `diner/`.
+el servidor. El comensal usa la app independiente `frontend/diner/`.
 
 El pago móvil de H es demo. El cobro real, incluidos pedidos del comensal con descuento,
-sigue en este POS. [Contexto y revisión de H](../docs/revisiones/2026-09-05-cierre-H-pr14.md).
+sigue en este POS. [Contexto y revisión de H](../../docs/revisiones/2026-09-05-cierre-H-pr14.md).
 
 ## Administración con caja cerrada
 
@@ -99,7 +99,7 @@ Cancelar descarta los cambios; también hay Deshacer, Rehacer, zoom, desplazamie
 
 Con caja abierta: **Mesas → Asignar meseros por zona**. Admite varios empleados por zona y se guarda
 solo para el turno actual. **Mis zonas** destaca sus mesas, y los avisos de cocina respetan la asignación.
-Detalles y validación en [la decisión del editor](../docs/decisiones/2026-09-08-editor-plano-y-zonas.md).
+Detalles y validación en [la decisión del editor](../../docs/decisiones/2026-09-08-editor-plano-y-zonas.md).
 
 
 ### Ficha del menú Smart Menu

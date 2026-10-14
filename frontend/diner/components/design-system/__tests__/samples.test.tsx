@@ -7,7 +7,7 @@ import { useDinerStore } from '@/lib/stores/dinerStore'
 import type { Dish, Entry } from '@/lib/types'
 
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
-const inventory = JSON.parse(readFileSync(join(__dirname, '../../../../experience/experience_app/diseno/inventario.json'), 'utf8'))
+const inventory = JSON.parse(readFileSync(join(__dirname, '../../../../../experience/experience_app/diseno/inventario.json'), 'utf8'))
 const dish = (id: number, extra: Partial<Dish> = {}): Dish => ({ id, nombre: `Plato ${id}`, precio: 1000 * id, agotado: false, categorias: [1], ...extra })
 const entry = { banners: null, contexto: { restaurante: { slug: 'demo', nombre: 'Demo' }, sede: { slug: 'salon', nombre: 'Salón' }, mesa: null,
   marca: { nombre: 'Demo', lema: '', logo: null, saludo: '', mesero: '', bienvenida: '', color: '#6755A0', colorTexto: '#FFFFFF', colorSuave: '#EEEBF5', fuente: 'Mulish', radio: 16 } },

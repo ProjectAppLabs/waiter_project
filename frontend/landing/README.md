@@ -19,8 +19,8 @@ El home público de Waiter. Reproduce tal cual el diseño «Landing Waiter» de 
   (`/`, `/privacy`, `/terms`, `/data-deletion`, `/icon.svg`, `/img/*`, `/_landing/*`): una página nueva se agrega
   también al `@landing` de `deploy/Caddyfile`. Los enlaces hacia el POS van con `<a>`, no con `<Link>`.
 - Las secciones que en el diseño tienen fondo blanco llevan la Aurora ambiental del sistema de diseño
-  (`components/AuroraFondo.tsx` y `app/aurora.css`, copia de `pos/components/kit/Aurora.tsx` y de sus estilos en
-  `pos/app/globals.css`). La pone el conversor; en «Así funciona» va dentro del escenario fijo.
+  (`components/AuroraFondo.tsx` y `app/aurora.css`, copia de `frontend/pos/components/kit/Aurora.tsx` y de sus estilos en
+  `frontend/pos/app/globals.css`). La pone el conversor; en «Así funciona» va dentro del escenario fijo.
 - `/privacy`, `/terms` y `/data-deletion` son las páginas legales de projectapp.co/es-co/waiter con su mismo texto
   (copias en `design/legal/`). Se generan con `npm run generar:legal` (`scripts/legal2jsx.py`) y usan `app/legal.css`.
 - `public/img/` son las imágenes del proyecto de Claude Design. Ocho llegaron cortadas por el límite de 256 KiB de

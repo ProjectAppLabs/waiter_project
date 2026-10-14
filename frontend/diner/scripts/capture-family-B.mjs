@@ -1,8 +1,8 @@
-// Capturas de la familia B (Casual de barrio) para ../docs/diseno/plantillas/capturas, sobre la app real (nada se oculta ni se simula):
+// Capturas de la familia B (Casual de barrio) para ../../docs/diseno/plantillas/capturas, sobre la app real (nada se oculta ni se simula):
 // el diner de desarrollo en :3011 contra experience en :8001, Pixel 7, vista previa por ?vista_previa=<base64url {"plantilla":"B?"}>.
 //
-//   cd diner && EXPERIENCE_ORIGIN=http://192.168.56.10:8001 npx next dev --webpack -H 192.168.56.10 -p 3011
-//   cd diner && node scripts/capture-family-B.mjs            # DINER_ORIGIN y CAPTURE_DIR opcionales
+//   cd frontend/diner && EXPERIENCE_ORIGIN=http://192.168.56.10:8001 npx next dev --webpack -H 192.168.56.10 -p 3011
+//   cd frontend/diner && node scripts/capture-family-B.mjs   # DINER_ORIGIN y CAPTURE_DIR opcionales
 //
 // Recorrido: en B1 se agregan platos con ＋ (y uno con nota desde el plato) para que la barra oscura y el pedido tengan datos reales;
 // después, por cada plantilla, carta (pantalla y completa), pedido (arriba y totales) y pago; por último registro → código → cuenta
@@ -14,7 +14,7 @@ import { chromium, devices } from 'playwright'
 
 const ORIGIN = process.env.DINER_ORIGIN ?? 'http://192.168.56.10:3011'
 const BASE = `${ORIGIN}/burger-house/poblado/t/Z2XUVG`
-const OUT = resolve(process.env.CAPTURE_DIR ?? '../docs/diseno/plantillas/capturas')
+const OUT = resolve(process.env.CAPTURE_DIR ?? '../../docs/diseno/plantillas/capturas')
 const CODES = ['B1', 'B2', 'B3', 'B4', 'B5']
 const preview = (code) => Buffer.from(JSON.stringify({ plantilla: code })).toString('base64url')
 const url = (code, screen) => `${BASE}/${screen}/?vista_previa=${preview(code)}`

@@ -895,7 +895,7 @@ Rutas de la plataforma bajo `/api/platform/v1` con la cookie `waiter_platform_si
     negativos) omitidas; mesas a la cuadrícula de 20 px y colores `rgb()` a `#RRGGBB`; tipos de documento de
     `l10n_latam` («VAT» = NIT); una sesión cerrada sin `start_at` toma su cierre como apertura; un token del registro de
     una mesa del piso «Burger House» (sin restaurante en Odoo) quedó fuera.
-  - **Conmutación:** `NEXT_PUBLIC_ODOO_ORGS=` y `NEXT_PUBLIC_DEFAULT_ORG=burger-house` en `pos/.env.local`;
+  - **Conmutación:** `NEXT_PUBLIC_ODOO_ORGS=` y `NEXT_PUBLIC_DEFAULT_ORG=burger-house` en `frontend/pos/.env.local`;
     `ODOO_ORGS=` en `experience/.env`; Odoo y el registro **detenidos** (`docker compose … stop`, datos intactos) y
     `scripts/dev.sh` ya no los arranca (`WITH_ODOO=1` los vuelve a levantar). `odoo/`, `registry/` y las ramas `callKw`
     del POS siguen en el repositorio hasta la revisión del dueño.
@@ -957,7 +957,7 @@ Rutas de la plataforma bajo `/api/platform/v1` con la cookie `waiter_platform_si
     pedido («Tu rol no tiene permiso»); el resumen llamaba «IVA» a todo impuesto (ahora usa su nombre, p. ej. «8% INC»);
     una mesa quedaba atada a una visita del comensal cuyo pedido el POS canceló o cuya caja ya cerró, y el siguiente
     pedido chocaba con «El pedido tiene pagos o ya no se puede editar» (ahora esa visita se cierra al llegar alguien).
-  - **Pruebas e2e reescritas** sin Odoo (`pos/e2e/`, por CDP): acceso, servicio en mesa con cocina y cierre de caja,
+  - **Pruebas e2e reescritas** sin Odoo (`frontend/pos/e2e/`, por CDP): acceso, servicio en mesa con cocina y cierre de caja,
     asistente de pedidos con adición y cobro, consola del dueño, equipo en Configuración, comensal por QR y consola de
     ProjectApp. 13 de 13 pasan.
 - **Base de datos en MySQL 8.4** (2026-10-02), rama `feat/02102026-mysql`: el estándar de los servidores de ProjectApp.

@@ -20,9 +20,9 @@ Produce un informe de estado con huecos priorizados. No cambia código salvo que
 | Qué | Comando | Dónde mirar |
 |---|---|---|
 | experience | `cd experience && DJANGO_TEST_DB_NAME=test_waiter_dos venv/bin/pytest -q -p no:cacheprovider --cov=. --cov-report=json:<scratchpad>/cov-exp.json --cov-report=term` (unos 17 min; en segundo plano) | total y archivos de `--cov-report=term` |
-| POS | `cd pos && NODE_OPTIONS=--no-deprecation npx jest --coverage` | `pos/coverage/coverage-summary.json` |
-| Comensal | `cd diner && NODE_OPTIONS=--no-deprecation npx jest --coverage` | `diner/coverage/coverage-summary.json` |
-| e2e | `cd pos && PLAYWRIGHT_CDP=http://127.0.0.1:9333 ./node_modules/.bin/playwright test --project="Desktop Chrome" --workers=1` | pasan, fallan y omitidas (la de emergencia se omite sin `PLAYWRIGHT_PROD=1`) |
+| POS | `cd frontend/pos && NODE_OPTIONS=--no-deprecation npx jest --coverage` | `frontend/pos/coverage/coverage-summary.json` |
+| Comensal | `cd frontend/diner && NODE_OPTIONS=--no-deprecation npx jest --coverage` | `frontend/diner/coverage/coverage-summary.json` |
+| e2e | `cd frontend/pos && PLAYWRIGHT_CDP=http://127.0.0.1:9333 npx playwright test --project="Desktop Chrome" --workers=1` | pasan, fallan y omitidas (la de emergencia se omite sin `PLAYWRIGHT_PROD=1`) |
 | «Falla si» | `python3 scripts/calidad/falla_si.py` | pruebas sin su comentario, con archivo y línea |
 
 `DJANGO_TEST_DB_NAME=test_waiter_dos` permite correr pytest mientras otra suite usa la base de pruebas por omisión.
@@ -44,7 +44,7 @@ Produce un informe de estado con huecos priorizados. No cambia código salvo que
 6. **QA publicado.** Las guías se publican en el MCP de documentos (carpeta «Waiter SaaS / QA», documentos 218 a 226;
    ver la memoria `guia-qa-waiter`). Compara el texto del repo con `read_document` de cada una y lista las que estén
    desactualizadas. No republiques sin que lo pidan.
-7. **Umbrales.** `pos/jest.config.cjs` y `diner/jest.config.*` tienen `coverageThreshold`. Si la cobertura medida
+7. **Umbrales.** `frontend/pos/jest.config.cjs` y `frontend/diner/jest.config.*` tienen `coverageThreshold`. Si la cobertura medida
    supera el umbral por más de 5 puntos, propón subirlo a un par de puntos por debajo de lo medido (trinquete: la
    cobertura no puede bajar). Para experience, el mínimo está en `experience/.coveragerc` (`fail_under`), con el mismo criterio.
 

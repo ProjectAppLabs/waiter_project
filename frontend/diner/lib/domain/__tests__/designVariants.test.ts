@@ -2,10 +2,10 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { COMPONENT_VARIANTS, SCREEN_LAYOUTS, designSystemAttributes } from '../designVariants'
 
-const root = join(__dirname, '../../../..')
+const root = join(__dirname, '../../../../..')
 const schema = JSON.parse(readFileSync(join(root, 'experience/experience_app/diseno/esquema.json'), 'utf8'))
 const inventory = JSON.parse(readFileSync(join(root, 'experience/experience_app/diseno/inventario.json'), 'utf8'))
-const smart = join(root, 'diner/components/smart')
+const smart = join(root, 'frontend/diner/components/smart')
 const css = readdirSync(smart).filter(file => file.endsWith('.css')).map(file => readFileSync(join(smart, file), 'utf8')).join('\n')
 const layers = { variantes: COMPONENT_VARIANTS, distribucion: SCREEN_LAYOUTS }
 

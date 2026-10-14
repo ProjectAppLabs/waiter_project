@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 def main():
-    root = Path(__file__).resolve().parents[3]
+    root = Path(__file__).resolve().parents[4]
     sys.path.insert(0, str(root / 'experience'))
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'experience_project.settings_dev')
     import django

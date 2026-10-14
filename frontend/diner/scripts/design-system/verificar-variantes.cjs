@@ -5,7 +5,7 @@ const path = require('node:path')
 const { execFile } = require('node:child_process')
 const { promisify } = require('node:util')
 const execute = promisify(execFile)
-const root = path.resolve(__dirname, '../../..')
+const root = path.resolve(__dirname, '../../../..')
 const output = path.resolve(process.env.VARIANT_EVIDENCE || path.join(root, 'test-reports/j3'))
 const inventory = require(path.join(root, 'experience/experience_app/diseno/inventario.json'))
 const rgb = hex => `rgb(${[1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)).join(', ')})`
@@ -95,7 +95,7 @@ async function main() {
       let error = null, log = ''
       try {
         if (!process.env.VARIANT_VERIFY_ONLY) {
-          const result = await execute(process.execPath, [path.join(root, 'diner/scripts/exporty-audit/capture.cjs')], {
+          const result = await execute(process.execPath, [path.join(root, 'frontend/diner/scripts/exporty-audit/capture.cjs')], {
             env: { ...process.env, AUDIT_CASES: process.env.VARIANT_SCENARIOS || (Array.isArray(item.casos) ? item.casos.join(',') : item.casos),
               AUDIT_ACCESSIBILITY: '1', AUDIT_VARIANTS: '1', AUDIT_CONTINUE: '1', AUDIT_TIMEOUT: '15000',
               AUDIT_VIEWPORT: JSON.stringify({ width: item.ancho || 375, height: 812 }),

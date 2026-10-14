@@ -1,10 +1,12 @@
 # Entorno y pruebas
 
 Versiones fijadas: Django 6.1, DRF 3.18.0 y pytest 9.1.1
-(`experience/requirements.txt`); Next.js 16.3.3, React 19.2.8 y Playwright
-1.62.1 (`pos/package.json`). Los clientes exigen Node 24.20.x y npm 11.19.x.
-Antes de usar APIs de Next se leen las guías incluidas en su paquete, como
-exigen los `AGENTS.md` de POS y comensal.
+(`experience/requirements.txt`); Next.js 16.3.8, React 19.2.8 y Playwright
+1.62.1 en las tres apps de `frontend/` (POS, comensal y landing), que son
+workspaces de npm con un solo `frontend/package-lock.json`. Los clientes exigen
+Node 24.20.x y npm 11.19.x. Antes de usar APIs de Next se leen las guías
+incluidas en su paquete (`frontend/node_modules/next/dist/docs/`), como exigen
+los `AGENTS.md` de cada app.
 
 La base de referencia es MySQL 8.4, utf8mb4, modo estricto y READ COMMITTED.
 `ExactCharField` conserva comparaciones binarias de claves; los índices
@@ -21,9 +23,11 @@ integración, merge-queue la realiza desde su propio worktree. No ejecutar
 Para la ronda se usa MySQL aislado y nombres `test_waiter_qa_backend` y
 `test_waiter_qa_ui`. `scripts/calidad/seed_ronda.py` exige desarrollo, loopback
 y nombres de prueba; el runner de Django crea y migra la fixture. No lee
-credenciales del servicio. `scripts/calidad/gate_ronda.py` presenta temporalmente
-experience como `backend/` y el POS como `frontend/` al core canónico,
-sin copiar tests ni cambiar reglas.
+credenciales del servicio. El core canónico lee las pruebas unitarias del POS en
+`frontend/pos` (`.testquality.yml`) y su parser en `frontend/scripts/ast-parser.cjs`;
+`scripts/calidad/gate_ronda.py` presenta temporalmente experience como `backend/`
+y los e2e y la configuración de ESLint del POS dentro de `frontend/`, sin copiar
+tests ni cambiar reglas, y retira esos alias al salir.
 
 Los tests backend son pytest; los unitarios de los clientes, Jest; los recorridos,
 Playwright. La configuración de rutas está en `.testquality.yml` y el CI de esta

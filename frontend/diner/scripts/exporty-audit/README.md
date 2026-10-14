@@ -8,8 +8,8 @@ Con Node 24 y el servidor de diner disponible:
 
 ```bash
 # Extraer primero el ZIP de confianza a /tmp/smart-export.
-EXPORTY_SOURCE=/tmp/smart-export node diner/scripts/exporty-audit/capture.cjs
-python3 diner/scripts/exporty-audit/report.py --captures /tmp/exporty-audit/current
+EXPORTY_SOURCE=/tmp/smart-export node frontend/diner/scripts/exporty-audit/capture.cjs
+python3 frontend/diner/scripts/exporty-audit/report.py --captures /tmp/exporty-audit/current
 python3 -m http.server 3002 --bind 192.168.56.10 --directory test-reports/exporty
 ```
 
@@ -19,7 +19,7 @@ El generador necesita Pillow y valida PNG/XML, rutas del ZIP y hashes. Genera el
 
 La inspección humana de assets se hizo con cuatro láminas de 20 PNG y seis láminas de SVG renderizados en Chromium. Las 99 capturas se abrieron en 17 láminas; las vistas largas 44, 45 y 88 se revisaron además individualmente a resolución original.
 
-Con el visor servido, `node diner/scripts/exporty-audit/verify-report.cjs` recorre las 99 referencias y valida imágenes, las comparaciones, filtros, 333 assets y los escenarios capturados y el ancho móvil. Se ejecutó con resultado correcto; también pasaron siete pruebas de componentes, TypeScript y ESLint.
+Con el visor servido, `node frontend/diner/scripts/exporty-audit/verify-report.cjs` recorre las 99 referencias y valida imágenes, las comparaciones, filtros, 333 assets y los escenarios capturados y el ancho móvil. Se ejecutó con resultado correcto; también pasaron siete pruebas de componentes, TypeScript y ESLint.
 
 Las referencias 25, 64 y 66 tienen escenarios `location-share`, `checkout-coupon` y `points-earned`. Sus respuestas deterministas sirven para comparar el diseño; la integración real se prueba por separado con Django y el runner de Odoo. Los puntos del fixture no acreditan saldos reales. La captura de pago de prueba mantiene su identificación de demostración.
 
@@ -49,7 +49,7 @@ AUDIT_CASES=j2 AUDIT_ACCESSIBILITY=1 AUDIT_CONTINUE=1 \
   AUDIT_TEMPLATE=/ruta/plantilla-resuelta.json \
   CDP_URL=http://127.0.0.1:9333 DINER_URL=http://localhost:3001 \
   EXPORTY_SOURCE=/ruta/exporty EXPORTY_OUTPUT=/ruta/evidencia \
-  node diner/scripts/exporty-audit/capture.cjs
+  node frontend/diner/scripts/exporty-audit/capture.cjs
 ```
 
 `auditar-accesibilidad.cjs` calcula el contraste sobre fondos sólidos y registra cualquier imagen/gradiente que requiera
@@ -65,4 +65,4 @@ El detalle de cada fallo queda en `<escenario>-error.txt`; una repetición corre
 oscuras y estrechas. Además de accesibilidad, comprueba que los selectores ganan la cascada y cambian el componente
 esperado; el tema predeterminado debe cargar la hoja sin activar ninguna regla de variantes.
 Los comandos, selección de casos y ubicación de la evidencia están en el
-[contrato del tema](../../../experience/experience_app/diseno/README.md#pruebas).
+[contrato del tema](../../../../experience/experience_app/diseno/README.md#pruebas).

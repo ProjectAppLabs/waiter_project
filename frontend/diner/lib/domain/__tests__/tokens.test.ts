@@ -1,5 +1,6 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { createRequire } from 'node:module'
+import { dirname, join } from 'node:path'
 
 import { compile } from 'tailwindcss'
 
@@ -21,7 +22,8 @@ it('names the restaurant radius token so it cannot collide with Tailwind side ut
 
 // Compila globals.css con Tailwind de verdad sobre una lista de candidatos: es la única forma de saber a qué CSS llega cada utilidad.
 async function build(candidates: string[]): Promise<string> {
-  const twDir = join(ROOT, 'node_modules', 'tailwindcss')
+  // Con los workspaces de frontend/, tailwindcss suele quedar elevado a frontend/node_modules: se resuelve como Node.
+  const twDir = dirname(createRequire(join(ROOT, 'package.json')).resolve('tailwindcss/package.json'))
   const compiler = await compile(CSS, {
     base: ROOT,
     loadStylesheet: async (id: string) => { const p = id === 'tailwindcss' ? join(twDir, 'index.css') : join(twDir, id.replace('tailwindcss/', '')); return { path: p, base: twDir, content: readFileSync(p, 'utf8') } },

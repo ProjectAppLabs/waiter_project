@@ -14,9 +14,9 @@ La descripción completa del producto está en
 Desde el 2 de octubre de 2026 Waiter corre sobre un sistema propio, sin Odoo ni el registro central (plan T). El
 backend es `experience/` (Django 6 y DRF sobre MySQL 8.4, el estándar de los servidores de ProjectApp) y sirve:
 
-- el POS del operador en `pos/` (salón, pedidos, cocina, caja, inventario, reservas e informes);
+- el POS del operador en `frontend/pos/` (salón, pedidos, cocina, caja, inventario, reservas e informes);
 - la consola del dueño y la consola de ProjectApp (clientes, métricas, cobros y suspensión);
-- el menú del comensal en `diner/` (carta, carrito compartido, pago demo y seguimiento).
+- el menú del comensal en `frontend/diner/` (carta, carrito compartido, pago demo y seguimiento).
 
 Burger House se migró desde Odoo con `migrate_from_odoo` y se concilió con `reconcile_odoo`. El respaldo de la base y
 los archivos de Odoo está fuera del repositorio. El estado vigente y la historia de cada fase están en
@@ -29,8 +29,9 @@ revisiones anteriores describen la etapa con Odoo y quedan como historia.
 
 | Carpeta | Qué contiene |
 |---|---|
-| `pos/` | App Next.js del operador, la consola del dueño y la de ProjectApp. |
-| `diner/` | App Next.js del comensal (Smart Menu). |
+| `frontend/pos/` | App Next.js del operador, la consola del dueño y la de ProjectApp. |
+| `frontend/diner/` | App Next.js del comensal (Smart Menu). |
+| `frontend/landing/` | App Next.js de la landing pública, el home de `waiter.projectapp.co`. |
 | `experience/` | Backend Django del sistema propio: API del POS (`/api/pos/v1/`), de la plataforma (`/api/platform/v1/`) y del comensal (`/api/v1/`). |
 | `deploy/` | Despliegue de producción preparado (compose, Caddy con certificado comodín), sin aplicar. |
 | `tools/` | Utilidades de diseño e imágenes (generador y cargador de fotos demo). |
@@ -72,11 +73,14 @@ cd experience && python3 -m venv venv && venv/bin/pip install -r requirements.tx
   && cp .env.example .env && venv/bin/python manage.py migrate \
   && venv/bin/python manage.py runserver 192.168.56.10:8001 --noreload
 
+# Dependencias de las tres apps Next.js (workspaces de npm, un solo package-lock en frontend/)
+cd frontend && npm ci
+
 # App del operador
-cd pos && npm ci && npx next dev --hostname 192.168.56.10 --port 3000        # :3000
+cd frontend/pos && npx next dev --hostname 192.168.56.10 --port 3000         # :3000
 
 # App del comensal
-cd diner && npm ci && npm run dev                                          # :3001 · /burger-house/poblado/t/<token>
+cd frontend/diner && npm run dev                                           # :3001 · /burger-house/poblado/t/<token>
 
 # Recorrido del comensal por curl
 scripts/demo-comensal.sh
@@ -86,13 +90,13 @@ scripts/demo-comensal.sh
 
 ```bash
 cd experience && venv/bin/pytest -q                                      # backend, sobre MySQL (test_waiter_core)
-cd pos && npx tsc --noEmit && npx jest                                   # POS
-cd pos && PLAYWRIGHT_CDP=http://127.0.0.1:9333 npx playwright test --project="Desktop Chrome"   # recorridos e2e
+cd frontend/pos && npx tsc --noEmit && npx jest                          # POS
+cd frontend/pos && PLAYWRIGHT_CDP=http://127.0.0.1:9333 npx playwright test --project="Desktop Chrome"   # recorridos e2e
 ```
 
 - **POS cerrado (Plan E)**: cobro completo (pagos mixtos, datáfono manual, propina,
   dividir, recibo), caja con arqueo, roles (mesero / cajero / administrador),
-  buscar plato, nota a cocina, fotos, buscar mesa. `pos/` es PWA instalable.
+  buscar plato, nota a cocina, fotos, buscar mesa. `frontend/pos/` es PWA instalable.
 
 ## Menú actual · Smart Menu
 

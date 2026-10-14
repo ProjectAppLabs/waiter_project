@@ -89,7 +89,7 @@ up_django() {
 up_next() {
   local name=$1 port=$2; shift 2
   if port_open "$port"; then ok "$name ya estaba arriba (:$port)"; return; fi
-  launch "$name" "$ROOT/$name" "$@"
+  launch "$name" "$ROOT/frontend/$name" "$@"
   if wait_for 90 port_open "$port"; then ok "$name (:$port) — la primera visita a cada pantalla compila"
   else fail "$name no abrió el puerto $port: revisa $LOGS/$name.log"; fi
 }

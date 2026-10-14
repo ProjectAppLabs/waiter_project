@@ -54,9 +54,9 @@ export async function signInPlatform(page: Page) {
   await expect(step.or(page.getByRole('navigation', { name: 'Consola de ProjectApp' }))).toBeVisible({ timeout: 30_000 })
   if (await step.isVisible()) {
     if (!savedSecret()) {
-      execFileSync(join(__dirname, '..', '..', '..', 'experience', 'venv', 'bin', 'python'), ['manage.py', 'shell', '-c',
+      execFileSync(join(__dirname, '..', '..', '..', '..', 'experience', 'venv', 'bin', 'python'), ['manage.py', 'shell', '-c',
         "from tenancy.models import PlatformUser; PlatformUser.objects.filter(username='ana.projectapp').update(two_factor=False, totp_secret='', totp_pending='', recovery_hashes=[])"],
-      { cwd: join(__dirname, '..', '..', '..', 'experience') })
+      { cwd: join(__dirname, '..', '..', '..', '..', 'experience') })
       return signInPlatform(page)
     }
     await page.getByLabel('Código de verificación').fill(await nextCode())

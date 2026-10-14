@@ -7,7 +7,7 @@
  * ok null = no se pudo medir); los mensajes van a stderr. Solo lee: no envía escrituras.
  *
  *   DRAFT_TOKEN=<token público> REST=burger-house SEDE=poblado DINER_URL=http://localhost:3001 \
- *     CDP_URL=http://127.0.0.1:9333 node diner/scripts/design-system/verificar-borrador.cjs
+ *     CDP_URL=http://127.0.0.1:9333 node frontend/diner/scripts/design-system/verificar-borrador.cjs
  * experience lo lanza desde verificar_borrador cuando DESIGN_VERIFIER_CMD apunta aquí; DESIGN_EVIDENCE guarda capturas. */
 const fs = require('node:fs/promises')
 const path = require('node:path')

@@ -3,14 +3,14 @@
  * distingue, que la página no desborda, que no hay errores JS y que no se envía ninguna petición de escritura.
  * Guarda capturas completas y recortes por componente en DESIGN_EVIDENCE (test-reports/j5 por defecto).
  *
- *   DINER_URL=http://localhost:3001 CDP_URL=http://127.0.0.1:9333 node diner/scripts/design-system/verificar-pagina.cjs
+ *   DINER_URL=http://localhost:3001 CDP_URL=http://127.0.0.1:9333 node frontend/diner/scripts/design-system/verificar-pagina.cjs
  *   DRAFT_TOKEN=<token público> añade una segunda pasada con ?borrador= y exige que la página lo anuncie. */
 const assert = require('node:assert/strict')
 const fs = require('node:fs/promises')
 const path = require('node:path')
 const { chromium } = require('playwright-core')
 
-const root = path.resolve(__dirname, '../../..')
+const root = path.resolve(__dirname, '../../../..')
 const output = path.resolve(process.env.DESIGN_EVIDENCE || path.join(root, 'test-reports/j5'))
 const base = (process.env.DINER_URL || 'http://localhost:3001').replace(/\/$/, '')
 const rest = process.env.REST || 'burger-house', venue = process.env.SEDE || 'poblado'

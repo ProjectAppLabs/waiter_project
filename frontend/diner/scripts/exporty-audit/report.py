@@ -12,7 +12,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 from PIL import Image
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[4]
 p = argparse.ArgumentParser()
 p.add_argument('--zip', type=Path, default=ROOT / 'exporty-light-mode.zip')
 p.add_argument('--captures', type=Path, default=Path('/tmp/exporty-audit/current'))
@@ -37,7 +37,7 @@ assert len(notes) == 99 and all(n['visuallyReviewed'] for n in notes)
 screens = mapping['screens'][1:]
 assert len(screens) == 99
 installed = {}
-for f in (ROOT / 'diner/public/smart-menu').rglob('*'):
+for f in (ROOT / 'frontend/diner/public/smart-menu').rglob('*'):
     if f.suffix in ('.png', '.svg'):
         installed[hashlib.sha256(f.read_bytes()).hexdigest()] = str(f.relative_to(ROOT))
 assets = {}
