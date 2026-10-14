@@ -110,6 +110,10 @@ NEW_TESTS = {
         'experience/experience_app/tests/utils/test_round_validation.py',
         'experience/experience_app/tests/utils/test_correo_produccion.py',
     ],
+    # Un run manual sobre main (workflow_dispatch) corre la combinación: la rama sale de GITHUB_REF_NAME.
+    'fix/14102026-ronda-en-main': [
+        'experience/experience_app/tests/utils/test_round_validation.py',
+    ],
     # Alta en staging: una sola app de Next en frontend/ (POS, comensal y landing por host) y el modo staging seguro.
     'refactor/14102026-frontend-una-app': [
         'experience/experience_app/tests/utils/test_entorno_staging.py',
@@ -174,7 +178,9 @@ LEGACY_GATE = [
 
 
 def commands(layer):
-    branch = os.environ.get('GITHUB_HEAD_REF') or subprocess.check_output(
+    # En un PR la rama es GITHUB_HEAD_REF. En un workflow_dispatch o un push no existe, y el checkout por SHA deja el
+    # HEAD separado (git no ve ninguna rama): ahí vale GITHUB_REF_NAME, así un run manual sobre main corre la combinación.
+    branch = os.environ.get('GITHUB_HEAD_REF') or os.environ.get('GITHUB_REF_NAME') or subprocess.check_output(
         ['git', 'branch', '--show-current'], cwd=ROOT, text=True).strip()
     combined = os.environ.get('WAITER_REQUIRE_ROUND_TESTS') == '1' or branch.startswith('queue/integration-') or branch == 'main'
     required = [path for paths in NEW_TESTS.values() for path in paths] if combined else NEW_TESTS.get(branch, [])
