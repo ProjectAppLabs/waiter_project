@@ -895,7 +895,7 @@ Rutas de la plataforma bajo `/api/platform/v1` con la cookie `waiter_platform_si
     negativos) omitidas; mesas a la cuadrícula de 20 px y colores `rgb()` a `#RRGGBB`; tipos de documento de
     `l10n_latam` («VAT» = NIT); una sesión cerrada sin `start_at` toma su cierre como apertura; un token del registro de
     una mesa del piso «Burger House» (sin restaurante en Odoo) quedó fuera.
-  - **Conmutación:** `NEXT_PUBLIC_ODOO_ORGS=` y `NEXT_PUBLIC_DEFAULT_ORG=burger-house` en `pos/.env.local`;
+  - **Conmutación:** `NEXT_PUBLIC_ODOO_ORGS=` y `NEXT_PUBLIC_DEFAULT_ORG=burger-house` en `frontend/.env.local`;
     `ODOO_ORGS=` en `experience/.env`; Odoo y el registro **detenidos** (`docker compose … stop`, datos intactos) y
     `scripts/dev.sh` ya no los arranca (`WITH_ODOO=1` los vuelve a levantar). `odoo/`, `registry/` y las ramas `callKw`
     del POS siguen en el repositorio hasta la revisión del dueño.
@@ -957,7 +957,7 @@ Rutas de la plataforma bajo `/api/platform/v1` con la cookie `waiter_platform_si
     pedido («Tu rol no tiene permiso»); el resumen llamaba «IVA» a todo impuesto (ahora usa su nombre, p. ej. «8% INC»);
     una mesa quedaba atada a una visita del comensal cuyo pedido el POS canceló o cuya caja ya cerró, y el siguiente
     pedido chocaba con «El pedido tiene pagos o ya no se puede editar» (ahora esa visita se cierra al llegar alguien).
-  - **Pruebas e2e reescritas** sin Odoo (`pos/e2e/`, por CDP): acceso, servicio en mesa con cocina y cierre de caja,
+  - **Pruebas e2e reescritas** sin Odoo (`frontend/e2e/`, por CDP): acceso, servicio en mesa con cocina y cierre de caja,
     asistente de pedidos con adición y cobro, consola del dueño, equipo en Configuración, comensal por QR y consola de
     ProjectApp. 13 de 13 pasan.
 - **Base de datos en MySQL 8.4** (2026-10-02), rama `feat/02102026-mysql`: el estándar de los servidores de ProjectApp.
@@ -981,6 +981,13 @@ Rutas de la plataforma bajo `/api/platform/v1` con la cookie `waiter_platform_si
   `waiter.projectapp.co/login`, que busca la credencial en todas las organizaciones y en ProjectApp y lleva a cada
   persona, con un pase de un solo uso, al subdominio de su organización o a la consola. Detalle en
   `docs/planes/2026-10-12-plan-IU-inicio-universal.md`.
+- **Una sola app de Next para el alta en staging** (2026-10-14), rama `refactor/14102026-frontend-una-app`: el POS, el
+  comensal y la landing viven en `frontend/`, con un solo `package.json` y un solo `package-lock.json` (sin
+  workspaces), y se construyen con `npm ci && npm run build` ahí. `frontend/proxy.ts` decide el sitio por el host (el
+  comensal en `menu.`, la landing en el dominio central y el POS en los demás) y `next.config.ts` reescribe a los
+  prefijos internos `/diner` y `/landing`, que no se alcanzan pidiéndolos directo. Las direcciones del comensal (los QR
+  y NFC impresos, con y sin barra final), su `/sw.js` y su manifiesto no cambian. `experience` gana el modo staging
+  (`DJANGO_ENV=staging`).
 - **Revisado (T3):** el modal de pago carga en cinco entradas seguidas por la URL. La causa probable del «Cargando pedido…» visto en T2 es el límite de seis conexiones por dominio de HTTP/1.1 con varias conexiones de eventos en vivo abiertas en desarrollo; en producción el proxy sirve HTTP/2 y no aplica. Antes: al entrar por la URL
     (recargar lo resuelve; por investigar, posiblemente el doble montaje de React en modo estricto); «Forzar cierre» no
     existe en el sistema propio; las reservas que apartan mesas, los puntos del cobro y Resumen/Rentabilidad llegan con

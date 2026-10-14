@@ -2,9 +2,9 @@
 
 Versiones fijadas: Django 6.1, DRF 3.18.0 y pytest 9.1.1
 (`experience/requirements.txt`); Next.js 16.3.3, React 19.2.8 y Playwright
-1.62.1 (`pos/package.json`). Los clientes exigen Node 24.20.x y npm 11.19.x.
+1.62.1 (`frontend/package.json`, la app única). Los clientes exigen Node 24.20.x y npm 11.19.x.
 Antes de usar APIs de Next se leen las guías incluidas en su paquete, como
-exigen los `AGENTS.md` de POS y comensal.
+exige `frontend/AGENTS.md`.
 
 La base de referencia es MySQL 8.4, utf8mb4, modo estricto y READ COMMITTED.
 `ExactCharField` conserva comparaciones binarias de claves; los índices

@@ -138,7 +138,9 @@ TEMPLATE_CACHE_SECONDS = int(os.getenv('TEMPLATE_CACHE_SECONDS', '60'))
 
 # Recuperación de cuenta: se habilita únicamente con un proveedor de correo configurado.
 DINER_EMAIL_ENABLED = os.getenv('DINER_EMAIL_ENABLED', 'false').lower() in {'1', 'true', 'yes', 'on'}
-DINER_PUBLIC_URL = os.getenv('DINER_PUBLIC_URL', 'http://192.168.56.10:3001').rstrip('/')
+# El comensal es el host menu. de la app única de frontend/ (el de desarrollo lo imprime scripts/dev.sh). Además de los
+# enlaces, es el único origen que aceptan las escrituras del comensal: en staging y producción va su dirección pública.
+DINER_PUBLIC_URL = os.getenv('DINER_PUBLIC_URL', 'http://menu.192.168.56.10.nip.io:3000').rstrip('/')
 # Plan K3: comando que abre un borrador en un navegador y mide desbordes, solapes y mínimos (recibe DRAFT_TOKEN, REST y
 # SEDE en el entorno y escribe JSON en stdout). Vacío = la verificación en navegador no está disponible en este servidor.
 DESIGN_VERIFIER_CMD = os.getenv('DESIGN_VERIFIER_CMD', '')

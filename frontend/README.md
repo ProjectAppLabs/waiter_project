@@ -72,7 +72,7 @@ A: salón y pedidos; B: KDS; C: backoffice y ROI; E: cobro, caja y roles;
 G: configuración de marca; H: galería, personalización y vista previa de 30 plantillas.
 El catálogo y los ajustes de plantillas viven en `experience/`; el POS los administra
 mediante `/experience/api/pos/v1/admin/menu_settings`, con la sesión propia. Los secretos permanecen en
-el servidor. El comensal usa la app independiente `diner/`.
+el servidor. El comensal vive en la misma app (`diner/` y `app/(diner)/`) y se sirve en el host `menu.`.
 
 El pago móvil de H es demo. El cobro real, incluidos pedidos del comensal con descuento,
 sigue en este POS. [Contexto y revisión de H](../docs/revisiones/2026-09-05-cierre-H-pr14.md).

@@ -11,7 +11,8 @@ flowchart LR
 
 Las rutas están en `experience/experience_project/urls.py`: `/api/pos/v1/`,
 `/api/platform/v1/` y las rutas del comensal incluidas desde `experience_app`.
-El POS reenvía `/experience/` al backend (`pos/next.config.ts`). El despliegue
+La app de `frontend/` reenvía `/experience/` (el POS) y `/api/` (el comensal) al backend
+(`frontend/next.config.ts`). El despliegue
 está preparado en `deploy/`; esta ronda no lo aplica.
 
 ```mermaid

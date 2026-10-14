@@ -1,13 +1,15 @@
 # diner — la app del comensal
 
 Frontend del bloque 3. **Solo habla con `experience/`** (`/api/v1/*` por proxy
-same-origin); no importa nada de `pos/` ni conoce Odoo ni el registro
-(`docs/decisiones/2026-09-05-comensal-app-aparte.md`).
+same-origin); no importa nada del POS ni conoce Odoo ni el registro
+(`docs/decisiones/2026-09-05-comensal-app-aparte.md`). Desde el alta en staging vive en la app única de
+`frontend/`: sus páginas en `app/(diner)/diner/` y el resto aquí, con el alias `@diner/`. `proxy.ts` la sirve en el
+host `menu.` sin cambiar las direcciones (los QR y NFC impresos y su `/sw.js` siguen igual).
 
 ```bash
-npm ci && npm run dev            # 192.168.56.10:3001 · EXPERIENCE_ORIGIN=http://192.168.56.10:8001
-npm test -- lib components       # unit por lotes
-PLAYWRIGHT_BASE_URL=http://192.168.56.10:3001 npx playwright test
+cd frontend && npm ci && npx next dev --hostname 192.168.56.10 --port 3000   # http://menu.192.168.56.10.nip.io:3000
+cd frontend && npx jest diner                                               # unit del comensal
+cd frontend && npm run diner:e2e                                            # e2e en http://menu.localhost:3001
 ```
 
 ## Smart Menu (S1)
@@ -18,7 +20,7 @@ tipografía y logo, conservando la composición. Los diseños anteriores permane
 como código histórico y no se ofrecen en el selector.
 
 Ruta base `/<rest>/<sede>` o `/<rest>/<sede>/t/<token>`; ambas conservan el contexto
-al navegar. En desarrollo: <http://192.168.56.10:3001/burger-house/poblado>.
+al navegar. En desarrollo: <http://menu.192.168.56.10.nip.io:3000/burger-house/poblado>.
 
 - `/carta`, `/plato/<id>`, `/pedido`, `/estado/<id>`, `/la-cuenta`, `/pago`.
 - `/bienvenida`, `/asistente`, `/preferencias`, `/preferencias/actual`, `/ubicacion`.

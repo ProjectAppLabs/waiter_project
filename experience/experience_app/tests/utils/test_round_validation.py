@@ -58,8 +58,8 @@ def test_gate_y_jest_incluyen_transporte_y_cola_obligatorios(monkeypatch):
     gate_command = commands('gate')[0][1]
     assert 'lib/offline/__tests__/offline.test.ts' in jest_command
     assert 'lib/services/core/__tests__/http.test.ts' in jest_command
-    assert 'pos/lib/offline/__tests__/offline.test.ts' in gate_command
-    assert 'pos/lib/services/core/__tests__/http.test.ts' in gate_command
+    assert 'frontend/lib/offline/__tests__/offline.test.ts' in gate_command
+    assert 'frontend/lib/services/core/__tests__/http.test.ts' in gate_command
 
 
 def test_runner_selecciona_pruebas_financieras_de_la_rama_y_su_gate(monkeypatch, tmp_path):
@@ -79,8 +79,8 @@ def test_runner_selecciona_pruebas_financieras_de_la_rama_y_su_gate(monkeypatch,
     assert 'sales/tests/views/test_cart_price_contract.py' in backend_command
     assert 'lib/domain/__tests__/cartAmounts.test.ts' in jest_command
     assert 'experience/sales/tests/views/test_cart_price_contract.py' in gate_command
-    assert 'pos/lib/domain/__tests__/cartAmounts.test.ts' in gate_command
-    assert 'pos/e2e/pedidos/ronda.spec.ts' in gate_command
+    assert 'frontend/lib/domain/__tests__/cartAmounts.test.ts' in gate_command
+    assert 'frontend/e2e/pedidos/ronda.spec.ts' in gate_command
 
 
 def preparar_combinacion(monkeypatch, tmp_path):
@@ -119,6 +119,8 @@ def test_la_combinacion_corre_las_matrices_de_permisos_completas(monkeypatch, tm
 def test_la_combinacion_corre_la_suite_completa_de_jest(monkeypatch, tmp_path):
     """El tren ejecuta todo Jest del POS, no solo la selección de la ronda."""
     # Falla si el tren publica verde ejecutando solo la selección y deja fuera pruebas como paymentKit.test.ts.
-    jest_command = preparar_combinacion(monkeypatch, tmp_path)('pos')[0][1]
+    jest_cwd, jest_command = preparar_combinacion(monkeypatch, tmp_path)('pos')[0]
     assert '--runTestsByPath' not in jest_command
+    # Jest corre en frontend/, la app única (POS, comensal y landing), y escribe en el test-results de la raíz.
+    assert jest_cwd == tmp_path / 'frontend'
     assert '--outputFile=../test-results/pos.json' in jest_command

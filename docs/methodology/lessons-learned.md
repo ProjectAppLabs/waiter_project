@@ -16,5 +16,5 @@
   de navegador usan roles y nombres accesibles; los tags declaran flujo y
   resultado. Cada ancho verifica un contrato distinto y explícito.
 
-Fuentes: `sales/api.py`, `sales/models.py`, `pos/lib/offline/outbox.ts`,
-`pos/components/payment/PaymentModal.tsx` y el guion responsive de la ronda.
+Fuentes: `sales/api.py`, `sales/models.py`, `frontend/lib/offline/outbox.ts`,
+`frontend/components/payment/PaymentModal.tsx` y el guion responsive de la ronda.
