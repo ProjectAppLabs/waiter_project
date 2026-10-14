@@ -1,0 +1,33 @@
+{
+  "name": "waiter-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Waiter · las tres apps de Next (POS, comensal y landing) como workspaces de npm, con un solo package-lock.",
+  "packageManager": "npm@11.19.0",
+  "engines": {
+    "node": ">=24.20.0 <25",
+    "npm": ">=11.19.0 <12"
+  },
+  "workspaces": [
+    "pos",
+    "diner",
+    "landing"
+  ],
+  "scripts": {
+    "build": "EXPERIENCE_ORIGIN=${EXPERIENCE_ORIGIN:-http://127.0.0.1:8107} npm run build --workspaces",
+    "postinstall": "node scripts/enlazar-next.cjs"
+  },
+  "//": "eslint 10.9.1 se declara aquí para que ocupe frontend/node_modules: sin esto npm eleva el ESLint 9 que pide un plugin y el gate de calidad (frontend/node_modules/.bin/eslint) linta con la versión equivocada.",
+  "devDependencies": {
+    "eslint": "10.9.1"
+  },
+  "allowScripts": {
+    "@parcel/watcher@2.5.6": true,
+    "@swc/core@1.16.1": true,
+    "unrs-resolver@1.11.1": true
+  },
+  "overrides": {
+    "minimatch": "10.2.6",
+    "flatted": "3.4.4"
+  }
+}

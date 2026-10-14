@@ -13,12 +13,10 @@ __pycache__/
 /backend/venv/
 /backend/.venv-audit/
 
-# Node/Next
-/frontend/node_modules/
-/frontend/next-env.d.ts
-/frontend/.next/
-/frontend/out/
-/frontend/build/
+# Node/Next: las dependencias de los tres workspaces (frontend/pos, frontend/diner, frontend/landing) se instalan
+# en frontend/node_modules; cada app ignora sus propias salidas en su .gitignore. Sin barra final: los worktrees
+# de agentes lo enlazan como symlink.
+/frontend/node_modules
 *.tsbuildinfo
 
 # Env files
@@ -27,7 +25,6 @@ __pycache__/
 *.env
 !*.env.example
 .env.local
-/frontend/.env.local
 .env.development.local
 .env.test.local
 .env.production.local
@@ -47,14 +44,6 @@ coverage.json
 htmlcov/
 test-results/
 test-reports/
-/frontend/coverage/
-/frontend/coverage-e2e/
-/frontend/e2e-results/
-/frontend/test-results/
-/frontend/playwright-report/
-/frontend/blob-report/
-/frontend/monocart-report/
-/frontend/.nyc_output/
 /backend/.pytest_cache/
 /backend/htmlcov/
 /backend/.coverage
@@ -65,11 +54,11 @@ test-reports/
 /.pytest_cache/
 /coverage-report.md
 
-# Alias temporal que el core canónico de calidad usa para el POS del monorepo.
-/frontend
+# Alias temporales que scripts/calidad/gate_ronda.py crea para el core canónico de calidad y retira al salir:
+# backend → experience, y dentro de frontend/ los e2e y la configuración de ESLint del POS.
 /backend
-# Next regenera este archivo en dev, build y typegen.
-/pos/next-env.d.ts
+/frontend/e2e
+/frontend/eslint.config.mjs
 # Coordinación temporal de QA; el engine la retira tras validar.
 /.qa-gate-pending
 
@@ -101,40 +90,15 @@ Thumbs.db
 # Configuración de Odoo con secretos (las plantillas .example sí se versionan)
 /odoo/compose/odoo.conf
 
-# POS app
-/pos/node_modules/
-/pos/.next/
-/pos/out/
-/pos/.env.local
-/pos/coverage/
-/diner/coverage/
-/pos/test-results/
-/pos/playwright-report/
-/pos/e2e-results/
-
-# diner (paquete propio)
-/diner/node_modules/
-/diner/.next/
-/diner/test-results/
-/diner/playwright-report/
-
-# landing (paquete propio)
-/landing/node_modules/
-/landing/.next/
-/landing/next-env.d.ts
-
 # Worktrees de agentes de la sesión
 .claude/worktrees/
 
-# Los venv y node_modules también como symlink (los worktrees de agentes los enlazan al repo principal)
+# Los venv también como symlink (los worktrees de agentes los enlazan al repo principal)
 /experience/venv
 /registry/venv
-/pos/node_modules
-/diner/node_modules
-/landing/node_modules
 
 # Figma binario del kit del POS (215 MB): no se versiona
 *.fig
 
-# Kits de diseño descargados (60–95 MB); las referencias útiles ya están en docs/diseno/exporty y diner/public/smart-menu
+# Kits de diseño descargados (60–95 MB); las referencias útiles ya están en docs/diseno/exporty y frontend/diner/public/smart-menu
 /*.zip

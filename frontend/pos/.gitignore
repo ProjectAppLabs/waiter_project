@@ -3,3 +3,17 @@ kit-compare/
 
 # Plan Y3: secreto de doble factor de la cuenta de ProjectApp de las pruebas
 e2e/.estado/
+
+# Dependencias (sin barra final: los worktrees de agentes las enlazan como symlink) y salidas de Next
+node_modules
+.next/
+out/
+# Next regenera este archivo en dev, build y typegen.
+next-env.d.ts
+
+# Pruebas
+coverage/
+coverage-e2e/
+playwright-report/
+blob-report/
+e2e-results/

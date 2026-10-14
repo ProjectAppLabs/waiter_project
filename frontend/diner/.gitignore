@@ -1,2 +1,13 @@
 /public/mapas/*.pmtiles
 /public/mapas/maplibre-gl-worker.mjs
+
+# Dependencias (sin barra final: los worktrees de agentes las enlazan como symlink) y salidas de Next
+node_modules
+.next/
+# Next regenera este archivo en dev, build y typegen.
+next-env.d.ts
+
+# Pruebas
+coverage/
+playwright-report/
+blob-report/
