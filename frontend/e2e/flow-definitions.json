@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "scope": "Acceso offline, Pedidos, Pago, Historial y navegación de consolas; rondas x0, w0, r2, contratos de r3 y, en r4, Cocina, Inventario → Menú, Operación en vivo y cobro con tarjeta y propina",
+  "scope": "Acceso offline, Pedidos, Pago, Historial y navegación de consolas; rondas x0, w0, r2, contratos de r3 y, en r4, Cocina, Inventario → Menú, Operación en vivo y cobro con tarjeta y propina; alta en staging: el comensal por QR y su service worker en menu.*, la landing en el dominio central y los hosts ajenos",
   "flows": {
     "pos-payment-checkout": {
       "name": "Cobrar un pedido pendiente",
@@ -254,6 +254,43 @@
       "description": "Operación en vivo se abre por su dirección (/operacion), su única entrada. En la pestaña Pagos, la fila de un pedido pendiente conserva «Mesa / mesero», su total y su estado «Pendiente». Contrato responsive en 835x1194 y 412x915: esas celdas alcanzables sin recorte y sin desborde horizontal del documento.",
       "outcomes": [
         "display"
+      ]
+    },
+    "diner-table-entry": {
+      "name": "Abrir la carta desde el QR o el NFC de la mesa",
+      "module": "comensal",
+      "roles": [
+        "comensal"
+      ],
+      "priority": "P1",
+      "description": "El enlace impreso de una mesa, con la forma que arma el backend (experience_app/services/online_payments.py:134-136: <host del menú>/<organización>/<sede>/t/<token>), abre la carta de esa mesa con y sin barra final, sin redirecciones y sin cambiar la dirección. La carta pide el contexto de la mesa, muestra la sede y el número de mesa, y tocar un plato abre su ficha en el mismo host.",
+      "outcomes": [
+        "success"
+      ]
+    },
+    "diner-installed-app": {
+      "name": "Volver a la carta con el service worker instalado",
+      "module": "comensal",
+      "roles": [
+        "comensal"
+      ],
+      "priority": "P1",
+      "description": "En el host del menú, /sw.js es el service worker del comensal (public/diner/sw.js) registrado con scope /. Al volver a la carta lo controla el mismo registro, sin otro nuevo, y /manifest.webmanifest es el manifiesto de la carta.",
+      "outcomes": [
+        "success"
+      ]
+    },
+    "app-host-routing": {
+      "name": "Repartir el POS, el comensal y la landing por host",
+      "module": "plataforma",
+      "roles": [
+        "visitante"
+      ],
+      "priority": "P1",
+      "description": "El dominio central muestra la landing en sus páginas, con su navegación interna (Condiciones → Privacidad), y deja /login al POS. Un Host que nginx no deja pasar sólo llega al POS con la lógica de tenant: sin landing, sin comensal y sin los prefijos internos /diner y /landing, aunque el cliente mande el encabezado x-waiter-sitio.",
+      "outcomes": [
+        "success",
+        "failure"
       ]
     }
   }

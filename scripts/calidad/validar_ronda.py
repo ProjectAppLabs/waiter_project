@@ -116,6 +116,8 @@ NEW_TESTS = {
         'experience/experience_app/tests/views/test_entry_and_sessions.py',
         'experience/experience_app/tests/utils/test_correo_produccion.py',
         'experience/experience_app/tests/utils/test_round_validation.py',
+        'frontend/__tests__/proxy.test.ts',
+        'frontend/e2e/hosts/ronda.spec.ts',
     ],
 }
 BACKEND = [

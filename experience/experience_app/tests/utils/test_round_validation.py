@@ -25,6 +25,7 @@ pytestmark = pytest.mark.django_db
     ('improve/qa-09102026-r4', 'RestaurantInfoForm.test.tsx'),
     ('improve/compartido-09102026-r4', 'test_correo_produccion.py'),
     ('queue/integration-r4', 'test_metricas_plataforma_r4.py'),
+    ('refactor/14102026-frontend-una-app', 'hosts/ronda.spec.ts'),
 ])
 def test_runner_rechaza_la_ausencia_de_pruebas_obligatorias(monkeypatch, tmp_path, branch, missing):
     """Rechaza una rama o su tren cuando faltan pruebas obligatorias."""
