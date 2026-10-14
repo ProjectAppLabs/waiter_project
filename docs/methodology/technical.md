@@ -10,7 +10,10 @@ La base de referencia es MySQL 8.4, utf8mb4, modo estricto y READ COMMITTED.
 `ExactCharField` conserva comparaciones binarias de claves; los índices
 condicionales se expresan mediante columnas calculadas nullable
 (`experience/tenancy/fields.py`, `experience/experience_project/settings.py`).
-`DJANGO_ENV` selecciona producción. `DJANGO_DB_ENGINE` y las variables de DB
+`DJANGO_ENV` vale `development` (por defecto), `staging` o `production`. Staging
+es seguro por defecto: sin DEBUG, secreto real obligatorio, 127.0.0.1 siempre
+admitido, correo a `experience/mail` y cookies Secure; `settings_dev` (el de
+`manage.py`) no lo pisa. `DJANGO_DB_ENGINE` y las variables de DB
 seleccionan el motor; el default SQLite no demuestra compatibilidad MySQL.
 
 El clon principal es el checkout de servicio. Se trabaja en una rama de sesión

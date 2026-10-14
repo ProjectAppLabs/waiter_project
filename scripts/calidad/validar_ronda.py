@@ -110,6 +110,13 @@ NEW_TESTS = {
         'experience/experience_app/tests/utils/test_round_validation.py',
         'experience/experience_app/tests/utils/test_correo_produccion.py',
     ],
+    # Alta en staging: una sola app de Next en frontend/ (POS, comensal y landing por host) y el modo staging seguro.
+    'refactor/14102026-frontend-una-app': [
+        'experience/experience_app/tests/utils/test_entorno_staging.py',
+        'experience/experience_app/tests/views/test_entry_and_sessions.py',
+        'experience/experience_app/tests/utils/test_correo_produccion.py',
+        'experience/experience_app/tests/utils/test_round_validation.py',
+    ],
 }
 BACKEND = [
     'sales/tests/views/test_cash_moves_idempotency.py',

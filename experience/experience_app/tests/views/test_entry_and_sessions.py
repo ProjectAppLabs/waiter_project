@@ -40,16 +40,19 @@ def test_everyone_who_taps_the_table_shares_one_session_and_keeps_their_cookie(a
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('production', [False, True])
-def test_diner_cookie_uses_secure_in_production(api_client, table_tenant, monkeypatch, production):
-    """Usa HTTPS en producción y permite el HTTP del entorno de desarrollo."""
-    # Falla si producción permite enviar la cookie por HTTP o desarrollo exige HTTPS.
+@pytest.mark.parametrize(('production', 'staging'), [(False, False), (True, False), (False, True)],
+                         ids=['development', 'production', 'staging'])
+def test_diner_cookie_uses_secure_in_production_and_staging(api_client, table_tenant, monkeypatch, production, staging):
+    """Usa HTTPS en producción y en staging y permite el HTTP del entorno de desarrollo."""
+    # Falla si producción o staging permiten enviar la cookie por HTTP, o si desarrollo exige HTTPS.
     monkeypatch.setattr('django.conf.settings.IS_PRODUCTION', production)
+    monkeypatch.setattr('django.conf.settings.IS_STAGING', staging)
+    secure = production or staging
     payload = {'restaurante': 'burger-house', 'sede': 'poblado', 'token': '8H2KQ7'}
-    response = api_client.post(reverse('open-session'), payload, format='json', secure=production)
+    response = api_client.post(reverse('open-session'), payload, format='json', secure=secure)
     assert response.status_code == 201
     cookie = response.cookies['waiter_diner']
-    assert bool(cookie['secure']) is production
+    assert bool(cookie['secure']) is secure
 
 
 @pytest.mark.django_db

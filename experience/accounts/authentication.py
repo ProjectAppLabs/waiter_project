@@ -60,5 +60,6 @@ def platform_session(request, *, allow_setup=False):
 
 
 def set_cookie(response, name, token, expires):
-    response.set_cookie(name, token, expires=expires, httponly=True, samesite='Lax', secure=settings.IS_PRODUCTION, path='/')
+    response.set_cookie(name, token, expires=expires, httponly=True, samesite='Lax',
+                        secure=settings.IS_PRODUCTION or settings.IS_STAGING, path='/')
     return response

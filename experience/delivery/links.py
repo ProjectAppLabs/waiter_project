@@ -100,5 +100,6 @@ class PayView(DinerView):
         diner = Diner.objects.select_related('session').filter(pk=data.get('diner'), session_id=data.get('session')).first()
         require(diner, 'El enlace de pago venció. Escríbanos por WhatsApp para enviarle uno nuevo.', 'invalid_pay_link', 404)
         response = Response({'restaurante': diner.session.restaurant_slug, 'sede': diner.session.venue_slug})
-        response.set_cookie(COOKIE, diner.key, max_age=COOKIE_MAX_AGE, httponly=True, secure=settings.IS_PRODUCTION, samesite='Lax', path='/api/v1/')
+        response.set_cookie(COOKIE, diner.key, max_age=COOKIE_MAX_AGE, httponly=True,
+                            secure=settings.IS_PRODUCTION or settings.IS_STAGING, samesite='Lax', path='/api/v1/')
         return response
