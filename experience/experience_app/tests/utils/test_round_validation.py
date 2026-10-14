@@ -25,6 +25,7 @@ pytestmark = pytest.mark.django_db
     ('improve/qa-09102026-r4', 'RestaurantInfoForm.test.tsx'),
     ('improve/compartido-09102026-r4', 'test_correo_produccion.py'),
     ('queue/integration-r4', 'test_metricas_plataforma_r4.py'),
+    ('fix/14102026-ronda-en-main', 'test_round_validation.py'),
     ('refactor/14102026-frontend-una-app', 'hosts/ronda.spec.ts'),
     ('fix/14102026-ip-cliente', 'test_detras_del_proxy.py'),
 ])
@@ -56,6 +57,8 @@ def test_gate_y_jest_incluyen_transporte_y_cola_obligatorios(monkeypatch):
     script = Path(__file__).resolve().parents[4] / 'scripts/calidad/validar_ronda.py'
     commands = runpy.run_path(str(script))['commands']
     monkeypatch.setenv('GITHUB_HEAD_REF', 'improve/compartido-08102026-r3')
+    # Esta prueba mira la selección de la rama: una corrida combinada local (WAITER_REQUIRE_ROUND_TESTS=1) no se filtra.
+    monkeypatch.delenv('WAITER_REQUIRE_ROUND_TESTS', raising=False)
     jest_command = commands('pos')[0][1]
     gate_command = commands('gate')[0][1]
     assert 'lib/offline/__tests__/offline.test.ts' in jest_command
@@ -70,6 +73,8 @@ def test_runner_selecciona_pruebas_financieras_de_la_rama_y_su_gate(monkeypatch,
     script = Path(__file__).resolve().parents[4] / 'scripts/calidad/validar_ronda.py'
     commands = runpy.run_path(str(script))['commands']
     monkeypatch.setenv('GITHUB_HEAD_REF', 'improve/mantenibilidad-08102026-r3')
+    # Esta prueba mira la selección de la rama: una corrida combinada local (WAITER_REQUIRE_ROUND_TESTS=1) no se filtra.
+    monkeypatch.delenv('WAITER_REQUIRE_ROUND_TESTS', raising=False)
     monkeypatch.setitem(commands.__globals__, 'ROOT', tmp_path)
     for relative in commands.__globals__['NEW_TESTS']['improve/mantenibilidad-08102026-r3']:
         target = tmp_path / relative
@@ -126,3 +131,19 @@ def test_la_combinacion_corre_la_suite_completa_de_jest(monkeypatch, tmp_path):
     # Jest corre en frontend/, la app única (POS, comensal y landing), y escribe en el test-results de la raíz.
     assert jest_cwd == tmp_path / 'frontend'
     assert '--outputFile=../test-results/pos.json' in jest_command
+
+
+def test_un_run_manual_sobre_main_corre_la_combinacion(monkeypatch, tmp_path):
+    """Sin GITHUB_HEAD_REF (workflow_dispatch o push) la rama sale de GITHUB_REF_NAME; en un PR manda GITHUB_HEAD_REF."""
+    # Falla si un run manual sobre main (el checkout por SHA deja el HEAD separado) cae en la selección de un PR y publica
+    # verde sin Jest completo ni las matrices de permisos completas, o si en un PR GITHUB_REF_NAME ('<n>/merge') le gana a
+    # la rama del PR.
+    commands = preparar_combinacion(monkeypatch, tmp_path)
+    monkeypatch.delenv('GITHUB_HEAD_REF')
+    monkeypatch.delenv('WAITER_REQUIRE_ROUND_TESTS', raising=False)
+    monkeypatch.setenv('GITHUB_REF_NAME', 'main')
+    assert '--runTestsByPath' not in commands('pos')[0][1]
+    assert '-k' not in commands('backend')[1][1]
+    monkeypatch.setenv('GITHUB_HEAD_REF', 'improve/compartido-08102026-r3')
+    monkeypatch.setenv('GITHUB_REF_NAME', '44/merge')
+    assert '--runTestsByPath' in commands('pos')[0][1]
