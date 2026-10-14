@@ -38,7 +38,12 @@ class MenuAdminView(ContractView):
         org, venue = account.organization.slug, restaurant.slug
         tenant = resolve(org, venue)
         action = data.get('action', 'get' if self.section in ('menu_settings', 'payment_gateways') else 'list')
-        base = settings.PAYMENTS_PUBLIC_URL or request.build_absolute_uri('/').rstrip('/')
+        # La dirección pública de experience. Detrás de Next el Host que llega es el del rewrite (127.0.0.1:8107), así que en
+        # staging y producción sólo vale PAYMENTS_PUBLIC_URL; sin ella queda vacía (el POS dice «sin configurar»). En
+        # desarrollo, la de la petición.
+        base = settings.PAYMENTS_PUBLIC_URL or (
+            '' if settings.IS_PRODUCTION or settings.IS_STAGING else request.build_absolute_uri('/').rstrip('/'))
+        mcp_url = f'{base}/mcp/' if base else ''
         try:
             if self.section == 'menu_settings':
                 if action == 'get':
@@ -76,11 +81,11 @@ class MenuAdminView(ContractView):
                     result = {'eliminada': data['decoracion_id']}
             elif self.section == 'mcp_keys':
                 if action == 'list':
-                    result = {'claves': keys.listing(org, venue), 'mcpUrl': base + '/mcp/'}
+                    result = {'claves': keys.listing(org, venue), 'mcpUrl': mcp_url}
                 elif action == 'create':
                     valid(isinstance(data.get('nombre'), str) and bool(data['nombre'].strip()), 'Ponle un nombre a la clave.')
                     key, raw = keys.create(org, venue, data['nombre'], account.name)
-                    result = {'clave': raw, **keys.view(key), 'mcpUrl': base + '/mcp/'}
+                    result = {'clave': raw, **keys.view(key), 'mcpUrl': mcp_url}
                 else:
                     valid(action == 'revoke' and type(data.get('key_id')) is int, 'Acción de clave inválida.')
                     require(keys.revoke(org, venue, data['key_id']), 'La clave no existe o ya estaba revocada.', 'not_found', 404)

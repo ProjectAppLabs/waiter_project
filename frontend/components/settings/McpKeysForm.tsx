@@ -75,8 +75,14 @@ export function McpKeysForm() {
         <section aria-label={t('newKey')} className="rounded-lg border-2 border-primary/40 bg-primary-soft/40 p-4 flex flex-col gap-4">
           <p className="flex items-start gap-2 text-[14px] font-semibold text-ink"><Icon name="alert" size={18} className="mt-0.5 shrink-0 text-primary" />{t('onlyOnce')}</p>
           <CopyRow label={t('keyLabel', { name: created.nombre })} value={created.clave} />
-          <CopyRow label={t('claudeAi')} value={connectorUrl(created.mcpUrl, created.clave)} />
-          <CopyRow label={t('claudeCode')} value={claudeCodeCommand(created.mcpUrl, created.clave)} />
+          {/* Sin la dirección pública del servidor (staging o producción sin PAYMENTS_PUBLIC_URL) no hay a dónde
+              conectar: se dice, en vez de mostrar una URL y un comando que no funcionan. La clave se ve igual. */}
+          {created.mcpUrl ? (
+            <>
+              <CopyRow label={t('claudeAi')} value={connectorUrl(created.mcpUrl, created.clave)} />
+              <CopyRow label={t('claudeCode')} value={claudeCodeCommand(created.mcpUrl, created.clave)} />
+            </>
+          ) : <p className="text-[14px] text-soft">{t('notConfigured')}</p>}
           <Button size="compact" className="self-start" onClick={() => setCreated(null)}>{t('done')}</Button>
         </section>
       )}

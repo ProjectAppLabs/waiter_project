@@ -36,6 +36,21 @@ it('generates a key and shows it once with both ways to connect', async () => {
   expect(screen.getByText('Claude de Gustavo')).toBeInTheDocument()
 })
 
+// Falla si, sin la dirección pública del servidor (mcpUrl vacía), la clave nueva sale con una URL o un comando que no
+// funcionan en vez de decir que la conexión está sin configurar, o si la clave deja de mostrarse esa única vez.
+it('says the AI connection is not configured when the server has no public address', async () => {
+  jest.mocked(listMcpKeys).mockResolvedValue({ claves: [], mcpUrl: '' })
+  jest.mocked(createMcpKey).mockResolvedValue({ ...KEY, clave: 'wtr_Ab12CdSECRETO', mcpUrl: '' })
+  wrap()
+  await userEvent.type(await screen.findByLabelText('Nombre de la clave'), 'Claude de Gustavo')
+  await userEvent.click(screen.getByRole('button', { name: /Generar clave/ }))
+  expect(await screen.findByText('wtr_Ab12CdSECRETO')).toBeInTheDocument()
+  expect(screen.getByText(/^Sin configurar: este servidor todavía no tiene su dirección pública/)).toBeInTheDocument()
+  expect(screen.queryByText(/claude mcp add/)).toBeNull()
+  expect(screen.queryByText(/^wtr_Ab12CdSECRETO\/$/)).toBeNull()
+  expect(screen.queryByText(/^Servidor MCP:/)).toBeNull()
+})
+
 // Falla si revocar no pide confirmación antes (una clave revocada corta a quien la esté usando).
 it('asks before revoking a key', async () => {
   jest.mocked(listMcpKeys).mockResolvedValue({ claves: [KEY], mcpUrl: URL })

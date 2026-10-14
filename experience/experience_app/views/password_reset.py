@@ -11,6 +11,7 @@ from django.utils import timezone
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
+from accounts.universal import client_ip
 from experience_app.models import DinerAccount, DinerPasswordReset, Diner, CartLine
 from experience_app.adapters.core.pos import resolve
 
@@ -28,7 +29,7 @@ def send_reset_link(request, email, restaurant, venue, *, authenticated=False):
     if not settings.DINER_EMAIL_ENABLED:
         return Response({'detail': 'La verificación por correo todavía no está habilitada. Tu contraseña no se ha cambiado.'}, status=503)
     tenant = resolve(restaurant, venue)
-    key = 'diner-reset:' + hashlib.sha256((restaurant + ':' + request.META.get('REMOTE_ADDR', '') + ':' + email).encode()).hexdigest()
+    key = 'diner-reset:' + hashlib.sha256((restaurant + ':' + client_ip(request) + ':' + email).encode()).hexdigest()
     if cache.get(key):
         return Response({'detail': 'Espera unos minutos antes de pedir otro enlace.'}, status=429)
     cache.set(key, True, 300)
