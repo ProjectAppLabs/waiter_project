@@ -11,7 +11,7 @@ import { usePlatformStore } from '@/lib/stores/platformStore'
 
 // La frontera es el transporte: lo que llega a coreFetch es lo que recibe el servidor de la plataforma.
 jest.mock('@/lib/services/core/http', () => ({ ...jest.requireActual('@/lib/services/core/http'), coreFetch: jest.fn() }))
-jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn(), replace: jest.fn() }), usePathname: () => '/plataforma' }))
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn(), replace: jest.fn() }), usePathname: () => '/platform' }))
 const server = jest.mocked(coreFetch)
 const book = { local_monthly: 150000, modules: {}, unit_prices: {}, on_exhausted: 'cobrar', recharge_packs: [],
   whatsapp_plans: [{ key: 'inicial', name: 'Inicial', monthly_price: 50000, included: { pedido_asistente: 100 } }] }

@@ -36,7 +36,7 @@ it('sin service worker no recarga', async () => {
 it('solo se registra donde hay POS o consola', () => {
   expect(registersHere('waiter.projectapp.co')).toBe(false)
   expect(registersHere('frisby.waiter.projectapp.co')).toBe(true)
-  expect(registersHere('plataforma.waiter.projectapp.co')).toBe(true)
+  expect(registersHere('platform.waiter.projectapp.co')).toBe(true)
   expect(registersHere('192.168.56.10:3000')).toBe(true)
   expect(registersHere('localhost:3000')).toBe(true)
 })

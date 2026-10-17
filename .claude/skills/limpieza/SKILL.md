@@ -13,7 +13,7 @@ Corre lo que aplique y anota cada hallazgo con evidencia (archivo, línea o coma
 
 - **Pantallas y rutas huérfanas (POS y comensal).** Lista `app/**/page.tsx` y busca quién enlaza cada ruta
   (`href`, `router.push/replace`, `TAB_ROUTES`, `ADMIN_SUBTABS`, grupos de `app/organizacion/layout.tsx` y
-  `app/plataforma/layout.tsx`, `lib/domain/navigation.ts`, `lib/domain/modules.ts`, pruebas e2e). Una ruta sin
+  `app/platform/layout.tsx`, `lib/domain/navigation.ts`, `lib/domain/modules.ts`, pruebas e2e). Una ruta sin
   enlaces puede ser una entrada directa a propósito (`/soporte`, `/login`, `/kit`): verifícalo antes de proponerla.
 - **Código sin usar.** Exportes que nadie importa (`grep -rn "from '@/..."` del símbolo), componentes sin uso,
   funciones de `lib/services` sin llamadas, y en experience vistas sin ruta, servicios sin llamadas y modelos sin uso.

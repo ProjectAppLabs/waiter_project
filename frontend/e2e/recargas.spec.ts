@@ -31,7 +31,7 @@ test('el dueño recarga y el saldo llega al registrar el pago', async ({ page, b
   const recharge = (await api<{ recharges: { id: number; state: string }[] }>(page, 'recharges')).recharges.find((r) => r.state === 'pending')!
   expect(pedidos(await platform<Credits>(admin, 'organizations/burger-house/credits'))).toBe(before)
 
-  await admin.goto('/plataforma/cobros')
+  await admin.goto('/platform/cobros')
   await expect(admin.getByText('Recarga').first()).toBeVisible()
   await platform(admin, `charges/${recharge.id}/pay`, { method: 'POST', data: { method: 'transferencia', reference: `e2e-${Date.now()}`, notes: '' } })
   expect(pedidos(await platform<Credits>(admin, 'organizations/burger-house/credits'))).toBe(before + 100)

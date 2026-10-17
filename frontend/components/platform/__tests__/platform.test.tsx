@@ -14,7 +14,7 @@ import { usePlatformStore } from '@/lib/stores/platformStore'
 // El modal del kit traduce su botón de cerrar: hace falta el proveedor de textos.
 const render = (ui: React.ReactElement) => rtlRender(<NextIntlClientProvider locale="es" messages={messages}>{ui}</NextIntlClientProvider>)
 const push = jest.fn(), replace = jest.fn()
-jest.mock('next/navigation', () => ({ useRouter: () => ({ push, replace }), usePathname: () => '/plataforma' }))
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push, replace }), usePathname: () => '/platform' }))
 jest.mock('@/lib/services/core/platform', () => ({
   listOrganizations: jest.fn(), createOrganization: jest.fn(), getOrganization: jest.fn(), updateOrganization: jest.fn(), suspendOrganization: jest.fn().mockResolvedValue({}),
   reactivateOrganization: jest.fn().mockResolvedValue({}), resendOwnerInvite: jest.fn().mockResolvedValue({ ok: true, sent: true }),
@@ -57,20 +57,24 @@ it('lista los clientes con su dueño, plan y estado, y filtra', async () => {
   await waitFor(() => expect(resendOwnerInvite).toHaveBeenCalledWith('frisby'))
 })
 
-// Falla si el asistente deja pasar un slug inválido o reservado, si no propone la dirección y el usuario del dueño, o si
-// no manda al sistema propio exactamente lo del contrato.
+// Falla si el asistente deja pasar un slug inválido o reservado (el subdominio de la consola, `platform`, o su nombre
+// viejo, `plataforma`), si no propone la dirección y el usuario del dueño, o si no manda al sistema propio exactamente lo
+// del contrato.
 it('da de alta un cliente en tres pasos', async () => {
   jest.mocked(createOrganization).mockResolvedValue(org({ slug: 'frisby' }))
   render(<NewOrganizationWizard />)
   fireEvent.change(screen.getByLabelText('Nombre de la organización'), { target: { value: 'Frisby Antioquia' } })
   expect(screen.getByLabelText('Dirección (slug)')).toHaveValue('frisby-antioquia')
-  fireEvent.change(screen.getByLabelText('Dirección (slug)'), { target: { value: 'plataforma' } })
-  expect(screen.getByText('Ese nombre está reservado.')).toBeInTheDocument()
-  expect(screen.getByRole('button', { name: 'Siguiente' })).toBeDisabled()
-  fireEvent.change(screen.getByLabelText('Dirección (slug)'), { target: { value: 'frisby' } })
   fireEvent.change(screen.getByLabelText('Razón social'), { target: { value: 'Frisby SA' } })
   fireEvent.change(screen.getByLabelText('NIT'), { target: { value: '860.000.000-1' } })
   fireEvent.change(screen.getByLabelText('Correo de facturación'), { target: { value: 'Pagos@Frisby.co' } })
+  // Con el resto del paso completo, lo único que detiene el asistente es el slug reservado.
+  fireEvent.change(screen.getByLabelText('Dirección (slug)'), { target: { value: 'platform' } })
+  expect(screen.getByText('Ese nombre está reservado.')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Siguiente' })).toBeDisabled()
+  fireEvent.change(screen.getByLabelText('Dirección (slug)'), { target: { value: 'plataforma' } })
+  expect(screen.getByRole('button', { name: 'Siguiente' })).toBeDisabled()
+  fireEvent.change(screen.getByLabelText('Dirección (slug)'), { target: { value: 'frisby' } })
   fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }))
   fireEvent.change(screen.getByLabelText('Nombre del dueño'), { target: { value: 'María López' } })
   expect(screen.getByLabelText('Usuario')).toHaveValue('maria.lopez')
@@ -89,7 +93,7 @@ it('da de alta un cliente en tres pasos', async () => {
     plan: 'completo', monthly_price: 450000, max_restaurants: 2, trial_ends: '2026-11-01', timezone: 'America/Bogota', owner: { name: 'María López', email: 'maria@frisby.co', username: 'maria.lopez' },
     pricing: { mode: 'personalizado', local_monthly: 450000, whatsapp_plan: 'inicial', whatsapp: null },
   }))
-  expect(replace).toHaveBeenCalledWith('/plataforma/clientes/frisby?nuevo=1')
+  expect(replace).toHaveBeenCalledWith('/platform/clientes/frisby?nuevo=1')
 })
 
 // Falla si un slug ya usado no se explica, en vez de un error genérico.

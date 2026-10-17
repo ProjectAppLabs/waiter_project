@@ -10,7 +10,7 @@ esto se ha aplicado todavía: requiere el acceso al DNS del dominio y al servido
 | `https://waiter.projectapp.co` | Landing de Waiter (también `/privacy`, `/terms` y `/data-deletion`) |
 | `https://waiter.projectapp.co/login` | Inicio de sesión universal: todos entran aquí (meseros, cajeros, encargados, dueños y ProjectApp) |
 | `https://<org>.waiter.projectapp.co` | POS y consola del dueño de cada organización |
-| `https://plataforma.waiter.projectapp.co` | Consola de ProjectApp |
+| `https://platform.waiter.projectapp.co` | Consola de ProjectApp |
 | `https://menu.waiter.projectapp.co/<org>/<sede>/t/<token>` | Menú del comensal (QR de cada mesa) |
 | `https://api.waiter.projectapp.co/mcp/` | MCP del diseño del menú; también los webhooks de pagos |
 

@@ -193,7 +193,7 @@ it('con doble factor pide el código de verificación antes de ir a la consola',
   await userEvent.clear(screen.getByLabelText('Código de verificación'))
   await userEvent.type(screen.getByLabelText('Código de verificación'), '123456')
   await userEvent.click(screen.getByRole('button', { name: 'Verificar y entrar' }))
-  await waitFor(() => expect(leaveTo).toHaveBeenCalledWith('https://plataforma.waiter.projectapp.co/entrar#pase=pase-consola&destino=plataforma'))
+  await waitFor(() => expect(leaveTo).toHaveBeenCalledWith('https://platform.waiter.projectapp.co/entrar#pase=pase-consola&destino=plataforma'))
   expect(universalVerify2fa).toHaveBeenLastCalledWith('desafio-1', '123456')
 })
 
@@ -210,11 +210,12 @@ it('un desafío vencido vuelve a la contraseña con el aviso', async () => {
   expect(screen.getByRole('button', { name: 'Entrar' })).toBeInTheDocument()
 })
 
-// Falla si en el subdominio de una organización (o en la consola) sin sesión se pinta otro formulario en vez de ir al
-// inicio universal, o si se pierden el código de invitación, la organización de donde viene o por qué se cerró la sesión.
+// Falla si en el subdominio de una organización (o en la consola, `platform.`) sin sesión se pinta otro formulario en vez
+// de ir al inicio universal, si la consola se toma por una organización llamada «platform», o si se pierden el código de
+// invitación, la organización de donde viene o por qué se cerró la sesión.
 it.each([
   ['frisby.localhost:3000', '/login?codigo=ana', 'http://localhost:3000/login?codigo=ana&org=frisby&motivo=idle'],
-  ['plataforma.waiter.projectapp.co', '/login', 'http://waiter.projectapp.co/login?motivo=idle'],
+  ['platform.waiter.projectapp.co', '/login', 'http://waiter.projectapp.co/login?motivo=idle'],
 ])('sin sesión en %s va al inicio universal', async (host, path, target) => {
   at(host)
   window.history.pushState({}, '', path)
@@ -254,5 +255,5 @@ it('el encargado de varios restaurantes elige uno y entra', async () => {
 it('ProjectApp con sesión vuelve a su consola', async () => {
   jest.mocked(platformMe).mockResolvedValue({ user: ana } as never)
   wrap()
-  await waitFor(() => expect(replace).toHaveBeenCalledWith('/plataforma'))
+  await waitFor(() => expect(replace).toHaveBeenCalledWith('/platform'))
 })

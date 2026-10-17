@@ -15,14 +15,14 @@ import { cn } from '@/lib/utils'
 // Plan T0: la consola de ProjectApp. Aquí se dan de alta los dueños que pagan por Waiter, se lleva su plan y su estado y
 // se suspende a quien no paga. Solo entra la gente de ProjectApp (`PlatformUser`), con su propia sesión. Mismo sistema de
 // diseño que la consola del dueño: aurora al fondo y un panel translúcido con el menú y el contenido.
-const SECTIONS: [string, string, KitIcon][] = [['/plataforma', 'Clientes', 'store'], ['/plataforma/metricas', 'Métricas', 'chartLine'], ['/plataforma/cobros', 'Cobros', 'coins'], ['/plataforma/precios', 'Precios', 'percentage'], ['/plataforma/equipo', 'Equipo de ProjectApp', 'users'], ['/plataforma/seguridad', 'Seguridad', 'lock']]
-const SECURITY = '/plataforma/seguridad'
+const SECTIONS: [string, string, KitIcon][] = [['/platform', 'Clientes', 'store'], ['/platform/metricas', 'Métricas', 'chartLine'], ['/platform/cobros', 'Cobros', 'coins'], ['/platform/precios', 'Precios', 'percentage'], ['/platform/equipo', 'Equipo de ProjectApp', 'users'], ['/platform/seguridad', 'Seguridad', 'lock']]
+const SECURITY = '/platform/seguridad'
 
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const { user, hydrated, hydrate, logout } = usePlatformStore()
-  const onLogin = pathname.startsWith('/plataforma/login')
+  const onLogin = pathname.startsWith('/platform/login')
   // La página de inicio hidrata por su cuenta: el armazón no repite la pregunta al servidor.
   useEffect(() => { if (!onLogin) void hydrate() }, [hydrate, onLogin])
   useEffect(() => { if (hydrated && !user && !onLogin) router.replace('/login') }, [hydrated, user, onLogin, router])
@@ -36,8 +36,8 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
     <main className="pos-ambient h-dvh p-4 lg:p-5 flex text-ink">
       <AuroraBackground />
       <div className="flex-1 min-w-0 min-h-0 ambient-panel border border-border rounded-lg flex flex-col lg:flex-row overflow-hidden">
-        <ConsoleNavigation label="Consola de ProjectApp" brandHref="/plataforma" pathname={pathname}>
-          <BrandMark href="/plataforma" className="px-3 pt-1 pb-5" />
+        <ConsoleNavigation label="Consola de ProjectApp" brandHref="/platform" pathname={pathname}>
+          <BrandMark href="/platform" className="px-3 pt-1 pb-5" />
           {SECTIONS.filter(([href]) => !locked || href === SECURITY).map(([href, label, icon]) => (
             <Link key={href} href={href} aria-current={pathname === href ? 'page' : undefined}
               className={cn('flex items-center gap-3 h-11 px-3 rounded-md text-[15px] font-semibold', pathname === href ? 'bg-canvas border border-border text-ink' : 'text-soft hover:bg-muted')}>

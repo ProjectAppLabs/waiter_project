@@ -78,7 +78,7 @@ export default function LoginPage() {
   const platformHydrate = platform.hydrate
   useEffect(() => { void platformHydrate() }, [platformHydrate])
   // Una persona de ProjectApp con su sesión viva vuelve a su consola.
-  useEffect(() => { if (hydrated && platform.hydrated && platform.user && !user) router.replace('/plataforma') }, [hydrated, platform.hydrated, platform.user, user, router])
+  useEffect(() => { if (hydrated && platform.hydrated && platform.user && !user) router.replace('/platform') }, [hydrated, platform.hydrated, platform.user, user, router])
   // Si la sesión se cerró sola (inactividad o fin del turno) se explica. El subdominio lo pasa en `motivo` al mandar
   // al inicio universal, que está en otra dirección. Solo se pinta ya hidratado, en el navegador.
   const [closed, setClosed] = useState<GuardReason | null>(() => {

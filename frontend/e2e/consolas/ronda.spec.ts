@@ -22,7 +22,7 @@ const test = base.extend<{ storageState: StorageState }, { consolePlatformState:
         await expect(submit).toBeEnabled({ timeout: 1_000 })
       }).toPass({ timeout: 60_000 })
       await submit.click()
-      await expect(page).toHaveURL(/\/plataforma$/, { timeout: 60_000 })
+      await expect(page).toHaveURL(/\/platform$/, { timeout: 60_000 })
       await expect(page.getByRole('heading', { name: 'Clientes', exact: true })).toHaveText('Clientes')
       state = await context.storageState()
     } finally { await context.close() }
@@ -122,17 +122,17 @@ for (const viewport of RONDA_VIEWPORTS) {
       tag: ['@flow:platform-console-navigation', '@outcome:success', '@outcome:display'],
     }, async ({ page }) => {
       // quality: allow-duplicate (per-viewport contract: platform-console-navigation @ 412/835/1195/1440/2560)
-      await page.goto('/plataforma')
+      await page.goto('/platform')
       const name = 'Consola de ProjectApp'
       const navigation = await openNavigation(page, viewport, name)
       await expect(navigation.getByRole('link', { name: 'Clientes', exact: true })).toHaveAttribute('aria-current', 'page')
-      await expect(navigation.getByRole('link', { name: 'Cobros', exact: true })).toHaveAttribute('href', '/plataforma/cobros')
-      await expect(navigation.getByRole('link', { name: 'Seguridad', exact: true })).toHaveAttribute('href', '/plataforma/seguridad')
+      await expect(navigation.getByRole('link', { name: 'Cobros', exact: true })).toHaveAttribute('href', '/platform/cobros')
+      await expect(navigation.getByRole('link', { name: 'Seguridad', exact: true })).toHaveAttribute('href', '/platform/seguridad')
       await checkMobileClosing(page, viewport, name)
       const metrics = navigation.getByRole('link', { name: 'Métricas', exact: true })
       await expectReachable(metrics, 'Métricas')
       await metrics.click()
-      await expect(page).toHaveURL(/\/plataforma\/metricas$/)
+      await expect(page).toHaveURL(/\/platform\/metricas$/)
       await expect(page.getByRole('heading', { name: 'Métricas', exact: true })).toHaveText('Métricas')
       if (viewport.width < 1024) await expect(page.getByRole('button', { name: 'Abrir menú', exact: true })).toHaveAttribute('aria-expanded', 'false')
       const contentWidth = await page.getByTestId('platform-console-content').evaluate((element) => element.clientWidth)

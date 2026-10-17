@@ -1,7 +1,7 @@
 # Guía QA Waiter — 0. Índice, lineamientos y datos de prueba
 
 **Producto:** Waiter · ProjectApp
-**Fecha de actualización:** 12 de octubre de 2026 (inicio de sesión universal; antes: MySQL, devoluciones, impresión, sin internet, modo de emergencia, módulos, precios y recargas)
+**Fecha de actualización:** 17 de octubre de 2026 (la consola de ProjectApp en `/platform`; antes: inicio de sesión universal, MySQL, devoluciones, impresión, sin internet, modo de emergencia, módulos, precios y recargas)
 **Estado de la entrega:** POS, consola del dueño, cocina, menú del comensal y consola de ProjectApp en desarrollo continuo. Esta guía es un documento vivo: cada plan que se termina añade o corrige casos.
 **Ambiente:** desarrollo compartido (ver «Direcciones»). Nada de lo que se haga aquí toca dinero real ni a clientes reales.
 
@@ -43,7 +43,7 @@ Los documentos de venta salen de un proveedor de factura electrónica **simulado
 | `sofia.mesera` | `waiter-demo-2026` | Mesera de Poblado | `http://localhost:3000/login` |
 | `mateo.mesero` | `waiter-demo-2026` | Mesero de Laureles, con turno (sirve para «fuera de horario») | `http://localhost:3000/login` |
 | `maria.lopez` | `Frisby-2026!` | Dueña de Frisby (sistema propio) | `http://localhost:3000/login` → `http://frisby-74312.localhost:3000/organizacion` |
-| `ana.projectapp` | `Plataforma-2026` | Administradora de ProjectApp | `http://localhost:3000/login` → consola `/plataforma` |
+| `ana.projectapp` | `Plataforma-2026` | Administradora de ProjectApp | `http://localhost:3000/login` → consola `/platform` |
 
 Otras direcciones:
 

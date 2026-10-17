@@ -70,7 +70,7 @@ export function ChargesView() {
               const org = chargeOrg(c)
               return (
                 <tr key={c.id} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3"><Link href={`/plataforma/clientes/${org.slug}`} className="font-semibold hover:text-primary">{org.name}</Link></td>
+                  <td className="px-4 py-3"><Link href={`/platform/clientes/${org.slug}`} className="font-semibold hover:text-primary">{org.name}</Link></td>
                   <td className="px-4 py-3 tabular">{c.period}{c.kind === 'recarga' && <span className="ml-2 text-[12px] font-semibold text-primary">Recarga</span>}</td>
                   <td className="px-4 py-3 text-right tabular"><div>{money(c.amount)}</div>
                     {/* Plan W: el detalle de la cuenta, línea por línea (mensualidad por local y uso). */}

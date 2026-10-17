@@ -4,7 +4,9 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.core.exceptions import ValidationError
 
-RESERVED_SLUGS = {'plataforma', 'www', 'api', 'menu', 'admin', 'app'}
+# Los subdominios propios de Waiter. La consola de ProjectApp vive en `platform.`; `plataforma`, su nombre hasta el
+# 17-10-2026, sigue reservado para que ninguna organización ocupe la dirección vieja.
+RESERVED_SLUGS = {'platform', 'plataforma', 'www', 'api', 'menu', 'admin', 'app'}
 
 
 def validate_slug(value):

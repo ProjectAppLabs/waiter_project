@@ -9,7 +9,7 @@ import { billingRules, listCharges, payCharge, platformMetrics, type Charge } fr
 import { usePlatformStore } from '@/lib/stores/platformStore'
 
 const render = (ui: React.ReactElement) => rtlRender(<NextIntlClientProvider locale="es" messages={messages}>{ui}</NextIntlClientProvider>)
-jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn(), replace: jest.fn() }), usePathname: () => '/plataforma' }))
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn(), replace: jest.fn() }), usePathname: () => '/platform' }))
 jest.mock('@/lib/services/core/platform', () => ({
   ...jest.requireActual('@/lib/services/core/platform'),
   platformMetrics: jest.fn(), listCharges: jest.fn(), payCharge: jest.fn().mockResolvedValue({}), voidCharge: jest.fn(), billingRules: jest.fn(), saveBillingRules: jest.fn(),

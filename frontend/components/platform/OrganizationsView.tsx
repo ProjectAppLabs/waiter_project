@@ -48,7 +48,7 @@ export function OrganizationsView() {
     <section className="flex flex-col gap-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div><h1 className="text-[26px] font-bold">Clientes</h1><p className="mt-1 text-soft">Los dueños que pagan por Waiter: su organización, su plan y su estado.</p></div>
-        <Button variant="primary" onClick={() => router.push('/plataforma/clientes/nuevo')}><Icon name="plus" size={18} />Nuevo cliente</Button>
+        <Button variant="primary" onClick={() => router.push('/platform/clientes/nuevo')}><Icon name="plus" size={18} />Nuevo cliente</Button>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <TableSearch value={table.query} onChange={table.setQuery} placeholder="Buscar cliente o dueño" className="w-72 max-w-full" />
@@ -66,7 +66,7 @@ export function OrganizationsView() {
                 .map(([k, h]) => <SortTh key={k} label={h} sortKey={k} sort={table.sort} onSort={table.toggle} align={k === 'price' || k === 'restaurants' ? 'right' : 'left'} />)}<th /></tr></thead>
             <tbody>{table.view.map((o) => (
               <tr key={o.id} className="border-b border-border last:border-0">
-                <td className="px-4 py-3"><Link href={`/plataforma/clientes/${o.slug}`} className="font-semibold hover:text-primary">{o.name}</Link><div className="text-[13px] text-dim">{o.slug}</div></td>
+                <td className="px-4 py-3"><Link href={`/platform/clientes/${o.slug}`} className="font-semibold hover:text-primary">{o.name}</Link><div className="text-[13px] text-dim">{o.slug}</div></td>
                 <td className="px-4 py-3">{o.owner ? <><div>{o.owner.name}</div><div className="text-[13px] text-dim">{o.owner.email}{o.owner.status === 'pending' && ' · sin activar'}</div></> : '—'}</td>
                 <td className="px-4 py-3">{o.plan || '—'}</td>
                 <td className="px-4 py-3 text-right tabular">{money(o.monthly_price)}</td>
@@ -74,7 +74,7 @@ export function OrganizationsView() {
                 <td className="px-4 py-3"><StatusPill tone={STATUS[o.status].tone}>{STATUS[o.status].label}</StatusPill>{o.status === 'trial' && o.trial_ends && <div className="text-[13px] text-dim">hasta {o.trial_ends}</div>}</td>
                 <td className="px-4 py-3 text-soft">{new Date(o.created_at).toLocaleDateString('es-CO', { dateStyle: 'medium' })}</td>
                 <td className="px-4 py-3"><div className="flex justify-end gap-2">
-                  <Button size="compact" onClick={() => router.push(`/plataforma/clientes/${o.slug}`)}>Ver</Button>
+                  <Button size="compact" onClick={() => router.push(`/platform/clientes/${o.slug}`)}>Ver</Button>
                   <RowMenu label={`Más acciones de ${o.name}`} items={[
                     { label: 'Abrir su Waiter', onSelect: () => window.open(orgUrl(o.slug), '_blank') },
                     { label: o.owner?.status === 'pending' ? 'Reenviar invitación al dueño' : 'Restablecer contraseña del dueño', onSelect: () => void act(() => resendOwnerInvite(o.slug), `Correo enviado a ${o.owner?.email ?? 'el dueño'}.`) },

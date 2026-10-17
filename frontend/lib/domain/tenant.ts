@@ -1,7 +1,10 @@
 // Plan T: una organización por subdominio. `burger-house.waiter.projectapp.co` → `burger-house`; en desarrollo
 // `burger-house.localhost:3000` (los navegadores resuelven *.localhost solos). Sin subdominio (una tableta en la LAN por
 // la IP) vale la organización por omisión, solo en desarrollo.
-export const RESERVED_SUBDOMAINS = ['plataforma', 'www', 'api', 'menu', 'admin', 'app'] as const
+// La consola de ProjectApp tiene su propio subdominio, en inglés como menu. y api. `plataforma`, su nombre hasta el
+// 17-10-2026, sigue reservado para que ninguna organización ocupe la dirección vieja.
+const PLATFORM_SUBDOMAIN = 'platform'
+export const RESERVED_SUBDOMAINS = [PLATFORM_SUBDOMAIN, 'plataforma', 'www', 'api', 'menu', 'admin', 'app'] as const
 export const ORG_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 export function orgFromHost(host: string, fallback: string | null = null): string | null {
@@ -16,7 +19,7 @@ export function orgFromHost(host: string, fallback: string | null = null): strin
   return first
 }
 
-export const isPlatformHost = (host: string): boolean => host.split(':')[0].toLowerCase().startsWith('plataforma.')
+export const isPlatformHost = (host: string): boolean => host.split(':')[0].toLowerCase().startsWith(`${PLATFORM_SUBDOMAIN}.`)
 
 // La organización de este navegador: el subdominio o, en desarrollo, la que fija NEXT_PUBLIC_DEFAULT_ORG.
 export function currentOrg(): string | null {
@@ -42,7 +45,7 @@ export function destinationOrigin(kind: 'pos' | 'platform', slug: string | null,
   if (isLocalHost(central) && (kind === 'platform' || slug === defaultOrg)) return `${here.protocol}//${central}`
   const [name, port] = central.split(':')
   const base = IP.test(name) ? `localhost${port ? `:${port}` : ''}` : central
-  return `${here.protocol}//${kind === 'platform' ? 'plataforma' : slug}.${base}`
+  return `${here.protocol}//${kind === 'platform' ? PLATFORM_SUBDOMAIN : slug}.${base}`
 }
 
 // La dirección de esta pestaña y el cambio a otra (recarga la página). Van aparte para que las pruebas los simulen.

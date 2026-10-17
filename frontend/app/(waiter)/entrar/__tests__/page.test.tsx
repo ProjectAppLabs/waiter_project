@@ -42,7 +42,7 @@ it('cambia el pase por la sesión del restaurante y lo quita de la dirección', 
 it('el pase de ProjectApp abre la consola', async () => {
   open('#pase=pase-2&destino=plataforma')
   wrap()
-  await waitFor(() => expect(replace).toHaveBeenCalledWith('/plataforma'))
+  await waitFor(() => expect(replace).toHaveBeenCalledWith('/platform'))
   expect(enterPlatform).toHaveBeenCalledWith('pase-2')
   expect(enterPos).not.toHaveBeenCalled()
 })

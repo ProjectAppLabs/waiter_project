@@ -28,7 +28,7 @@ test('ProjectApp apaga Inventario en un local y el POS lo refleja', async ({ pag
     await expect(page.getByRole('alert').filter({ hasText: 'Esta función no está activa en tu plan' })).toContainText('Inventario')
     await expect(api(page, `inventory?restaurant_id=${rid}`)).rejects.toThrow(/403 .*module_inactive/)
     // En la ficha del cliente se ve la excepción del local.
-    await admin.goto('/plataforma/clientes/burger-house')
+    await admin.goto('/platform/clientes/burger-house')
     await expect(admin.getByRole('table', { name: 'Módulos por local' }).getByRole('row').filter({ hasText: 'Inventario' })).toContainText('Excepción del local')
   } finally {
     await platform(admin, 'organizations/burger-house/modules', { method: 'PATCH', data: { key: 'inventario', restaurant_id: rid, clear: true } })

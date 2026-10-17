@@ -16,7 +16,8 @@ test('ProjectApp ve clientes, métricas y cobros', async ({ page }) => {
 // invitación.
 test('la dirección vieja de ProjectApp lleva al inicio único', async ({ page }) => {
   await page.goto('/plataforma/login?codigo=ana.projectapp')
-  await page.waitForURL('**/login?codigo=ana.projectapp')
+  // Exacta: un patrón con «**/login» también aceptaría el paso intermedio /platform/login de la redirección.
+  await page.waitForURL((url) => url.pathname === '/login' && url.search === '?codigo=ana.projectapp')
   await expect(page.getByText(/ana\.projectapp/).first()).toBeVisible()
 })
 
@@ -28,7 +29,7 @@ test('Precios y precios del cliente', async ({ page }) => {
   await expect(page.getByLabel('Precio por local al mes ($)')).toHaveValue(/\d+/)
   await expect(page.getByRole('region', { name: 'Planes del asistente de WhatsApp' }).getByLabel('Nombre del plan').first()).toHaveValue('Inicial')
   await expect(page.getByRole('region', { name: 'Paquetes de recarga' }).getByLabel('Nombre del paquete').first()).toHaveValue(/pedidos/)
-  await page.goto('/plataforma/clientes/frisby-74312')
+  await page.goto('/platform/clientes/frisby-74312')
   await expect(page.getByText('Personalizados')).toBeVisible()
   await expect(page.getByRole('region', { name: 'Recargas' })).toBeVisible()
 })
