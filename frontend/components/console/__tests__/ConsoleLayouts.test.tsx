@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { NextIntlClientProvider } from 'next-intl'
 
 import OrganizationLayout from '@/app/(waiter)/organizacion/layout'
-import PlatformLayout from '@/app/(waiter)/plataforma/layout'
+import PlatformLayout from '@/app/(waiter)/platform/layout'
 import { messages } from '@/lib/i18n/messages'
 
 const mockReplace = jest.fn()
@@ -69,36 +69,36 @@ it('mantiene la consola de la organización reservada al dueño', () => {
 
 // Falla si el drawer permite abrir Clientes, Métricas o Cobros a una cuenta que debe configurar doble factor.
 it('sólo ofrece Seguridad cuando el doble factor es obligatorio y falta activarlo', async () => {
-  mockPathname = '/plataforma/seguridad'
+  mockPathname = '/platform/seguridad'
   mockPlatformState.user.role = 'admin'
   mockPlatformState.user.two_factor_required = true
   wrap(<PlatformLayout><h1>Configura tu doble factor</h1></PlatformLayout>)
   await userEvent.click(screen.getByRole('button', { name: 'Abrir menú' }))
   const menu = within(screen.getByRole('dialog', { name: 'Consola de ProjectApp' }))
-  expect(menu.getByRole('link', { name: 'Seguridad' })).toHaveAttribute('href', '/plataforma/seguridad')
+  expect(menu.getByRole('link', { name: 'Seguridad' })).toHaveAttribute('href', '/platform/seguridad')
   for (const name of ['Clientes', 'Métricas', 'Cobros', 'Precios', 'Equipo de ProjectApp']) expect(menu.queryByRole('link', { name })).toBeNull()
   expect(menu.getByRole('button', { name: 'Cerrar sesión' })).toBeEnabled()
 })
 
 // Falla si abrir directamente una sección protegida evita la redirección obligatoria a Seguridad.
 it('redirige a Seguridad antes de mostrar una sección bloqueada por doble factor', () => {
-  mockPathname = '/plataforma/metricas'
+  mockPathname = '/platform/metricas'
   mockPlatformState.user.role = 'admin'
   mockPlatformState.user.two_factor_required = true
   wrap(<PlatformLayout><h1>Métricas privadas</h1></PlatformLayout>)
-  expect(mockReplace).toHaveBeenCalledWith('/plataforma/seguridad')
+  expect(mockReplace).toHaveBeenCalledWith('/platform/seguridad')
   expect(screen.queryByText('Métricas privadas')).toBeNull()
   expect(screen.queryByRole('button', { name: 'Abrir menú' })).toBeNull()
 })
 
 // Falla si el menú de una cuenta habilitada pierde rutas de plataforma al cambiar de variante.
 it('ofrece las seis secciones originales a una cuenta de plataforma habilitada', async () => {
-  mockPathname = '/plataforma'
+  mockPathname = '/platform'
   wrap(<PlatformLayout><h1>Clientes QA</h1></PlatformLayout>)
   await userEvent.click(screen.getByRole('button', { name: 'Abrir menú' }))
   const menu = within(screen.getByRole('dialog', { name: 'Consola de ProjectApp' }))
-  for (const [name, href] of [['Clientes', '/plataforma'], ['Métricas', '/plataforma/metricas'], ['Cobros', '/plataforma/cobros'],
-    ['Precios', '/plataforma/precios'], ['Equipo de ProjectApp', '/plataforma/equipo'], ['Seguridad', '/plataforma/seguridad']]) {
+  for (const [name, href] of [['Clientes', '/platform'], ['Métricas', '/platform/metricas'], ['Cobros', '/platform/cobros'],
+    ['Precios', '/platform/precios'], ['Equipo de ProjectApp', '/platform/equipo'], ['Seguridad', '/platform/seguridad']]) {
     expect(menu.getByRole('link', { name })).toHaveAttribute('href', href)
   }
 })

@@ -2,7 +2,7 @@ import { act, fireEvent, render as rtlRender, screen, waitFor, within } from '@t
 import { NextIntlClientProvider } from 'next-intl'
 
 import SupportEntry from '@/app/(waiter)/soporte/page'
-import PlatformLayout from '@/app/(waiter)/plataforma/layout'
+import PlatformLayout from '@/app/(waiter)/platform/layout'
 import { AuditView } from '@/components/business/AuditView'
 import { SupportView } from '@/components/business/SupportView'
 import { TeamHoursView } from '@/components/business/TeamHoursView'
@@ -21,7 +21,7 @@ import { usePlatformStore } from '@/lib/stores/platformStore'
 
 const render = (ui: React.ReactElement) => rtlRender(<NextIntlClientProvider locale="es" messages={messages}>{ui}</NextIntlClientProvider>)
 const replace = jest.fn()
-let pathname = '/plataforma'
+let pathname = '/platform'
 jest.mock('next/navigation', () => ({ useRouter: () => ({ replace, push: jest.fn() }), usePathname: () => pathname }))
 jest.mock('@/lib/services/core/audit', () => ({ listAudit: jest.fn(), auditActions: jest.fn() }))
 jest.mock('@/lib/services/core/pos', () => ({ ...jest.requireActual('@/lib/services/core/pos'), listPeople: jest.fn(async () => [{ id: '7', name: 'Sofía', username: 'sofia', email: null, role: 'cashier', restaurant_ids: [], shift: null, status: 'active' }]) }))
@@ -48,7 +48,7 @@ const grant = (over: Partial<SupportGrant> = {}): SupportGrant => ({
 })
 
 beforeEach(() => {
-  jest.clearAllMocks(); pathname = '/plataforma'
+  jest.clearAllMocks(); pathname = '/platform'
   useAuthStore.setState({ support: null })
   jest.mocked(auditActions).mockResolvedValue([{ key: 'product.price', name: 'Cambio de precio' }, { key: 'order.void', name: 'Pedido anulado' }])
 })
@@ -190,10 +190,10 @@ it('activa el doble factor con el QR y muestra los códigos de respaldo', async 
 it('sin el doble factor exigido la consola solo abre Seguridad', async () => {
   usePlatformStore.setState({ user: { id: 'u1', name: 'Ana', username: 'ana', email: 'ana@projectapp.co', role: 'admin', two_factor: false, two_factor_required: true }, hydrated: true, hydrate: jest.fn(async () => undefined) })
   const first = render(<PlatformLayout><p>Clientes</p></PlatformLayout>)
-  await waitFor(() => expect(replace).toHaveBeenCalledWith('/plataforma/seguridad'))
+  await waitFor(() => expect(replace).toHaveBeenCalledWith('/platform/seguridad'))
   expect(screen.queryByText('Clientes')).toBeNull()
   first.unmount()
-  pathname = '/plataforma/seguridad'
+  pathname = '/platform/seguridad'
   render(<PlatformLayout><p>Contenido de seguridad</p></PlatformLayout>)
   const nav = screen.getByRole('navigation', { name: 'Consola de ProjectApp' })
   expect(within(nav).queryByRole('link', { name: /Clientes/ })).toBeNull()

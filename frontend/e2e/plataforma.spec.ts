@@ -28,7 +28,7 @@ test('Precios y precios del cliente', async ({ page }) => {
   await expect(page.getByLabel('Precio por local al mes ($)')).toHaveValue(/\d+/)
   await expect(page.getByRole('region', { name: 'Planes del asistente de WhatsApp' }).getByLabel('Nombre del plan').first()).toHaveValue('Inicial')
   await expect(page.getByRole('region', { name: 'Paquetes de recarga' }).getByLabel('Nombre del paquete').first()).toHaveValue(/pedidos/)
-  await page.goto('/plataforma/clientes/frisby-74312')
+  await page.goto('/platform/clientes/frisby-74312')
   await expect(page.getByText('Personalizados')).toBeVisible()
   await expect(page.getByRole('region', { name: 'Recargas' })).toBeVisible()
 })

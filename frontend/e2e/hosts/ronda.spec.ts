@@ -6,9 +6,9 @@ import { devices, expect, type Browser, type Page } from '@playwright/test'
 import { QA_ORG, qaApi } from '../helpers/ronda'
 import { test } from '../helpers/rondaFixture'
 
-// Waiter es una sola app de Next: el comensal vive en el host menu.* y la landing en el dominio central (proxy.ts y
-// next.config.ts). Chromium resuelve *.localhost a esta máquina, así que menu.localhost:<puerto de la ronda> es el menú
-// del mismo servidor; el dominio central y un Host ajeno se mapean a él con --host-resolver-rules.
+// Waiter es una sola app de Next: el comensal vive en el host menu.*, la landing en el dominio central y la consola en
+// platform.* (proxy.ts y next.config.ts). Chromium resuelve *.localhost a esta máquina, así que menu.localhost:<puerto>
+// es el menú del mismo servidor; el dominio central, la consola y un Host ajeno se mapean a él con --host-resolver-rules.
 const RONDA = new URL(process.env.POS_URL ?? 'http://127.0.0.1:3117')
 const MENU = `http://menu.localhost:${RONDA.port}`
 const CENTRAL = 'http://waiter.projectapp.co'
@@ -23,7 +23,7 @@ const PUBLICO = join(__dirname, '..', '..', 'public')
 test.use({
   launchOptions: {
     executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined,
-    args: [`--host-resolver-rules=MAP waiter.projectapp.co ${RONDA.host}, MAP intruso.example ${RONDA.host}`],
+    args: [`--host-resolver-rules=MAP waiter.projectapp.co ${RONDA.host}, MAP platform.waiter.projectapp.co ${RONDA.host}, MAP intruso.example ${RONDA.host}`],
   },
 })
 
@@ -126,4 +126,22 @@ test('un Host ajeno sólo llega al POS, sin landing, sin comensal y sin prefijos
   expect((await intruso.goto(`${AJENO}/diner/${QA_ORG}/${SEDE.slug}/t/${token}`))?.status(), 'sin prefijo interno').toBe(404)
   expect(await (await intruso.goto(`${AJENO}/sw.js`))?.text()).toBe(readFileSync(join(PUBLICO, 'sw.js'), 'utf8'))
   await intruso.context().close()
+})
+
+// Falla si un enlace viejo a /plataforma deja de llegar a la misma pantalla en /platform, o si el host de la consola
+// (platform.) deja de ser la consola: tomado por una organización llamada «platform», por el dominio central o quedándose
+// en su propio inicio de sesión. Sin sesión, la consola termina en el inicio universal del dominio central.
+test('la consola vive en platform. y sin sesión manda al inicio universal del dominio central', {
+  tag: ['@flow:app-host-routing', '@outcome:success'],
+}, async ({ browser }) => {
+  // quality: allow-no-interaction (el reparto por Host y la redirección de la ruta vieja ocurren antes de cualquier pantalla; lo que se prueba es a dónde lleva cada dirección)
+  const consola = 'http://platform.waiter.projectapp.co'
+  const visitante = await (await browser.newContext({ locale: 'es-CO' })).newPage()
+  // Solo hasta la respuesta: la consola sin sesión se va sola al inicio universal apenas arranca.
+  const respuesta = await visitante.goto(`${consola}/plataforma/metricas`, { waitUntil: 'commit' })
+  expect(respuesta?.request().redirectedFrom()?.url(), 'el enlace viejo se redirige').toBe(`${consola}/plataforma/metricas`)
+  expect(respuesta?.url(), 'a la misma pantalla en la ruta nueva, en el mismo host').toBe(`${consola}/platform/metricas`)
+  await expect(visitante).toHaveURL(`${CENTRAL}/login`)
+  await expect(visitante.getByRole('button', { name: 'Entrar', exact: true })).toBeVisible()
+  await visitante.context().close()
 })

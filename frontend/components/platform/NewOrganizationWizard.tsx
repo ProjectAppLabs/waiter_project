@@ -50,7 +50,7 @@ export function NewOrganizationWizard() {
       plan, ...(admin && { monthly_price: price, pricing }), max_restaurants: Number(maxRestaurants), trial_ends: trialEnds || null, timezone: 'America/Bogota',
       owner: { name: ownerName.trim(), email: ownerEmail.trim().toLowerCase(), username: ownerUser },
     }
-    try { const org = await createOrganization(input); router.replace(`/plataforma/clientes/${org.slug}?nuevo=1`) }
+    try { const org = await createOrganization(input); router.replace(`/platform/clientes/${org.slug}?nuevo=1`) }
     catch (e) { setError(e instanceof CoreError && e.code === 'slug_taken' ? 'Ya existe un cliente con esa dirección. Cambia el slug.' : e instanceof Error ? e.message : 'No se pudo crear el cliente.') }
     finally { setBusy(false) }
   }
@@ -95,7 +95,7 @@ export function NewOrganizationWizard() {
         </>}
         {error && <p role="alert" className="text-danger">{error}</p>}
         <div className="flex justify-between gap-3">
-          <Button type="button" variant="ghost" onClick={() => (step === 0 ? router.push('/plataforma') : setStep(step - 1))}>{step === 0 ? 'Cancelar' : 'Atrás'}</Button>
+          <Button type="button" variant="ghost" onClick={() => (step === 0 ? router.push('/platform') : setStep(step - 1))}>{step === 0 ? 'Cancelar' : 'Atrás'}</Button>
           <Button type="submit" variant="primary" disabled={busy || !stepOk}>{step < 2 ? 'Siguiente' : busy ? 'Creando…' : 'Crear cliente e invitar al dueño'}</Button>
         </div>
       </form>

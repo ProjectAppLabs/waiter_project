@@ -210,11 +210,11 @@ def test_un_codigo_malo_cuenta_contra_todas_las_cuentas_con_codigo():
 
 def test_la_invitacion_de_projectapp_lleva_al_inicio_universal(settings):
     # Falla si la gente de ProjectApp recibe un enlace a la consola en vez de al inicio universal.
-    settings.POS_URL, settings.PLATFORM_URL = 'https://waiter.example.test', 'https://plataforma.waiter.example.test'
+    settings.POS_URL, settings.PLATFORM_URL = 'https://waiter.example.test', 'https://platform.waiter.example.test'
     platform_user(activated=False, username='sofia')
     APIClient().post(A + 'request_code', {'login': 'sofia'}, format='json')
     contenido = mail.outbox[0].alternatives[0].content
-    assert 'https://waiter.example.test/login?codigo=sofia"' in contenido and 'plataforma.' not in contenido
+    assert 'https://waiter.example.test/login?codigo=sofia"' in contenido and 'platform.waiter.example.test' not in contenido
 
 
 def test_desactivar_o_cambiar_la_clave_borra_los_pases_pendientes():

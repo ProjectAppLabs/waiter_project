@@ -48,7 +48,7 @@ def identity(request):
 def invitation_to_retry(identity, settings, monkeypatch):
     """Conserva una invitación previa para comprobar rollback y reintento."""
     settings.POS_URL = 'https://pos.example.test'
-    settings.PLATFORM_URL = 'https://plataforma.example.test'
+    settings.PLATFORM_URL = 'https://platform.example.test'
     person, client, base = identity
     person.name = 'Nombre privado de invitación'
     person.email = 'invitacion.privada@example.test'

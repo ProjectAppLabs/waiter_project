@@ -59,7 +59,7 @@ export function MetricsView() {
                 .map(([k, h, a]) => <SortTh key={k} label={h} sortKey={k} sort={table.sort} onSort={table.toggle} align={a} />)}</tr></thead>
             <tbody>{table.view.map((o) => (
               <tr key={o.slug} className="border-b border-border last:border-0">
-                <td className="px-4 py-3"><Link href={`/plataforma/clientes/${o.slug}`} className="font-semibold hover:text-primary">{o.name}</Link><div className="text-[13px] text-dim">{o.plan}</div></td>
+                <td className="px-4 py-3"><Link href={`/platform/clientes/${o.slug}`} className="font-semibold hover:text-primary">{o.name}</Link><div className="text-[13px] text-dim">{o.plan}</div></td>
                 <td className="px-4 py-3"><StatusPill tone={STATUS[o.status].tone}>{STATUS[o.status].label}</StatusPill></td>
                 <td className="px-4 py-3 text-right tabular">{money(o.monthly_price)}</td>
                 <td className="px-4 py-3 text-right tabular">{money(o.sales)}</td>

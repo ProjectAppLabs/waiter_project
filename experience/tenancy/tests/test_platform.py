@@ -26,9 +26,10 @@ def body(**kwargs):
 
 
 @pytest.mark.parametrize('slug', ['a', 'a'*41, 'Mayuscula', 'con espacio', 'con--guion', '-inicio', 'fin-',
-                                  'plataforma', 'www', 'api', 'menu', 'admin', 'app'])
+                                  'platform', 'plataforma', 'www', 'api', 'menu', 'admin', 'app'])
 def test_invalid_slug(slug):
-    # Falla si se aceptan formatos o identificadores reservados del contrato.
+    # Falla si se aceptan formatos o identificadores reservados del contrato: también el subdominio de la consola
+    # (`platform`) y su nombre viejo (`plataforma`), que una organización podría ocupar.
     with pytest.raises(ValidationError):
         validate_slug(slug)
 

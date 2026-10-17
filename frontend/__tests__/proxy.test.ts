@@ -11,7 +11,7 @@ import { decidir, proxy } from '@/proxy'
 // (experience/tables/models.py:10-11) y el migrado de Odoo, seis alfanuméricos (el validador de las líneas 44-45).
 const MESAS = ['/burger-house/poblado/t/0f1e2d3c4b5a69788796a5b4c3d2e1f0', '/burger-house/poblado/t/Z2XUVG']
 const MENU = ['menu.waiter.projectapp.co', 'menu.localhost:3000']
-const POS = ['burger-house.waiter.projectapp.co', 'plataforma.waiter.projectapp.co', '127.0.0.1:3117', 'localhost:3000', 'frisby.localhost:3000']
+const POS = ['burger-house.waiter.projectapp.co', 'platform.waiter.projectapp.co', '127.0.0.1:3117', 'localhost:3000', 'frisby.localhost:3000']
 // Hosts que nginx no deja pasar (sólo los server_name del kit) con la organización que les asigna la lógica de tenant.
 const AJENOS: [string, string][] = [['intruso.example', 'intruso'], ['intruso.example:8443', 'intruso'], ['waiter.projectapp.co.intruso.example', 'waiter']]
 
@@ -40,8 +40,9 @@ describe('proxy: el host del menú es el comensal', () => {
       expect(decidir('menu.waiter.projectapp.co', ruta)).toEqual({ tipo: 'pasar' })
     })
 
-  // Falla si el host del menú abre una pantalla del POS: /login o /caja siguen siendo rutas del comensal, como antes.
-  it.each(['/login', '/caja', '/plataforma', '/organizacion'])('el menú no abre %s del POS', (ruta) => {
+  // Falla si el host del menú abre una pantalla del POS: /login, /caja o la consola siguen siendo rutas del comensal, como
+  // antes, y la ruta vieja de la consola (/plataforma) tampoco se redirige ahí.
+  it.each(['/login', '/caja', '/platform', '/plataforma', '/organizacion'])('el menú no abre %s del POS', (ruta) => {
     expect(decidir('menu.waiter.projectapp.co', ruta)).toEqual({ tipo: 'sitio', sitio: 'diner' })
   })
 })
@@ -98,6 +99,30 @@ describe('proxy: un Host que nginx no deja pasar', () => {
     const respuesta = proxy(pedido('intruso.example', '/diner/burger-house/poblado/t/Z2XUVG'))
     expect(respuesta.status).toBe(404)
     expect(await respuesta.text()).toBe('Not Found')
+  })
+})
+
+describe('proxy: la ruta vieja de la consola', () => {
+  const VIEJAS = [['/plataforma', '/platform'], ['/plataforma/', '/platform/'], ['/plataforma/clientes/frisby', '/platform/clientes/frisby']]
+
+  // Falla si un enlace o un marcador viejo a /plataforma deja de llegar a la misma pantalla de /platform en cualquier
+  // host del POS (la consola, una organización, una IP o localhost).
+  it.each(POS.flatMap((host) => VIEJAS.map(([vieja, nueva]) => [host, vieja, nueva])))('%s%s va a %s', (host, vieja, nueva) => {
+    expect(decidir(host, vieja)).toEqual({ tipo: 'redirigir', ruta: nueva })
+  })
+
+  // Falla si la redirección se come una ruta que solo empieza parecido o vuelve a mandar a la ruta nueva.
+  it.each(['/plataformas', '/plataforma-vieja', '/platform', '/platform/metricas'])('%s no se redirige', (ruta) => {
+    expect(decidir('platform.waiter.projectapp.co', ruta)).toEqual({ tipo: 'pasar' })
+  })
+
+  // Falla si la redirección pierde la consulta (el código de una invitación vieja) o deja de ser permanente: el navegador
+  // seguiría pidiendo la ruta vieja.
+  it('redirige con 308 y conserva la consulta', () => {
+    const respuesta = proxy(pedido('platform.waiter.projectapp.co', '/plataforma/login?codigo=ana.projectapp'))
+    expect(respuesta.status).toBe(308)
+    const destino = new URL(respuesta.headers.get('location') ?? '')
+    expect(destino.pathname + destino.search).toBe('/platform/login?codigo=ana.projectapp')
   })
 })
 

@@ -31,7 +31,7 @@ export default function EnterWithPass() {
     // Sin pase también pasa por la promesa: el aviso se pinta después de montar, igual en servidor y navegador.
     ;(pass ? (platform ? enterPlatform(pass) : enterPos(pass)) : Promise.reject(new Error(tl('entering.failed'))))
       // `/login` ya sabe a dónde va cada quien: su pantalla de inicio, la consola del dueño o elegir restaurante.
-      .then(() => router.replace(platform ? '/plataforma' : '/login'))
+      .then(() => router.replace(platform ? '/platform' : '/login'))
       .catch((e: unknown) => setError(e instanceof ShiftDeniedError ? e.message
         : e instanceof CoreError && e.code !== 'unreachable' ? e.message : tl('entering.failed')))
   }, [enterPos, enterPlatform, router, tl])

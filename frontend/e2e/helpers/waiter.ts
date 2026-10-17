@@ -63,7 +63,7 @@ export async function signInPlatform(page: Page) {
     await page.getByRole('button', { name: 'Verificar y entrar' }).click()
   }
   await expect(page.getByRole('navigation', { name: 'Consola de ProjectApp' })).toBeVisible()
-  if (page.url().endsWith('/plataforma/seguridad') && await page.getByRole('button', { name: 'Activar doble factor' }).isVisible()) {
+  if (page.url().endsWith('/platform/seguridad') && await page.getByRole('button', { name: 'Activar doble factor' }).isVisible()) {
     await page.getByRole('button', { name: 'Activar doble factor' }).click()
     const secret = (await page.locator('code').first().textContent())?.trim() ?? ''
     saveSecret(secret)
@@ -71,9 +71,9 @@ export async function signInPlatform(page: Page) {
     await page.getByRole('button', { name: 'Activar', exact: true }).click()
     await expect(page.getByRole('region', { name: 'Códigos de respaldo' })).toBeVisible()
     await page.getByRole('button', { name: 'Ya los guardé' }).click()
-    await page.goto('/plataforma')
+    await page.goto('/platform')
   }
-  await page.waitForURL(/\/plataforma$/)
+  await page.waitForURL(/\/platform$/)
 }
 
 // Llamada a la API del POS con la sesión del navegador.
