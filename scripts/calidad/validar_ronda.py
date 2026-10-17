@@ -128,6 +128,21 @@ NEW_TESTS = {
         'experience/experience_app/tests/views/test_detras_del_proxy.py',
         'frontend/components/settings/__tests__/McpKeysForm.test.tsx',
     ],
+    # La consola de ProjectApp en inglés: platform.waiter.projectapp.co/platform, con /plataforma redirigida.
+    'fix/17102026-subdominio-platform': [
+        'experience/experience_app/tests/utils/test_round_validation.py',
+        'experience/accounts/tests/views/test_invitations.py',
+        'frontend/__tests__/proxy.test.ts',
+        'frontend/lib/domain/__tests__/tenant.test.ts',
+        'frontend/app/(waiter)/login/__tests__/page.test.tsx',
+        'frontend/app/(waiter)/entrar/__tests__/page.test.tsx',
+        'frontend/components/business/__tests__/huecos.test.tsx',
+        'frontend/components/console/__tests__/ConsoleLayouts.test.tsx',
+        'frontend/components/platform/__tests__/platform.test.tsx',
+        'frontend/components/platform/__tests__/platform_r4.test.tsx',
+        'frontend/e2e/consolas/ronda.spec.ts',
+        'frontend/e2e/hosts/ronda.spec.ts',
+    ],
 }
 BACKEND = [
     'sales/tests/views/test_cash_moves_idempotency.py',
@@ -153,6 +168,9 @@ BACKEND = [
     'sales/tests/test_operations.py::test_kitchen_only_shows_the_open_shift',
     'sales/tests/test_operations.py::test_kitchen_ticket_carries_the_chosen_options',
     'sales/tests/test_operations.py::test_kitchen_line_and_course_workflow',
+    # La consola en platform.: los slugs reservados y la invitación de ProjectApp, en archivos con deuda previa de la puerta.
+    'tenancy/tests/test_platform.py::test_invalid_slug',
+    'accounts/tests/test_inicio_universal.py::test_la_invitacion_de_projectapp_lleva_al_inicio_universal',
 ]
 # r4: las matrices completas de permisos por rol corren en la combinación (tren y main).
 PERMISSION_MATRICES = [
@@ -169,6 +187,9 @@ POS = [
     'components/payment/__tests__/PaymentModal.test.tsx',
     'app/(waiter)/(pos)/historial/__tests__/page.test.tsx',
     'components/history/__tests__/BillInfo.test.tsx',
+    # La consola en platform.: el service worker de su host y la ruta de cobros, con deuda previa de la puerta.
+    'components/app/__tests__/ServiceWorkerSetup.test.ts',
+    'components/platform/__tests__/billing.test.tsx',
 ]
 LEGACY_GATE = [
     'experience/sales/tests/views/test_cash_moves_idempotency.py',

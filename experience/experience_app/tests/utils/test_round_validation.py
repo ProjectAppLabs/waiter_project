@@ -28,6 +28,7 @@ pytestmark = pytest.mark.django_db
     ('fix/14102026-ronda-en-main', 'test_round_validation.py'),
     ('refactor/14102026-frontend-una-app', 'hosts/ronda.spec.ts'),
     ('fix/14102026-ip-cliente', 'test_detras_del_proxy.py'),
+    ('fix/17102026-subdominio-platform', 'tenant.test.ts'),
 ])
 def test_runner_rechaza_la_ausencia_de_pruebas_obligatorias(monkeypatch, tmp_path, branch, missing):
     """Rechaza una rama o su tren cuando faltan pruebas obligatorias."""
