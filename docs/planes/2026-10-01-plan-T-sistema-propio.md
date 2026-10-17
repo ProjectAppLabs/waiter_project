@@ -993,8 +993,8 @@ Rutas de la plataforma bajo `/api/platform/v1` con la cookie `waiter_platform_si
   `api.`. Una dirección vieja `/plataforma/…` lleva con 308 a la misma pantalla en `/platform/…` y conserva la consulta
   (`frontend/proxy.ts`). `platform` y `plataforma` quedan reservados como slugs (`frontend/lib/domain/tenant.ts`,
   `experience/tenancy/validators.py`): ninguna organización ocupa la dirección nueva ni la vieja. El host `plataforma.`
-  deja de existir (lo retira el despliegue) y `PLATFORM_URL` vale `https://platform.waiter.projectapp.co`; ningún
-  nombre de variable cambia. La lista de reservados del contrato T0 y la decisión de
+  deja de existir: lo retira el despliegue y, si algún servidor todavía lo manda a la app, responde 404
+  (`frontend/proxy.ts`). `PLATFORM_URL` vale `https://platform.waiter.projectapp.co`; ningún nombre de variable cambia. La lista de reservados del contrato T0 y la decisión de
   `docs/planes/2026-10-12-plan-IU-inicio-universal.md` quedan como registro.
 - **Revisado (T3):** el modal de pago carga en cinco entradas seguidas por la URL. La causa probable del «Cargando pedido…» visto en T2 es el límite de seis conexiones por dominio de HTTP/1.1 con varias conexiones de eventos en vivo abiertas en desarrollo; en producción el proxy sirve HTTP/2 y no aplica. Antes: al entrar por la URL
     (recargar lo resuelve; por investigar, posiblemente el doble montaje de React en modo estricto); «Forzar cierre» no

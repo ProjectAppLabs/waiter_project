@@ -63,8 +63,8 @@ Las demás clases de resultado continúan sin prueba calificable en esta ronda; 
 
 | Flujo | Comportamiento y evidencia |
 |---|---|
-| organization-console-navigation | Dueño: abrir/cerrar menú móvil con foco, Restaurantes → Local QA → POS. `frontend/components/console/ConsoleNavigation.tsx:22`; `frontend/app/(waiter)/organizacion/layout.tsx:47`; `frontend/e2e/consolas/ronda.spec.ts:77`. |
-| platform-console-navigation | ProjectApp: abrir/cerrar menú y navegar a Métricas, ver Waiter QA x0 y el periodo. `frontend/app/(waiter)/platform/layout.tsx:28`; `frontend/e2e/consolas/ronda.spec.ts:112`. |
+| organization-console-navigation | Dueño: abrir/cerrar menú móvil con foco, Restaurantes → Local QA → POS. `frontend/components/console/ConsoleNavigation.tsx:22`; `frontend/app/(waiter)/organizacion/layout.tsx:47`; `frontend/e2e/consolas/ronda.spec.ts:86`. |
+| platform-console-navigation | ProjectApp: abrir/cerrar menú y navegar a Métricas, ver Waiter QA x0 y el periodo. `frontend/app/(waiter)/platform/layout.tsx:28`; `frontend/e2e/consolas/ronda.spec.ts:121`. |
 
 El spec declara success/display en los cinco tamaños canónicos, con datos concretos, foco, cierres y espacio útil. El estado de ejecución y el SHA combinado se consultan en docs/audits/improvement-2026-10-08-waiter-r2/README.md; la autoría y los tags no acreditan ejecución. Los resultados error/failure de permisos, módulos, sesión, doble factor y lectura de datos no tienen E2E calificable en esta ronda; los negativos afectados del layout se contrastan en unitarias. El armazón no certifica todos los formularios o tablas de las consolas.
 
@@ -153,22 +153,22 @@ El POS, el comensal y la landing son una sola app de Next en `frontend/`. `proxy
 `next.config.ts` reescribe al prefijo interno (`/diner` o `/landing`) sin cambiar la dirección del navegador. Los casos
 corren contra el build de producción de la ronda (`next start` en 127.0.0.1:3117): el comensal en `menu.localhost`, que
 Chromium resuelve solo, y el dominio central, la consola (`platform.`) y un host ajeno mapeados al mismo servidor con
-`--host-resolver-rules`. La
-mesa del comensal es la 932 de la fixture (`scripts/calidad/seed_ronda.py`); la 931 queda para los pedidos del POS.
+`--host-resolver-rules`. La mesa del comensal es la 932 de la fixture (`scripts/calidad/seed_ronda.py`); la 931 queda
+para los pedidos del POS.
 
 | Flujo | Interacción y resultado concreto | Código y spec asignado |
 |---|---|---|
-| diner-table-entry | El enlace de la mesa con la forma que arma el backend, `<host del menú>/<organización>/<sede>/t/<token>`, sin y con barra final: 200 sin redirección y la dirección intacta; la carta pide el contexto de esa mesa (200), «Omitir introducción» muestra «Waiter QA x0 · Local QA · Mesa 932» y tocar «Plato gravado QA r3» abre su ficha en `/t/<token>/plato/<id>` del mismo host. | `experience/experience_app/services/online_payments.py:134`; `frontend/proxy.ts:42`; `frontend/next.config.ts:40`; `frontend/e2e/hosts/ronda.spec.ts:50` |
-| diner-installed-app | En el host del menú, el service worker queda registrado en `/sw.js` con scope `/` y un solo registro; al volver a la carta lo controla el mismo, sin otro nuevo. `/sw.js` es byte a byte `public/diner/sw.js` y `/manifest.webmanifest` es «Carta del restaurante». | `frontend/app/(diner)/providers.tsx:11`; `frontend/proxy.ts:42`; `frontend/e2e/hosts/ronda.spec.ts:74` |
-| app-host-routing | El dominio central muestra la landing en `/terms`; «política de privacidad» navega a `/privacy` dentro de ella y `/login` es el inicio de sesión del POS. Un host ajeno, aun mandando `x-waiter-sitio: diner`, llega al POS («Waiter · POS») y su `/sw.js`; `/privacy`, el enlace de mesa y `/diner/…` responden 404. La consola vive en `platform.`: el enlace viejo `/plataforma/metricas` llega con 308 a `/platform/metricas` del mismo host y, sin sesión, termina en `/login` del dominio central. | `frontend/proxy.ts:46`; `frontend/proxy.ts:66`; `frontend/proxy.ts:44`; `frontend/lib/domain/tenant.ts:22`; `frontend/e2e/hosts/ronda.spec.ts:100`; `frontend/e2e/hosts/ronda.spec.ts:116`; `frontend/e2e/hosts/ronda.spec.ts:134` |
+| diner-table-entry | El enlace de la mesa con la forma que arma el backend, `<host del menú>/<organización>/<sede>/t/<token>`, sin y con barra final: 200 sin redirección y la dirección intacta; la carta pide el contexto de esa mesa (200), «Omitir introducción» muestra «Waiter QA x0 · Local QA · Mesa 932» y tocar «Plato gravado QA r3» abre su ficha en `/t/<token>/plato/<id>` del mismo host. | `experience/experience_app/services/online_payments.py:134`; `frontend/proxy.ts:48`; `frontend/next.config.ts:40`; `frontend/e2e/hosts/ronda.spec.ts:50` |
+| diner-installed-app | En el host del menú, el service worker queda registrado en `/sw.js` con scope `/` y un solo registro; al volver a la carta lo controla el mismo, sin otro nuevo. `/sw.js` es byte a byte `public/diner/sw.js` y `/manifest.webmanifest` es «Carta del restaurante». | `frontend/app/(diner)/providers.tsx:11`; `frontend/proxy.ts:48`; `frontend/e2e/hosts/ronda.spec.ts:74` |
+| app-host-routing | El dominio central muestra la landing en `/terms`; «política de privacidad» navega a `/privacy` dentro de ella y `/login` es el inicio de sesión del POS. Un host ajeno, aun mandando `x-waiter-sitio: diner`, llega al POS («Waiter · POS») y su `/sw.js`; `/privacy`, el enlace de mesa y `/diner/…` responden 404. La consola vive en `platform.`: el enlace viejo `/plataforma/metricas` llega con un 308 relativo a `/platform/metricas` del mismo host y, sin sesión, termina en `/login` del dominio central; el host viejo `plataforma.` responde 404. | `frontend/proxy.ts:46`; `frontend/proxy.ts:50`; `frontend/proxy.ts:52`; `frontend/proxy.ts:63`; `frontend/proxy.ts:72`; `frontend/lib/domain/tenant.ts:22`; `frontend/e2e/hosts/ronda.spec.ts:100`; `frontend/e2e/hosts/ronda.spec.ts:116`; `frontend/e2e/hosts/ronda.spec.ts:135` |
 
 | Flujo y resultado | Prueba calificable | Límite del guion |
 |---|---|---|
 | diner-table-entry · success | `frontend/e2e/hosts/ronda.spec.ts` | Mesa con token nuevo (32 hexadecimales) en un teléfono Pixel 7. No acredita los tokens migrados de Odoo (seis alfanuméricos), que sólo cubre la prueba unitaria del proxy, ni pedir o pagar. |
 | diner-installed-app · success | `frontend/e2e/hosts/ronda.spec.ts` | Un registro hecho en la misma corrida; no un teléfono con el service worker de la app vieja del comensal, que tenía la misma ruta y el mismo scope. |
-| app-host-routing · success | `frontend/e2e/hosts/ronda.spec.ts` | `/terms`, `/privacy` y `/login` del dominio central; no `/` ni `/data-deletion`, que cubre la prueba unitaria del proxy. La consola, solo sin sesión: no el canje del pase ni la consola con sesión (`frontend/app/(waiter)/login/__tests__/page.test.tsx`, `frontend/e2e/consolas/ronda.spec.ts`), ni el vhost o el certificado de `platform.`. |
+| app-host-routing · success | `frontend/e2e/hosts/ronda.spec.ts` | `/terms`, `/privacy` y `/login` del dominio central; no `/` ni `/data-deletion`, que cubre la prueba unitaria del proxy. La consola, solo sin sesión: no el canje del pase ni la consola con sesión (`frontend/app/(waiter)/login/__tests__/page.test.tsx`, `frontend/e2e/consolas/ronda.spec.ts`), ni el vhost o el certificado de `platform.`. El 404 del host viejo `plataforma.` solo lo cubre la prueba unitaria del proxy. |
 | app-host-routing · failure | `frontend/e2e/hosts/ronda.spec.ts` | Un host ajeno (`intruso.example`). No acredita la configuración de nginx, que es la que no deja pasar esos hosts. |
 
 Las reglas de decisión, una por una (QR con y sin barra, archivos del menú, rutas compartidas, landing, hosts del POS,
-prefijos internos, kit, el encabezado que manda el cliente y la ruta vieja de la consola), están en
+prefijos internos, kit, el encabezado que manda el cliente y la ruta y el host viejos de la consola), están en
 `frontend/__tests__/proxy.test.ts`.

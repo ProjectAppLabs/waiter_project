@@ -16,7 +16,8 @@ test('ProjectApp ve clientes, métricas y cobros', async ({ page }) => {
 // invitación.
 test('la dirección vieja de ProjectApp lleva al inicio único', async ({ page }) => {
   await page.goto('/plataforma/login?codigo=ana.projectapp')
-  await page.waitForURL('**/login?codigo=ana.projectapp')
+  // Exacta: un patrón con «**/login» también aceptaría el paso intermedio /platform/login de la redirección.
+  await page.waitForURL((url) => url.pathname === '/login' && url.search === '?codigo=ana.projectapp')
   await expect(page.getByText(/ana\.projectapp/).first()).toBeVisible()
 })
 

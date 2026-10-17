@@ -102,14 +102,21 @@ describe('proxy: un Host que nginx no deja pasar', () => {
   })
 })
 
-describe('proxy: la ruta vieja de la consola', () => {
+describe('proxy: la ruta y el host viejos de la consola', () => {
   const VIEJAS = [['/plataforma', '/platform'], ['/plataforma/', '/platform/'], ['/plataforma/clientes/frisby', '/platform/clientes/frisby']]
 
   // Falla si un enlace o un marcador viejo a /plataforma deja de llegar a la misma pantalla de /platform en cualquier
-  // host del POS (la consola, una organización, una IP o localhost).
-  it.each(POS.flatMap((host) => VIEJAS.map(([vieja, nueva]) => [host, vieja, nueva])))('%s%s va a %s', (host, vieja, nueva) => {
+  // host fuera del menú (la consola, una organización, una IP, localhost, el dominio central o un host ajeno).
+  it.each([...POS, 'waiter.projectapp.co', 'intruso.example'].flatMap((host) => VIEJAS.map(([vieja, nueva]) => [host, vieja, nueva])))('%s%s va a %s', (host, vieja, nueva) => {
     expect(decidir(host, vieja)).toEqual({ tipo: 'redirigir', ruta: nueva })
   })
+
+  // Falla si el host viejo de la consola (plataforma.) vuelve a servir algo: pasaría por dominio central, con la landing y
+  // un inicio de sesión que lleva el pase a platform.plataforma….
+  it.each(['plataforma.waiter.projectapp.co', 'plataforma.localhost:3000'].flatMap((host) => ['/', '/login', '/plataforma', '/platform', '/sw.js'].map((ruta) => [host, ruta])))(
+    '%s%s responde 404', (host, ruta) => {
+      expect(decidir(host, ruta)).toEqual({ tipo: 'no-encontrado' })
+    })
 
   // Falla si la redirección se come una ruta que solo empieza parecido o vuelve a mandar a la ruta nueva.
   it.each(['/plataformas', '/plataforma-vieja', '/platform', '/platform/metricas'])('%s no se redirige', (ruta) => {

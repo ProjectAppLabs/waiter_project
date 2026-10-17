@@ -128,9 +128,10 @@ test('un Host ajeno sólo llega al POS, sin landing, sin comensal y sin prefijos
   await intruso.context().close()
 })
 
-// Falla si un enlace viejo a /plataforma deja de llegar a la misma pantalla en /platform, o si el host de la consola
-// (platform.) deja de ser la consola: tomado por una organización llamada «platform», por el dominio central o quedándose
-// en su propio inicio de sesión. Sin sesión, la consola termina en el inicio universal del dominio central.
+// Falla si un enlace viejo a /plataforma deja de llegar a la misma pantalla en /platform con una redirección permanente
+// y relativa, o si el host de la consola (platform.) deja de ser la consola: tomado por una organización llamada
+// «platform», por el dominio central o quedándose en su propio inicio de sesión. Sin sesión, la consola termina en el
+// inicio universal del dominio central.
 test('la consola vive en platform. y sin sesión manda al inicio universal del dominio central', {
   tag: ['@flow:app-host-routing', '@outcome:success'],
 }, async ({ browser }) => {
@@ -141,6 +142,10 @@ test('la consola vive en platform. y sin sesión manda al inicio universal del d
   const respuesta = await visitante.goto(`${consola}/plataforma/metricas`, { waitUntil: 'commit' })
   expect(respuesta?.request().redirectedFrom()?.url(), 'el enlace viejo se redirige').toBe(`${consola}/plataforma/metricas`)
   expect(respuesta?.url(), 'a la misma pantalla en la ruta nueva, en el mismo host').toBe(`${consola}/platform/metricas`)
+  // Relativa: detrás de nginx, una dirección absoluta podría salir con el host o el esquema internos del servidor.
+  const salto = await respuesta?.request().redirectedFrom()?.response()
+  expect(salto?.status(), 'redirección permanente').toBe(308)
+  expect(salto?.headers().location, 'dirección relativa').toBe('/platform/metricas')
   await expect(visitante).toHaveURL(`${CENTRAL}/login`)
   await expect(visitante.getByRole('button', { name: 'Entrar', exact: true })).toBeVisible()
   await visitante.context().close()

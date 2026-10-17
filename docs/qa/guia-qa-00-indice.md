@@ -1,7 +1,7 @@
 # Guía QA Waiter — 0. Índice, lineamientos y datos de prueba
 
 **Producto:** Waiter · ProjectApp
-**Fecha de actualización:** 12 de octubre de 2026 (inicio de sesión universal; antes: MySQL, devoluciones, impresión, sin internet, modo de emergencia, módulos, precios y recargas)
+**Fecha de actualización:** 17 de octubre de 2026 (la consola de ProjectApp en `/platform`; antes: inicio de sesión universal, MySQL, devoluciones, impresión, sin internet, modo de emergencia, módulos, precios y recargas)
 **Estado de la entrega:** POS, consola del dueño, cocina, menú del comensal y consola de ProjectApp en desarrollo continuo. Esta guía es un documento vivo: cada plan que se termina añade o corrige casos.
 **Ambiente:** desarrollo compartido (ver «Direcciones»). Nada de lo que se haga aquí toca dinero real ni a clientes reales.
 

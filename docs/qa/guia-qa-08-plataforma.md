@@ -1,6 +1,6 @@
 # Guía QA Waiter — 8. ProjectApp (consola de la plataforma)
 
-**Aplica a:** la gente de ProjectApp, roles **Administra** (`admin`) y **Opera** (`operator`). **Dirección:** `http://localhost:3000/login`, el inicio de sesión universal de todos (en producción `https://waiter.projectapp.co/login`, que lleva a `https://platform.waiter.projectapp.co`; la antigua `/plataforma/login` lleva allí y cualquier dirección vieja `/plataforma/…` lleva a la misma pantalla en `/platform/…`).
+**Aplica a:** la gente de ProjectApp, roles **Administra** (`admin`) y **Opera** (`operator`). **Dirección:** `http://localhost:3000/login`, el inicio de sesión universal de todos (en producción `https://waiter.projectapp.co/login`, que lleva a `https://platform.waiter.projectapp.co`; la antigua `/plataforma/login` lleva allí y cualquier dirección vieja `/plataforma/…` lleva a la misma pantalla en `/platform/…`; el host viejo `plataforma.waiter.projectapp.co` ya no existe).
 **Fecha de actualización:** 17 de octubre de 2026 (la consola en inglés: `platform.waiter.projectapp.co/platform`)
 
 ## 1. Qué vamos a comprobar
@@ -41,7 +41,7 @@ Que ProjectApp da de alta a un cliente nuevo en tres pasos sin tocar scripts, in
 1. Entre en `/login` (el mismo inicio del POS) con `ana.projectapp`. Pruebe también abrir `/plataforma/login`: debe llevar a `/login`; y, ya dentro, `/plataforma/metricas`: debe abrir Métricas en `/platform/metricas`.
 2. Revise la tabla: cliente, dueño, plan, precio, restaurantes usados/límite, estado (Activa, En prueba, Suspendida) y alta. Use los filtros Todos, Activas, En prueba, Suspendidas y «Dueño sin activar». Ordene y busque.
 
-**Resultado esperado:** el inicio reconoce la cuenta de ProjectApp y abre la consola en `/platform`; Frisby 74312 aparece con 2/2 restaurantes y su dueña activa; «¿Olvidaste tu contraseña?» funciona igual que en el POS (A-04).
+**Resultado esperado:** el inicio reconoce la cuenta de ProjectApp y abre la consola en `/platform`; `/plataforma/login` lleva a `/login` con el código y `/plataforma/metricas` abre Métricas en `/platform/metricas`; Frisby 74312 aparece con 2/2 restaurantes y su dueña activa; «¿Olvidaste tu contraseña?» funciona igual que en el POS (A-04).
 
 ### P-02 — Nuevo cliente en tres pasos, slug y dirección
 

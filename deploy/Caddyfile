@@ -47,7 +47,7 @@ api.{$BASE_DOMAIN} {
 *.{$BASE_DOMAIN} {
 	import tls_wildcard
 	encode zstd gzip
-	# El POS decide la organización por el subdominio; `platform` abre la consola de ProjectApp.
+	# El POS decide la organización por el subdominio; `platform` abre la consola de ProjectApp y `plataforma`, su nombre viejo, responde 404.
 	reverse_proxy pos:3000 {
 		header_up X-Forwarded-Proto {scheme}
 	}

@@ -287,7 +287,7 @@
         "visitante"
       ],
       "priority": "P1",
-      "description": "El dominio central muestra la landing en sus páginas, con su navegación interna (Condiciones → Privacidad), y deja /login al POS. Un Host que nginx no deja pasar sólo llega al POS con la lógica de tenant: sin landing, sin comensal y sin los prefijos internos /diner y /landing, aunque el cliente mande el encabezado x-waiter-sitio.",
+      "description": "El dominio central muestra la landing en sus páginas, con su navegación interna (Condiciones → Privacidad), y deja /login al POS. Un Host que nginx no deja pasar sólo llega al POS con la lógica de tenant: sin landing, sin comensal y sin los prefijos internos /diner y /landing, aunque el cliente mande el encabezado x-waiter-sitio. La consola de ProjectApp vive en platform.: un enlace viejo a /plataforma llega con una redirección permanente y relativa a la misma pantalla en /platform y, sin sesión, termina en el inicio universal del dominio central.",
       "outcomes": [
         "success",
         "failure"

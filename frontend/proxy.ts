@@ -27,6 +27,11 @@ export const esHostDelMenu = (host: string): boolean => {
   return labels.length >= 2 && labels[0] === 'menu'
 }
 
+// El host viejo de la consola (plataforma.) dejó de existir el 17-10-2026. Si algún servidor todavía lo manda acá,
+// responde 404: si no, pasaría por dominio central, con la landing y un inicio de sesión que lleva el pase a
+// platform.plataforma….
+const esHostViejoDeLaConsola = (host: string): boolean => host.split(':')[0].toLowerCase().startsWith('plataforma.')
+
 // El dominio central con nombre: sin organización, sin la consola y sin el menú. Una IP o «localhost» a secas siguen
 // siendo del POS (el desarrollo y las tabletas de la LAN entran por ahí).
 export const esCentral = (host: string): boolean =>
@@ -38,6 +43,7 @@ export function decidir(host: string, pathname: string, desarrollo = false): Dec
   // La galería del kit es una herramienta local: el servidor publicado no sirve esta ruta.
   if (!desarrollo && (pathname === '/kit' || pathname.startsWith('/kit/'))) return { tipo: 'no-encontrado' }
   if (INTERNO.test(pathname)) return { tipo: 'no-encontrado' }
+  if (esHostViejoDeLaConsola(host)) return { tipo: 'no-encontrado' }
   if (esHostDelMenu(host)) {
     return COMPARTIDO.some((prefijo) => pathname.startsWith(prefijo)) ? { tipo: 'pasar' } : { tipo: 'sitio', sitio: 'diner' }
   }
