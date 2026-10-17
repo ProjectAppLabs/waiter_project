@@ -1,6 +1,6 @@
 # Waiter en producción, una sola máquina (plan T, contrato M). Un subdominio por organización:
 #   <org>.waiter.projectapp.co        POS y consola del dueño
-#   plataforma.waiter.projectapp.co    consola de ProjectApp
+#   platform.waiter.projectapp.co      consola de ProjectApp
 #   menu.waiter.projectapp.co          menú del comensal (/<org>/<sede>/t/<token>)
 #   api.waiter.projectapp.co           MCP del diseño y webhooks de pagos
 # Lo arranca deploy/README.md («Primer despliegue»). Variables en deploy/.env.prod (copia de .env.prod.example).
