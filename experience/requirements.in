@@ -14,7 +14,7 @@ freezegun==1.5.5
 ruff==0.16.4
 
 # Conversión de fotos del catálogo.
-Pillow==12.3.0
+Pillow==13.0.0
 
 # Cifrado de las credenciales de pago (experience_app/payments/crypto.py).
 cryptography==46.0.7
