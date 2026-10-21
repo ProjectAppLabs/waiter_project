@@ -1,5 +1,5 @@
 # Experiencia del comensal (bloque 3) — recorte de la plantilla del fleet (mismos pines).
-Django==6.1
+Django==6.1.1
 djangorestframework==3.18.0
 django-cors-headers==4.9.0
 python-dotenv==1.2.3
@@ -17,7 +17,7 @@ ruff==0.16.4
 Pillow==12.3.0
 
 # Cifrado de las credenciales de pago (experience_app/payments/crypto.py).
-cryptography==46.0.5
+cryptography==46.0.7
 
 # MySQL, el estándar de los servidores de ProjectApp. Compilarlo necesita build-essential, pkg-config y
 # default-libmysqlclient-dev (ver deploy/experience.Dockerfile y el README).
